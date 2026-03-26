@@ -68,16 +68,8 @@ def neo4j_instance(
 
 @pytest.fixture(scope="session")
 def mongo_replica_set_instance() -> Iterator[MongoTemporaryInstanceReplicaSet]:
-    """One MongoDB replica-set container per test session (i.e. per pytest-xdist worker).
-
-    Used by queue tests. Uses get_instance() so that EduidQueueTestCase.setup_queue,
-    which calls MongoTemporaryInstanceReplicaSet.get_instance() directly, gets the same
-    container this fixture started — and teardown is handled here, not by atexit.
-
-    TODO: Migrate setup_queue to accept this fixture as a parameter, then switch back
-          to direct instantiation: MongoTemporaryInstanceReplicaSet(max_retry_seconds=60)
-    """
-    instance = MongoTemporaryInstanceReplicaSet.get_instance(max_retry_seconds=60)
+    """One MongoDB replica-set container per test session (i.e. per pytest-xdist worker)."""
+    instance = MongoTemporaryInstanceReplicaSet(max_retry_seconds=60)
     yield instance
     instance.shutdown()
 
