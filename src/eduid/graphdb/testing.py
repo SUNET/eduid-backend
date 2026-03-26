@@ -70,15 +70,21 @@ class Neo4jTemporaryInstance(EduidTemporaryInstance):
         ]
 
     def setup_conn(self) -> bool:
+        # Create a candidate connection without overwriting self._conn yet — the driver is lazy
+        # so we must run a query to confirm the server is actually ready.
+        db_uri = f"bolt://{self.DEFAULT_USERNAME}:{self.DEFAULT_PASSWORD}@{self.host}:{self.bolt_port}"
+        candidate = Neo4jDB(db_uri=db_uri, config={"encrypted": False})
         try:
-            db_uri = f"bolt://{self.DEFAULT_USERNAME}:{self.DEFAULT_PASSWORD}@{self.host}:{self.bolt_port}"
-            self._conn = Neo4jDB(db_uri=db_uri, config={"encrypted": False})
-            # Run a query to check if the server is ready as the connection setup above is now lazy
-            with self._conn.driver.session() as session:
+            with candidate.driver.session() as session:
                 session.run("MATCH (n) RETURN n")
         except (ServiceUnavailable, ConnectionError) as e:
             logger.error(e)
+            candidate.close()  # release driver threads from this failed attempt
             return False
+        # Success — close any previous attempt and store the working connection
+        if self._conn is not None:
+            self._conn.close()
+        self._conn = candidate
         return True
 
     @property
