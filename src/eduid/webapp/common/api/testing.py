@@ -102,7 +102,7 @@ class EduidAPITestCase[T: EduIDBaseApp](CommonTestCase):
     copy_user_to_private: ClassVar[bool] = False
 
     @pytest.fixture(autouse=True)
-    def setup_api(self, setup_common: None) -> Iterator[None]:
+    def setup_api(self, setup_common: None, redis_instance: RedisTemporaryInstance) -> Iterator[None]:
         _users = UserFixtures()
         _standard_test_users = {
             "hubba-bubba": _users.new_user_example,
@@ -120,7 +120,7 @@ class EduidAPITestCase[T: EduIDBaseApp](CommonTestCase):
         self.test_user_data = self.test_user.to_dict()
         self.test_user_eppn = self.test_user_data["eduPersonPrincipalName"]
 
-        self.redis_instance = RedisTemporaryInstance.get_instance()
+        self.redis_instance = redis_instance
         test_config = deepcopy(TEST_CONFIG)
         self.settings = self.update_config(test_config)
         self.settings["redis_config"] = RedisConfig(host="localhost", port=self.redis_instance.port)

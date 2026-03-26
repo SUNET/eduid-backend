@@ -8,8 +8,10 @@ MYPY_STRICT= --strict \
 			 --implicit-reexport \
 			 --allow-untyped-calls
 
+PYTEST_WORKERS ?= 2  # override with e.g. make test PYTEST_WORKERS=4; use 1 for serial fallback; avoid 'auto' (OOMs on large machines)
+
 test:
-	PYTHONPATH=$(SRCDIR) pytest -vvv -ra --log-cli-level DEBUG
+	PYTHONPATH=$(SRCDIR) pytest -vvv -ra --log-cli-level DEBUG -n $(PYTEST_WORKERS) --dist=loadfile
 
 reformat:
 	# sort imports and remove unused imports

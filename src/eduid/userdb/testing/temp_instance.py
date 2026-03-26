@@ -119,7 +119,7 @@ class EduidTemporaryInstance(ABC):
 
             if container_name:
                 # Stop the container - docker stop handles graceful shutdown with SIGTERM
-                subprocess.run(["docker", "stop", container_name], check=False, capture_output=True)
+                subprocess.run(["docker", "stop", "-t", "1", container_name], check=False, capture_output=True)
 
                 # Wait for the docker run process to exit (it should exit when container stops)
                 try:

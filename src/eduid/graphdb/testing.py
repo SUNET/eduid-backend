@@ -126,8 +126,8 @@ class Neo4jTestCase:
     neo4jdb: Neo4jDB
 
     @pytest.fixture(autouse=True)
-    def setup_neo4j(self) -> None:
-        self.neo4j_instance = Neo4jTemporaryInstance.get_instance(max_retry_seconds=60)
+    def setup_neo4j(self, neo4j_instance: Neo4jTemporaryInstance) -> None:
+        self.neo4j_instance = neo4j_instance
         self.neo4jdb = self.neo4j_instance.conn
 
     @pytest.fixture(autouse=True)
