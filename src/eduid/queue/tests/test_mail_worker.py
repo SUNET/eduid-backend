@@ -29,7 +29,9 @@ class TestMailQueueWorker(IsolatedWorkerDBMixin, MailQueueWorker):
 
 class TestMailWorker(QueueAsyncioTest):
     @pytest_asyncio.fixture(autouse=True)
-    async def setup_mail_worker(self, setup_asyncio_queue: None, smtpdfix_instance: SMPTDFixTemporaryInstance) -> AsyncIterator[None]:
+    async def setup_mail_worker(
+        self, setup_asyncio_queue: None, smtpdfix_instance: SMPTDFixTemporaryInstance
+    ) -> AsyncIterator[None]:
         smtpdfix = smtpdfix_instance
         environ["WORKER_NAME"] = "Test Mail Worker 1"
 
