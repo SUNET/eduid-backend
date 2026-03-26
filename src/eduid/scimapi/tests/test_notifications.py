@@ -1,11 +1,15 @@
 from typing import Any
 from uuid import uuid4
 
+import pytest
+
 from eduid.common.models.scim_base import SCIMResourceType, SCIMSchema
 from eduid.common.utils import make_etag
 from eduid.queue.db.queue_item import QueueItem
 from eduid.scimapi.testing import ScimApiTestCase
 from eduid.userdb.scimapi import EventLevel
+
+pytestmark = pytest.mark.xdist_group("neo4j")
 
 __author__ = "lundberg"
 

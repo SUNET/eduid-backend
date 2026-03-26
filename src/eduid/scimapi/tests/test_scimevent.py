@@ -14,6 +14,8 @@ from eduid.scimapi.models.event import EventResponse, NutidEventExtensionV1
 from eduid.scimapi.testing import ScimApiTestCase
 from eduid.userdb.scimapi import EventLevel, ScimApiEvent
 
+pytestmark = pytest.mark.xdist_group("neo4j")
+
 
 @dataclass
 class EventApiResult:

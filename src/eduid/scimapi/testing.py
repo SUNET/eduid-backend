@@ -39,8 +39,8 @@ class BaseDBTestCase:
     mongo_uri: str
 
     @pytest.fixture(autouse=True)
-    def setup_mongo(self) -> None:
-        self.mongodb_instance = MongoTemporaryInstance.get_instance()
+    def setup_mongo(self, mongo_instance: MongoTemporaryInstance) -> None:
+        self.mongodb_instance = mongo_instance
         self.mongo_uri = self.mongodb_instance.uri
 
     def _get_config(self) -> dict[str, Any]:
@@ -78,8 +78,8 @@ class MongoNeoTestCase(BaseDBTestCase):
         return config
 
     @pytest.fixture(autouse=True)
-    def setup_neo4j(self) -> None:
-        self.neo4j_instance = Neo4jTemporaryInstance.get_instance()
+    def setup_neo4j(self, neo4j_instance: Neo4jTemporaryInstance) -> None:
+        self.neo4j_instance = neo4j_instance
         self.neo4j_uri = (
             f"bolt://{self.neo4j_instance.DEFAULT_USERNAME}:{self.neo4j_instance.DEFAULT_PASSWORD}"
             f"@localhost:{self.neo4j_instance.bolt_port}"
@@ -130,6 +130,12 @@ class ScimApiTestCase(MongoNeoTestCase):
         if self.groupdb:
             self.groupdb._drop_whole_collection()
             self.neo4j_instance.purge_db()
+
+        # Close all Neo4j driver connections — each data owner has its own driver
+        # with background threads. Without explicit close they outlive the test session
+        # and generate "I/O operation on closed file" noise on stderr.
+        for dbs in self.context._dbs.values():
+            dbs.groupdb.graphdb.db.close()
 
     def _get_config(self) -> dict:
         config = super()._get_config()
