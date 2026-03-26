@@ -26,6 +26,7 @@ class TestGatherSkvUsers(CleanerQueueTestCase):
     @pytest.fixture(autouse=True)
     def setup(self, setup_cleaner: None) -> Iterator[None]:
         self.amdb = AmDB(db_uri=self.mongo_uri)
+        self.amdb._drop_whole_collection()  # clean any leftovers from other tests on this worker
         self.context = cast(Context, MagicMock(spec=Context))
         self.context.central_db = self.amdb
         self.context.cleaner_queue = self.cleaner_queue_db

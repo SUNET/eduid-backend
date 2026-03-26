@@ -1,11 +1,14 @@
 from typing import Any
 
+import pytest
 from neo4j import basic_auth
 
 from eduid.graphdb.db import BaseGraphDB
 from eduid.graphdb.testing import Neo4jTestCase
 
 __author__ = "lundberg"
+
+pytestmark = pytest.mark.xdist_group("neo4j")
 
 
 class TestNeo4jDB(Neo4jTestCase):
@@ -20,7 +23,7 @@ class TestNeo4jDB(Neo4jTestCase):
 
 
 class TestBaseGraphDB(Neo4jTestCase):
-    class TestDB(BaseGraphDB):
+    class ConcreteDB(BaseGraphDB):
         def __init__(self, db_uri: str, config: dict[str, Any] | None = None) -> None:
             super().__init__(db_uri, config=config)
 
@@ -33,7 +36,7 @@ class TestBaseGraphDB(Neo4jTestCase):
         db_uri = self.neo4jdb.db_uri
 
         config = {"encrypted": False, "auth": basic_auth("neo4j", "testingtesting")}
-        test_db = self.TestDB(db_uri=db_uri, config=config)
+        test_db = self.ConcreteDB(db_uri=db_uri, config=config)
         with test_db._db.driver.session() as session:
             session.run("CREATE (n:Test $props)", props={"name": "test node", "testing": True})
         with test_db._db.driver.session() as session:

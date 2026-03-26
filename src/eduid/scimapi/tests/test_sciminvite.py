@@ -23,6 +23,8 @@ from eduid.userdb.scimapi.invitedb import ScimApiInvite
 from eduid.userdb.signup import Invite as SignupInvite
 from eduid.userdb.signup import InviteMailAddress, InvitePhoneNumber, InviteType, SCIMReference
 
+pytestmark = pytest.mark.xdist_group("neo4j")
+
 logger = logging.getLogger(__name__)
 
 

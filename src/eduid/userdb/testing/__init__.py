@@ -91,10 +91,10 @@ class MongoTestCase:
     """
 
     @pytest.fixture(autouse=True)
-    def setup_mongo(self) -> Iterator[None]:
+    def setup_mongo(self, mongo_instance: MongoTemporaryInstance) -> Iterator[None]:
         self._init_logging()
 
-        self.tmp_db = MongoTemporaryInstance.get_instance()
+        self.tmp_db = mongo_instance
         assert isinstance(self.tmp_db, MongoTemporaryInstance)  # please mypy
         self.amdb = AmDB(self.tmp_db.uri)
 
@@ -110,7 +110,6 @@ class MongoTestCase:
 
         for userdoc in self.amdb._get_all_docs():
             assert User.from_dict(data=userdoc)
-        self._reset_databases()
 
     def _init_logging(self) -> None:
         # Only initialize logging once to avoid creating multiple handlers
@@ -151,10 +150,10 @@ class AsyncMongoTestCase:
     """
 
     @pytest.fixture(autouse=True)
-    def setup_async_mongo(self) -> Iterator[None]:
+    def setup_async_mongo(self, mongo_instance: MongoTemporaryInstance) -> Iterator[None]:
         self._init_logging()
 
-        self.tmp_db = MongoTemporaryInstance.get_instance()
+        self.tmp_db = mongo_instance
         assert isinstance(self.tmp_db, MongoTemporaryInstance)  # please mypy
 
         logger.info("Resetting all databases for new tests")

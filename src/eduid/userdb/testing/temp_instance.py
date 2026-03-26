@@ -107,8 +107,10 @@ class EduidTemporaryInstance(ABC):
         return _output
 
     def shutdown(self) -> None:
-        if logger.handlers:
-            logger.debug(f"{self} output at shutdown:\n{self.output}")
+        if getattr(self, "_shutdown_done", False):
+            return  # atexit and fixture teardown both call shutdown(); only run once
+        self._shutdown_done = True
+        logger.debug(f"{self} shutting down (log at {self._logfile.name})")
         if self._process:
             # Get container name from command
             container_name = None
@@ -118,19 +120,15 @@ class EduidTemporaryInstance(ABC):
                     break
 
             if container_name:
-                # Stop the container - docker stop handles graceful shutdown with SIGTERM
-                subprocess.run(["docker", "stop", container_name], check=False, capture_output=True)
-
-                # Wait for the docker run process to exit (it should exit when container stops)
+                # Kill the docker run process directly — much faster than docker stop,
+                # which waits ~12s for Docker's internal cleanup even with -t 1.
+                # With --rm, Docker cleans up the container when the process exits.
+                self._process.kill()
                 try:
-                    self._process.wait(timeout=10)
+                    self._process.wait(timeout=5)
                 except subprocess.TimeoutExpired:
-                    logger.warning("Docker run process didn't exit, terminating it")
-                    self._process.terminate()
                     self._process.wait()
 
-        # Flush the logfile but don't close it - closing it causes "ValueError: I/O operation on closed file"
-        # errors when logging handlers try to write after shutdown is called
         if hasattr(self, "_logfile") and self._logfile and not self._logfile.closed:
             self._logfile.flush()
 

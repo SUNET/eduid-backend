@@ -1,7 +1,11 @@
+import pytest
+
 from eduid.common.config.parsers import load_config
 from eduid.scimapi.config import ScimApiConfig
 from eduid.scimapi.context import Context
 from eduid.scimapi.testing import ScimApiTestCase
+
+pytestmark = pytest.mark.xdist_group("neo4j")
 
 
 class TestContext(ScimApiTestCase):
