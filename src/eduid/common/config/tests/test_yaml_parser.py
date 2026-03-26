@@ -1,5 +1,5 @@
 import os
-import unittest
+from collections.abc import Iterator
 from pathlib import PurePath
 from typing import ClassVar
 
@@ -23,12 +23,14 @@ class TestConfig(RootConfig):
 # TODO: test decryption
 
 
-class TestInitConfig(unittest.TestCase):
-    def setUp(self) -> None:
+class TestInitConfig:
+    @pytest.fixture(autouse=True)
+    def setup(self) -> Iterator[None]:
+        saved = os.environ.copy()
         self.data_dir = PurePath(__file__).with_name("data")
-
-    def tearDown(self) -> None:
+        yield
         os.environ.clear()
+        os.environ.update(saved)
 
     def test_YamlConfig(self) -> None:
         os.environ["EDUID_CONFIG_NS"] = "/eduid/test/app_one"

@@ -1,6 +1,4 @@
 import datetime
-import unittest
-from unittest import TestCase
 
 import pytest
 from pydantic import ValidationError
@@ -47,9 +45,9 @@ _three_dict = {
 }
 
 
-class TestIdentityList(unittest.TestCase):
-    def setUp(self) -> None:
-        self.maxDiff = None  # Make pytest show full diffs
+class TestIdentityList:
+    @pytest.fixture(autouse=True)
+    def setup(self) -> None:
         self.empty = IdentityList()
         self.one = IdentityList.from_list_of_dicts([_one_dict])
         self.two = IdentityList.from_list_of_dicts([_one_dict, _two_dict])
@@ -150,8 +148,9 @@ class TestIdentityList(unittest.TestCase):
             self.one.remove(ElementKey("+46709999999"))
 
 
-class TestIdentity(TestCase):
-    def setUp(self) -> None:
+class TestIdentity:
+    @pytest.fixture(autouse=True)
+    def setup(self) -> None:
         self.empty = IdentityList()
         self.one = IdentityList.from_list_of_dicts([_one_dict])
         self.two = IdentityList.from_list_of_dicts([_one_dict, _two_dict])

@@ -1,4 +1,3 @@
-import unittest
 from typing import Any
 
 import pytest
@@ -36,7 +35,7 @@ class FakeVCCSPasswordFactor(VCCSPasswordFactor):
         return b"\x0a" * num_bytes
 
 
-class TestVCCSClient(unittest.TestCase):
+class TestVCCSClient:
     def test_password_factor(self) -> None:
         """
         Test creating a VCCSPasswordFactor instance.

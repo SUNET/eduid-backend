@@ -1,12 +1,10 @@
-import unittest
-
 import pytest
 
 from eduid.common.utils import generate_password
 from eduid.webapp.common.api.validation import is_valid_password
 
 
-class TestIsValidPassword(unittest.TestCase):
+class TestIsValidPassword:
     def test_is_valid_password(self) -> None:
         res = is_valid_password("abc123", [], min_entropy=1, min_score=0)
         assert res

@@ -134,7 +134,7 @@ class TestCalculateCredHash(unittest.IsolatedAsyncioTestCase):
         new_hasher.hmac_sha1.assert_not_called()
 
 
-class TestAddCredsVersion(unittest.TestCase):
+class TestAddCredsVersion:
     def test_request_factor_accepts_version(self) -> None:
         from eduid.vccs.server.factors import RequestFactor
 

@@ -1,9 +1,7 @@
-import unittest
-
 from eduid.webapp.phone.helpers import PhoneMsg
 
 
-class MessagesTests(unittest.TestCase):
+class MessagesTests:
     def test_messages(self) -> None:
         """"""
         assert PhoneMsg.e164_error.value == "phone.e164_format"

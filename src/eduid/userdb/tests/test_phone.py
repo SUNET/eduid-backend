@@ -1,6 +1,5 @@
 import copy
 import datetime
-import unittest
 
 import pytest
 from pydantic import ValidationError
@@ -40,8 +39,9 @@ _four_dict = {
 }
 
 
-class TestPhoneNumberList(unittest.TestCase):
-    def setUp(self) -> None:
+class TestPhoneNumberList:
+    @pytest.fixture(autouse=True)
+    def setup(self) -> None:
         self.empty = PhoneNumberList()
         self.one = PhoneNumberList.from_list_of_dicts([_one_dict])
         self.two = PhoneNumberList.from_list_of_dicts([_one_dict, _two_dict])
@@ -239,8 +239,9 @@ class TestPhoneNumberList(unittest.TestCase):
             PhoneNumberList.from_list_of_dicts([one])
 
 
-class TestPhoneNumber(unittest.TestCase):
-    def setUp(self) -> None:
+class TestPhoneNumber:
+    @pytest.fixture(autouse=True)
+    def setup(self) -> None:
         self.empty = PhoneNumberList()
         self.one = PhoneNumberList.from_list_of_dicts([_one_dict])
         self.two = PhoneNumberList.from_list_of_dicts([_one_dict, _two_dict])

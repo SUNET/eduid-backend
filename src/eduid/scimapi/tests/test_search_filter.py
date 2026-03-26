@@ -1,5 +1,3 @@
-import unittest
-
 import pytest
 
 from eduid.common.misc.timeutil import utc_now
@@ -7,7 +5,7 @@ from eduid.scimapi.exceptions import BadRequest
 from eduid.scimapi.search import parse_search_filter
 
 
-class TestSearchFilter(unittest.TestCase):
+class TestSearchFilter:
     def test_lastmodified(self) -> None:
         now = utc_now()
         search_filter = f'meta.lastModified gt "{now.isoformat()}"'

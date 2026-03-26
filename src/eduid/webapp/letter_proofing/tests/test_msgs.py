@@ -1,9 +1,7 @@
-import unittest
-
 from eduid.webapp.letter_proofing.helpers import LetterMsg
 
 
-class MessagesTests(unittest.TestCase):
+class MessagesTests:
     def test_messages(self) -> None:
         """"""
         assert LetterMsg.no_state.value == "letter.no_state_found"

@@ -1,13 +1,14 @@
 import fnmatch
-import unittest
+
+import pytest
 
 from eduid.workers.amapi.config import EndpointRestriction, SupportedMethod
 from eduid.workers.amapi.middleware import AuthenticationMiddleware
 
 
-class TestMiddleware(unittest.TestCase):
-    def setUp(self) -> None:
-        super().setUp()
+class TestMiddleware:
+    @pytest.fixture(autouse=True)
+    def setup(self) -> None:
         self.middleware = AuthenticationMiddleware
 
     def test_glob_match_true(self) -> None:

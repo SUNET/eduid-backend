@@ -1,9 +1,7 @@
-import unittest
-
 from eduid.webapp.lookup_mobile_proofing.helpers import MobileMsg
 
 
-class MessagesTests(unittest.TestCase):
+class MessagesTests:
     def test_messages(self) -> None:
         """"""
         assert MobileMsg.no_phone.value == "no_phone"

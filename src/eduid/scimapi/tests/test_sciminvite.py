@@ -1,6 +1,5 @@
 import json
 import logging
-import unittest
 from collections.abc import Mapping, MutableMapping
 from copy import copy
 from dataclasses import asdict
@@ -8,6 +7,7 @@ from datetime import datetime, timedelta
 from http import HTTPStatus
 from typing import Any
 
+import pytest
 from bson import ObjectId
 from httpx import Response
 
@@ -29,9 +29,9 @@ logger = logging.getLogger(__name__)
 __author__ = "lundberg"
 
 
-class TestScimInvite(unittest.TestCase):
-    def setUp(self) -> None:
-        self.maxDiff = None
+class TestScimInvite:
+    @pytest.fixture(autouse=True)
+    def setup(self) -> None:
         self.invite_doc1 = {
             "_id": ObjectId("5e5542db34a4cf8015e62ac8"),
             "scim_id": "9784e1bf-231b-4eb8-b315-52eb46dd7c4b",
@@ -249,7 +249,7 @@ class TestInviteResource(ScimApiTestCase):
     ) -> None:
         """Function to validate successful responses to SCIM calls that update an invite according to a request."""
         if response.json().get("schemas") == [SCIMSchema.ERROR.value]:
-            self.fail(f"Got SCIM error parsed_response ({response.status_code}):\n{response.json}")
+            pytest.fail(f"Got SCIM error parsed_response ({response.status_code}):\n{response.json}")
 
         expected_schemas = req.get("schemas", [SCIMSchema.NUTID_INVITE_V1.value, SCIMSchema.NUTID_USER_V1.value])
 
@@ -282,7 +282,7 @@ class TestInviteResource(ScimApiTestCase):
                 "Unexpected NUTID user data in parsed_response"
             )
         elif SCIMSchema.NUTID_USER_V1.value in response.json():
-            self.fail(f"Unexpected {SCIMSchema.NUTID_USER_V1.value} in the parsed_response")
+            pytest.fail(f"Unexpected {SCIMSchema.NUTID_USER_V1.value} in the parsed_response")
 
     def _perform_search(
         self,
