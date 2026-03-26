@@ -31,8 +31,8 @@ class TestProofingLog:
     user: User
 
     @pytest.fixture(autouse=True)
-    def setup(self) -> Iterator[None]:
-        self.tmp_db = MongoTemporaryInstance.get_instance()
+    def setup(self, mongo_instance: MongoTemporaryInstance) -> Iterator[None]:
+        self.tmp_db = mongo_instance
         self.proofing_log_db = ProofingLog(db_uri=self.tmp_db.uri)
         self.user = UserFixtures().mocked_user_standard
         yield
@@ -346,8 +346,8 @@ class TestProofingLog:
 
 class TestUserChangeLog:
     @pytest.fixture(autouse=True)
-    def setup(self) -> Iterator[None]:
-        self.tmp_db = MongoTemporaryInstance.get_instance()
+    def setup(self, mongo_instance: MongoTemporaryInstance) -> Iterator[None]:
+        self.tmp_db = mongo_instance
         self.user_log_db = UserChangeLog(db_uri=self.tmp_db.uri)
         yield
         self.user_log_db._drop_whole_collection()

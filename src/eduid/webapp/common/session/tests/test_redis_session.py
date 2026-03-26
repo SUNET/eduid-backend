@@ -11,8 +11,8 @@ from eduid.webapp.common.session.testing import RedisTemporaryInstance
 
 class TestSession:
     @pytest.fixture(autouse=True)
-    def setup(self) -> None:
-        self.redis_instance = RedisTemporaryInstance.get_instance()
+    def setup(self, redis_instance: RedisTemporaryInstance) -> None:
+        self.redis_instance = redis_instance
         assert isinstance(self.redis_instance, RedisTemporaryInstance)
         _host, _port, _db = self.redis_instance.get_params()
         redis_cfg = RedisConfig(host=_host, port=_port, db=_db)

@@ -103,6 +103,9 @@ class EduidAPITestCase[T: EduIDBaseApp](CommonTestCase):
 
     @pytest.fixture(autouse=True)
     def setup_api(self, setup_common: None, redis_instance: RedisTemporaryInstance) -> Iterator[None]:
+        yield from self._do_setup_api(redis_instance)
+
+    def _do_setup_api(self, redis_instance: RedisTemporaryInstance) -> Iterator[None]:
         _users = UserFixtures()
         _standard_test_users = {
             "hubba-bubba": _users.new_user_example,
