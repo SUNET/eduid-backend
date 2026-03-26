@@ -84,15 +84,7 @@ def mongo_replica_set_instance() -> Iterator[MongoTemporaryInstanceReplicaSet]:
 
 @pytest.fixture(scope="session")
 def smtpdfix_instance() -> Iterator[SMPTDFixTemporaryInstance]:
-    """One SMTPDFix container per test session (i.e. per pytest-xdist worker).
-
-    Used by mail worker tests. Uses get_instance() so that setup_mail_worker,
-    which calls SMPTDFixTemporaryInstance.get_instance() directly, gets the same
-    container this fixture started — and teardown is handled here, not by atexit.
-
-    TODO: Migrate setup_mail_worker to accept this fixture as a parameter, then switch
-          back to direct instantiation: SMPTDFixTemporaryInstance(max_retry_seconds=60)
-    """
-    instance = SMPTDFixTemporaryInstance.get_instance(max_retry_seconds=60)
+    """One SMTPDFix container per test session (i.e. per pytest-xdist worker)."""
+    instance = SMPTDFixTemporaryInstance(max_retry_seconds=60)
     yield instance
     instance.shutdown()
