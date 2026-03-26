@@ -27,15 +27,8 @@ def mongo_instance() -> Iterator[MongoTemporaryInstance]:
 
 @pytest.fixture(scope="session")
 def redis_instance() -> Iterator[RedisTemporaryInstance]:
-    """One Redis container per test session (i.e. per pytest-xdist worker).
-
-    Uses get_instance() so that legacy code still calling RedisTemporaryInstance.get_instance()
-    directly (outside of fixture injection) receives the same container this fixture started.
-
-    TODO: Migrate all remaining get_instance() callers to accept this fixture as a parameter,
-          then switch back to direct instantiation: RedisTemporaryInstance(max_retry_seconds=60)
-    """
-    instance = RedisTemporaryInstance.get_instance(max_retry_seconds=60)
+    """One Redis container per test session (i.e. per pytest-xdist worker)."""
+    instance = RedisTemporaryInstance(max_retry_seconds=60)
     yield instance
     instance.shutdown()
 
