@@ -112,9 +112,8 @@ class EduidQueueTestCase:
     client_db: QueueDB
 
     @pytest.fixture(autouse=True)
-    def setup_queue(self) -> Iterator[None]:
-        mongo_instance = MongoTemporaryInstanceReplicaSet.get_instance()
-        self.mongo_uri = mongo_instance.uri
+    def setup_queue(self, mongo_replica_set_instance: MongoTemporaryInstanceReplicaSet) -> Iterator[None]:
+        self.mongo_uri = mongo_replica_set_instance.uri
         self.mongo_collection = "test"
         self._init_db()
         yield

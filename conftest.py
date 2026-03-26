@@ -5,6 +5,7 @@ from collections.abc import Iterator
 import pytest
 
 from eduid.graphdb.testing import Neo4jTemporaryInstance
+from eduid.queue.testing import MongoTemporaryInstanceReplicaSet, SMPTDFixTemporaryInstance
 from eduid.userdb.testing import MongoTemporaryInstance
 from eduid.webapp.common.session.testing import RedisTemporaryInstance
 
@@ -61,5 +62,37 @@ def neo4j_instance(
           then switch back to direct instantiation: Neo4jTemporaryInstance(max_retry_seconds=240)
     """
     instance = Neo4jTemporaryInstance.get_instance(max_retry_seconds=240)
+    yield instance
+    instance.shutdown()
+
+
+@pytest.fixture(scope="session")
+def mongo_replica_set_instance() -> Iterator[MongoTemporaryInstanceReplicaSet]:
+    """One MongoDB replica-set container per test session (i.e. per pytest-xdist worker).
+
+    Used by queue tests. Uses get_instance() so that EduidQueueTestCase.setup_queue,
+    which calls MongoTemporaryInstanceReplicaSet.get_instance() directly, gets the same
+    container this fixture started — and teardown is handled here, not by atexit.
+
+    TODO: Migrate setup_queue to accept this fixture as a parameter, then switch back
+          to direct instantiation: MongoTemporaryInstanceReplicaSet(max_retry_seconds=60)
+    """
+    instance = MongoTemporaryInstanceReplicaSet.get_instance(max_retry_seconds=60)
+    yield instance
+    instance.shutdown()
+
+
+@pytest.fixture(scope="session")
+def smtpdfix_instance() -> Iterator[SMPTDFixTemporaryInstance]:
+    """One SMTPDFix container per test session (i.e. per pytest-xdist worker).
+
+    Used by mail worker tests. Uses get_instance() so that setup_mail_worker,
+    which calls SMPTDFixTemporaryInstance.get_instance() directly, gets the same
+    container this fixture started — and teardown is handled here, not by atexit.
+
+    TODO: Migrate setup_mail_worker to accept this fixture as a parameter, then switch
+          back to direct instantiation: SMPTDFixTemporaryInstance(max_retry_seconds=60)
+    """
+    instance = SMPTDFixTemporaryInstance.get_instance(max_retry_seconds=60)
     yield instance
     instance.shutdown()
