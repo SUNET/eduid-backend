@@ -1,5 +1,4 @@
 from datetime import datetime
-from unittest import TestCase
 
 import pytest
 
@@ -7,7 +6,7 @@ from eduid.common.misc.timeutil import utc_now
 from eduid.userdb.element import Element, PrimaryElement, PrimaryElementViolation, VerifiedElement
 
 
-class TestElements(TestCase):
+class TestElements:
     def test_create_element(self) -> None:
         elem = Element(created_by="test")
 
@@ -49,7 +48,7 @@ class TestElements(TestCase):
         assert elem.modified_ts == then
 
 
-class TestVerifiedElements(TestCase):
+class TestVerifiedElements:
     def test_create_verified_element(self) -> None:
         elem = VerifiedElement(created_by="test")
 
@@ -93,7 +92,7 @@ class TestVerifiedElements(TestCase):
         assert elem.verified_ts == now
 
 
-class TestPrimaryElements(TestCase):
+class TestPrimaryElements:
     def test_create_primary_element(self) -> None:
         elem = PrimaryElement(created_by="test")
 

@@ -1,6 +1,6 @@
 import datetime
-from unittest import TestCase
 
+import pytest
 from bson.objectid import ObjectId
 
 from eduid.userdb.credentials import CredentialList, Password
@@ -16,8 +16,9 @@ _two_dict = {"id": "55002741d00690878ae9b601", "salt": "secondPasswordElement", 
 _three_dict = {"id": "55002741d00690878ae9b602", "salt": "thirdPasswordElement", "source": "test"}
 
 
-class TestPassword(TestCase):
-    def setUp(self) -> None:
+class TestPassword:
+    @pytest.fixture(autouse=True)
+    def setup(self) -> None:
         self.empty = CredentialList()
         self.one = CredentialList.from_list_of_dicts([_one_dict])
         self.two = CredentialList.from_list_of_dicts([_one_dict, _two_dict])

@@ -1,5 +1,3 @@
-from unittest import TestCase
-
 import pytest
 from pydantic import ValidationError
 
@@ -12,7 +10,7 @@ __author__ = "lundberg"
 OPAQUE_DATA = {"a_string": "I am a string", "an_int": 3, "a_list": ["eins", 2, "drei"], "a_map": {"some": "data"}}
 
 
-class ProfileTest(TestCase):
+class ProfileTest:
     def test_create_profile(self) -> None:
         profile = Profile(
             owner="test owner",

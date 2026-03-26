@@ -1,5 +1,3 @@
-from unittest import TestCase
-
 import pytest
 from pydantic import ValidationError
 
@@ -7,8 +5,9 @@ from eduid.userdb.fixtures.users import UserFixtures
 from eduid.userdb.signup.user import SignupUser
 
 
-class TestSignupUser(TestCase):
-    def setUp(self) -> None:
+class TestSignupUser:
+    @pytest.fixture(autouse=True)
+    def setup(self) -> None:
         self.user = UserFixtures().new_signup_user_example
         self.user_data = self.user.to_dict()
 

@@ -6,7 +6,6 @@ from __future__ import annotations
 
 import logging
 import logging.config
-import unittest
 from collections.abc import Iterator, Sequence
 from dataclasses import dataclass
 from typing import Any
@@ -140,8 +139,9 @@ class MongoTestCase:
                 self.tmp_db.conn.drop_database(db_name)
         self.amdb._drop_whole_collection()
 
-class AsyncMongoTestCase(unittest.IsolatedAsyncioTestCase):
-    """TestCase with an embedded MongoDB temporary instance.
+
+class AsyncMongoTestCase:
+    """TestCase with an embedded MongoDB temporary instance for async tests.
 
     Each test runs on a temporary instance of MongoDB. The instance will
     be listen in a random port between 40000 and 50000.
@@ -150,15 +150,8 @@ class AsyncMongoTestCase(unittest.IsolatedAsyncioTestCase):
     A test can access the port using the attribute `port`
     """
 
-    def setUp(self, *args: list[Any], **kwargs: dict[str, Any]) -> None:
-        """
-        Test case initialization.
-        :return:
-        """
-        super().setUp()
-        self.maxDiff = None
-
-        # Set up provisional logging to capture logs from test setup too
+    @pytest.fixture(autouse=True)
+    def setup_async_mongo(self) -> Iterator[None]:
         self._init_logging()
 
         self.tmp_db = MongoTemporaryInstance.get_instance()
@@ -167,15 +160,14 @@ class AsyncMongoTestCase(unittest.IsolatedAsyncioTestCase):
         logger.info("Resetting all databases for new tests")
         self._reset_databases()
 
-        mongo_settings = {
+        self.settings: dict[str, Any] = {
             "mongo_replicaset": None,
             "mongo_uri": self.tmp_db.uri,
         }
 
-        if getattr(self, "settings", None) is None:
-            self.settings = mongo_settings
-        else:
-            self.settings.update(mongo_settings)
+        yield
+
+        self._reset_databases()
 
     def _init_logging(self) -> None:
         # Only initialize logging once to avoid creating multiple handlers
@@ -202,7 +194,3 @@ class AsyncMongoTestCase(unittest.IsolatedAsyncioTestCase):
         for db_name in self.tmp_db.conn.list_database_names():
             if db_name not in ["local", "admin", "config"]:  # Do not drop mongo internal dbs
                 self.tmp_db.conn.drop_database(db_name)
-
-    def tearDown(self) -> None:
-        self._reset_databases()
-        super().tearDown()

@@ -3,13 +3,15 @@ from collections.abc import Mapping
 from http import HTTPStatus
 from typing import Any
 
+import pytest
 from jwcrypto import jwt
 
 from eduid.maccapi.testing import MAccApiTestCase
 
 
 class TestMAccApi(MAccApiTestCase):
-    def setUp(self) -> None:
+    @pytest.fixture(autouse=True)
+    def setup(self, setup_maccapi: None) -> None:
         self.user1 = {"given_name": "Test", "surname": "User"}
         self.user2 = {"given_name": "Test", "surname": "User2"}
         self.user3 = {"given_name": "Test", "surname": "User3"}
@@ -21,8 +23,6 @@ class TestMAccApi(MAccApiTestCase):
             "auth_source": "config",
             "requested_access": [{"type": "maccapi", "scope": "eduid.se"}],
         }
-
-        return super().setUp()
 
     def _make_bearer_token(self, claims: Mapping[str, Any]) -> str:
         token = jwt.JWT(header={"alg": "ES256"}, claims=claims)

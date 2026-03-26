@@ -1,5 +1,4 @@
 from datetime import datetime
-from unittest import TestCase
 
 import pytest
 from pydantic import ValidationError
@@ -9,11 +8,12 @@ from eduid.userdb.db import TUserDbDocument
 from eduid.userdb.fixtures.users import UserFixtures
 
 
-class TestAppUser(TestCase):
+class TestAppUser:
     users: UserFixtures
     user_data: TUserDbDocument
 
-    def setUp(self) -> None:
+    @pytest.fixture(autouse=True)
+    def setup(self) -> None:
         _users = UserFixtures()
         self.user = _users.new_user_example
         self.user_data = self.user.to_dict()

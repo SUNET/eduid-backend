@@ -1,5 +1,4 @@
 import re
-from unittest import TestCase
 
 import nacl.secret
 import pytest
@@ -10,8 +9,9 @@ from eduid.webapp.common.session.redis_session import RedisEncryptedSession, Ses
 from eduid.webapp.common.session.testing import RedisTemporaryInstance
 
 
-class TestSession(TestCase):
-    def setUp(self) -> None:
+class TestSession:
+    @pytest.fixture(autouse=True)
+    def setup(self) -> None:
         self.redis_instance = RedisTemporaryInstance.get_instance()
         assert isinstance(self.redis_instance, RedisTemporaryInstance)
         _host, _port, _db = self.redis_instance.get_params()

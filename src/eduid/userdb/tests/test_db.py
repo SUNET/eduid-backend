@@ -1,5 +1,3 @@
-from unittest import TestCase
-
 import pytest
 from bson import ObjectId
 
@@ -9,7 +7,7 @@ from eduid.userdb.identity import IdentityType
 from eduid.userdb.testing import MongoTestCase
 
 
-class TestMongoDB(TestCase):
+class TestMongoDB:
     def test_full_uri(self) -> None:
         # full specified uri
         uri = "mongodb://db.example.com:1111/testdb"

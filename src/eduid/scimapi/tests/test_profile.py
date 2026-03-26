@@ -1,9 +1,7 @@
-from unittest import TestCase
-
 from eduid.common.models.scim_user import NutidUserExtensionV1
 
 
-class TestProfile(TestCase):
+class TestProfile:
     def test_parse(self) -> None:
         displayname = "Musse Pigg"
         data = {"profiles": {"student": {"attributes": {"displayName": displayname}}}}

@@ -1,11 +1,13 @@
 import asyncio
 import logging
 import os
+from collections.abc import AsyncIterator
 from datetime import timedelta
 from os import environ
 from typing import ClassVar
 from unittest.mock import MagicMock, patch
 
+import pytest_asyncio
 from aiosmtplib import SMTPResponse
 
 from eduid.common.config.parsers import load_config
@@ -26,24 +28,19 @@ class TestMailQueueWorker(IsolatedWorkerDBMixin, MailQueueWorker):
 
 
 class TestMailWorker(QueueAsyncioTest):
-    smtpdfix: SMPTDFixTemporaryInstance
-
-    @classmethod
-    def setUpClass(cls) -> None:
-        super().setUpClass()
-        cls.smtpdfix = SMPTDFixTemporaryInstance.get_instance()
+    @pytest_asyncio.fixture(autouse=True)
+    async def setup_mail_worker(self, setup_asyncio_queue: None) -> AsyncIterator[None]:
+        smtpdfix = SMPTDFixTemporaryInstance.get_instance()
         environ["WORKER_NAME"] = "Test Mail Worker 1"
 
-    def setUp(self) -> None:
-        super().setUp()
-        self.test_config = {
+        test_config = {
             "testing": True,
             "mongo_uri": self.mongo_uri,
             "mongo_collection": self.mongo_collection,
             "periodic_min_retry_wait_in_seconds": 1,
             # NOTE: the mail settings need to match the env variables in the smtpdfix container
             "mail_host": "localhost",
-            "mail_port": self.smtpdfix.port,
+            "mail_port": smtpdfix.port,
             "mail_starttls": True,
             "mail_verify_tls": False,
             "mail_username": "eduid_mail",
@@ -53,19 +50,14 @@ class TestMailWorker(QueueAsyncioTest):
         if "EDUID_CONFIG_YAML" not in os.environ:
             os.environ["EDUID_CONFIG_YAML"] = "YAML_CONFIG_NOT_USED"
 
-        self.config = load_config(typ=QueueWorkerConfig, app_name="test", ns="queue", test_config=self.test_config)
+        self.config = load_config(typ=QueueWorkerConfig, app_name="test", ns="queue", test_config=test_config)
         self.client_db.register_handler(EduidSignupEmail)
-
-    async def asyncSetUp(self) -> None:
-        await super().asyncSetUp()
         self.worker_db.register_handler(EduidSignupEmail)
         await asyncio.sleep(0.5)  # wait for db
         self.worker = TestMailQueueWorker(config=self.config)
         self.tasks = [asyncio.create_task(self.worker.run())]
         await asyncio.sleep(0.5)  # wait for worker to initialize
-
-    async def asyncTearDown(self) -> None:
-        await super().asyncTearDown()
+        yield
 
     async def test_eduid_signup_mail_from_stream(self) -> None:
         """
@@ -119,7 +111,7 @@ class TestMailWorker(QueueAsyncioTest):
         self.client_db.save(queue_item)
         await self._assert_item_gets_processed(queue_item, retry=True)
 
-    def test_register_mail_translations(self) -> None:
+    async def test_register_mail_translations(self) -> None:
         for lang in ["en", "sv"]:
             payload = EduidSignupEmail(
                 email="noone@example.com",
@@ -144,7 +136,7 @@ class TestMailWorker(QueueAsyncioTest):
                 assert "Subject: eduID-registrering" in msg_string
                 assert "Du har registrerat noone@example.com som e-postadress" in msg_string
 
-    def test_reset_password_mail_translations(self) -> None:
+    async def test_reset_password_mail_translations(self) -> None:
         for lang in ["en", "sv"]:
             payload = EduidResetPasswordEmail(
                 email="noone@example.com",
@@ -172,7 +164,7 @@ class TestMailWorker(QueueAsyncioTest):
                 assert "Du har bett om att byta" in msg_string
                 assert "giltig i 2 timmar." in msg_string
 
-    def test_verification_mail_translations(self) -> None:
+    async def test_verification_mail_translations(self) -> None:
         for lang in ["en", "sv"]:
             payload = EduidVerificationEmail(
                 email="noone@example.com",
@@ -198,7 +190,7 @@ class TestMailWorker(QueueAsyncioTest):
                 assert "Du har nyligen lagt till den" in msg_string
                 assert "Skriv in koden nedan" in msg_string
 
-    def test_termination_mail_translations(self) -> None:
+    async def test_termination_mail_translations(self) -> None:
         for lang in ["en", "sv"]:
             payload = EduidTerminationEmail(
                 email="noone@example.com",

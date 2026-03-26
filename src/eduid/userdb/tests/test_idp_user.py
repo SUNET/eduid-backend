@@ -1,4 +1,4 @@
-from unittest import TestCase
+import pytest
 
 from eduid.common.models.saml2 import EduidAuthnContextClass
 from eduid.common.testing_base import normalised_data
@@ -8,9 +8,9 @@ from eduid.userdb.idp.user import SUPPORTED_SAML_ATTRIBUTES, IdPUser, SAMLAttrib
 __author__ = "lundberg"
 
 
-class TestIdpUser(TestCase):
-    def setUp(self) -> None:
-        super().setUp()
+class TestIdpUser:
+    @pytest.fixture(autouse=True)
+    def setup(self) -> None:
         self.saml_attribute_settings = SAMLAttributeSettings(
             default_eppn_scope="example.com",
             default_country_code="se",

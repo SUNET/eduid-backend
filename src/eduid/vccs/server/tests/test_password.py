@@ -1,4 +1,3 @@
-import unittest
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
@@ -8,7 +7,7 @@ from eduid.vccs.server.db import KDF, CredType, PasswordCredential, Status, Vers
 from eduid.vccs.server.password import calculate_cred_hash
 
 
-class TestCalculateCredHash(unittest.IsolatedAsyncioTestCase):
+class TestCalculateCredHash:
     def _make_cred(self, version: Version, key_label: str | None = None) -> PasswordCredential:
         return PasswordCredential(
             credential_id="test_cred_id",

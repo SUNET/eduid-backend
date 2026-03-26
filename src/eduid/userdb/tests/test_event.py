@@ -3,7 +3,6 @@ from __future__ import annotations
 from copy import deepcopy
 from datetime import UTC, datetime
 from typing import Any
-from unittest import TestCase
 
 import bson
 import pytest
@@ -55,8 +54,9 @@ class SomeEventList(EventList[ToUEvent]):
         return cls(elements=[ToUEvent.from_dict(this) for this in items])
 
 
-class TestEventList(TestCase):
-    def setUp(self) -> None:
+class TestEventList:
+    @pytest.fixture(autouse=True)
+    def setup(self) -> None:
         self.empty = SomeEventList()
         self.one = SomeEventList.from_list_of_dicts([_one_dict])
         self.two = SomeEventList.from_list_of_dicts([_one_dict, _two_dict])

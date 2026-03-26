@@ -1,5 +1,7 @@
+from collections.abc import Iterator
 from datetime import timedelta
-from unittest import TestCase, skip
+
+import pytest
 
 from eduid.common.misc.timeutil import utc_now
 from eduid.common.testing_base import normalised_data
@@ -11,7 +13,7 @@ from eduid.queue.testing import EduidQueueTestCase
 __author__ = "lundberg"
 
 
-class TestClient(TestCase):
+class TestClient:
     def test_queue_item(self) -> None:
         expires_at = utc_now() + timedelta(days=180)
         discard_at = expires_at + timedelta(days=7)
@@ -30,8 +32,9 @@ class TestClient(TestCase):
         assert normalised_data(payload.to_dict()) == normalised_data(item.payload.to_dict())
 
 
-class TestMessage(TestCase):
-    def setUp(self) -> None:
+class TestMessage:
+    @pytest.fixture(autouse=True)
+    def setup(self) -> None:
         self.expires_at = utc_now() + timedelta(days=180)
         self.discard_at = self.expires_at + timedelta(days=7)
         self.sender_info = SenderInfo(hostname="testhost", node_id="userdb@testhost")
@@ -75,8 +78,8 @@ class TestMessage(TestCase):
 
 
 class TestMessageDB(EduidQueueTestCase):
-    def setUp(self) -> None:
-        super().setUp()
+    @pytest.fixture(autouse=True)
+    def setup_messagedb(self, setup_queue: None) -> Iterator[None]:
         self.messagedb = MessageDB(self.mongo_uri)
         self.messagedb.register_handler(TestPayload)
         self.messagedb.register_handler(EduidInviteEmail)
@@ -86,8 +89,8 @@ class TestMessageDB(EduidQueueTestCase):
         self.discard_at = self.expires_at + timedelta(days=7)
         self.sender_info = SenderInfo(hostname="testhost", node_id="userdb@testhost")
 
-    def tearDown(self) -> None:
-        super().tearDown()
+        yield
+
         self.messagedb._drop_whole_collection()
 
     def _create_queue_item(self, payload: Payload) -> QueueItem:
@@ -164,7 +167,7 @@ class TestMessageDB(EduidQueueTestCase):
         assert normalised_data(item.to_dict()) == normalised_data(loaded_item.to_dict())
         assert normalised_data(item.payload.to_dict()) == normalised_data(loaded_item.payload.to_dict())
 
-    @skip("It takes mongo a couple of seconds to actually remove the document, skip for now.")
+    @pytest.mark.skip(reason="It takes mongo a couple of seconds to actually remove the document, skip for now.")
     # TODO: Investigate if it is possible to force a expire check in mongodb
     def test_auto_discard(self) -> None:
         self.discard_at = utc_now() - timedelta(seconds=-10)

@@ -1,11 +1,13 @@
-from unittest import IsolatedAsyncioTestCase
+from collections.abc import AsyncIterator
 from unittest.mock import patch
+
+import pytest_asyncio
 
 from eduid.userdb.db.async_db import AsyncBaseDB, AsyncMongoDB
 from eduid.userdb.testing import AsyncMongoTestCase
 
 
-class TestAsyncMongoDB(IsolatedAsyncioTestCase):
+class TestAsyncMongoDB:
     def test_full_uri(self) -> None:
         # full specified uri
         uri = "mongodb://db.example.com:1111/testdb"
@@ -61,13 +63,14 @@ class TestAsyncMongoDB(IsolatedAsyncioTestCase):
 
 
 class TestAsyncDB(AsyncMongoTestCase):
-    async def asyncSetUp(self) -> None:
-        await super().asyncSetUp()
+    @pytest_asyncio.fixture(autouse=True)
+    async def setup_async_db(self, setup_async_mongo: None) -> AsyncIterator[None]:
         # Make sure the isolated test cases get to create their own mongodb clients
         with patch("eduid.userdb.db.async_db.AsyncClientCache._clients", {}):
             self.db = AsyncBaseDB(db_uri=self.tmp_db.uri, db_name="testdb", collection="test")
         self.num_objs = 10
         await self.db.collection.insert_many([{"x": i} for i in range(self.num_objs)])
+        yield
 
     async def test_db_count(self) -> None:
         assert self.num_objs == await self.db.db_count()

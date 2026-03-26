@@ -1,6 +1,5 @@
 from collections import OrderedDict
 from datetime import datetime
-from unittest import TestCase
 
 from eduid.common.misc.timeutil import utc_now
 from eduid.common.rpc.msg_relay import FullPostalAddress
@@ -40,7 +39,7 @@ ADDRESS = FullPostalAddress.model_validate(
 )
 
 
-class ProofingStateTest(TestCase):
+class ProofingStateTest:
     def _test_create_letterproofingstate(self, state: LetterProofingState, nin_expected_keys: list[str]) -> None:
         """
         {

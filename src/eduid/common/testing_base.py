@@ -27,7 +27,6 @@ class CommonTestCase(MongoTestCase):
             os.environ["EDUID_CONFIG_YAML"] = "YAML_CONFIG_NOT_USED"
 
 
-
 def normalised_data[SomeData: dict[str, Any] | list[Any]](
     data: SomeData, replace_datetime: str | None = None, exclude_keys: list[str] | None = None
 ) -> SomeData:

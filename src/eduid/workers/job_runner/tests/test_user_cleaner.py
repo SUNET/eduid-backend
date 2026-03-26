@@ -7,9 +7,6 @@ from eduid.workers.job_runner.testing import CleanerQueueTestCase
 class TestCleanerQueueDB(CleanerQueueTestCase):
     users = UserFixtures()
 
-    def setUp(self) -> None:
-        super().setUp()
-
     def test_queue_order(self) -> None:
         first = self.users.mocked_user_standard
         second = self.users.mocked_user_standard_2
