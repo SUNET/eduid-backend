@@ -70,13 +70,17 @@ class LadokTests(EduidAPITestCase[LadokApp]):
             mock_response.return_value = MockResponse(200, university_data)
             return init_ladok_app("testing", config)
 
-    def update_config(self, config: dict[str, Any]) -> dict[str, Any]:
-        config = super().update_config(config=config)
+    def _get_base_config(self) -> dict[str, Any]:
+        config = super()._get_base_config()
         config["ladok_client"] = {
             "url": "http://localhost",
             "dev_universities": {"DEV": {"name_sv": "Testlärosäte", "name_en": "Test University"}},
         }
         return config
+
+    @pytest.fixture
+    def update_config(self) -> dict[str, Any]:
+        return self._get_base_config()
 
     def _link_user(self, eppn: str, ladok_name: str) -> TestResponse:
         with self.session_cookie(self.browser, eppn) as browser:
@@ -223,8 +227,9 @@ class LadokDevTests(EduidAPITestCase[LadokApp]):
         """
         return init_ladok_app("testing", config)
 
-    def update_config(self, config: dict[str, Any]) -> dict[str, Any]:
-        config = super().update_config(config=config)
+    @pytest.fixture
+    def update_config(self) -> dict[str, Any]:
+        config = self._get_base_config()
         config["environment"] = EduidEnvironment.dev.value
         config["ladok_client"] = {
             "url": "http://localhost",

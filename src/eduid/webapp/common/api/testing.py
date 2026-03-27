@@ -102,10 +102,12 @@ class EduidAPITestCase[T: EduIDBaseApp](CommonTestCase):
     copy_user_to_private: ClassVar[bool] = False
 
     @pytest.fixture(autouse=True)
-    def setup_api(self, setup_common: None, redis_instance: RedisTemporaryInstance) -> Iterator[None]:
-        yield from self._do_setup_api(redis_instance)
-
-    def _do_setup_api(self, redis_instance: RedisTemporaryInstance) -> Iterator[None]:
+    def setup_api(
+        self,
+        setup_common: None,
+        redis_instance: RedisTemporaryInstance,
+        update_config: dict[str, Any],
+    ) -> Iterator[None]:
         _users = UserFixtures()
         _standard_test_users = {
             "hubba-bubba": _users.new_user_example,
@@ -124,8 +126,7 @@ class EduidAPITestCase[T: EduIDBaseApp](CommonTestCase):
         self.test_user_eppn = self.test_user_data["eduPersonPrincipalName"]
 
         self.redis_instance = redis_instance
-        test_config = deepcopy(TEST_CONFIG)
-        self.settings = self.update_config(test_config)
+        self.settings = update_config
         self.settings["redis_config"] = RedisConfig(host="localhost", port=self.redis_instance.port)
         assert isinstance(self.tmp_db, MongoTemporaryInstance)  # please mypy
         self.settings["mongo_uri"] = self.tmp_db.uri
@@ -166,19 +167,25 @@ class EduidAPITestCase[T: EduIDBaseApp](CommonTestCase):
             "Classes extending EduidAPITestCase must provide a method where they import the flask app and return it."
         )
 
-    def update_config(self, config: dict[str, Any]) -> dict[str, Any]:
+    def _get_base_config(self) -> dict[str, Any]:
         """
-        Method that can be overridden by any subclass,
-        where it can add configuration specific for that API
-        before loading the app.
-
-        :param config: original configuration
-
-        :return: the updated configuration
+        Non-fixture helper that returns the base test configuration dict.
+        Override this in subclasses (instead of overriding the fixture) when
+        you need to chain config building across an inheritance hierarchy.
         """
         # For tests, it makes sense to show relative time instead of datetime
+        config = deepcopy(TEST_CONFIG)
         config["log_format"] = "{asctime} | {levelname:7} | {eppn:11} | {name:35} | {message}"
         return config
+
+    @pytest.fixture
+    def update_config(self) -> dict[str, Any]:
+        """
+        Fixture that can be overridden by any subclass,
+        where it can return configuration specific for that API
+        before loading the app.
+        """
+        return self._get_base_config()
 
     @contextmanager
     def session_cookie(

@@ -48,11 +48,9 @@ class AuthnAPITestBase(EduidAPITestCase):
     def setup(self, setup_api: None) -> None:
         self.idp_url = "https://idp.example.com/simplesaml/saml2/idp/SSOService.php"
 
-    def update_config(self, config: dict[str, Any]) -> dict[str, Any]:
-        """
-        Called from the parent class, so that we can update the configuration
-        according to the needs of this test case.
-        """
+    @pytest.fixture
+    def update_config(self) -> dict[str, Any]:
+        config = self._get_base_config()
         saml_config = os.path.join(HERE, "saml2_settings.py")
         config.update(
             {
@@ -316,11 +314,9 @@ class UnAuthnAPITestCase(EduidAPITestCase):
 
     app: AuthnTestApp
 
-    def update_config(self, config: dict[str, Any]) -> dict[str, Any]:
-        """
-        Called from the parent class, so that we can update the configuration
-        according to the needs of this test case.
-        """
+    @pytest.fixture
+    def update_config(self) -> dict[str, Any]:
+        config = self._get_base_config()
         saml_config = os.path.join(HERE, "saml2_settings.py")
         config.update(
             {
@@ -377,11 +373,9 @@ class NoAuthnAPITestCase(EduidAPITestCase):
 
         self.app.register_blueprint(test_views)
 
-    def update_config(self, config: dict[str, Any]) -> dict[str, Any]:
-        """
-        Called from the parent class, so that we can update the configuration
-        according to the needs of this test case.
-        """
+    @pytest.fixture
+    def update_config(self) -> dict[str, Any]:
+        config = self._get_base_config()
         saml_config = os.path.join(HERE, "saml2_settings.py")
         config.update(
             {
