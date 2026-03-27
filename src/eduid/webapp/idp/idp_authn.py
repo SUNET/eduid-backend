@@ -11,7 +11,10 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from enum import StrEnum
 from http import HTTPStatus
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from eduid.webapp.idp.app import IdPApp
 
 from bson import ObjectId
 from pydantic import BaseModel, ConfigDict, Field
@@ -111,17 +114,22 @@ class IdPAuthn:
 
     def __init__(
         self,
+        app: IdPApp,
         config: IdPConfig,
         userdb: IdPUserDb,
         managed_account_db: ManagedAccountDB,
     ) -> None:
-        self.config = config
+        self._app = app
         self.userdb = userdb
         self.managed_account_db = managed_account_db
         self.auth_client = get_vccs_client(config.vccs_url)
         # already checked with isinstance in app init
         assert config.mongo_uri is not None
         self.authn_store = AuthnInfoStore(uri=config.mongo_uri)
+
+    @property
+    def config(self) -> IdPConfig:
+        return self._app.conf
 
     def password_authn(self, username: str, password: str) -> PasswordAuthnResponse | None:
         """

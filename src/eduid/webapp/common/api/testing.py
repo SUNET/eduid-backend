@@ -135,8 +135,7 @@ class EduidAPITestCase[T: EduIDBaseApp](CommonTestCase):
 
         # Save app conf so mutations by individual tests don't leak to subsequent tests.
         # Use getattr so mypy doesn't complain about T not having "conf".
-        _conf = getattr(self.app, "conf", None)
-        _saved_conf = deepcopy(_conf) if _conf is not None else None
+        _saved_conf = deepcopy(getattr(self.app, "conf", None))
 
         _users = UserFixtures()
         _standard_test_users = {
@@ -165,10 +164,8 @@ class EduidAPITestCase[T: EduIDBaseApp](CommonTestCase):
         yield
 
         # Restore conf so mutations in this test don't affect the next test.
-        # Update in-place (not replace) so that any other objects holding a reference
-        # to the same conf (e.g. IdPAuthn.config) see the restored values.
-        if _conf is not None and _saved_conf is not None:
-            _conf.__dict__.update(_saved_conf.__dict__)
+        if _saved_conf is not None:
+            self.app.conf = _saved_conf  # type: ignore[attr-defined]
 
         try:
             for this in vars(self.app).values():
