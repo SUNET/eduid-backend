@@ -100,14 +100,10 @@ class EduidTemporaryInstance(ABC):
                     break
 
             if container_name:
-                # Kill the docker run process directly — much faster than docker stop,
-                # which waits ~12s for Docker's internal cleanup even with -t 1.
-                # With --rm, Docker cleans up the container when the process exits.
-                self._process.kill()
-                try:
-                    self._process.wait(timeout=5)
-                except subprocess.TimeoutExpired:
-                    self._process.wait()
+                # Signal the daemon (non-blocking); daemon cleanup is async via --rm.
+                subprocess.Popen(["docker", "kill", container_name], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                # Politely ask the docker run client to exit — don't wait, the OS will reap it.
+                self._process.terminate()
 
         if hasattr(self, "_logfile") and self._logfile and not self._logfile.closed:
             self._logfile.flush()
