@@ -11,7 +11,7 @@ __author__ = "lundberg"
 from eduid.common.config.parsers import load_config
 
 
-class LoggingTestApp(EduIDBaseApp):
+class LoggingTestApp(EduIDBaseApp[EduIDBaseAppConfig]):
     pass
 
 
@@ -25,9 +25,6 @@ class LoggingTest(EduidAPITestCase):
         """
         logging_config = load_config(typ=EduIDBaseAppConfig, app_name="test_app", ns="webapp", test_config=config)
         return LoggingTestApp(logging_config)
-
-    def update_config(self, config: dict[str, Any]) -> dict[str, Any]:
-        return config
 
     def tearDown(self) -> None:
         """Override parent tearDown to prevent default cleanup."""

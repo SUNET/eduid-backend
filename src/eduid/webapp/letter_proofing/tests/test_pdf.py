@@ -141,7 +141,9 @@ class CreatePDFTest(EduidAPITestCase):
         """
         return init_letter_proofing_app("testing", config)
 
-    def update_config(self, config: dict[str, Any]) -> dict[str, Any]:
+    @pytest.fixture(scope="class")
+    def update_config(self) -> dict[str, Any]:
+        config = self._get_base_config()
         config.update(
             {
                 "letter_wait_time_hours": 336,

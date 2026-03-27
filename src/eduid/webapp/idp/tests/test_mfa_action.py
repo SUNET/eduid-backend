@@ -1,5 +1,5 @@
 from collections.abc import Mapping
-from typing import Any, cast
+from typing import cast
 from unittest.mock import MagicMock
 
 from eduid.common.misc.timeutil import utc_now
@@ -15,9 +15,6 @@ from eduid.webapp.idp.tests.test_api import IdPAPITests
 
 class TestNeedSecurityKey(IdPAPITests):
     """Tests for the need_security_key function"""
-
-    def update_config(self, config: dict[str, Any]) -> dict[str, Any]:
-        return super().update_config(config)
 
     def _get_idp_user(self) -> IdPUser:
         """Get the test user as an IdPUser from the IdP userdb"""

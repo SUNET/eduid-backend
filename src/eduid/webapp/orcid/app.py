@@ -14,7 +14,7 @@ from eduid.webapp.orcid.settings.common import OrcidConfig
 __author__ = "lundberg"
 
 
-class OrcidApp(AuthnBaseApp):
+class OrcidApp(AuthnBaseApp[OrcidConfig]):
     def __init__(self, config: OrcidConfig, **kwargs: Any) -> None:
         super().__init__(config, **kwargs)
 

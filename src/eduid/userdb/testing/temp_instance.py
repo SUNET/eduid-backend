@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import atexit
 import logging
 import random
 import shutil
@@ -9,7 +8,7 @@ import tempfile
 import time
 from abc import ABC, abstractmethod
 from collections.abc import Sequence
-from typing import Any, Self
+from typing import Any
 
 from eduid.common.misc.timeutil import utc_now
 
@@ -17,13 +16,7 @@ logger = logging.getLogger(__name__)
 
 
 class EduidTemporaryInstance(ABC):
-    """Singleton to manage a temporary instance of something needed when testing.
-
-    Use this for testing purpose only. The instance is automatically destroyed
-    at the end of the program.
-    """
-
-    _instance = None
+    """Manage a temporary instance of something needed when testing."""
 
     def __init__(self, max_retry_seconds: int) -> None:
         self._conn: Any | None = None  # self._conn should be initialised by subclasses in `setup_conn'
@@ -57,19 +50,6 @@ class EduidTemporaryInstance(ABC):
             if count <= 3:  # noqa: PLR2004
                 # back off slightly
                 interval += interval
-
-    @classmethod
-    def get_instance(cls: type[Self], max_retry_seconds: int = 60) -> Self:
-        """
-        Start a new temporary instance, or retrieve an already started one.
-
-        :param max_retry_seconds: Time allowed for the instance to start
-        :return:
-        """
-        if cls._instance is None:
-            cls._instance = cls(max_retry_seconds=max_retry_seconds)
-            atexit.register(cls._instance.shutdown)
-        return cls._instance
 
     @abstractmethod
     def setup_conn(self) -> bool:
@@ -120,14 +100,10 @@ class EduidTemporaryInstance(ABC):
                     break
 
             if container_name:
-                # Kill the docker run process directly — much faster than docker stop,
-                # which waits ~12s for Docker's internal cleanup even with -t 1.
-                # With --rm, Docker cleans up the container when the process exits.
-                self._process.kill()
-                try:
-                    self._process.wait(timeout=5)
-                except subprocess.TimeoutExpired:
-                    self._process.wait()
+                # Signal the daemon (non-blocking); daemon cleanup is async via --rm.
+                subprocess.Popen(["docker", "kill", container_name], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                # Politely ask the docker run client to exit — don't wait, the OS will reap it.
+                self._process.terminate()
 
         if hasattr(self, "_logfile") and self._logfile and not self._logfile.closed:
             self._logfile.flush()

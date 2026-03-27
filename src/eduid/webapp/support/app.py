@@ -15,7 +15,7 @@ from eduid.webapp.common.api.exceptions import ApiException
 from eduid.webapp.support.settings.common import SupportConfig
 
 
-class SupportApp(EduIDBaseApp):
+class SupportApp(EduIDBaseApp[SupportConfig]):
     def __init__(self, config: SupportConfig, **kwargs: Any) -> None:
         super().__init__(config, **kwargs)
 

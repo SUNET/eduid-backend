@@ -14,7 +14,7 @@ from eduid.webapp.ladok.settings.common import LadokConfig
 __author__ = "lundberg"
 
 
-class LadokApp(AuthnBaseApp):
+class LadokApp(AuthnBaseApp[LadokConfig]):
     def __init__(self, config: LadokConfig, **kwargs: Any) -> None:
         super().__init__(config, **kwargs)
 

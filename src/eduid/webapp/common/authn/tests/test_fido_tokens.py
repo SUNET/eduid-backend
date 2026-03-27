@@ -50,7 +50,7 @@ def start_verification() -> str | dict[str, Any]:
     return result
 
 
-class MockFidoApp(EduIDBaseApp):
+class MockFidoApp(EduIDBaseApp[MockFidoConfig]):
     def __init__(self, config: MockFidoConfig) -> None:
         super().__init__(config)
 
@@ -113,7 +113,9 @@ class FidoTokensTestCase(EduidAPITestCase):
         app.register_blueprint(views)
         return app
 
-    def update_config(self, config: dict[str, Any]) -> dict[str, Any]:
+    @pytest.fixture(scope="class")
+    def update_config(self) -> dict[str, Any]:
+        config = self._get_base_config()
         config.update(
             {
                 "app_name": "testing",

@@ -105,7 +105,7 @@ def values_view() -> Response:
     return _make_response(safe_param)
 
 
-class InputsTestApp(EduIDBaseApp):
+class InputsTestApp(EduIDBaseApp[EduIDBaseAppConfig]):
     def __init__(self, config: EduIDBaseAppConfig) -> None:
         super().__init__(config)
 
@@ -115,13 +115,6 @@ class InputsTestApp(EduIDBaseApp):
 
 
 class InputsTests(EduidAPITestCase):
-    def update_config(self, config: dict[str, Any]) -> dict[str, Any]:
-        """
-        Called from the parent class, so that we can update the configuration
-        according to the needs of this test case.
-        """
-        return config
-
     def load_app(self, config: Mapping[str, Any]) -> InputsTestApp:
         """
         Called from the parent class, so we can provide the appropriate flask

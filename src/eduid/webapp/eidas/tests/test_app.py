@@ -210,7 +210,9 @@ class EidasTests(ProofingTests[EidasApp]):
         """
         return init_eidas_app("testing", config)
 
-    def update_config(self, config: dict[str, Any]) -> dict[str, Any]:
+    @pytest.fixture(scope="class")
+    def update_config(self) -> dict[str, Any]:
+        config = self._get_base_config()
         saml_config = os.path.join(HERE, "saml2_settings.py")
         config.update(
             {

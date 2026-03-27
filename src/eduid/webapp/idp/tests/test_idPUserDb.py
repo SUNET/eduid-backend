@@ -126,8 +126,9 @@ class TestAuthentication(IdPAPITests):
 
 
 class TestPasswordV2Upgrade(IdPAPITests):
-    def update_config(self, config: dict[str, Any]) -> dict[str, Any]:
-        config = super().update_config(config)
+    @pytest.fixture(scope="class")
+    def update_config(self) -> dict[str, Any]:
+        config = self._get_base_config()
         config["password_v2_upgrade_enabled"] = True
         return config
 

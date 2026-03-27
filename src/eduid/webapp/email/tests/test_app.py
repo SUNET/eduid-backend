@@ -4,6 +4,7 @@ from datetime import timedelta
 from typing import Any
 from unittest.mock import MagicMock, patch
 
+import pytest
 from werkzeug.test import TestResponse
 
 from eduid.common.config.base import EduidEnvironment
@@ -25,7 +26,9 @@ class EmailTests(EduidAPITestCase[EmailApp]):
         """
         return email_init_app("emails", config)
 
-    def update_config(self, config: dict[str, Any]) -> dict[str, Any]:
+    @pytest.fixture(scope="class")
+    def update_config(self) -> dict[str, Any]:
+        config = self._get_base_config()
         config.update(
             {
                 "available_languages": {"en": "English", "sv": "Svenska"},

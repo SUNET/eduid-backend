@@ -15,7 +15,7 @@ from eduid.webapp.common.authn.utils import get_saml2_config, no_authn_views
 __author__ = "lundberg"
 
 
-class BankIDApp(AuthnBaseApp):
+class BankIDApp(AuthnBaseApp[BankIDConfig]):
     def __init__(self, config: BankIDConfig, **kwargs: Any) -> None:
         super().__init__(config, **kwargs)
 

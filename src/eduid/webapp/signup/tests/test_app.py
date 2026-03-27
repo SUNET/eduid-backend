@@ -9,6 +9,7 @@ from typing import Any
 from unittest.mock import MagicMock, patch
 from uuid import uuid4
 
+import pytest
 from flask import url_for
 from jwcrypto.jwk import JWK
 from werkzeug.test import TestResponse
@@ -61,7 +62,9 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
         """
         return signup_init_app(name="signup", test_config=config)
 
-    def update_config(self, config: dict[str, Any]) -> dict[str, Any]:
+    @pytest.fixture(scope="class")
+    def update_config(self) -> dict[str, Any]:
+        config = self._get_base_config()
         config.update(
             {
                 "available_languages": {"en": "English", "sv": "Svenska"},

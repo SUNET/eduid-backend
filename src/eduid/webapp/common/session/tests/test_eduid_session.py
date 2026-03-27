@@ -19,7 +19,7 @@ class SessionTestConfig(EduIDBaseAppConfig):
     pass
 
 
-class SessionTestApp(AuthnBaseApp):
+class SessionTestApp(AuthnBaseApp[SessionTestConfig]):
     def __init__(self, config: SessionTestConfig, **kwargs: Any) -> None:
         super().__init__(config, **kwargs)
 
@@ -94,7 +94,9 @@ class EduidSessionTests(EduidAPITestCase):
         """
         return session_init_app("testing", config)
 
-    def update_config(self, config: dict[str, Any]) -> dict[str, Any]:
+    @pytest.fixture(scope="class")
+    def update_config(self) -> dict[str, Any]:
+        config = self._get_base_config()
         config.update(
             {
                 "debug": True,

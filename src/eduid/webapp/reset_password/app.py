@@ -17,7 +17,7 @@ from eduid.webapp.reset_password.settings.common import ResetPasswordConfig
 __author__ = "eperez"
 
 
-class ResetPasswordApp(EduIDBaseApp):
+class ResetPasswordApp(EduIDBaseApp[ResetPasswordConfig]):
     def __init__(self, config: ResetPasswordConfig, **kwargs: Any) -> None:
         super().__init__(config, **kwargs)
 

@@ -68,7 +68,9 @@ class LetterProofingTests(EduidAPITestCase[LetterProofingApp]):
         """
         return init_letter_proofing_app("testing", config)
 
-    def update_config(self, config: dict[str, Any]) -> dict[str, Any]:
+    @pytest.fixture(scope="class")
+    def update_config(self) -> dict[str, Any]:
+        config = self._get_base_config()
         config.update(
             {
                 # 'ekopost_debug_pdf': devnull, # set to file path if debugging # noqa: ERA001

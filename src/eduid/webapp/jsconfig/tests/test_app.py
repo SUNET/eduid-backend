@@ -29,7 +29,9 @@ class JSConfigTests(EduidAPITestCase[JSConfigApp]):
         app.url_map.host_matching = False
         return app
 
-    def update_config(self, config: dict[str, Any]) -> dict[str, Any]:
+    @pytest.fixture(scope="class")
+    def update_config(self) -> dict[str, Any]:
+        config = self._get_base_config()
         config.update(
             {
                 "server_name": "example.com",

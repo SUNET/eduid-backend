@@ -45,14 +45,16 @@ if DEBUG:
     stderr.writelines("----- WARNING! EDUID_APP_DEBUG is enabled -----\n")
 
 
-class EduIDBaseApp(Flask, metaclass=ABCMeta):
+class EduIDBaseApp[C: EduIDBaseAppConfig](Flask, metaclass=ABCMeta):
     """
     Base class for eduID apps, initializing common features and facilities.
     """
 
+    conf: C
+
     def __init__(
         self,
-        config: EduIDBaseAppConfig,
+        config: C,
         init_central_userdb: bool = True,
         handle_exceptions: bool = True,
         **kwargs: Any,
