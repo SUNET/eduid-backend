@@ -26,7 +26,7 @@ class AuthnTests(EduidAPITestCase):
         """
         return AuthnTestApp("testing", config)
 
-    @pytest.fixture
+    @pytest.fixture(scope="class")
     def update_config(self) -> dict[str, Any]:
         config = self._get_base_config()
         config.update(
@@ -57,7 +57,7 @@ class UnAuthnTests(EduidAPITestCase):
         """
         return AuthnTestApp("testing", config)
 
-    @pytest.fixture
+    @pytest.fixture(scope="class")
     def update_config(self) -> dict[str, Any]:
         config = self._get_base_config()
         config.update(

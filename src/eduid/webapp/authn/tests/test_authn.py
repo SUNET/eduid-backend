@@ -48,7 +48,7 @@ class AuthnAPITestBase(EduidAPITestCase):
     def setup(self, setup_api: None) -> None:
         self.idp_url = "https://idp.example.com/simplesaml/saml2/idp/SSOService.php"
 
-    @pytest.fixture
+    @pytest.fixture(scope="class")
     def update_config(self) -> dict[str, Any]:
         config = self._get_base_config()
         saml_config = os.path.join(HERE, "saml2_settings.py")
@@ -314,7 +314,7 @@ class UnAuthnAPITestCase(EduidAPITestCase):
 
     app: AuthnTestApp
 
-    @pytest.fixture
+    @pytest.fixture(scope="class")
     def update_config(self) -> dict[str, Any]:
         config = self._get_base_config()
         saml_config = os.path.join(HERE, "saml2_settings.py")
@@ -373,7 +373,7 @@ class NoAuthnAPITestCase(EduidAPITestCase):
 
         self.app.register_blueprint(test_views)
 
-    @pytest.fixture
+    @pytest.fixture(scope="class")
     def update_config(self) -> dict[str, Any]:
         config = self._get_base_config()
         saml_config = os.path.join(HERE, "saml2_settings.py")

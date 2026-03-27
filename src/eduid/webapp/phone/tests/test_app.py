@@ -28,7 +28,7 @@ class PhoneTests(EduidAPITestCase[PhoneApp]):
         """
         return phone_init_app("testing", config)
 
-    @pytest.fixture
+    @pytest.fixture(scope="class")
     def update_config(self) -> dict[str, Any]:
         config = self._get_base_config()
         config.update(

@@ -113,7 +113,7 @@ class FidoTokensTestCase(EduidAPITestCase):
         app.register_blueprint(views)
         return app
 
-    @pytest.fixture
+    @pytest.fixture(scope="class")
     def update_config(self) -> dict[str, Any]:
         config = self._get_base_config()
         config.update(

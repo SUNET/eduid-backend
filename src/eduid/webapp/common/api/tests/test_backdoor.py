@@ -48,7 +48,7 @@ class BackdoorTests(EduidAPITestCase[BackdoorTestApp]):
         self.test_get_url = "/get-code?eppn=pepin-pepon"
         self.test_app_domain = "test.localhost"
 
-    @pytest.fixture
+    @pytest.fixture(scope="class")
     def update_config(self) -> dict[str, Any]:
         config = self._get_base_config()
         config.update(

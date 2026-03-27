@@ -29,7 +29,7 @@ class JSConfigTests(EduidAPITestCase[JSConfigApp]):
         app.url_map.host_matching = False
         return app
 
-    @pytest.fixture
+    @pytest.fixture(scope="class")
     def update_config(self) -> dict[str, Any]:
         config = self._get_base_config()
         config.update(

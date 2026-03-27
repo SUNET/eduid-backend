@@ -69,7 +69,7 @@ class GroupManagementTests(EduidAPITestCase[GroupManagementApp]):
         """
         return init_group_management_app(test_config=config)
 
-    @pytest.fixture
+    @pytest.fixture(scope="class")
     def update_config(self, neo4j_instance: Neo4jTemporaryInstance) -> dict[str, Any]:
         neo4j_uri = (
             f"bolt://{neo4j_instance.DEFAULT_USERNAME}:{neo4j_instance.DEFAULT_PASSWORD}"

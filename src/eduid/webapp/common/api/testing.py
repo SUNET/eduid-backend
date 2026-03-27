@@ -101,13 +101,43 @@ class EduidAPITestCase[T: EduIDBaseApp](CommonTestCase):
     api_users: ClassVar[list[str]] = ["hubba-bubba"]
     copy_user_to_private: ClassVar[bool] = False
 
+    @pytest.fixture(scope="class")
+    def _shared_app(
+        self,
+        mongo_instance: MongoTemporaryInstance,
+        redis_instance: RedisTemporaryInstance,
+        update_config: dict[str, Any],
+    ) -> T:
+        """Class-scoped fixture: creates the Flask app once per test class."""
+        import os
+
+        os.environ.setdefault("EDUID_CONFIG_YAML", "YAML_CONFIG_NOT_USED")
+        settings = deepcopy(update_config)
+        settings["redis_config"] = RedisConfig(host="localhost", port=redis_instance.port)
+        settings["mongo_uri"] = mongo_instance.uri
+        app = self.load_app(settings)
+        if isinstance(app, EduIDBaseApp):
+            app.test_client_class = CSRFTestClient
+        return app
+
     @pytest.fixture(autouse=True)
     def setup_api(
         self,
+        _shared_app: T,
         setup_common: None,
         redis_instance: RedisTemporaryInstance,
-        update_config: dict[str, Any],
     ) -> Iterator[None]:
+        self.app = _shared_app
+        self.redis_instance = redis_instance
+        self.browser = cast(CSRFTestClient, self.app.test_client())
+        self.content_type_json = "application/json"
+        self.test_domain = "test.localhost"
+
+        # Save app conf so mutations by individual tests don't leak to subsequent tests.
+        # Use getattr so mypy doesn't complain about T not having "conf".
+        _conf = getattr(self.app, "conf", None)
+        _saved_conf = deepcopy(_conf) if _conf is not None else None
+
         _users = UserFixtures()
         _standard_test_users = {
             "hubba-bubba": _users.new_user_example,
@@ -125,20 +155,6 @@ class EduidAPITestCase[T: EduIDBaseApp](CommonTestCase):
         self.test_user_data = self.test_user.to_dict()
         self.test_user_eppn = self.test_user_data["eduPersonPrincipalName"]
 
-        self.redis_instance = redis_instance
-        self.settings = deepcopy(update_config)
-        self.settings["redis_config"] = RedisConfig(host="localhost", port=self.redis_instance.port)
-        assert isinstance(self.tmp_db, MongoTemporaryInstance)  # please mypy
-        self.settings["mongo_uri"] = self.tmp_db.uri
-
-        self.app = self.load_app(self.settings)
-        if isinstance(self.app, EduIDBaseApp):
-            self.app.test_client_class = CSRFTestClient
-            self.browser = cast(CSRFTestClient, self.app.test_client())
-
-        self.content_type_json = "application/json"
-        self.test_domain = "test.localhost"
-
         if self.copy_user_to_private:
             data = self.test_user.to_dict()
             _private_userdb = getattr(self.app, "private_userdb")
@@ -147,6 +163,12 @@ class EduidAPITestCase[T: EduIDBaseApp](CommonTestCase):
             _private_userdb.save(_private_userdb.user_from_dict(data=data))
 
         yield
+
+        # Restore conf so mutations in this test don't affect the next test.
+        # Update in-place (not replace) so that any other objects holding a reference
+        # to the same conf (e.g. IdPAuthn.config) see the restored values.
+        if _conf is not None and _saved_conf is not None:
+            _conf.__dict__.update(_saved_conf.__dict__)
 
         try:
             for this in vars(self.app).values():
@@ -178,7 +200,7 @@ class EduidAPITestCase[T: EduIDBaseApp](CommonTestCase):
         config["log_format"] = "{asctime} | {levelname:7} | {eppn:11} | {name:35} | {message}"
         return config
 
-    @pytest.fixture
+    @pytest.fixture(scope="class")
     def update_config(self) -> dict[str, Any]:
         """
         Fixture that can be overridden by any subclass,

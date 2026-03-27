@@ -128,7 +128,7 @@ class BankIDTests(ProofingTests[BankIDApp]):
         """
         return init_bankid_app("testing", config)
 
-    @pytest.fixture
+    @pytest.fixture(scope="class")
     def update_config(self) -> dict[str, Any]:
         config = self._get_base_config()
         saml_config = os.path.join(HERE, "saml2_settings.py")

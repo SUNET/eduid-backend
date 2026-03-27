@@ -36,10 +36,13 @@ class SignupApp(EduIDBaseApp):
         if self.conf.gnap_auth_data is None or self.conf.scim_api_url is None:
             raise BadConfiguration("No auth server configuration available")
 
-        if data_owner not in self.scim_clients:
-            access_request = [{"type": "scim-api", "scope": data_owner}]
-            client_auth_data = self.conf.gnap_auth_data.model_copy(update={"access": access_request})
-            self.scim_clients[data_owner] = SCIMClient(scim_api_url=self.conf.scim_api_url, auth_data=client_auth_data)
+        existing = self.scim_clients.get(data_owner)
+        if existing is not None and not existing.is_closed:
+            return existing
+
+        access_request = [{"type": "scim-api", "scope": data_owner}]
+        client_auth_data = self.conf.gnap_auth_data.model_copy(update={"access": access_request})
+        self.scim_clients[data_owner] = SCIMClient(scim_api_url=self.conf.scim_api_url, auth_data=client_auth_data)
         return self.scim_clients[data_owner]
 
 
