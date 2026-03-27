@@ -15,7 +15,7 @@ from eduid.webapp.common.api.captcha import init_captcha
 from eduid.webapp.signup.settings.common import SignupConfig
 
 
-class SignupApp(EduIDBaseApp):
+class SignupApp(EduIDBaseApp[SignupConfig]):
     def __init__(self, config: SignupConfig, **kwargs: Any) -> None:
         super().__init__(config, **kwargs)
 

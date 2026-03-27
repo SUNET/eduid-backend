@@ -15,7 +15,7 @@ from eduid.webapp.samleid.settings.common import SamlEidConfig
 __author__ = "lundberg"
 
 
-class SamlEidApp(AuthnBaseApp):
+class SamlEidApp(AuthnBaseApp[SamlEidConfig]):
     def __init__(self, config: SamlEidConfig, **kwargs: Any) -> None:
         super().__init__(config, **kwargs)
 

@@ -15,7 +15,7 @@ from eduid.webapp.svipe_id.settings.common import SvipeIdConfig
 __author__ = "lundberg"
 
 
-class SvipeIdApp(AuthnBaseApp):
+class SvipeIdApp(AuthnBaseApp[SvipeIdConfig]):
     def __init__(self, config: SvipeIdConfig, **kwargs: Any) -> None:
         super().__init__(config, **kwargs)
 

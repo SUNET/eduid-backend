@@ -21,9 +21,7 @@ from eduid.webapp.idp.sso_cache import SSOSessionCache
 __author__ = "ft"
 
 
-class IdPApp(EduIDBaseApp):
-    conf: IdPConfig
-
+class IdPApp(EduIDBaseApp[IdPConfig]):
     def __init__(self, config: IdPConfig, **kwargs: Any) -> None:
         super().__init__(config, **kwargs)
 
@@ -48,7 +46,9 @@ class IdPApp(EduIDBaseApp):
         # Init dbs
         self.userdb = IdPUserDb(db_uri=config.mongo_uri)
         self.managed_account_db = ManagedAccountDB(config.mongo_uri)
-        self.authn = idp_authn.IdPAuthn(app=self, config=config, userdb=self.userdb, managed_account_db=self.managed_account_db)
+        self.authn = idp_authn.IdPAuthn(
+            app=self, config=config, userdb=self.userdb, managed_account_db=self.managed_account_db
+        )
         self.tou_db = ToUUserDB(config.mongo_uri)
         self.credential_db = CredentialUserDB(config.mongo_uri, auto_expire=config.private_userdb_auto_expire)
         self.other_device_db = OtherDeviceDB(config.mongo_uri)
