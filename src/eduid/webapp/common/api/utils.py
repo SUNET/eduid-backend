@@ -122,7 +122,7 @@ def has_user_logged_in_with_mfa() -> bool:
     """
     from eduid.webapp.common.session import session
 
-    authn = session.authn.sp.get_latest_authn()
+    authn = session.authn.sp.get_latest_authn(completed_only=True)
     if authn is None:
         return False
 
