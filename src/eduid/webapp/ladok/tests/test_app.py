@@ -74,7 +74,7 @@ class LadokTests(EduidAPITestCase[LadokApp]):
         config = super()._get_base_config()
         config["ladok_client"] = {
             "url": "http://localhost",
-            "dev_universities": {"DEV": {"name_sv": "Testlärosäte", "name_en": "Test University"}},
+            "dev_universities": {"DEV": {"long_name_sv": "Testlärosäte", "long_name_en": "Test University"}},
         }
         return config
 

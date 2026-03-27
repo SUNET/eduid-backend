@@ -126,7 +126,7 @@ class EduidAPITestCase[T: EduIDBaseApp](CommonTestCase):
         self.test_user_eppn = self.test_user_data["eduPersonPrincipalName"]
 
         self.redis_instance = redis_instance
-        self.settings = update_config
+        self.settings = deepcopy(update_config)
         self.settings["redis_config"] = RedisConfig(host="localhost", port=self.redis_instance.port)
         assert isinstance(self.tmp_db, MongoTemporaryInstance)  # please mypy
         self.settings["mongo_uri"] = self.tmp_db.uri
