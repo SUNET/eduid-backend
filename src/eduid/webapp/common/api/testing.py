@@ -165,7 +165,7 @@ class EduidAPITestCase[T: EduIDBaseApp](CommonTestCase):
 
         # Restore conf so mutations in this test don't affect the next test.
         if _saved_conf is not None:
-            self.app.conf = _saved_conf  # type: ignore[attr-defined]
+            self.app.conf = _saved_conf
 
         try:
             for this in vars(self.app).values():

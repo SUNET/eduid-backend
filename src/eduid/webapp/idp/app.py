@@ -22,6 +22,8 @@ __author__ = "ft"
 
 
 class IdPApp(EduIDBaseApp):
+    conf: IdPConfig
+
     def __init__(self, config: IdPConfig, **kwargs: Any) -> None:
         super().__init__(config, **kwargs)
 

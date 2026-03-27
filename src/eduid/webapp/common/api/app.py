@@ -50,6 +50,8 @@ class EduIDBaseApp(Flask, metaclass=ABCMeta):
     Base class for eduID apps, initializing common features and facilities.
     """
 
+    conf: EduIDBaseAppConfig
+
     def __init__(
         self,
         config: EduIDBaseAppConfig,
