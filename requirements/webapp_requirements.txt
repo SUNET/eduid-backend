@@ -456,7 +456,7 @@ dnspython==2.8.0 \
     #   -c main.txt
     #   email-validator
     #   pymongo
-ecdsa==0.19.1 \
+ecdsa==0.19.2 \
     --hash=sha256:30638e27cf77b7e15c4c4cc1973720149e1033827cfd00661ca5c8cc0cdb24c3 \
     --hash=sha256:478cba7b62555866fcb3bb3fe985e06decbdb68ef55713c4e5ab98c57d508e61
     # via
