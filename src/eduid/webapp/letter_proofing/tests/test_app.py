@@ -233,7 +233,7 @@ class LetterProofingTests(EduidAPITestCase[LetterProofingApp]):
         assert isinstance(expires_string, str)
 
     def test_verify_letter_code(self, mocker: MockerFixture) -> None:
-        mock_reference_nin = mocker.patch(
+        mocker.patch(
             "eduid.webapp.common.api.helpers.get_reference_nin_from_navet_data", return_value=None
         )
 
