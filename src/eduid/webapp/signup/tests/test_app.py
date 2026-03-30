@@ -1527,3 +1527,18 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
         resp = self._get_code_backdoor(email=email)
 
         assert resp.status_code == 400
+
+    def test_get_scim_client_for_caches_open_client(self) -> None:
+        """Cached client is reused while still open."""
+        client1 = self.app.get_scim_client_for("owner_a")
+        client2 = self.app.get_scim_client_for("owner_a")
+        assert client1 is client2
+
+    def test_get_scim_client_for_recreates_closed_client(self) -> None:
+        """A new client is created when the cached one has been closed."""
+        client1 = self.app.get_scim_client_for("owner_b")
+        client1.close()
+        assert client1.is_closed
+        client2 = self.app.get_scim_client_for("owner_b")
+        assert not client2.is_closed
+        assert client1 is not client2
