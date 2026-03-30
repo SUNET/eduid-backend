@@ -2,9 +2,9 @@ import json
 from collections.abc import Mapping
 from datetime import timedelta
 from typing import Any
-from unittest.mock import MagicMock, patch
 
 import pytest
+from pytest_mock import MockerFixture
 from werkzeug.test import TestResponse
 
 from eduid.common.config.base import EduidEnvironment
@@ -18,6 +18,10 @@ from eduid.webapp.email.app import EmailApp, email_init_app
 
 class EmailTests(EduidAPITestCase[EmailApp]):
     copy_user_to_private = True
+
+    @pytest.fixture(autouse=True)
+    def setup(self, setup_api: None, mocker: MockerFixture) -> None:
+        self.mocker = mocker
 
     def load_app(self, config: Mapping[str, Any]) -> EmailApp:
         """
@@ -75,12 +79,8 @@ class EmailTests(EduidAPITestCase[EmailApp]):
 
             return json.loads(response2.data)
 
-    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    @patch("eduid.webapp.email.verifications.get_short_hash")
     def _post_email(
         self,
-        mock_code_verification: MagicMock,
-        mock_request_user_sync: MagicMock,
         data1: dict[str, Any] | None = None,
         send_data: bool = True,
     ) -> TestResponse:
@@ -93,6 +93,8 @@ class EmailTests(EduidAPITestCase[EmailApp]):
         response = self.browser.post("/new")
         assert response.status_code == 401
 
+        mock_code_verification = self.mocker.patch("eduid.webapp.email.verifications.get_short_hash")
+        mock_request_user_sync = self.mocker.patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
         mock_code_verification.return_value = "123456"
         mock_request_user_sync.side_effect = self.request_user_sync
         eppn = self.test_user_data["eduPersonPrincipalName"]
@@ -114,13 +116,13 @@ class EmailTests(EduidAPITestCase[EmailApp]):
 
                 return client.post("/new")
 
-    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def _post_primary(self, mock_request_user_sync: MagicMock, data1: dict[str, Any] | None = None) -> TestResponse:
+    def _post_primary(self, data1: dict[str, Any] | None = None) -> TestResponse:
         """
         Choose an email of the test user as primary
 
         :param data: to control what is sent to the server in the POST
         """
+        mock_request_user_sync = self.mocker.patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
         mock_request_user_sync.side_effect = self.request_user_sync
 
         response = self.browser.post("/primary")
@@ -139,13 +141,13 @@ class EmailTests(EduidAPITestCase[EmailApp]):
 
                 return client.post("/primary", data=json.dumps(data), content_type=self.content_type_json)
 
-    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def _remove(self, mock_request_user_sync: MagicMock, data1: dict[str, Any] | None = None) -> TestResponse:
+    def _remove(self, data1: dict[str, Any] | None = None) -> TestResponse:
         """
         POST to remove an email address form the test user
 
         :param data: to control what data is POSTed to the service
         """
+        mock_request_user_sync = self.mocker.patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
         mock_request_user_sync.side_effect = self.request_user_sync
 
         response = self.browser.post("/remove")
@@ -162,13 +164,13 @@ class EmailTests(EduidAPITestCase[EmailApp]):
 
             return client.post("/remove", data=json.dumps(data), content_type=self.content_type_json)
 
-    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def _resend_code(self, mock_request_user_sync: MagicMock, data1: dict[str, Any] | None = None) -> TestResponse:
+    def _resend_code(self, data1: dict[str, Any] | None = None) -> TestResponse:
         """
         Trigger resending a new verification code to the email being verified
 
         :param data: to control what data is POSTed to the service
         """
+        mock_request_user_sync = self.mocker.patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
         mock_request_user_sync.side_effect = self.request_user_sync
 
         eppn = self.test_user_data["eduPersonPrincipalName"]
@@ -182,12 +184,8 @@ class EmailTests(EduidAPITestCase[EmailApp]):
 
             return client.post("/resend-code", data=json.dumps(data), content_type=self.content_type_json)
 
-    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    @patch("eduid.webapp.email.verifications.get_short_hash")
     def _verify(
         self,
-        mock_code_verification: MagicMock,
-        mock_request_user_sync: MagicMock,
         data1: dict[str, Any] | None = None,
         data2: dict[str, Any] | None = None,
     ) -> TestResponse:
@@ -197,6 +195,8 @@ class EmailTests(EduidAPITestCase[EmailApp]):
         :param data1: to control what data is POSTed to the /new endpoint
         :param data2: to control what data is POSTed to the /verify endpoint
         """
+        mock_request_user_sync = self.mocker.patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
+        mock_code_verification = self.mocker.patch("eduid.webapp.email.verifications.get_short_hash")
         mock_request_user_sync.side_effect = self.request_user_sync
         mock_code_verification.return_value = "432123425"
 
@@ -230,12 +230,8 @@ class EmailTests(EduidAPITestCase[EmailApp]):
 
             return client.post("/verify", data=json.dumps(data), content_type=self.content_type_json)
 
-    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    @patch("eduid.webapp.email.verifications.get_short_hash")
     def _get_code_backdoor(
         self,
-        mock_code_verification: MagicMock,
-        mock_request_user_sync: MagicMock,
         data1: dict[str, Any] | None = None,
         email: str = "johnsmith3@example.com",
         code: str = "123456",
@@ -249,6 +245,8 @@ class EmailTests(EduidAPITestCase[EmailApp]):
         :param email: email to use
         :param code: mock generated code
         """
+        mock_code_verification = self.mocker.patch("eduid.webapp.email.verifications.get_short_hash")
+        mock_request_user_sync = self.mocker.patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
         mock_code_verification.return_value = code
         mock_request_user_sync.side_effect = self.request_user_sync
 

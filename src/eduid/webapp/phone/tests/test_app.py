@@ -2,10 +2,10 @@ import json
 from collections.abc import Mapping
 from datetime import timedelta
 from typing import Any
-from unittest.mock import MagicMock, patch
 from urllib.parse import quote_plus
 
 import pytest
+from pytest_mock import MockerFixture
 from werkzeug.test import TestResponse
 
 from eduid.common.config.base import EduidEnvironment
@@ -18,7 +18,8 @@ class PhoneTests(EduidAPITestCase[PhoneApp]):
     copy_user_to_private = True
 
     @pytest.fixture(autouse=True)
-    def setup(self, setup_api: None) -> None:
+    def setup(self, setup_api: None, mocker: MockerFixture) -> None:
+        self.mocker = mocker
         self.test_number = "+34609609609"
 
     def load_app(self, config: Mapping[str, Any]) -> PhoneApp:
@@ -58,14 +59,8 @@ class PhoneTests(EduidAPITestCase[PhoneApp]):
 
             return json.loads(response2.data)
 
-    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    @patch("eduid.webapp.phone.verifications.get_short_hash")
-    @patch("eduid.common.rpc.msg_relay.MsgRelay.sendsms")
     def _post_phone(
         self,
-        mock_phone_validator: MagicMock,
-        mock_code_verification: MagicMock,
-        mock_request_user_sync: MagicMock,
         mod_data: dict[str, Any] | None = None,
         send_data: bool = True,
     ) -> TestResponse:
@@ -75,6 +70,9 @@ class PhoneTests(EduidAPITestCase[PhoneApp]):
         :param mod_data: to control what data is POSTed
         :param send_data: whether to POST any data at all
         """
+        mock_request_user_sync = self.mocker.patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
+        mock_code_verification = self.mocker.patch("eduid.webapp.phone.verifications.get_short_hash")
+        mock_phone_validator = self.mocker.patch("eduid.common.rpc.msg_relay.MsgRelay.sendsms")
         mock_phone_validator.return_value = True
         mock_code_verification.return_value = "5250f9a4"
         mock_request_user_sync.side_effect = self.request_user_sync
@@ -98,13 +96,13 @@ class PhoneTests(EduidAPITestCase[PhoneApp]):
 
                 return client.post("/new")
 
-    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def _post_primary(self, mock_request_user_sync: MagicMock, mod_data: dict[str, Any] | None = None) -> TestResponse:
+    def _post_primary(self, mod_data: dict[str, Any] | None = None) -> TestResponse:
         """
         Set phone number as the primary number for the test user
 
         :param mod_data: to control what data is POSTed
         """
+        mock_request_user_sync = self.mocker.patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
         mock_request_user_sync.side_effect = self.request_user_sync
 
         response = self.browser.post("/primary")
@@ -121,13 +119,13 @@ class PhoneTests(EduidAPITestCase[PhoneApp]):
 
             return client.post("/primary", data=json.dumps(data), content_type=self.content_type_json)
 
-    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def _remove(self, mock_request_user_sync: MagicMock, mod_data: dict[str, Any] | None = None) -> TestResponse:
+    def _remove(self, mod_data: dict[str, Any] | None = None) -> TestResponse:
         """
         Remove phone number from the test user
 
         :param mod_data: to control what data is POSTed
         """
+        mock_request_user_sync = self.mocker.patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
         mock_request_user_sync.side_effect = self.request_user_sync
 
         response = self.browser.post("/remove")
@@ -144,14 +142,8 @@ class PhoneTests(EduidAPITestCase[PhoneApp]):
 
             return client.post("/remove", data=json.dumps(data), content_type=self.content_type_json)
 
-    @patch("eduid.webapp.phone.verifications.get_short_hash")
-    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    @patch("eduid.common.rpc.msg_relay.MsgRelay.sendsms")
     def _send_code(
         self,
-        mock_phone_validator: MagicMock,
-        mock_request_user_sync: MagicMock,
-        mock_verification_code: MagicMock,
         mod_data: dict[str, Any] | None = None,
         captcha_completed: bool = True,
     ) -> TestResponse:
@@ -160,6 +152,9 @@ class PhoneTests(EduidAPITestCase[PhoneApp]):
 
         :param mod_data: to control the data to be POSTed
         """
+        mock_verification_code = self.mocker.patch("eduid.webapp.phone.verifications.get_short_hash")
+        mock_request_user_sync = self.mocker.patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
+        mock_phone_validator = self.mocker.patch("eduid.common.rpc.msg_relay.MsgRelay.sendsms")
         mock_phone_validator.return_value = True
         mock_request_user_sync.side_effect = self.request_user_sync
         mock_verification_code.return_value = "5250f9a4"
@@ -177,14 +172,8 @@ class PhoneTests(EduidAPITestCase[PhoneApp]):
 
             return client.post("/send-code", data=json.dumps(data), content_type=self.content_type_json)
 
-    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    @patch("eduid.webapp.phone.verifications.get_short_hash")
-    @patch("eduid.common.rpc.msg_relay.MsgRelay.sendsms")
     def _get_code_backdoor(
         self,
-        mock_phone_validator: MagicMock,
-        mock_code_verification: MagicMock,
-        mock_request_user_sync: MagicMock,
         mod_data: dict[str, Any] | None = None,
         phone: str = "+34670123456",
         code: str = "5250f9a4",
@@ -198,6 +187,9 @@ class PhoneTests(EduidAPITestCase[PhoneApp]):
         :param phone: the phone to use
         :param code: mock verification code
         """
+        mock_request_user_sync = self.mocker.patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
+        mock_code_verification = self.mocker.patch("eduid.webapp.phone.verifications.get_short_hash")
+        mock_phone_validator = self.mocker.patch("eduid.common.rpc.msg_relay.MsgRelay.sendsms")
         mock_phone_validator.return_value = True
         mock_code_verification.return_value = code
         mock_request_user_sync.side_effect = self.request_user_sync
@@ -417,12 +409,10 @@ class PhoneTests(EduidAPITestCase[PhoneApp]):
         assert delete_phone_data["type"] == "POST_PHONE_REMOVE_FAIL"
         assert delete_phone_data["payload"]["message"] == "phones.unknown_phone"
 
-    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    @patch("eduid.webapp.phone.verifications.get_short_hash")
-    @patch("eduid.common.rpc.msg_relay.MsgRelay.sendsms")
-    def test_remove_primary_other_verified(
-        self, mock_phone_validator: MagicMock, mock_code_verification: MagicMock, mock_request_user_sync: MagicMock
-    ) -> None:
+    def test_remove_primary_other_verified(self, mocker: MockerFixture) -> None:
+        mock_request_user_sync = mocker.patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
+        mock_code_verification = mocker.patch("eduid.webapp.phone.verifications.get_short_hash")
+        mock_phone_validator = mocker.patch("eduid.common.rpc.msg_relay.MsgRelay.sendsms")
         mock_phone_validator.return_value = True
         mock_request_user_sync.side_effect = self.request_user_sync
         mock_code_verification.return_value = "12345"
@@ -551,12 +541,10 @@ class PhoneTests(EduidAPITestCase[PhoneApp]):
         assert self.test_number == phone_data["payload"]["phones"][0].get("number")
         assert phone_data["payload"]["phones"][1].get("number") == "+34 6096096096"
 
-    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    @patch("eduid.webapp.phone.verifications.get_short_hash")
-    @patch("eduid.common.rpc.msg_relay.MsgRelay.sendsms")
-    def test_verify(
-        self, mock_phone_validator: MagicMock, mock_code_verification: MagicMock, mock_request_user_sync: MagicMock
-    ) -> None:
+    def test_verify(self, mocker: MockerFixture) -> None:
+        mock_request_user_sync = mocker.patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
+        mock_code_verification = mocker.patch("eduid.webapp.phone.verifications.get_short_hash")
+        mock_phone_validator = mocker.patch("eduid.common.rpc.msg_relay.MsgRelay.sendsms")
         mock_phone_validator.return_value = True
         mock_request_user_sync.side_effect = self.request_user_sync
         mock_code_verification.return_value = "12345"
@@ -601,12 +589,10 @@ class PhoneTests(EduidAPITestCase[PhoneApp]):
             assert not verify_phone_data["payload"]["phones"][2]["primary"]
             assert self.app.proofing_log.db_count() == 1
 
-    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    @patch("eduid.webapp.phone.verifications.get_short_hash")
-    @patch("eduid.common.rpc.msg_relay.MsgRelay.sendsms")
-    def test_verify_fail(
-        self, mock_phone_validator: MagicMock, mock_code_verification: MagicMock, mock_request_user_sync: MagicMock
-    ) -> None:
+    def test_verify_fail(self, mocker: MockerFixture) -> None:
+        mock_request_user_sync = mocker.patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
+        mock_code_verification = mocker.patch("eduid.webapp.phone.verifications.get_short_hash")
+        mock_phone_validator = mocker.patch("eduid.common.rpc.msg_relay.MsgRelay.sendsms")
         mock_phone_validator.return_value = True
         mock_request_user_sync.side_effect = self.request_user_sync
         mock_code_verification.return_value = "12345"

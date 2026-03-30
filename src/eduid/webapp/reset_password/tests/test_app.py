@@ -5,11 +5,11 @@ from collections.abc import Callable, Iterable, Mapping
 from datetime import timedelta
 from http import HTTPStatus
 from typing import Any
-from unittest.mock import MagicMock, patch
 from urllib.parse import quote_plus
 
 import pytest
 from flask import url_for
+from pytest_mock import MockerFixture
 from werkzeug.test import TestResponse
 
 from eduid.common.config.base import EduidEnvironment
@@ -44,7 +44,8 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
     """Base TestCase for those tests that need a full environment setup"""
 
     @pytest.fixture(autouse=True)
-    def setup(self, setup_api: None) -> None:
+    def setup(self, setup_api: None, mocker: MockerFixture) -> None:
+        self.mocker = mocker
         self.other_test_user = UserFixtures().mocked_user_standard_2
 
     def load_app(self, config: Mapping[str, Any] | None) -> ResetPasswordApp:
@@ -131,12 +132,8 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
                 data.update(data2)
             return c.post(url, data=json.dumps(data), content_type=self.content_type_json)
 
-    @patch("eduid.webapp.common.authn.vccs.get_vccs_client")
-    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
     def _post_reset_password(
         self,
-        mock_request_user_sync: MagicMock,
-        mock_get_vccs_client: MagicMock,
         data1: dict[str, Any] | None = None,
         data2: dict[str, Any] | None = None,
     ) -> TestResponse:
@@ -148,8 +145,9 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
         :param data1: control the data sent to the / endpoint (an email address)
         :param data2: control the data sent to actually reset the password.
         """
+        mock_request_user_sync = self.mocker.patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
+        self.mocker.patch("eduid.webapp.common.authn.vccs.get_vccs_client", return_value=MockVCCSClient())
         mock_request_user_sync.side_effect = self.request_user_sync
-        mock_get_vccs_client.return_value = MockVCCSClient()
 
         # check that the user has verified data
         user = self.app.central_userdb.get_user_by_eppn(self.test_user.eppn)
@@ -183,14 +181,8 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
 
             return c.post(url, data=json.dumps(data), content_type=self.content_type_json)
 
-    @patch("eduid.webapp.common.authn.vccs.get_vccs_client")
-    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    @patch("eduid.common.rpc.msg_relay.MsgRelay.sendsms")
     def _post_choose_extra_sec(
         self,
-        mock_sendsms: MagicMock,
-        mock_request_user_sync: MagicMock,
-        mock_get_vccs_client: MagicMock,
         sendsms_side_effect: Callable | Exception | Iterable | None = None,
         data1: dict[str, Any] | None = None,
         data2: dict[str, Any] | None = None,
@@ -209,9 +201,10 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
                       an SMS with an extra security verification code.
         :param repeat: if True, try to trigger sending the SMS twice.
         """
+        mock_request_user_sync = self.mocker.patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
+        self.mocker.patch("eduid.webapp.common.authn.vccs.get_vccs_client", return_value=MockVCCSClient())
+        mock_sendsms = self.mocker.patch("eduid.common.rpc.msg_relay.MsgRelay.sendsms", return_value=True)
         mock_request_user_sync.side_effect = self.request_user_sync
-        mock_get_vccs_client.return_value = MockVCCSClient()
-        mock_sendsms.return_value = True
         if sendsms_side_effect:
             mock_sendsms.side_effect = sendsms_side_effect
 
@@ -247,14 +240,8 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
                 response = c.post(extra_security_phone_url, data=json.dumps(data), content_type=self.content_type_json)
             return response
 
-    @patch("eduid.webapp.common.authn.vccs.get_vccs_client")
-    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    @patch("eduid.common.rpc.msg_relay.MsgRelay.sendsms")
     def _post_reset_password_secure_phone(
         self,
-        mock_sendsms: MagicMock,
-        mock_request_user_sync: MagicMock,
-        mock_get_vccs_client: MagicMock,
         data1: dict[str, Any] | None = None,
         data2: dict[str, Any] | None = None,
     ) -> TestResponse:
@@ -268,9 +255,10 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
         :param data1: To control the email sent to initiate the process
         :param data2: To control the data sent to actually finally reset the password.
         """
+        mock_request_user_sync = self.mocker.patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
+        self.mocker.patch("eduid.webapp.common.authn.vccs.get_vccs_client", return_value=MockVCCSClient())
+        self.mocker.patch("eduid.common.rpc.msg_relay.MsgRelay.sendsms", return_value=True)
         mock_request_user_sync.side_effect = self.request_user_sync
-        mock_get_vccs_client.return_value = MockVCCSClient()
-        mock_sendsms.return_value = True
 
         response = self._post_email_address(data1=data1)
         state1 = self.app.password_reset_state_db.get_state_by_eppn(self.test_user.eppn)
@@ -306,14 +294,8 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
 
         return c.post(url, data=json.dumps(data), content_type=self.content_type_json)
 
-    @patch("eduid.webapp.common.authn.vccs.get_vccs_client")
-    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    @patch("fido2.cose.ES256.verify")
     def _post_reset_password_security_key(
         self,
-        mock_verify: MagicMock,
-        mock_request_user_sync: MagicMock,
-        mock_get_vccs_client: MagicMock,
         data1: dict[str, Any] | None = None,
         credential_data: dict[str, Any] | None = None,
         data2: dict[str, Any] | None = None,
@@ -332,9 +314,10 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
         :param data2: to control the data POSTed to finally reset the password
         :param fido2state: to control the fido state kept in the session
         """
+        mock_request_user_sync = self.mocker.patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
+        self.mocker.patch("eduid.webapp.common.authn.vccs.get_vccs_client", return_value=MockVCCSClient())
+        self.mocker.patch("fido2.cose.ES256.verify", return_value=True)
         mock_request_user_sync.side_effect = self.request_user_sync
-        mock_get_vccs_client.return_value = MockVCCSClient()
-        mock_verify.return_value = True
 
         credential = sample_credential.to_dict()
         if credential_data:
@@ -377,12 +360,8 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
 
         return c.post(url, data=json.dumps(data), content_type=self.content_type_json)
 
-    @patch("eduid.webapp.common.authn.vccs.get_vccs_client")
-    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
     def _post_reset_password_secure_external_mfa(
         self,
-        mock_request_user_sync: MagicMock,
-        mock_get_vccs_client: MagicMock,
         data1: dict[str, Any] | None = None,
         data2: dict[str, Any] | None = None,
         external_mfa_state: dict[str, Any] | None = None,
@@ -395,8 +374,9 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
         :param data2: to control the data POSTed to finally reset the password
         :param external_mfa_state: to control the external mfa state kept in the session
         """
+        mock_request_user_sync = self.mocker.patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
+        self.mocker.patch("eduid.webapp.common.authn.vccs.get_vccs_client", return_value=MockVCCSClient())
         mock_request_user_sync.side_effect = self.request_user_sync
-        mock_get_vccs_client.return_value = MockVCCSClient()
 
         user = self.app.central_userdb.get_user_by_eppn(self.test_user.eppn)
 
@@ -456,14 +436,8 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
             eppn = quote_plus(self.test_user.eppn)
             return client.get(f"/get-email-code?eppn={eppn}")
 
-    @patch("eduid.webapp.common.authn.vccs.get_vccs_client")
-    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    @patch("eduid.common.rpc.msg_relay.MsgRelay.sendsms")
     def _get_phone_code_backdoor(
         self,
-        mock_sendsms: MagicMock,
-        mock_request_user_sync: MagicMock,
-        mock_get_vccs_client: MagicMock,
         sendsms_side_effect: Callable | Exception | Iterable | None = None,
         magic_cookie_name: str | None = None,
     ) -> TestResponse:
@@ -471,9 +445,10 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
         Test choosing extra security via a confirmed phone number to reset the password,
         and getting the generated phone verification code through the backdoor
         """
+        mock_request_user_sync = self.mocker.patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
+        self.mocker.patch("eduid.webapp.common.authn.vccs.get_vccs_client", return_value=MockVCCSClient())
+        mock_sendsms = self.mocker.patch("eduid.common.rpc.msg_relay.MsgRelay.sendsms", return_value=True)
         mock_request_user_sync.side_effect = self.request_user_sync
-        mock_get_vccs_client.return_value = MockVCCSClient()
-        mock_sendsms.return_value = True
         if sendsms_side_effect:
             mock_sendsms.side_effect = sendsms_side_effect
 
@@ -983,9 +958,8 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
         verified_identities = user.identities.verified
         assert len(verified_identities) == 3
 
-    @patch("eduid.webapp.reset_password.views.reset_password.verify_phone_number")
-    def test_post_reset_password_secure_phone_verify_fail(self, mock_verify: MagicMock) -> None:
-        mock_verify.return_value = False
+    def test_post_reset_password_secure_phone_verify_fail(self) -> None:
+        self.mocker.patch("eduid.webapp.reset_password.views.reset_password.verify_phone_number", return_value=False)
         response = self._post_reset_password_secure_phone()
         self._check_error_response(
             response, type_="POST_RESET_PASSWORD_NEW_PASSWORD_EXTRA_SECURITY_PHONE_FAIL", msg=ResetPwMsg.phone_invalid
