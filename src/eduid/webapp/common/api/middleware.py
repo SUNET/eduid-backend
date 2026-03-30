@@ -19,7 +19,7 @@ class PrefixMiddleware:
     def __call__(self, environ: WSGIEnvironment, start_response: StartResponse) -> Iterable[bytes]:
         # Handle localhost requests for health checks
         if environ.get("REMOTE_ADDR") == "127.0.0.1":
-            environ["HTTP_HOST"] = self.server_name
+            environ["HTTP_HOST"] = self.server_name or "localhost"
             environ["SCRIPT_NAME"] = self.prefix
             return self.app(environ, start_response)
         elif environ.get("PATH_INFO", "").startswith(self.prefix):
