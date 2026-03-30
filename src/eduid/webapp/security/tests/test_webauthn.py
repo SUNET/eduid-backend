@@ -272,7 +272,7 @@ class SecurityWebauthnTests(EduidAPITestCase):
         client_data: bytes,
         attestation: bytes,
         state: dict,
-        cred_id: bytes,
+        cred_id: str,
         existing_legacy_token: bool = False,
         csrf: str | None = None,
         set_authn_action: bool = True,
