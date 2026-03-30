@@ -5,10 +5,10 @@ from collections.abc import AsyncIterator
 from datetime import timedelta
 from os import environ
 from typing import ClassVar
-from unittest.mock import MagicMock, patch
 
 import pytest_asyncio
 from aiosmtplib import SMTPResponse
+from pytest_mock import MockerFixture
 
 from eduid.common.config.parsers import load_config
 from eduid.common.misc.timeutil import utc_now
@@ -76,8 +76,8 @@ class TestMailWorker(QueueAsyncioTest):
         self.client_db.save(queue_item)
         await self._assert_item_gets_processed(queue_item)
 
-    @patch("aiosmtplib.SMTP.sendmail")
-    async def test_eduid_signup_mail_from_stream_unrecoverable_error(self, mock_sendmail: MagicMock) -> None:
+    async def test_eduid_signup_mail_from_stream_unrecoverable_error(self, mocker: MockerFixture) -> None:
+        mock_sendmail = mocker.patch("aiosmtplib.SMTP.sendmail")
         """
         Test that saved queue items are handled by the handle_new_item method
         """
@@ -93,8 +93,8 @@ class TestMailWorker(QueueAsyncioTest):
         self.client_db.save(queue_item)
         await self._assert_item_gets_processed(queue_item)
 
-    @patch("aiosmtplib.SMTP.sendmail")
-    async def test_eduid_signup_mail_from_stream_error_retry(self, mock_sendmail: MagicMock) -> None:
+    async def test_eduid_signup_mail_from_stream_error_retry(self, mocker: MockerFixture) -> None:
+        mock_sendmail = mocker.patch("aiosmtplib.SMTP.sendmail")
         """
         Test that saved queue items are handled by the handle_new_item method
         """
