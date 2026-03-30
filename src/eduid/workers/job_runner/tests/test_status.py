@@ -13,8 +13,8 @@ class JobRunnerStatusTestCase:
     mongodb_instance: MongoTemporaryInstance
 
     @pytest.fixture(autouse=True)
-    def setup_mongodb(self) -> None:
-        self.mongodb_instance = MongoTemporaryInstance.get_instance()
+    def setup_mongodb(self, mongo_instance: MongoTemporaryInstance) -> None:
+        self.mongodb_instance = mongo_instance
 
     def _get_config(self) -> dict[str, Any]:
         return {
