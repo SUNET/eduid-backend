@@ -48,7 +48,7 @@ class AuthnAPITestBase(EduidAPITestCase):
     def setup(self, setup_api: None) -> None:
         self.idp_url = "https://idp.example.com/simplesaml/saml2/idp/SSOService.php"
 
-    @pytest.fixture
+    @pytest.fixture(scope="class")
     def update_config(self) -> dict[str, Any]:
         config = self._get_base_config()
         saml_config = os.path.join(HERE, "saml2_settings.py")
@@ -303,7 +303,7 @@ class AuthnAPITestCase(AuthnAPITestBase):
                 return self.app.dispatch_request()
 
 
-class AuthnTestApp(AuthnBaseApp):
+class AuthnTestApp(AuthnBaseApp[AuthnConfig]):
     def __init__(self, config: AuthnConfig, **kwargs: Any) -> None:
         super().__init__(config, **kwargs)
         self.conf = config
@@ -314,7 +314,7 @@ class UnAuthnAPITestCase(EduidAPITestCase):
 
     app: AuthnTestApp
 
-    @pytest.fixture
+    @pytest.fixture(scope="class")
     def update_config(self) -> dict[str, Any]:
         config = self._get_base_config()
         saml_config = os.path.join(HERE, "saml2_settings.py")
@@ -355,25 +355,7 @@ class NoAuthnAPITestCase(EduidAPITestCase):
 
     app: AuthnTestApp
 
-    @pytest.fixture(autouse=True)
-    def setup(self, setup_api: None) -> None:
-        test_views = Blueprint("testing", __name__)
-
-        @test_views.route("/test", methods=["GET"])
-        def test() -> str:
-            return "OK"
-
-        @test_views.route("/test2", methods=["GET"])
-        def test2() -> str:
-            return "OK"
-
-        @test_views.route("/test3", methods=["GET"])
-        def test3() -> str:
-            return "OK"
-
-        self.app.register_blueprint(test_views)
-
-    @pytest.fixture
+    @pytest.fixture(scope="class")
     def update_config(self) -> dict[str, Any]:
         config = self._get_base_config()
         saml_config = os.path.join(HERE, "saml2_settings.py")
@@ -394,7 +376,24 @@ class NoAuthnAPITestCase(EduidAPITestCase):
         app for this test case.
         """
         loaded_config = load_config(typ=AuthnConfig, app_name="testing", ns="webapp", test_config=config)
-        return AuthnTestApp(config=loaded_config)
+        app = AuthnTestApp(config=loaded_config)
+
+        test_views = Blueprint("testing", __name__)
+
+        @test_views.route("/test", methods=["GET"])
+        def test() -> str:
+            return "OK"
+
+        @test_views.route("/test2", methods=["GET"])
+        def test2() -> str:
+            return "OK"
+
+        @test_views.route("/test3", methods=["GET"])
+        def test3() -> str:
+            return "OK"
+
+        app.register_blueprint(test_views)
+        return app
 
     def test_no_authn(self) -> None:
         with self.app.test_client() as c:

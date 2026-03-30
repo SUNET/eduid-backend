@@ -105,7 +105,7 @@ def values_view() -> Response:
     return _make_response(safe_param)
 
 
-class InputsTestApp(EduIDBaseApp):
+class InputsTestApp(EduIDBaseApp[EduIDBaseAppConfig]):
     def __init__(self, config: EduIDBaseAppConfig) -> None:
         super().__init__(config)
 

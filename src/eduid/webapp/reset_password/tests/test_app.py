@@ -54,7 +54,7 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
         """
         return init_reset_password_app(test_config=config)
 
-    @pytest.fixture
+    @pytest.fixture(scope="class")
     def update_config(self) -> dict[str, Any]:
         config = self._get_base_config()
         config.update(

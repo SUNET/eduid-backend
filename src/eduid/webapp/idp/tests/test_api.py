@@ -162,7 +162,7 @@ class IdPAPITests(EduidAPITestCase[IdPApp]):
         )
         return config
 
-    @pytest.fixture
+    @pytest.fixture(scope="class")
     def update_config(self) -> dict[str, Any]:
         return self._get_base_config()
 

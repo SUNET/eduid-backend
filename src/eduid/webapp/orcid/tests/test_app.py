@@ -74,7 +74,7 @@ class OrcidTests(EduidAPITestCase[OrcidApp]):
             mock_response.return_value = MockResponse(200, json.dumps(oidc_provider_config))
             return init_orcid_app("testing", config)
 
-    @pytest.fixture
+    @pytest.fixture(scope="class")
     def update_config(self) -> dict[str, Any]:
         config = self._get_base_config()
         config.update(

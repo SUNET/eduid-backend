@@ -17,7 +17,7 @@ from eduid.webapp.freja_eid.settings.common import FrejaEIDConfig
 __author__ = "lundberg"
 
 
-class FrejaEIDApp(AuthnBaseApp):
+class FrejaEIDApp(AuthnBaseApp[FrejaEIDConfig]):
     def __init__(self, config: FrejaEIDConfig, **kwargs: Any) -> None:
         super().__init__(config, **kwargs)
 

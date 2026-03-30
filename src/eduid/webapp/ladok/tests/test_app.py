@@ -78,7 +78,7 @@ class LadokTests(EduidAPITestCase[LadokApp]):
         }
         return config
 
-    @pytest.fixture
+    @pytest.fixture(scope="class")
     def update_config(self) -> dict[str, Any]:
         return self._get_base_config()
 
@@ -227,7 +227,7 @@ class LadokDevTests(EduidAPITestCase[LadokApp]):
         """
         return init_ladok_app("testing", config)
 
-    @pytest.fixture
+    @pytest.fixture(scope="class")
     def update_config(self) -> dict[str, Any]:
         config = self._get_base_config()
         config["environment"] = EduidEnvironment.dev.value

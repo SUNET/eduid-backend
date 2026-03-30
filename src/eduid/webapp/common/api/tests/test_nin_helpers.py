@@ -42,7 +42,7 @@ class HelpersTestConfig(EduIDBaseAppConfig, MsgConfigMixin):
     pass
 
 
-class HelpersTestApp(EduIDBaseApp):
+class HelpersTestApp(EduIDBaseApp[HelpersTestConfig]):
     def __init__(self, name: str, test_config: Mapping[str, Any], **kwargs: Any) -> None:
         self.conf = load_config(typ=HelpersTestConfig, app_name=name, ns="webapp", test_config=test_config)
         super().__init__(self.conf, **kwargs)

@@ -10,7 +10,7 @@ from eduid.webapp.common.api.testing import EduidAPITestCase
 from eduid.webapp.common.authn.middleware import AuthnBaseApp
 
 
-class AuthnTestApp(AuthnBaseApp):
+class AuthnTestApp(AuthnBaseApp[EduIDBaseAppConfig]):
     def __init__(self, name: str, test_config: Mapping[str, Any], **kwargs: Any) -> None:
         # This should be an AuthnConfig instance, but an EduIDBaseAppConfig instance suffices for these
         # tests and we don't want eduid.webapp.common to depend on eduid.webapp.
@@ -26,7 +26,7 @@ class AuthnTests(EduidAPITestCase):
         """
         return AuthnTestApp("testing", config)
 
-    @pytest.fixture
+    @pytest.fixture(scope="class")
     def update_config(self) -> dict[str, Any]:
         config = self._get_base_config()
         config.update(
@@ -57,7 +57,7 @@ class UnAuthnTests(EduidAPITestCase):
         """
         return AuthnTestApp("testing", config)
 
-    @pytest.fixture
+    @pytest.fixture(scope="class")
     def update_config(self) -> dict[str, Any]:
         config = self._get_base_config()
         config.update(

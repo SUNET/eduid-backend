@@ -68,7 +68,7 @@ class LetterProofingTests(EduidAPITestCase[LetterProofingApp]):
         """
         return init_letter_proofing_app("testing", config)
 
-    @pytest.fixture
+    @pytest.fixture(scope="class")
     def update_config(self) -> dict[str, Any]:
         config = self._get_base_config()
         config.update(

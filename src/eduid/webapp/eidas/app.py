@@ -15,7 +15,7 @@ from eduid.webapp.eidas.settings.common import EidasConfig
 __author__ = "lundberg"
 
 
-class EidasApp(AuthnBaseApp):
+class EidasApp(AuthnBaseApp[EidasConfig]):
     def __init__(self, config: EidasConfig, **kwargs: Any) -> None:
         super().__init__(config, **kwargs)
 

@@ -21,7 +21,7 @@ from eduid.webapp.common.session.redis_session import NoSessionDataFoundExceptio
 no_context_logger = logging.getLogger(__name__)
 
 
-class AuthnBaseApp(EduIDBaseApp, metaclass=ABCMeta):
+class AuthnBaseApp[C: EduIDBaseAppConfig](EduIDBaseApp[C], metaclass=ABCMeta):
     """
     WSGI middleware that checks whether the request is authenticated,
     and in case it isn't, redirects to the authn service.
