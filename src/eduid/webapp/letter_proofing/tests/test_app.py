@@ -1,8 +1,7 @@
 import json
 from collections.abc import Mapping
 from datetime import datetime, timedelta
-from typing import Any, AnyStr, ClassVar
-from unittest.mock import Mock
+from typing import Any, ClassVar
 
 import pytest
 from pytest_mock import MockerFixture
@@ -19,6 +18,31 @@ from eduid.webapp.letter_proofing.helpers import LetterMsg
 __author__ = "lundberg"
 
 
+class MockResponse:
+    def __init__(
+        self,
+        status_code: int = 200,
+        content: str | bytes | None = None,
+        json_data: Mapping[str, Any] | None = None,
+        headers: Mapping[str, Any] | None = None,
+        raise_for_status: Exception | None = None,
+    ) -> None:
+        self.status_code = status_code
+        self.content = content
+        self.headers = headers or {}
+        self._json_data = json_data
+        self._raise_for_status = raise_for_status
+
+    def raise_for_status(self) -> None:
+        if self._raise_for_status is not None:
+            raise self._raise_for_status
+
+    def json(self) -> Mapping[str, Any]:
+        if self._json_data is None:
+            raise ValueError("No json_data provided to MockResponse")
+        return self._json_data
+
+
 class LetterProofingTests(EduidAPITestCase[LetterProofingApp]):
     """Base TestCase for those tests that need a full environment setup"""
 
@@ -31,37 +55,6 @@ class LetterProofingTests(EduidAPITestCase[LetterProofingApp]):
         self.test_old_user_nin = "199909096789"
         self.test_user_wrong_nin = "190001021234"
         self.mocker = mocker
-
-    @staticmethod
-    def mock_response(
-        status_code: int = 200,
-        content: AnyStr | None = None,
-        json_data: Mapping[str, Any] | None = None,
-        headers: Mapping[str, Any] | None = None,
-        raise_for_status: Exception | None = None,
-    ) -> Mock:
-        """
-        since we typically test a bunch of different
-        requests calls for a service, we are going to do
-        a lot of mock responses, so its usually a good idea
-        to have a helper function that builds these things
-        """
-        if headers is None:
-            headers = {}
-        mock_resp = Mock()
-        # mock raise_for_status call w/optional error
-        mock_resp.raise_for_status = Mock()
-        if raise_for_status:
-            mock_resp.raise_for_status.side_effect = raise_for_status
-        # set status code and content
-        mock_resp.status_code = status_code
-        mock_resp.content = content
-        # set headers
-        mock_resp.headers = headers
-        # add json data if provided
-        if json_data:
-            mock_resp.json = Mock(return_value=json_data)
-        return mock_resp
 
     def load_app(self, config: dict[str, Any]) -> LetterProofingApp:
         """
@@ -116,7 +109,7 @@ class LetterProofingTests(EduidAPITestCase[LetterProofingApp]):
             _state = self.get_state()
             csrf_token = _state["payload"]["csrf_token"]
 
-        ekopost_response = self.mock_response(json_data={"id": "test"})
+        ekopost_response = MockResponse(json_data={"id": "test"})
         mock_hammock.return_value = ekopost_response
         mock_request_user_sync.side_effect = self.request_user_sync
         mock_get_postal_address.return_value = self._get_full_postal_address()
@@ -161,7 +154,7 @@ class LetterProofingTests(EduidAPITestCase[LetterProofingApp]):
         mock_hammock = self.mocker.patch("hammock.Hammock._request")
         mock_request_user_sync = self.mocker.patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
         mock_get_postal_address = self.mocker.patch("eduid.common.rpc.msg_relay.MsgRelay.get_postal_address")
-        ekopost_response = self.mock_response(json_data={"id": "test"})
+        ekopost_response = MockResponse(json_data={"id": "test"})
         mock_hammock.return_value = ekopost_response
         mock_request_user_sync.side_effect = self.request_user_sync
         mock_get_postal_address.return_value = self._get_full_postal_address()
@@ -489,7 +482,7 @@ class LetterProofingTests(EduidAPITestCase[LetterProofingApp]):
         self.app.conf.magic_cookie_name = "magic"
         self.app.conf.environment = EduidEnvironment("dev")
 
-        ekopost_response = self.mock_response(json_data={"id": "test"})
+        ekopost_response = MockResponse(json_data={"id": "test"})
         mock_hammock.return_value = ekopost_response
         mock_request_user_sync.side_effect = self.request_user_sync
 

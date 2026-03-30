@@ -1,3 +1,4 @@
+import logging
 import os
 from collections.abc import Iterator
 from pathlib import Path
@@ -6,6 +7,17 @@ import pytest
 
 from eduid.userdb.testing import MongoTemporaryInstance
 from eduid.userdb.user_cleaner.db import CleanerQueueDB
+from eduid.userdb.userdb import AmDB
+from eduid.workers.job_runner.context import Context
+
+
+class MockContext(Context):
+    """Context stub for tests — skips all real initialisation while passing isinstance checks."""
+
+    def __init__(self, central_db: AmDB, cleaner_queue: CleanerQueueDB, logger: logging.Logger) -> None:
+        self.central_db = central_db
+        self.cleaner_queue = cleaner_queue
+        self.logger = logger
 
 
 class BaseDBTestCase:
