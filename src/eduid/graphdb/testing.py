@@ -39,9 +39,9 @@ class Neo4jTemporaryInstance(EduidTemporaryInstance):
     DEFAULT_PASSWORD = "testingtesting"
 
     def __init__(self, max_retry_seconds: int = 60, neo4j_version: str = NEO4J_VERSION) -> None:
-        self._http_port = random.randint(40000, 43000)
-        self._https_port = random.randint(44000, 46000)
-        self._bolt_port = random.randint(47000, 50000)
+        self._http_port = random.randint(40000, 44999)
+        self._https_port = random.randint(45000, 54999)
+        self._bolt_port = random.randint(55000, 64999)
         self._docker_name = f"test_neo4j_{self.bolt_port}"
         self._neo4j_version = neo4j_version
         self._host = "localhost"
