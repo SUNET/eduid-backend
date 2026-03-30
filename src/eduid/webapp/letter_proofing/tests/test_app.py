@@ -2,9 +2,10 @@ import json
 from collections.abc import Mapping
 from datetime import datetime, timedelta
 from typing import Any, AnyStr, ClassVar
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import Mock
 
 import pytest
+from pytest_mock import MockerFixture
 from werkzeug.test import TestResponse
 
 from eduid.common.config.base import EduidEnvironment
@@ -24,11 +25,12 @@ class LetterProofingTests(EduidAPITestCase[LetterProofingApp]):
     api_users: ClassVar[list[str]] = ["hubba-baar"]
 
     @pytest.fixture(autouse=True)
-    def setup(self, setup_api: None) -> None:
+    def setup(self, setup_api: None, mocker: MockerFixture) -> None:
         self.test_user_eppn = "hubba-baar"
         self.test_user_nin = "200001023456"
         self.test_old_user_nin = "199909096789"
         self.test_user_wrong_nin = "190001021234"
+        self.mocker = mocker
 
     @staticmethod
     def mock_response(
@@ -102,17 +104,14 @@ class LetterProofingTests(EduidAPITestCase[LetterProofingApp]):
             )
         return response
 
-    @patch("hammock.Hammock._request")
-    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    @patch("eduid.common.rpc.msg_relay.MsgRelay.get_postal_address")
     def _send_letter2(
         self,
         nin: str,
         csrf_token: str | None,
-        mock_get_postal_address: MagicMock,
-        mock_request_user_sync: MagicMock,
-        mock_hammock: MagicMock,
     ) -> TestResponse:
+        mock_hammock = self.mocker.patch("hammock.Hammock._request")
+        mock_request_user_sync = self.mocker.patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
+        mock_get_postal_address = self.mocker.patch("eduid.common.rpc.msg_relay.MsgRelay.get_postal_address")
         if csrf_token is None:
             _state = self.get_state()
             csrf_token = _state["payload"]["csrf_token"]
@@ -139,11 +138,9 @@ class LetterProofingTests(EduidAPITestCase[LetterProofingApp]):
             )
         return response
 
-    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    @patch("eduid.common.rpc.msg_relay.MsgRelay.get_postal_address")
-    def _verify_code2(
-        self, code: str, csrf_token: str | None, mock_get_postal_address: MagicMock, mock_request_user_sync: MagicMock
-    ) -> TestResponse:
+    def _verify_code2(self, code: str, csrf_token: str | None) -> TestResponse:
+        mock_request_user_sync = self.mocker.patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
+        mock_get_postal_address = self.mocker.patch("eduid.common.rpc.msg_relay.MsgRelay.get_postal_address")
         if csrf_token is None:
             _state = self.get_state()
             csrf_token = _state["payload"]["csrf_token"]
@@ -155,18 +152,15 @@ class LetterProofingTests(EduidAPITestCase[LetterProofingApp]):
             response = client.post("/verify-code", data=json.dumps(data), content_type=self.content_type_json)
         return response
 
-    @patch("hammock.Hammock._request")
-    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    @patch("eduid.common.rpc.msg_relay.MsgRelay.get_postal_address")
     def get_code_backdoor(
         self,
-        mock_get_postal_address: MagicMock,
-        mock_request_user_sync: MagicMock,
-        mock_hammock: MagicMock,
         cookie_name: str | None = None,
         cookie_value: str | None = None,
         add_cookie: bool = True,
     ) -> TestResponse:
+        mock_hammock = self.mocker.patch("hammock.Hammock._request")
+        mock_request_user_sync = self.mocker.patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
+        mock_get_postal_address = self.mocker.patch("eduid.common.rpc.msg_relay.MsgRelay.get_postal_address")
         ekopost_response = self.mock_response(json_data={"id": "test"})
         mock_hammock.return_value = ekopost_response
         mock_request_user_sync.side_effect = self.request_user_sync
@@ -245,9 +239,10 @@ class LetterProofingTests(EduidAPITestCase[LetterProofingApp]):
         expires_string = expires.strftime("%Y-%m-%d")
         assert isinstance(expires_string, str)
 
-    @patch("eduid.webapp.common.api.helpers.get_reference_nin_from_navet_data")
-    def test_verify_letter_code(self, mock_reference_nin: MagicMock) -> None:
-        mock_reference_nin.return_value = None
+    def test_verify_letter_code(self, mocker: MockerFixture) -> None:
+        mock_reference_nin = mocker.patch(
+            "eduid.webapp.common.api.helpers.get_reference_nin_from_navet_data", return_value=None
+        )
 
         response1 = self.send_letter(self.test_user_nin)
         proofing_state = self.app.proofing_statedb.get_state_by_eppn(self.test_user_eppn)
@@ -312,9 +307,8 @@ class LetterProofingTests(EduidAPITestCase[LetterProofingApp]):
             response, type_="POST_LETTER_PROOFING_VERIFY_CODE_FAIL", msg=LetterMsg.letter_expired
         )
 
-    @patch("eduid.webapp.common.api.helpers.get_reference_nin_from_navet_data")
-    def test_proofing_flow(self, mock_reference_nin: MagicMock) -> None:
-        mock_reference_nin.return_value = None
+    def test_proofing_flow(self, mocker: MockerFixture) -> None:
+        mocker.patch("eduid.webapp.common.api.helpers.get_reference_nin_from_navet_data", return_value=None)
 
         self.send_letter(self.test_user_nin)
         self.get_state()
@@ -327,9 +321,8 @@ class LetterProofingTests(EduidAPITestCase[LetterProofingApp]):
         user = self.app.private_userdb.get_user_by_eppn(self.test_user_eppn)
         self._check_nin_verified_ok(user=user, proofing_state=proofing_state, number=self.test_user_nin)
 
-    @patch("eduid.webapp.common.api.helpers.get_reference_nin_from_navet_data")
-    def test_proofing_flow_previously_added_nin(self, mock_reference_nin: MagicMock) -> None:
-        mock_reference_nin.return_value = None
+    def test_proofing_flow_previously_added_nin(self, mocker: MockerFixture) -> None:
+        mocker.patch("eduid.webapp.common.api.helpers.get_reference_nin_from_navet_data", return_value=None)
 
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
         not_verified_nin = NinIdentity(number=self.test_user_nin, created_by="test", is_verified=False)
@@ -348,9 +341,8 @@ class LetterProofingTests(EduidAPITestCase[LetterProofingApp]):
             user=user, proofing_state=proofing_state, number=self.test_user_nin, created_by=not_verified_nin.created_by
         )
 
-    @patch("eduid.webapp.common.api.helpers.get_reference_nin_from_navet_data")
-    def test_proofing_flow_previously_added_wrong_nin(self, mock_reference_nin: MagicMock) -> None:
-        mock_reference_nin.return_value = None
+    def test_proofing_flow_previously_added_wrong_nin(self, mocker: MockerFixture) -> None:
+        mocker.patch("eduid.webapp.common.api.helpers.get_reference_nin_from_navet_data", return_value=None)
 
         # Send letter to correct nin
         self.send_letter(self.test_user_nin)
@@ -373,11 +365,9 @@ class LetterProofingTests(EduidAPITestCase[LetterProofingApp]):
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
         self._check_nin_verified_ok(user=user, proofing_state=proofing_state, number=self.test_user_nin)
 
-    @patch("eduid.webapp.common.api.decorators.get_reference_nin_from_navet_data")
-    @patch("eduid.webapp.common.api.helpers.get_reference_nin_from_navet_data")
-    def test_proofing_flow_with_replacement_nin(
-        self, mock_reference_nin: MagicMock, mock_decorator_nin: MagicMock
-    ) -> None:
+    def test_proofing_flow_with_replacement_nin(self, mocker: MockerFixture) -> None:
+        mock_reference_nin = mocker.patch("eduid.webapp.common.api.decorators.get_reference_nin_from_navet_data")
+        mock_decorator_nin = mocker.patch("eduid.webapp.common.api.helpers.get_reference_nin_from_navet_data")
         mock_reference_nin.return_value = self.test_old_user_nin
         mock_decorator_nin.return_value = self.test_old_user_nin
 
@@ -433,9 +423,10 @@ class LetterProofingTests(EduidAPITestCase[LetterProofingApp]):
         assert "letter_sent" in json_data["payload"]
         assert json_data["payload"]["letter_sent"] is not None
 
-    @patch("eduid.common.rpc.msg_relay.MsgRelay.get_postal_address")
-    def test_unmarshal_error(self, mock_get_postal_address: MagicMock) -> None:
-        mock_get_postal_address.return_value = self._get_full_postal_address()
+    def test_unmarshal_error(self, mocker: MockerFixture) -> None:
+        mocker.patch(
+            "eduid.common.rpc.msg_relay.MsgRelay.get_postal_address", return_value=self._get_full_postal_address()
+        )
 
         response = self.send_letter("not a nin", validate_response=False)
 
@@ -445,11 +436,9 @@ class LetterProofingTests(EduidAPITestCase[LetterProofingApp]):
             error={"nin": ["nin needs to be formatted as 18|19|20yymmddxxxx"]},
         )
 
-    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    @patch("eduid.common.rpc.msg_relay.MsgRelay.get_postal_address")
-    def test_locked_identity_no_locked_identity(
-        self, mock_get_postal_address: MagicMock, mock_request_user_sync: MagicMock
-    ) -> None:
+    def test_locked_identity_no_locked_identity(self, mocker: MockerFixture) -> None:
+        mock_request_user_sync = mocker.patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
+        mock_get_postal_address = mocker.patch("eduid.common.rpc.msg_relay.MsgRelay.get_postal_address")
         mock_get_postal_address.return_value = self._get_full_postal_address()
         mock_request_user_sync.side_effect = self.request_user_sync
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
@@ -459,11 +448,9 @@ class LetterProofingTests(EduidAPITestCase[LetterProofingApp]):
         with self.session_cookie(self.browser, self.test_user_eppn):
             self.send_letter(self.test_user_nin)
 
-    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    @patch("eduid.common.rpc.msg_relay.MsgRelay.get_postal_address")
-    def test_locked_identity_correct_nin(
-        self, mock_get_postal_address: MagicMock, mock_request_user_sync: MagicMock
-    ) -> None:
+    def test_locked_identity_correct_nin(self, mocker: MockerFixture) -> None:
+        mock_request_user_sync = mocker.patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
+        mock_get_postal_address = mocker.patch("eduid.common.rpc.msg_relay.MsgRelay.get_postal_address")
         mock_get_postal_address.return_value = self._get_full_postal_address()
         mock_request_user_sync.side_effect = self.request_user_sync
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
@@ -474,12 +461,10 @@ class LetterProofingTests(EduidAPITestCase[LetterProofingApp]):
         with self.session_cookie(self.browser, self.test_user_eppn):
             self.send_letter(self.test_user_nin)
 
-    @patch("eduid.webapp.common.api.decorators.get_reference_nin_from_navet_data")
-    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    @patch("eduid.common.rpc.msg_relay.MsgRelay.get_postal_address")
-    def test_locked_identity_incorrect_nin(
-        self, mock_get_postal_address: MagicMock, mock_request_user_sync: MagicMock, mock_reference_nin: MagicMock
-    ) -> None:
+    def test_locked_identity_incorrect_nin(self, mocker: MockerFixture) -> None:
+        mock_reference_nin = mocker.patch("eduid.webapp.common.api.decorators.get_reference_nin_from_navet_data")
+        mock_request_user_sync = mocker.patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
+        mock_get_postal_address = mocker.patch("eduid.common.rpc.msg_relay.MsgRelay.get_postal_address")
         mock_get_postal_address.return_value = self._get_full_postal_address()
         mock_request_user_sync.side_effect = self.request_user_sync
         mock_reference_nin.return_value = None
@@ -497,9 +482,9 @@ class LetterProofingTests(EduidAPITestCase[LetterProofingApp]):
             payload={"message": "Another nin is already registered for this user"},
         )
 
-    @patch("hammock.Hammock._request")
-    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def test_send_letter_backdoor(self, mock_request_user_sync: MagicMock, mock_hammock: MagicMock) -> None:
+    def test_send_letter_backdoor(self, mocker: MockerFixture) -> None:
+        mock_hammock = mocker.patch("hammock.Hammock._request")
+        mock_request_user_sync = mocker.patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
         self.app.conf.magic_cookie = "magic-cookie"
         self.app.conf.magic_cookie_name = "magic"
         self.app.conf.environment = EduidEnvironment("dev")

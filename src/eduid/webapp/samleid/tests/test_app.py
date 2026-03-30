@@ -7,9 +7,9 @@ from dataclasses import dataclass
 from datetime import timedelta
 from http import HTTPStatus
 from typing import Any, ClassVar
-from unittest.mock import MagicMock, patch
 
 import pytest
+from pytest_mock import MockerFixture
 
 from eduid.common.config.base import EduidEnvironment, FrontendAction
 from eduid.common.misc.timeutil import utc_now
@@ -691,8 +691,8 @@ class NINMethodTests(SamlEidTests):
         self._check_success_response(response, type_="GET_SAMLEID_SUCCESS")
 
     @pytest.mark.parametrize("mc", [FREJA, BANKID])
-    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def test_u2f_token_verify(self, mock_request_user_sync: MagicMock, mc: MethodConfig) -> None:
+    def test_u2f_token_verify(self, mocker: MockerFixture, mc: MethodConfig) -> None:
+        mock_request_user_sync = mocker.patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
         mock_request_user_sync.side_effect = self.request_user_sync
 
         eppn = self.test_user.eppn
@@ -714,8 +714,8 @@ class NINMethodTests(SamlEidTests):
         self._verify_user_parameters(eppn, token_verified=True, num_proofings=1)
 
     @pytest.mark.parametrize("mc", [FREJA, BANKID])
-    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def test_webauthn_token_verify(self, mock_request_user_sync: MagicMock, mc: MethodConfig) -> None:
+    def test_webauthn_token_verify(self, mocker: MockerFixture, mc: MethodConfig) -> None:
+        mock_request_user_sync = mocker.patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
         mock_request_user_sync.side_effect = self.request_user_sync
 
         eppn = self.test_user.eppn
@@ -738,8 +738,8 @@ class NINMethodTests(SamlEidTests):
         self._verify_user_parameters(eppn, token_verified=True, num_proofings=1)
 
     @pytest.mark.parametrize("mc", [FREJA, BANKID])
-    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def test_webauthn_token_verify_signup_authn(self, mock_request_user_sync: MagicMock, mc: MethodConfig) -> None:
+    def test_webauthn_token_verify_signup_authn(self, mocker: MockerFixture, mc: MethodConfig) -> None:
+        mock_request_user_sync = mocker.patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
         mock_request_user_sync.side_effect = self.request_user_sync
 
         eppn = self.test_user.eppn
@@ -764,10 +764,8 @@ class NINMethodTests(SamlEidTests):
         self._verify_user_parameters(eppn, token_verified=True, num_proofings=1)
 
     @pytest.mark.parametrize("mc", [FREJA, BANKID])
-    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def test_webauthn_token_verify_signup_authn_token_to_old(
-        self, mock_request_user_sync: MagicMock, mc: MethodConfig
-    ) -> None:
+    def test_webauthn_token_verify_signup_authn_token_to_old(self, mocker: MockerFixture, mc: MethodConfig) -> None:
+        mock_request_user_sync = mocker.patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
         mock_request_user_sync.side_effect = self.request_user_sync
 
         eppn = self.test_user.eppn
@@ -815,13 +813,10 @@ class NINMethodTests(SamlEidTests):
         self._verify_user_parameters(eppn, identity=nin, identity_present=False)
 
     @pytest.mark.parametrize("mc", [FREJA, BANKID])
-    @patch("eduid.webapp.common.api.helpers.get_reference_nin_from_navet_data")
-    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def test_mfa_token_verify_no_verified_nin(
-        self, mock_request_user_sync: MagicMock, mock_reference_nin: MagicMock, mc: MethodConfig
-    ) -> None:
+    def test_mfa_token_verify_no_verified_nin(self, mocker: MockerFixture, mc: MethodConfig) -> None:
+        mocker.patch("eduid.webapp.common.api.helpers.get_reference_nin_from_navet_data", return_value=None)
+        mock_request_user_sync = mocker.patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
         mock_request_user_sync.side_effect = self.request_user_sync
-        mock_reference_nin.return_value = None
 
         eppn = self.test_unverified_user_eppn
         nin = self.test_user_nin
@@ -966,19 +961,16 @@ class NINMethodTests(SamlEidTests):
         self._verify_user_parameters(eppn)
 
     @pytest.mark.parametrize("mc", [FREJA, BANKID])
-    @patch("eduid.webapp.common.api.helpers.get_reference_nin_from_navet_data")
-    @patch("eduid.common.rpc.msg_relay.MsgRelay.get_all_navet_data")
-    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
     def test_webauthn_token_verify_backdoor(
         self,
-        mock_request_user_sync: MagicMock,
-        mock_get_all_navet_data: MagicMock,
-        mock_reference_nin: MagicMock,
+        mocker: MockerFixture,
         mc: MethodConfig,
     ) -> None:
+        mocker.patch("eduid.webapp.common.api.helpers.get_reference_nin_from_navet_data", return_value=None)
+        mock_get_all_navet_data = mocker.patch("eduid.common.rpc.msg_relay.MsgRelay.get_all_navet_data")
+        mock_request_user_sync = mocker.patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
         mock_get_all_navet_data.return_value = self._get_all_navet_data()
         mock_request_user_sync.side_effect = self.request_user_sync
-        mock_reference_nin.return_value = None
 
         eppn = self.test_unverified_user_eppn
         nin = self.test_backdoor_nin
@@ -1004,19 +996,16 @@ class NINMethodTests(SamlEidTests):
         self._verify_user_parameters(eppn, identity=nin, identity_verified=True, token_verified=True, num_proofings=2)
 
     @pytest.mark.parametrize("mc", [FREJA, BANKID])
-    @patch("eduid.webapp.common.api.helpers.get_reference_nin_from_navet_data")
-    @patch("eduid.common.rpc.msg_relay.MsgRelay.get_all_navet_data")
-    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
     def test_nin_verify(
         self,
-        mock_request_user_sync: MagicMock,
-        mock_get_all_navet_data: MagicMock,
-        mock_reference_nin: MagicMock,
+        mocker: MockerFixture,
         mc: MethodConfig,
     ) -> None:
+        mocker.patch("eduid.webapp.common.api.helpers.get_reference_nin_from_navet_data", return_value=None)
+        mock_get_all_navet_data = mocker.patch("eduid.common.rpc.msg_relay.MsgRelay.get_all_navet_data")
+        mock_request_user_sync = mocker.patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
         mock_get_all_navet_data.return_value = self._get_all_navet_data()
         mock_request_user_sync.side_effect = self.request_user_sync
-        mock_reference_nin.return_value = None
 
         eppn = self.test_unverified_user_eppn
         self._verify_user_parameters(eppn, num_mfa_tokens=0, identity_verified=False)
@@ -1048,13 +1037,10 @@ class NINMethodTests(SamlEidTests):
         assert doc["surname"] == "Älm"
 
     @pytest.mark.parametrize("mc", [FREJA, BANKID])
-    @patch("eduid.webapp.common.api.helpers.get_reference_nin_from_navet_data")
-    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def test_nin_verify_signup_auth(
-        self, mock_request_user_sync: MagicMock, mock_reference_nin: MagicMock, mc: MethodConfig
-    ) -> None:
+    def test_nin_verify_signup_auth(self, mocker: MockerFixture, mc: MethodConfig) -> None:
+        mocker.patch("eduid.webapp.common.api.helpers.get_reference_nin_from_navet_data", return_value=None)
+        mock_request_user_sync = mocker.patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
         mock_request_user_sync.side_effect = self.request_user_sync
-        mock_reference_nin.return_value = None
 
         eppn = self.test_unverified_user_eppn
         self._verify_user_parameters(eppn, num_mfa_tokens=0, identity_verified=False)
@@ -1089,8 +1075,8 @@ class NINMethodTests(SamlEidTests):
         assert doc["surname"] == "Älm"
 
     @pytest.mark.parametrize("mc", [FREJA, BANKID])
-    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def test_mfa_login(self, mock_request_user_sync: MagicMock, mc: MethodConfig) -> None:
+    def test_mfa_login(self, mocker: MockerFixture, mc: MethodConfig) -> None:
+        mock_request_user_sync = mocker.patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
         mock_request_user_sync.side_effect = self.request_user_sync
 
         eppn = self.test_user.eppn
@@ -1127,19 +1113,16 @@ class NINMethodTests(SamlEidTests):
         self._verify_user_parameters(eppn, num_mfa_tokens=0, identity_verified=False, num_proofings=0)
 
     @pytest.mark.parametrize("mc", [FREJA, BANKID])
-    @patch("eduid.webapp.common.api.helpers.get_reference_nin_from_navet_data")
-    @patch("eduid.common.rpc.msg_relay.MsgRelay.get_all_navet_data")
-    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
     def test_mfa_login_unverified_nin(
         self,
-        mock_request_user_sync: MagicMock,
-        mock_get_all_navet_data: MagicMock,
-        mock_reference_nin: MagicMock,
+        mocker: MockerFixture,
         mc: MethodConfig,
     ) -> None:
+        mocker.patch("eduid.webapp.common.api.helpers.get_reference_nin_from_navet_data", return_value=None)
+        mock_get_all_navet_data = mocker.patch("eduid.common.rpc.msg_relay.MsgRelay.get_all_navet_data")
+        mock_request_user_sync = mocker.patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
         mock_get_all_navet_data.return_value = self._get_all_navet_data()
         mock_request_user_sync.side_effect = self.request_user_sync
-        mock_reference_nin.return_value = None
         eppn = self.test_unverified_user_eppn
 
         # Add locked nin to user
@@ -1169,8 +1152,8 @@ class NINMethodTests(SamlEidTests):
         )
 
     @pytest.mark.parametrize("mc", [FREJA, BANKID])
-    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def test_mfa_login_backdoor(self, mock_request_user_sync: MagicMock, mc: MethodConfig) -> None:
+    def test_mfa_login_backdoor(self, mocker: MockerFixture, mc: MethodConfig) -> None:
+        mock_request_user_sync = mocker.patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
         mock_request_user_sync.side_effect = self.request_user_sync
 
         eppn = self.test_unverified_user_eppn
@@ -1200,13 +1183,10 @@ class NINMethodTests(SamlEidTests):
         self._verify_user_parameters(eppn, num_mfa_tokens=0, identity_verified=True, num_proofings=0)
 
     @pytest.mark.parametrize("mc", [FREJA, BANKID])
-    @patch("eduid.webapp.common.api.helpers.get_reference_nin_from_navet_data")
-    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def test_nin_verify_backdoor(
-        self, mock_request_user_sync: MagicMock, mock_reference_nin: MagicMock, mc: MethodConfig
-    ) -> None:
+    def test_nin_verify_backdoor(self, mocker: MockerFixture, mc: MethodConfig) -> None:
+        mocker.patch("eduid.webapp.common.api.helpers.get_reference_nin_from_navet_data", return_value=None)
+        mock_request_user_sync = mocker.patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
         mock_request_user_sync.side_effect = self.request_user_sync
-        mock_reference_nin.return_value = None
 
         eppn = self.test_unverified_user_eppn
         nin = self.test_backdoor_nin
@@ -1229,19 +1209,16 @@ class NINMethodTests(SamlEidTests):
         self._verify_user_parameters(eppn, num_mfa_tokens=0, identity=nin, identity_verified=True, num_proofings=1)
 
     @pytest.mark.parametrize("mc", [FREJA, BANKID])
-    @patch("eduid.webapp.common.api.helpers.get_reference_nin_from_navet_data")
-    @patch("eduid.common.rpc.msg_relay.MsgRelay.get_all_navet_data")
-    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
     def test_nin_verify_no_backdoor_in_pro(
         self,
-        mock_request_user_sync: MagicMock,
-        mock_get_all_navet_data: MagicMock,
-        mock_reference_nin: MagicMock,
+        mocker: MockerFixture,
         mc: MethodConfig,
     ) -> None:
+        mocker.patch("eduid.webapp.common.api.helpers.get_reference_nin_from_navet_data", return_value=None)
+        mock_get_all_navet_data = mocker.patch("eduid.common.rpc.msg_relay.MsgRelay.get_all_navet_data")
+        mock_request_user_sync = mocker.patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
         mock_get_all_navet_data.return_value = self._get_all_navet_data()
         mock_request_user_sync.side_effect = self.request_user_sync
-        mock_reference_nin.return_value = None
 
         eppn = self.test_unverified_user_eppn
         nin = self.test_backdoor_nin
@@ -1269,19 +1246,16 @@ class NINMethodTests(SamlEidTests):
         )
 
     @pytest.mark.parametrize("mc", [FREJA, BANKID])
-    @patch("eduid.webapp.common.api.helpers.get_reference_nin_from_navet_data")
-    @patch("eduid.common.rpc.msg_relay.MsgRelay.get_all_navet_data")
-    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
     def test_nin_verify_no_backdoor_misconfigured(
         self,
-        mock_request_user_sync: MagicMock,
-        mock_get_all_navet_data: MagicMock,
-        mock_reference_nin: MagicMock,
+        mocker: MockerFixture,
         mc: MethodConfig,
     ) -> None:
+        mocker.patch("eduid.webapp.common.api.helpers.get_reference_nin_from_navet_data", return_value=None)
+        mock_get_all_navet_data = mocker.patch("eduid.common.rpc.msg_relay.MsgRelay.get_all_navet_data")
+        mock_request_user_sync = mocker.patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
         mock_get_all_navet_data.return_value = self._get_all_navet_data()
         mock_request_user_sync.side_effect = self.request_user_sync
-        mock_reference_nin.return_value = None
 
         eppn = self.test_unverified_user_eppn
         nin = self.test_backdoor_nin
@@ -1331,8 +1305,8 @@ class NINMethodTests(SamlEidTests):
         )
 
     @pytest.mark.parametrize("mc", [FREJA, BANKID])
-    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def test_mfa_authentication_verified_user(self, mock_request_user_sync: MagicMock, mc: MethodConfig) -> None:
+    def test_mfa_authentication_verified_user(self, mocker: MockerFixture, mc: MethodConfig) -> None:
+        mock_request_user_sync = mocker.patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
         mock_request_user_sync.side_effect = self.request_user_sync
 
         user = self.app.central_userdb.get_user_by_eppn(self.test_user.eppn)
@@ -1389,19 +1363,16 @@ class NINMethodTests(SamlEidTests):
         )
 
     @pytest.mark.parametrize("mc", [FREJA, BANKID])
-    @patch("eduid.webapp.common.api.helpers.get_reference_nin_from_navet_data")
-    @patch("eduid.common.rpc.msg_relay.MsgRelay.get_all_navet_data")
-    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
     def test_nin_staging_remap_verify(
         self,
-        mock_request_user_sync: MagicMock,
-        mock_get_all_navet_data: MagicMock,
-        mock_reference_nin: MagicMock,
+        mocker: MockerFixture,
         mc: MethodConfig,
     ) -> None:
+        mocker.patch("eduid.webapp.common.api.helpers.get_reference_nin_from_navet_data", return_value=None)
+        mock_get_all_navet_data = mocker.patch("eduid.common.rpc.msg_relay.MsgRelay.get_all_navet_data")
+        mock_request_user_sync = mocker.patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
         mock_get_all_navet_data.return_value = self._get_all_navet_data()
         mock_request_user_sync.side_effect = self.request_user_sync
-        mock_reference_nin.return_value = None
 
         eppn = self.test_unverified_user_eppn
         remapped_nin = NinIdentity(number="190102031234")
@@ -1466,20 +1437,17 @@ class NINMethodTests(SamlEidTests):
         assert b"http://test.localhost:6545/saml2-metadata" in response.data
 
     @pytest.mark.parametrize("mc", [FREJA, BANKID])
-    @patch("eduid.webapp.common.api.helpers.get_reference_nin_from_navet_data")
-    @patch("eduid.common.rpc.msg_relay.MsgRelay.get_all_navet_data")
-    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
     def test_nin_verify_loa_mismatch(
         self,
-        mock_request_user_sync: MagicMock,
-        mock_get_all_navet_data: MagicMock,
-        mock_reference_nin: MagicMock,
+        mocker: MockerFixture,
         mc: MethodConfig,
     ) -> None:
+        mocker.patch("eduid.webapp.common.api.helpers.get_reference_nin_from_navet_data", return_value=None)
+        mock_get_all_navet_data = mocker.patch("eduid.common.rpc.msg_relay.MsgRelay.get_all_navet_data")
+        mock_request_user_sync = mocker.patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
         """Test that identity verification fails when the SAML response has a wrong LOA (loa1 instead of loa3)"""
         mock_get_all_navet_data.return_value = self._get_all_navet_data()
         mock_request_user_sync.side_effect = self.request_user_sync
-        mock_reference_nin.return_value = None
 
         eppn = self.test_unverified_user_eppn
         self._verify_user_parameters(eppn, num_mfa_tokens=0, identity_verified=False)
@@ -1774,8 +1742,8 @@ class NINMethodTests(SamlEidTests):
 class EidasMethodTests(SamlEidTests):
     """Tests for eidas method (foreign eID) - adapted from eidas/tests/test_app.py"""
 
-    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def test_foreign_eid_mfa_login(self, mock_request_user_sync: MagicMock) -> None:
+    def test_foreign_eid_mfa_login(self, mocker: MockerFixture) -> None:
+        mock_request_user_sync = mocker.patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
         mock_request_user_sync.side_effect = self.request_user_sync
 
         eppn = self.test_user.eppn
@@ -1830,8 +1798,8 @@ class EidasMethodTests(SamlEidTests):
 
         self._verify_user_parameters(eppn, num_mfa_tokens=0, identity_verified=False, num_proofings=0)
 
-    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def test_foreign_eid_mfa_login_unverified_identity(self, mock_request_user_sync: MagicMock) -> None:
+    def test_foreign_eid_mfa_login_unverified_identity(self, mocker: MockerFixture) -> None:
+        mock_request_user_sync = mocker.patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
         mock_request_user_sync.side_effect = self.request_user_sync
         eppn = self.test_unverified_user_eppn
         identity = self.test_user_eidas
@@ -1859,8 +1827,8 @@ class EidasMethodTests(SamlEidTests):
             eppn, num_mfa_tokens=0, identity=identity, identity_present=True, identity_verified=True, num_proofings=1
         )
 
-    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def test_foreign_eid_webauthn_token_verify(self, mock_request_user_sync: MagicMock) -> None:
+    def test_foreign_eid_webauthn_token_verify(self, mocker: MockerFixture) -> None:
+        mock_request_user_sync = mocker.patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
         mock_request_user_sync.side_effect = self.request_user_sync
 
         self.app.conf.allow_eidas_credential_verification = True
@@ -1914,8 +1882,8 @@ class EidasMethodTests(SamlEidTests):
             eppn, identity=identity, identity_present=True, identity_verified=True, num_proofings=0
         )
 
-    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def test_foreign_eid_mfa_token_verify_no_verified_identity(self, mock_request_user_sync: MagicMock) -> None:
+    def test_foreign_eid_mfa_token_verify_no_verified_identity(self, mocker: MockerFixture) -> None:
+        mock_request_user_sync = mocker.patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
         mock_request_user_sync.side_effect = self.request_user_sync
 
         self.app.conf.allow_eidas_credential_verification = True
@@ -1988,8 +1956,8 @@ class EidasMethodTests(SamlEidTests):
 
         self._verify_user_parameters(eppn)
 
-    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def test_foreign_identity_verify(self, mock_request_user_sync: MagicMock) -> None:
+    def test_foreign_identity_verify(self, mocker: MockerFixture) -> None:
+        mock_request_user_sync = mocker.patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
         mock_request_user_sync.side_effect = self.request_user_sync
 
         eppn = self.test_unverified_user_eppn
@@ -2018,8 +1986,8 @@ class EidasMethodTests(SamlEidTests):
             proofing_version=self.app.conf.foreign_eid_proofing_version,
         )
 
-    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def test_foreign_identity_verify_eidas_nf_low(self, mock_request_user_sync: MagicMock) -> None:
+    def test_foreign_identity_verify_eidas_nf_low(self, mocker: MockerFixture) -> None:
+        mock_request_user_sync = mocker.patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
         mock_request_user_sync.side_effect = self.request_user_sync
 
         eppn = self.test_unverified_user_eppn
@@ -2043,8 +2011,8 @@ class EidasMethodTests(SamlEidTests):
 
         self._verify_user_parameters(eppn, num_mfa_tokens=0, identity_verified=False, num_proofings=0)
 
-    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def test_foreign_identity_verify_existing_prid_persistence_A(self, mock_request_user_sync: MagicMock) -> None:
+    def test_foreign_identity_verify_existing_prid_persistence_A(self, mocker: MockerFixture) -> None:
+        mock_request_user_sync = mocker.patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
         mock_request_user_sync.side_effect = self.request_user_sync
 
         eppn = self.test_unverified_user_eppn
@@ -2074,8 +2042,8 @@ class EidasMethodTests(SamlEidTests):
             eppn, num_mfa_tokens=0, locked_identity=locked_identity, identity_verified=False, num_proofings=0
         )
 
-    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def test_foreign_identity_verify_existing_prid_persistence_B(self, mock_request_user_sync: MagicMock) -> None:
+    def test_foreign_identity_verify_existing_prid_persistence_B(self, mocker: MockerFixture) -> None:
+        mock_request_user_sync = mocker.patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
         mock_request_user_sync.side_effect = self.request_user_sync
 
         eppn = self.test_unverified_user_eppn

@@ -2,12 +2,12 @@ import json
 from datetime import date, datetime, timedelta
 from http import HTTPStatus
 from typing import Any, ClassVar
-from unittest.mock import MagicMock, patch
 from urllib.parse import parse_qs, urlparse
 
 import pytest
 from flask import url_for
 from iso3166 import Country, countries
+from pytest_mock import MockerFixture
 from werkzeug.test import TestResponse
 
 from eduid.common.config.base import FrontendAction
@@ -30,7 +30,8 @@ class SvipeIdTests(ProofingTests[SvipeIdApp]):
     api_users: ClassVar[list[str]] = ["hubba-bubba", "hubba-baar"]
 
     @pytest.fixture(autouse=True)
-    def setup(self, setup_api: None) -> None:
+    def setup(self, setup_api: None, mocker: MockerFixture) -> None:
+        self.mocker = mocker
         self.unverified_test_user = self.app.central_userdb.get_user_by_eppn("hubba-baar")
         self._user_setup()
 
@@ -198,22 +199,23 @@ class SvipeIdTests(ProofingTests[SvipeIdApp]):
         auth_url_query = urlparse(auth_url).query
         return parse_qs(auth_url_query)["state"][0], parse_qs(auth_url_query)["nonce"][0]
 
-    @patch("authlib.integrations.requests_client.oauth2_session.OAuth2Session.request")
-    @patch("authlib.integrations.base_client.sync_openid.OpenIDMixin.parse_id_token")
-    @patch("authlib.integrations.base_client.sync_openid.OpenIDMixin.userinfo")
-    @patch("authlib.integrations.base_client.sync_app.OAuth2Mixin.fetch_access_token")
-    @patch("authlib.integrations.base_client.sync_app.OAuth2Mixin.load_server_metadata")
     def mock_authorization_callback(
         self,
-        mock_metadata: MagicMock,
-        mock_fetch_access_token: MagicMock,
-        mock_userinfo: MagicMock,
-        mock_parse_id_token: MagicMock,
-        mock_end_session: MagicMock,
         state: str,
         nonce: str,
         userinfo: SvipeDocumentUserInfo,
     ) -> TestResponse:
+        mock_end_session = self.mocker.patch(
+            "authlib.integrations.requests_client.oauth2_session.OAuth2Session.request"
+        )
+        mock_parse_id_token = self.mocker.patch(
+            "authlib.integrations.base_client.sync_openid.OpenIDMixin.parse_id_token"
+        )
+        mock_userinfo = self.mocker.patch("authlib.integrations.base_client.sync_openid.OpenIDMixin.userinfo")
+        mock_fetch_access_token = self.mocker.patch(
+            "authlib.integrations.base_client.sync_app.OAuth2Mixin.fetch_access_token"
+        )
+        mock_metadata = self.mocker.patch("authlib.integrations.base_client.sync_app.OAuth2Mixin.load_server_metadata")
         with self.app.test_request_context():
             endpoint = url_for("svipe_id.authn_callback")
 
@@ -247,8 +249,8 @@ class SvipeIdTests(ProofingTests[SvipeIdApp]):
         mock_userinfo.return_value = userinfo.model_dump()
         return self.browser.get(f"{endpoint}?id_token=id_token&state={state}&code=mock_code")
 
-    @patch("authlib.integrations.base_client.sync_app.OAuth2Mixin.load_server_metadata")
-    def _start_auth(self, mock_metadata: MagicMock, endpoint: str, data: dict[str, Any], eppn: str) -> TestResponse:
+    def _start_auth(self, endpoint: str, data: dict[str, Any], eppn: str) -> TestResponse:
+        mock_metadata = self.mocker.patch("authlib.integrations.base_client.sync_app.OAuth2Mixin.load_server_metadata")
         mock_metadata.return_value = self.oidc_provider_config
 
         with self.session_cookie(self.browser, eppn) as client:
@@ -312,15 +314,12 @@ class SvipeIdTests(ProofingTests[SvipeIdApp]):
         assert query["acr_values"] == ["face_present"]
         assert query["claims"] == [json.dumps({"userinfo": self.app.conf.svipe_client.claims_request})]
 
-    @patch("eduid.webapp.common.api.helpers.get_reference_nin_from_navet_data")
-    @patch("eduid.common.rpc.msg_relay.MsgRelay.get_all_navet_data")
-    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def test_verify_nin_identity(
-        self, mock_request_user_sync: MagicMock, mock_get_all_navet_data: MagicMock, mock_reference_nin: MagicMock
-    ) -> None:
+    def test_verify_nin_identity(self, mocker: MockerFixture) -> None:
+        mocker.patch("eduid.webapp.common.api.helpers.get_reference_nin_from_navet_data", return_value=None)
+        mock_get_all_navet_data = mocker.patch("eduid.common.rpc.msg_relay.MsgRelay.get_all_navet_data")
+        mock_request_user_sync = mocker.patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
         mock_get_all_navet_data.return_value = self._get_all_navet_data()
         mock_request_user_sync.side_effect = self.request_user_sync
-        mock_reference_nin.return_value = None
 
         eppn = self.unverified_test_user.eppn
         country = countries.get("Sweden")
@@ -361,8 +360,8 @@ class SvipeIdTests(ProofingTests[SvipeIdApp]):
         assert doc["given_name"] == userinfo.given_name
         assert doc["surname"] == userinfo.family_name
 
-    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def test_verify_foreign_identity(self, mock_request_user_sync: MagicMock) -> None:
+    def test_verify_foreign_identity(self, mocker: MockerFixture) -> None:
+        mock_request_user_sync = mocker.patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
         mock_request_user_sync.side_effect = self.request_user_sync
 
         eppn = self.unverified_test_user.eppn
@@ -395,9 +394,9 @@ class SvipeIdTests(ProofingTests[SvipeIdApp]):
             proofing_version=self.app.conf.svipe_id_proofing_version,
         )
 
-    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def test_verify_foreign_identity_no_admin_number(self, mock_request_user_sync: MagicMock) -> None:
+    def test_verify_foreign_identity_no_admin_number(self, mocker: MockerFixture) -> None:
         """Not all countries have something like a Swedish NIN, so administrative_number may be None"""
+        mock_request_user_sync = mocker.patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
         mock_request_user_sync.side_effect = self.request_user_sync
 
         eppn = self.unverified_test_user.eppn
@@ -434,11 +433,9 @@ class SvipeIdTests(ProofingTests[SvipeIdApp]):
             proofing_version=self.app.conf.svipe_id_proofing_version,
         )
 
-    @patch("eduid.common.rpc.msg_relay.MsgRelay.get_all_navet_data")
-    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def test_verify_nin_identity_already_verified(
-        self, mock_request_user_sync: MagicMock, mock_get_all_navet_data: MagicMock
-    ) -> None:
+    def test_verify_nin_identity_already_verified(self, mocker: MockerFixture) -> None:
+        mock_get_all_navet_data = mocker.patch("eduid.common.rpc.msg_relay.MsgRelay.get_all_navet_data")
+        mock_request_user_sync = mocker.patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
         mock_get_all_navet_data.return_value = self._get_all_navet_data()
         mock_request_user_sync.side_effect = self.request_user_sync
 
@@ -463,8 +460,8 @@ class SvipeIdTests(ProofingTests[SvipeIdApp]):
         )
         self._verify_user_parameters(eppn, identity_verified=True, num_proofings=0, num_mfa_tokens=0)
 
-    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def test_verify_foreign_identity_already_verified(self, mock_request_user_sync: MagicMock) -> None:
+    def test_verify_foreign_identity_already_verified(self, mocker: MockerFixture) -> None:
+        mock_request_user_sync = mocker.patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
         mock_request_user_sync.side_effect = self.request_user_sync
 
         eppn = self.test_user.eppn
@@ -502,8 +499,8 @@ class SvipeIdTests(ProofingTests[SvipeIdApp]):
         )
         self._verify_user_parameters(eppn, identity_verified=True, num_proofings=0, num_mfa_tokens=0)
 
-    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def test_verify_foreign_identity_replace_locked_identity(self, mock_request_user_sync: MagicMock) -> None:
+    def test_verify_foreign_identity_replace_locked_identity(self, mocker: MockerFixture) -> None:
+        mock_request_user_sync = mocker.patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
         mock_request_user_sync.side_effect = self.request_user_sync
 
         eppn = self.test_user.eppn
@@ -549,8 +546,8 @@ class SvipeIdTests(ProofingTests[SvipeIdApp]):
             eppn, identity_verified=True, num_proofings=1, num_mfa_tokens=0, locked_identity=new_locked_identity
         )
 
-    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def test_verify_foreign_identity_replace_locked_identity_fail(self, mock_request_user_sync: MagicMock) -> None:
+    def test_verify_foreign_identity_replace_locked_identity_fail(self, mocker: MockerFixture) -> None:
+        mock_request_user_sync = mocker.patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
         mock_request_user_sync.side_effect = self.request_user_sync
 
         eppn = self.unverified_test_user.eppn
@@ -591,10 +588,8 @@ class SvipeIdTests(ProofingTests[SvipeIdApp]):
             eppn, identity_verified=False, num_proofings=0, num_mfa_tokens=0, locked_identity=user.locked_identity.svipe
         )
 
-    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def test_verify_foreign_identity_replace_locked_identity_fail_admin_number(
-        self, mock_request_user_sync: MagicMock
-    ) -> None:
+    def test_verify_foreign_identity_replace_locked_identity_fail_admin_number(self, mocker: MockerFixture) -> None:
+        mock_request_user_sync = mocker.patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
         mock_request_user_sync.side_effect = self.request_user_sync
 
         eppn = self.unverified_test_user.eppn
@@ -639,11 +634,9 @@ class SvipeIdTests(ProofingTests[SvipeIdApp]):
             eppn, identity_verified=False, num_proofings=0, num_mfa_tokens=0, locked_identity=user.locked_identity.svipe
         )
 
-    @patch("eduid.common.rpc.msg_relay.MsgRelay.get_all_navet_data")
-    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def test_verify_foreign_identity_already_verified_nin(
-        self, mock_request_user_sync: MagicMock, mock_get_all_navet_data: MagicMock
-    ) -> None:
+    def test_verify_foreign_identity_already_verified_nin(self, mocker: MockerFixture) -> None:
+        mock_get_all_navet_data = mocker.patch("eduid.common.rpc.msg_relay.MsgRelay.get_all_navet_data")
+        mock_request_user_sync = mocker.patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
         mock_get_all_navet_data.return_value = self._get_all_navet_data()
         mock_request_user_sync.side_effect = self.request_user_sync
 
@@ -673,11 +666,9 @@ class SvipeIdTests(ProofingTests[SvipeIdApp]):
             eppn, identity_verified=True, num_proofings=1, num_mfa_tokens=0, locked_identity=user.identities.nin
         )
 
-    @patch("eduid.common.rpc.msg_relay.MsgRelay.get_all_navet_data")
-    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def test_verify_identity_expired_document(
-        self, mock_request_user_sync: MagicMock, mock_get_all_navet_data: MagicMock
-    ) -> None:
+    def test_verify_identity_expired_document(self, mocker: MockerFixture) -> None:
+        mock_get_all_navet_data = mocker.patch("eduid.common.rpc.msg_relay.MsgRelay.get_all_navet_data")
+        mock_request_user_sync = mocker.patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
         mock_get_all_navet_data.return_value = self._get_all_navet_data()
         mock_request_user_sync.side_effect = self.request_user_sync
 
