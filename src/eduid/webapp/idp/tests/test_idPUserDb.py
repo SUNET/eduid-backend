@@ -5,10 +5,10 @@ import datetime
 import logging
 from datetime import timedelta
 from typing import Any
-from unittest.mock import MagicMock, patch
 
 import pytest
 from bson import ObjectId
+from pytest_mock import MockerFixture
 
 import eduid.userdb
 import eduid.webapp.common.authn
@@ -39,24 +39,20 @@ class TestIdPUserDb(IdPAPITests):
         assert _this
         assert _this.eppn == self.test_user.eppn
 
-    def test_password_authn(self) -> None:
-        # Patch the VCCSClient so we do not need a vccs server
-        with patch.object(VCCSClient, "authenticate"):
-            VCCSClient.authenticate.return_value = True  # type: ignore[attr-defined]
-            assert isinstance(self.app.authn, IdPAuthn)  # help pycharm
-            assert self.test_user.mail_addresses.primary
-            pwauth = self.app.authn.password_authn(self.test_user.mail_addresses.primary.email, "foo")
-            assert pwauth
-            assert pwauth.user.eppn == self.test_user.eppn
-            assert pwauth.authn_data is not None
+    def test_password_authn(self, mocker: MockerFixture) -> None:
+        mocker.patch.object(VCCSClient, "authenticate", return_value=True)
+        assert isinstance(self.app.authn, IdPAuthn)  # help pycharm
+        assert self.test_user.mail_addresses.primary
+        pwauth = self.app.authn.password_authn(self.test_user.mail_addresses.primary.email, "foo")
+        assert pwauth
+        assert pwauth.user.eppn == self.test_user.eppn
+        assert pwauth.authn_data is not None
 
-    def test_verify_username_and_incorrect_password(self) -> None:
-        # Patch the VCCSClient, so we do not need a vccs server
-        with patch.object(VCCSClient, "authenticate") as mock_vccs:
-            mock_vccs.return_value = False
-            assert self.test_user.mail_addresses.primary
-            pwauth = self.app.authn.password_authn(self.test_user.mail_addresses.primary.email, "foo")
-            assert pwauth is None
+    def test_verify_username_and_incorrect_password(self, mocker: MockerFixture) -> None:
+        mocker.patch.object(VCCSClient, "authenticate", return_value=False)
+        assert self.test_user.mail_addresses.primary
+        pwauth = self.app.authn.password_authn(self.test_user.mail_addresses.primary.email, "foo")
+        assert pwauth is None
 
 
 class TestAuthentication(IdPAPITests):
@@ -65,13 +61,9 @@ class TestAuthentication(IdPAPITests):
         pwauth = self.app.authn.password_authn("foo", "bar")
         assert pwauth is None
 
-    @patch("eduid.vccs.client.VCCSClient.authenticate")
-    @patch("eduid.vccs.client.VCCSClient.add_credentials")
-    def test_authn_known_user_wrong_password(
-        self, mock_add_credentials: MagicMock, mock_authenticate: MagicMock
-    ) -> None:
-        mock_add_credentials.return_value = False
-        mock_authenticate.return_value = False
+    def test_authn_known_user_wrong_password(self, mocker: MockerFixture) -> None:
+        mocker.patch("eduid.vccs.client.VCCSClient.add_credentials", return_value=False)
+        mocker.patch("eduid.vccs.client.VCCSClient.authenticate", return_value=False)
         assert isinstance(self.test_user, eduid.userdb.User)
         assert isinstance(self.app.authn, IdPAuthn)  # help pycharm
         cred_id = ObjectId()
@@ -81,13 +73,9 @@ class TestAuthentication(IdPAPITests):
         pwauth = self.app.authn.password_authn(self.test_user.mail_addresses.primary.email, "bar")
         assert pwauth is None
 
-    @patch("eduid.vccs.client.VCCSClient.authenticate")
-    @patch("eduid.vccs.client.VCCSClient.add_credentials")
-    def test_authn_known_user_right_password(
-        self, mock_add_credentials: MagicMock, mock_authenticate: MagicMock
-    ) -> None:
-        mock_add_credentials.return_value = True
-        mock_authenticate.return_value = True
+    def test_authn_known_user_right_password(self, mocker: MockerFixture) -> None:
+        mocker.patch("eduid.vccs.client.VCCSClient.add_credentials", return_value=True)
+        mocker.patch("eduid.vccs.client.VCCSClient.authenticate", return_value=True)
         assert isinstance(self.test_user, eduid.userdb.User)
         assert isinstance(self.app.authn, IdPAuthn)  # help pycharm
         passwords = self.test_user.credentials.to_list()
@@ -101,11 +89,9 @@ class TestAuthentication(IdPAPITests):
         assert pwauth.authn_data is not None
         assert pwauth.authn_data.cred_id == factor.credential_id
 
-    @patch("eduid.vccs.client.VCCSClient.authenticate")
-    @patch("eduid.vccs.client.VCCSClient.add_credentials")
-    def test_authn_expired_credential(self, mock_add_credentials: MagicMock, mock_authenticate: MagicMock) -> None:
-        mock_add_credentials.return_value = False
-        mock_authenticate.return_value = True
+    def test_authn_expired_credential(self, mocker: MockerFixture) -> None:
+        mocker.patch("eduid.vccs.client.VCCSClient.add_credentials", return_value=False)
+        mocker.patch("eduid.vccs.client.VCCSClient.authenticate", return_value=True)
         assert isinstance(self.test_user, eduid.userdb.User)
         assert isinstance(self.app.authn, IdPAuthn)  # help pycharm
         passwords = self.test_user.credentials.to_list()
@@ -132,12 +118,10 @@ class TestPasswordV2Upgrade(IdPAPITests):
         config["password_v2_upgrade_enabled"] = True
         return config
 
-    @patch("eduid.vccs.client.VCCSClient.authenticate")
-    @patch("eduid.vccs.client.VCCSClient.add_credentials")
-    def test_v2_upgrade_on_v1_authn(self, mock_add_credentials: MagicMock, mock_authenticate: MagicMock) -> None:
+    def test_v2_upgrade_on_v1_authn(self, mocker: MockerFixture) -> None:
         """Verify that authenticating with a v1 password triggers a v2 upgrade."""
-        mock_add_credentials.return_value = True
-        mock_authenticate.return_value = True
+        mock_add_credentials = mocker.patch("eduid.vccs.client.VCCSClient.add_credentials", return_value=True)
+        mocker.patch("eduid.vccs.client.VCCSClient.authenticate", return_value=True)
         assert isinstance(self.app.authn, IdPAuthn)
 
         # Verify test user has only v1 password credentials
@@ -165,14 +149,10 @@ class TestPasswordV2Upgrade(IdPAPITests):
         # Verify add_credentials was called (once for the v2 upgrade)
         mock_add_credentials.assert_called_once()
 
-    @patch("eduid.vccs.client.VCCSClient.authenticate")
-    @patch("eduid.vccs.client.VCCSClient.add_credentials")
-    def test_v2_upgrade_skipped_when_v2_exists(
-        self, mock_add_credentials: MagicMock, mock_authenticate: MagicMock
-    ) -> None:
+    def test_v2_upgrade_skipped_when_v2_exists(self, mocker: MockerFixture) -> None:
         """Verify that no upgrade happens if user already has a v2 password."""
-        mock_add_credentials.return_value = True
-        mock_authenticate.return_value = True
+        mock_add_credentials = mocker.patch("eduid.vccs.client.VCCSClient.add_credentials", return_value=True)
+        mocker.patch("eduid.vccs.client.VCCSClient.authenticate", return_value=True)
         assert isinstance(self.app.authn, IdPAuthn)
 
         # Add an existing v2 credential to the user
@@ -199,35 +179,27 @@ class TestPasswordV2Upgrade(IdPAPITests):
         # add_credentials should NOT have been called (no upgrade needed)
         mock_add_credentials.assert_not_called()
 
-    @patch("eduid.vccs.client.VCCSClient.authenticate")
-    def test_v2_upgrade_not_triggered_when_disabled(self, mock_authenticate: MagicMock) -> None:
+    def test_v2_upgrade_not_triggered_when_disabled(self, mocker: MockerFixture) -> None:
         """Verify upgrade does not happen when feature flag is disabled."""
-        mock_authenticate.return_value = True
+        mocker.patch("eduid.vccs.client.VCCSClient.authenticate", return_value=True)
+        mock_add = mocker.patch.object(VCCSClient, "add_credentials")
         assert isinstance(self.app.authn, IdPAuthn)
 
         # Disable the feature flag
         self.app.conf.password_v2_upgrade_enabled = False
 
         assert self.test_user.mail_addresses.primary
-        with patch.object(VCCSClient, "add_credentials") as mock_add:
-            pwauth = self.app.authn.password_authn(self.test_user.mail_addresses.primary.email, "foo")
-            assert pwauth is not None
-            assert pwauth.credentials_changed is False
-            # add_credentials should NOT have been called
-            mock_add.assert_not_called()
+        pwauth = self.app.authn.password_authn(self.test_user.mail_addresses.primary.email, "foo")
+        assert pwauth is not None
+        assert pwauth.credentials_changed is False
+        # add_credentials should NOT have been called
+        mock_add.assert_not_called()
 
-    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    @patch("eduid.vccs.client.VCCSClient.authenticate")
-    @patch("eduid.vccs.client.VCCSClient.add_credentials")
-    def test_v2_upgrade_persisted_to_db(
-        self,
-        mock_add_credentials: MagicMock,
-        mock_authenticate: MagicMock,
-        mock_request_user_sync: MagicMock,
-    ) -> None:
+    def test_v2_upgrade_persisted_to_db(self, mocker: MockerFixture) -> None:
         """Verify that a v2 upgrade is persisted to the database via save_and_sync_user."""
-        mock_add_credentials.return_value = True
-        mock_authenticate.return_value = True
+        mocker.patch("eduid.vccs.client.VCCSClient.add_credentials", return_value=True)
+        mocker.patch("eduid.vccs.client.VCCSClient.authenticate", return_value=True)
+        mock_request_user_sync = mocker.patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
         mock_request_user_sync.side_effect = self.request_user_sync
         assert isinstance(self.app.authn, IdPAuthn)
 
@@ -258,14 +230,10 @@ class TestPasswordV2Upgrade(IdPAPITests):
             central_v2 = [p for p in central_user.credentials.filter(Password) if p.version == 2]
             assert len(central_v2) == 1, f"Expected 1 v2 credential in central userdb, got {len(central_v2)}"
 
-    @patch("eduid.vccs.client.VCCSClient.authenticate")
-    @patch("eduid.vccs.client.VCCSClient.revoke_credentials")
-    def test_v1_revoked_after_grace_period(
-        self, mock_revoke_credentials: MagicMock, mock_authenticate: MagicMock
-    ) -> None:
+    def test_v1_revoked_after_grace_period(self, mocker: MockerFixture) -> None:
         """Verify that v1 passwords are revoked when authenticating with v2 after the grace period has expired."""
-        mock_authenticate.return_value = True
-        mock_revoke_credentials.return_value = True
+        mocker.patch("eduid.vccs.client.VCCSClient.authenticate", return_value=True)
+        mock_revoke_credentials = mocker.patch("eduid.vccs.client.VCCSClient.revoke_credentials", return_value=True)
         assert isinstance(self.app.authn, IdPAuthn)
 
         # Set up user with both v1 and v2 passwords, v2 created well past the grace period
@@ -311,14 +279,10 @@ class TestPasswordV2Upgrade(IdPAPITests):
         call_args = mock_revoke_credentials.call_args
         assert str(user.user_id) == call_args[0][0]
 
-    @patch("eduid.vccs.client.VCCSClient.authenticate")
-    @patch("eduid.vccs.client.VCCSClient.revoke_credentials")
-    def test_v1_not_revoked_within_grace_period(
-        self, mock_revoke_credentials: MagicMock, mock_authenticate: MagicMock
-    ) -> None:
+    def test_v1_not_revoked_within_grace_period(self, mocker: MockerFixture) -> None:
         """Verify that v1 passwords are NOT revoked when the grace period has not yet expired."""
-        mock_authenticate.return_value = True
-        mock_revoke_credentials.return_value = True
+        mocker.patch("eduid.vccs.client.VCCSClient.authenticate", return_value=True)
+        mock_revoke_credentials = mocker.patch("eduid.vccs.client.VCCSClient.revoke_credentials", return_value=True)
         assert isinstance(self.app.authn, IdPAuthn)
 
         # Set up user with both v1 and v2 passwords, v2 created recently (within grace period)

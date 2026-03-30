@@ -2,10 +2,10 @@ import logging
 import os
 from datetime import datetime, timedelta
 from typing import Any, cast
-from unittest.mock import MagicMock, patch
 
 import pytest
 from bson import ObjectId
+from pytest_mock import MockerFixture
 from requests import RequestException
 from saml2.client import Saml2Client
 
@@ -38,11 +38,10 @@ class IdPTestLoginAPI(IdPAPITests):
             sso_cookie_val=None,
         )
 
-    def test_login_pwauth_wrong_password(self) -> None:
+    def test_login_pwauth_wrong_password(self, mocker: MockerFixture) -> None:
         # Patch the VCCSClient, so we do not need a vccs server
-        with patch.object(VCCSClient, "authenticate") as mock_vccs:
-            mock_vccs.return_value = False
-            result = self._try_login()
+        mocker.patch.object(VCCSClient, "authenticate", return_value=False)
+        result = self._try_login()
 
         self._check_login_result(
             result=result,
@@ -69,14 +68,13 @@ class IdPTestLoginAPI(IdPAPITests):
             ),
         )
 
-    def test_login_pwauth_right_password(self) -> None:
+    def test_login_pwauth_right_password(self, mocker: MockerFixture) -> None:
         # pre-accept ToU for this test
         self.add_test_user_tou()
 
         # Patch the VCCSClient, so we do not need a vccs server
-        with patch.object(VCCSClient, "authenticate") as mock_vccs:
-            mock_vccs.return_value = True
-            result = self._try_login()
+        mocker.patch.object(VCCSClient, "authenticate", return_value=True)
+        result = self._try_login()
 
         self._check_login_result(
             result=result,
@@ -95,14 +93,13 @@ class IdPTestLoginAPI(IdPAPITests):
         assert "eduPersonPrincipalName" in attributes
         assert attributes["eduPersonPrincipalName"] == [f"hubba-bubba@{self.app.conf.default_eppn_scope}"]
 
-    def test_login_pwauth_right_password_and_tou_acceptance(self) -> None:
+    def test_login_pwauth_right_password_and_tou_acceptance(self, mocker: MockerFixture) -> None:
         # Enable AM sync of user to central db for this particular test
         AmCelerySingleton.worker_config.mongo_uri = self.app.conf.mongo_uri
 
         # Patch the VCCSClient, so we do not need a vccs server
-        with patch.object(VCCSClient, "authenticate") as mock_vccs:
-            mock_vccs.return_value = True
-            result = self._try_login()
+        mocker.patch.object(VCCSClient, "authenticate", return_value=True)
+        result = self._try_login()
 
         self._check_login_result(
             result=result,
@@ -120,7 +117,7 @@ class IdPTestLoginAPI(IdPAPITests):
         assert "eduPersonPrincipalName" in attributes
         assert attributes["eduPersonPrincipalName"] == [f"hubba-bubba@{self.app.conf.default_eppn_scope}"]
 
-    def test_login_mfaauth(self) -> None:
+    def test_login_mfaauth(self, mocker: MockerFixture) -> None:
         # pre-accept ToU for this test
         self.add_test_user_tou()
 
@@ -128,9 +125,8 @@ class IdPTestLoginAPI(IdPAPITests):
         self.add_test_user_security_key()
 
         # Patch the VCCSClient, so we do not need a vccs server
-        with patch.object(VCCSClient, "authenticate") as mock_vccs:
-            mock_vccs.return_value = True
-            result = self._try_login()
+        mocker.patch.object(VCCSClient, "authenticate", return_value=True)
+        result = self._try_login()
 
         self._check_login_result(
             result=result,
@@ -152,7 +148,7 @@ class IdPTestLoginAPI(IdPAPITests):
         assert "eduPersonPrincipalName" in attributes
         assert attributes["eduPersonPrincipalName"] == [f"hubba-bubba@{self.app.conf.default_eppn_scope}"]
 
-    def test_login_no_mandatory_mfa(self) -> None:
+    def test_login_no_mandatory_mfa(self, mocker: MockerFixture) -> None:
         # pre-accept ToU for this test
         self.add_test_user_tou()
 
@@ -160,9 +156,8 @@ class IdPTestLoginAPI(IdPAPITests):
         self.add_test_user_security_key(always_use_security_key=False)
 
         # Patch the VCCSClient, so we do not need a vccs server
-        with patch.object(VCCSClient, "authenticate") as mock_vccs:
-            mock_vccs.return_value = True
-            result = self._try_login()
+        mocker.patch.object(VCCSClient, "authenticate", return_value=True)
+        result = self._try_login()
 
         self._check_login_result(
             result=result,
@@ -183,7 +178,7 @@ class IdPTestLoginAPI(IdPAPITests):
         assert "eduPersonPrincipalName" in attributes
         assert attributes["eduPersonPrincipalName"] == [f"hubba-bubba@{self.app.conf.default_eppn_scope}"]
 
-    def test_login_no_mandatory_mfa_with_mfa_accr(self) -> None:
+    def test_login_no_mandatory_mfa_with_mfa_accr(self, mocker: MockerFixture) -> None:
         # pre-accept ToU for this test
         self.add_test_user_tou()
 
@@ -191,14 +186,13 @@ class IdPTestLoginAPI(IdPAPITests):
         self.add_test_user_security_key(always_use_security_key=False)
 
         # Patch the VCCSClient, so we do not need a vccs server
-        with patch.object(VCCSClient, "authenticate") as mock_vccs:
-            mock_vccs.return_value = True
-            result = self._try_login(
-                authn_context={
-                    "authn_context_class_ref": [EduidAuthnContextClass.REFEDS_MFA.value],
-                    "comparison": "exact",
-                }
-            )
+        mocker.patch.object(VCCSClient, "authenticate", return_value=True)
+        result = self._try_login(
+            authn_context={
+                "authn_context_class_ref": [EduidAuthnContextClass.REFEDS_MFA.value],
+                "comparison": "exact",
+            }
+        )
         self._check_login_result(
             result=result,
             visit_order=[
@@ -219,7 +213,7 @@ class IdPTestLoginAPI(IdPAPITests):
         assert "eduPersonPrincipalName" in attributes
         assert attributes["eduPersonPrincipalName"] == [f"hubba-bubba@{self.app.conf.default_eppn_scope}"]
 
-    def test_login_missing_attributes(self) -> None:
+    def test_login_missing_attributes(self, mocker: MockerFixture) -> None:
         # pre-accept ToU for this test
         user, _ = self.add_test_user_tou()
 
@@ -228,9 +222,8 @@ class IdPTestLoginAPI(IdPAPITests):
         self.request_user_sync(user)
 
         # Patch the VCCSClient, so we do not need a vccs server
-        with patch.object(VCCSClient, "authenticate") as mock_vccs:
-            mock_vccs.return_value = True
-            result = self._try_login()
+        mocker.patch.object(VCCSClient, "authenticate", return_value=True)
+        result = self._try_login()
 
         self._check_login_result(
             result=result,
@@ -247,9 +240,11 @@ class IdPTestLoginAPI(IdPAPITests):
         attributes = self.get_attributes(result)
         assert attributes["mailLocalAddress"] == []
 
-    def test_ForceAuthn_with_existing_SSO_session(self) -> None:
+    def test_ForceAuthn_with_existing_SSO_session(self, mocker: MockerFixture) -> None:
         # add security key to user
         self.add_test_user_security_key()
+        # Patch the VCCSClient, so we do not need a vccs server
+        mocker.patch.object(VCCSClient, "authenticate", return_value=True)
         for accr in [None, EduidAuthnContextClass.PASSWORD_PT, EduidAuthnContextClass.REFEDS_MFA]:
             requested_authn_context = None
             if accr is not None:
@@ -258,10 +253,7 @@ class IdPTestLoginAPI(IdPAPITests):
             # pre-accept ToU for this test
             self.add_test_user_tou()
 
-            # Patch the VCCSClient, so we do not need a vccs server
-            with patch.object(VCCSClient, "authenticate") as mock_vccs:
-                mock_vccs.return_value = True
-                result = self._try_login()
+            result = self._try_login()
 
             assert result.finished_result is not None
             authn_response = self.parse_saml_authn_response(result.finished_result)
@@ -272,12 +264,9 @@ class IdPTestLoginAPI(IdPAPITests):
             assert attributes["eduPersonPrincipalName"] == [f"hubba-bubba@{self.app.conf.default_eppn_scope}"]
 
             # Log in again, with ForceAuthn="true"
-            # Patch the VCCSClient, so we do not need a vccs server
-            with patch.object(VCCSClient, "authenticate") as mock_vccs:
-                mock_vccs.return_value = True
-                result2 = self._try_login(
-                    force_authn=True, authn_context=requested_authn_context, sso_cookie_val=result.sso_cookie_val
-                )
+            result2 = self._try_login(
+                force_authn=True, authn_context=requested_authn_context, sso_cookie_val=result.sso_cookie_val
+            )
 
             if accr is EduidAuthnContextClass.REFEDS_MFA:
                 assert result2.visit_order == [
@@ -291,7 +280,7 @@ class IdPTestLoginAPI(IdPAPITests):
                 # Make sure the second response isn't referring to the first login request
                 assert authn_response.in_response_to != authn_response2.in_response_to
 
-    def test_login_other_device(self) -> None:
+    def test_login_other_device(self, mocker: MockerFixture) -> None:
         # pre-accept ToU for this test
         self.add_test_user_tou()
 
@@ -318,9 +307,8 @@ class IdPTestLoginAPI(IdPAPITests):
 
         # login in with device 2
         # Patch the VCCSClient, so we do not need a vccs server
-        with patch.object(VCCSClient, "authenticate") as mock_vccs:
-            mock_vccs.return_value = True
-            device_2_result2 = self._try_login(device=device2, login_ref=login_ref)
+        mocker.patch.object(VCCSClient, "authenticate", return_value=True)
+        device_2_result2 = self._try_login(device=device2, login_ref=login_ref)
 
         self._check_login_result(
             result=device_2_result2,
@@ -346,7 +334,7 @@ class IdPTestLoginAPI(IdPAPITests):
         )
         assert device_1_result2.payload.get("state") == OtherDeviceState.FINISHED.value
 
-    def test_login_other_device_with_accr(self) -> None:
+    def test_login_other_device_with_accr(self, mocker: MockerFixture) -> None:
         # pre-accept ToU for this test
         self.add_test_user_tou()
 
@@ -382,9 +370,8 @@ class IdPTestLoginAPI(IdPAPITests):
 
         # login in with device 2
         # Patch the VCCSClient, so we do not need a vccs server
-        with patch.object(VCCSClient, "authenticate") as mock_vccs:
-            mock_vccs.return_value = True
-            device_2_result2 = self._try_login(device=device2, login_ref=login_ref)
+        mocker.patch.object(VCCSClient, "authenticate", return_value=True)
+        device_2_result2 = self._try_login(device=device2, login_ref=login_ref)
 
         self._check_login_result(
             result=device_2_result2,
@@ -410,15 +397,14 @@ class IdPTestLoginAPI(IdPAPITests):
         )
         assert device_1_result2.payload.get("state") == OtherDeviceState.FINISHED.value
 
-    def test_terminated_user(self) -> None:
+    def test_terminated_user(self, mocker: MockerFixture) -> None:
         user = self.amdb.get_user_by_eppn(self.test_user.eppn)
         user.terminated = datetime.fromisoformat("2020-02-25T15:52:59.745")
         self.amdb.save(user)
 
         # Patch the VCCSClient, so we do not need a vccs server
-        with patch.object(VCCSClient, "authenticate") as mock_vccs:
-            mock_vccs.return_value = True
-            result = self._try_login()
+        mocker.patch.object(VCCSClient, "authenticate", return_value=True)
+        result = self._try_login()
 
         self._check_login_result(
             result=result,
@@ -426,7 +412,7 @@ class IdPTestLoginAPI(IdPAPITests):
             error={"payload": {"message": IdPMsg.user_terminated.value}},
         )
 
-    def test_with_unknown_sp(self) -> None:
+    def test_with_unknown_sp(self, mocker: MockerFixture) -> None:
         sp_config = get_saml2_config(self.app.conf.pysaml2_config, name="UNKNOWN_SP_CONFIG")
         saml2_client = Saml2Client(config=sp_config)
 
@@ -434,9 +420,8 @@ class IdPTestLoginAPI(IdPAPITests):
         self.add_test_user_tou()
 
         # Patch the VCCSClient, so we do not need a vccs server
-        with patch.object(VCCSClient, "authenticate") as mock_vccs:
-            mock_vccs.return_value = True
-            result = self._try_login(saml2_client=saml2_client)
+        mocker.patch.object(VCCSClient, "authenticate", return_value=True)
+        result = self._try_login(saml2_client=saml2_client)
 
         self._check_login_result(
             result=result,
@@ -444,14 +429,13 @@ class IdPTestLoginAPI(IdPAPITests):
             error={"status_code": 400, "status": "400 BAD REQUEST", "message": "SAML error: Unknown Service Provider"},
         )
 
-    def test_sso_to_unknown_sp(self) -> None:
+    def test_sso_to_unknown_sp(self, mocker: MockerFixture) -> None:
         # pre-accept ToU for this test
         self.add_test_user_tou()
 
         # Patch the VCCSClient, so we do not need a vccs server
-        with patch.object(VCCSClient, "authenticate") as mock_vccs:
-            mock_vccs.return_value = True
-            result = self._try_login()
+        mocker.patch.object(VCCSClient, "authenticate", return_value=True)
+        result = self._try_login()
 
         self._check_login_result(
             result=result,
@@ -471,7 +455,7 @@ class IdPTestLoginAPI(IdPAPITests):
             error={"status_code": 400, "status": "400 BAD REQUEST", "message": "SAML error: Unknown Service Provider"},
         )
 
-    def test_eduperson_targeted_id(self) -> None:
+    def test_eduperson_targeted_id(self, mocker: MockerFixture) -> None:
         sp_config = get_saml2_config(self.app.conf.pysaml2_config, name="COCO_SP_CONFIG")
         saml2_client = Saml2Client(config=sp_config)
 
@@ -479,9 +463,8 @@ class IdPTestLoginAPI(IdPAPITests):
         self.add_test_user_tou()
 
         # Patch the VCCSClient, so we do not need a vccs server
-        with patch.object(VCCSClient, "authenticate") as mock_vccs:
-            mock_vccs.return_value = True
-            result = self._try_login(saml2_client=saml2_client)
+        mocker.patch.object(VCCSClient, "authenticate", return_value=True)
+        result = self._try_login(saml2_client=saml2_client)
 
         self._check_login_result(
             result=result,
@@ -493,7 +476,7 @@ class IdPTestLoginAPI(IdPAPITests):
         assert "eduPersonTargetedID" in attributes
         assert attributes["eduPersonTargetedID"] == ["71a13b105e83aa69c31f41b08ea83694e0fae5f368d17ef18ba59e0f9e407ec9"]
 
-    def test_schac_personal_unique_code_esi(self) -> None:
+    def test_schac_personal_unique_code_esi(self, mocker: MockerFixture) -> None:
         sp_config = get_saml2_config(self.app.conf.pysaml2_config, name="ESI_COCO_SP_CONFIG")
         saml2_client = Saml2Client(config=sp_config)
 
@@ -501,9 +484,8 @@ class IdPTestLoginAPI(IdPAPITests):
         self.add_test_user_tou()
 
         # Patch the VCCSClient, so we do not need a vccs server
-        with patch.object(VCCSClient, "authenticate") as mock_vccs:
-            mock_vccs.return_value = True
-            result = self._try_login(saml2_client=saml2_client)
+        mocker.patch.object(VCCSClient, "authenticate", return_value=True)
+        result = self._try_login(saml2_client=saml2_client)
 
         self._check_login_result(
             result=result,
@@ -522,7 +504,7 @@ class IdPTestLoginAPI(IdPAPITests):
             f"{self.app.conf.esi_ladok_prefix}{self.test_user.ladok.external_id}"
         ]
 
-    def test_pairwise_id(self) -> None:
+    def test_pairwise_id(self, mocker: MockerFixture) -> None:
         sp_config = get_saml2_config(self.app.conf.pysaml2_config, name="COCO_SP_CONFIG")
         saml2_client = Saml2Client(config=sp_config)
 
@@ -530,9 +512,8 @@ class IdPTestLoginAPI(IdPAPITests):
         self.add_test_user_tou()
 
         # Patch the VCCSClient, so we do not need a vccs server
-        with patch.object(VCCSClient, "authenticate") as mock_vccs:
-            mock_vccs.return_value = True
-            result = self._try_login(saml2_client=saml2_client)
+        mocker.patch.object(VCCSClient, "authenticate", return_value=True)
+        result = self._try_login(saml2_client=saml2_client)
 
         self._check_login_result(
             result=result,
@@ -546,7 +527,7 @@ class IdPTestLoginAPI(IdPAPITests):
             "36382d115a9b7d8c27cc9eed94aab0ea6cc16a8becc5a468922e36e5a351f8f9@test.scope"
         ]
 
-    def test_subject_id(self) -> None:
+    def test_subject_id(self, mocker: MockerFixture) -> None:
         sp_config = get_saml2_config(self.app.conf.pysaml2_config, name="SP_CONFIG")
         saml2_client = Saml2Client(config=sp_config)
 
@@ -554,9 +535,8 @@ class IdPTestLoginAPI(IdPAPITests):
         self.add_test_user_tou()
 
         # Patch the VCCSClient, so we do not need a vccs server
-        with patch.object(VCCSClient, "authenticate") as mock_vccs:
-            mock_vccs.return_value = True
-            result = self._try_login(saml2_client=saml2_client)
+        mocker.patch.object(VCCSClient, "authenticate", return_value=True)
+        result = self._try_login(saml2_client=saml2_client)
 
         self._check_login_result(
             result=result,
@@ -567,7 +547,7 @@ class IdPTestLoginAPI(IdPAPITests):
         attributes = self.get_attributes(result, saml2_client=saml2_client)
         assert attributes["subject-id"] == ["hubba-bubba@test.scope"]
 
-    def test_mail_local_address(self) -> None:
+    def test_mail_local_address(self, mocker: MockerFixture) -> None:
         sp_config = get_saml2_config(self.app.conf.pysaml2_config, name="SP_CONFIG")
         saml2_client = Saml2Client(config=sp_config)
 
@@ -578,9 +558,8 @@ class IdPTestLoginAPI(IdPAPITests):
         self.add_test_user_tou()
 
         # Patch the VCCSClient, so we do not need a vccs server
-        with patch.object(VCCSClient, "authenticate") as mock_vccs:
-            mock_vccs.return_value = True
-            result = self._try_login(saml2_client=saml2_client)
+        mocker.patch.object(VCCSClient, "authenticate", return_value=True)
+        result = self._try_login(saml2_client=saml2_client)
 
         self._check_login_result(
             result=result,
@@ -592,14 +571,13 @@ class IdPTestLoginAPI(IdPAPITests):
 
         assert attributes["mailLocalAddress"] == ["johnsmith@example.com", "test@example.com"]
 
-    def test_successful_authentication_alternative_acs(self) -> None:
+    def test_successful_authentication_alternative_acs(self, mocker: MockerFixture) -> None:
         # pre-accept ToU for this test
         self.add_test_user_tou()
 
         # Patch the VCCSClient, so we do not need a vccs server
-        with patch.object(VCCSClient, "authenticate") as mock_vccs:
-            mock_vccs.return_value = True
-            result = self._try_login(assertion_consumer_service_url="https://localhost:8080/acs/")
+        mocker.patch.object(VCCSClient, "authenticate", return_value=True)
+        result = self._try_login(assertion_consumer_service_url="https://localhost:8080/acs/")
 
         self._check_login_result(
             result=result,
@@ -607,7 +585,7 @@ class IdPTestLoginAPI(IdPAPITests):
             finish_result=FinishedResultAPI(payload={"target": "https://localhost:8080/acs/"}),
         )
 
-    def test_geo_statistics_success(self) -> None:
+    def test_geo_statistics_success(self, mocker: MockerFixture) -> None:
         # pre-accept ToU for this test
         self.add_test_user_tou()
 
@@ -616,29 +594,28 @@ class IdPTestLoginAPI(IdPAPITests):
         self.app.conf.geo_statistics_url = "http://eduid.docker"
 
         # Patch the VCCSClient, so we do not need a vccs server
-        with patch.object(VCCSClient, "authenticate") as mock_vccs:
-            mock_vccs.return_value = True
-            with patch("requests.post", new_callable=MagicMock) as mock_post:
-                result = self._try_login()
-                assert mock_post.call_count == 1
-                assert mock_post.call_args.kwargs.get("json") == {
-                    "data": {
-                        "user_id": "f58a28aad6b221e6827b8ba4481bb5b6da3833acab5eab43d0f3371b218f6cdc",
-                        "client_ip": "127.0.0.1",
-                        "known_device": False,
-                        "user_agent": {
-                            "browser": {"family": "Other"},
-                            "os": {"family": "Other"},
-                            "device": {"family": "Other"},
-                            "sophisticated": {
-                                "is_mobile": False,
-                                "is_pc": False,
-                                "is_tablet": False,
-                                "is_touch_capable": False,
-                            },
-                        },
-                    }
-                }
+        mocker.patch.object(VCCSClient, "authenticate", return_value=True)
+        mock_post = mocker.patch("requests.post")
+        result = self._try_login()
+        assert mock_post.call_count == 1
+        assert mock_post.call_args.kwargs.get("json") == {
+            "data": {
+                "user_id": "f58a28aad6b221e6827b8ba4481bb5b6da3833acab5eab43d0f3371b218f6cdc",
+                "client_ip": "127.0.0.1",
+                "known_device": False,
+                "user_agent": {
+                    "browser": {"family": "Other"},
+                    "os": {"family": "Other"},
+                    "device": {"family": "Other"},
+                    "sophisticated": {
+                        "is_mobile": False,
+                        "is_pc": False,
+                        "is_tablet": False,
+                        "is_touch_capable": False,
+                    },
+                },
+            }
+        }
 
         self._check_login_result(
             result=result,
@@ -646,7 +623,7 @@ class IdPTestLoginAPI(IdPAPITests):
             finish_result=FinishedResultAPI(payload={"message": IdPMsg.finished.value}),
         )
 
-    def test_geo_statistics_fail(self) -> None:
+    def test_geo_statistics_fail(self, mocker: MockerFixture) -> None:
         # pre-accept ToU for this test
         self.add_test_user_tou()
 
@@ -655,12 +632,11 @@ class IdPTestLoginAPI(IdPAPITests):
         self.app.conf.geo_statistics_url = "http://eduid.docker"
 
         # Patch the VCCSClient, so we do not need a vccs server
-        with patch.object(VCCSClient, "authenticate") as mock_vccs:
-            mock_vccs.return_value = True
-            with patch("requests.post", new_callable=MagicMock) as mock_post:
-                mock_post.side_effect = RequestException("Test Exception")
-                result = self._try_login()
-                assert mock_post.call_count == 1
+        mocker.patch.object(VCCSClient, "authenticate", return_value=True)
+        mock_post = mocker.patch("requests.post")
+        mock_post.side_effect = RequestException("Test Exception")
+        result = self._try_login()
+        assert mock_post.call_count == 1
 
         self._check_login_result(
             result=result,
@@ -692,11 +668,10 @@ class IdPTestLoginAPIManagedAccounts(IdPAPITests):
         self.app.managed_account_db.save(managed_account)
         return managed_account
 
-    def test_login_pwauth_wrong_password(self) -> None:
+    def test_login_pwauth_wrong_password(self, mocker: MockerFixture) -> None:
         # Patch the VCCSClient, so we do not need a vccs server
-        with patch.object(VCCSClient, "authenticate") as mock_vccs:
-            mock_vccs.return_value = False
-            result = self._try_login()
+        mocker.patch.object(VCCSClient, "authenticate", return_value=False)
+        result = self._try_login()
         self._check_login_result(
             result=result,
             visit_order=[IdPAction.USERNAMEPWAUTH, IdPAction.USERNAMEPWAUTH],
@@ -704,11 +679,10 @@ class IdPTestLoginAPIManagedAccounts(IdPAPITests):
             pwauth_result=PwAuthResult(payload={"message": IdPMsg.wrong_credentials.value}),
         )
 
-    def test_login_pwauth_right_password(self) -> None:
+    def test_login_pwauth_right_password(self, mocker: MockerFixture) -> None:
         # Patch the VCCSClient, so we do not need a vccs server
-        with patch.object(VCCSClient, "authenticate") as mock_vccs:
-            mock_vccs.return_value = True
-            result = self._try_login()
+        mocker.patch.object(VCCSClient, "authenticate", return_value=True)
+        result = self._try_login()
 
         self._check_login_result(
             result=result,
@@ -727,11 +701,10 @@ class IdPTestLoginAPIManagedAccounts(IdPAPITests):
         assert "eduPersonPrincipalName" in attributes
         assert attributes["eduPersonPrincipalName"] == [f"{self.test_eppn}@{self.app.conf.default_eppn_scope}"]
 
-    def test_ForceAuthn_with_existing_SSO_session(self) -> None:
+    def test_ForceAuthn_with_existing_SSO_session(self, mocker: MockerFixture) -> None:
         # Patch the VCCSClient, so we do not need a vccs server
-        with patch.object(VCCSClient, "authenticate") as mock_vccs:
-            mock_vccs.return_value = True
-            result = self._try_login()
+        mocker.patch.object(VCCSClient, "authenticate", return_value=True)
+        result = self._try_login()
 
         assert result.finished_result is not None
         authn_response = self.parse_saml_authn_response(result.finished_result)
@@ -742,25 +715,21 @@ class IdPTestLoginAPIManagedAccounts(IdPAPITests):
         assert attributes["eduPersonPrincipalName"] == [f"{self.test_eppn}@{self.app.conf.default_eppn_scope}"]
 
         # Log in again, with ForceAuthn="true"
-        # Patch the VCCSClient, so we do not need a vccs server
-        with patch.object(VCCSClient, "authenticate") as mock_vccs:
-            mock_vccs.return_value = True
-            result2 = self._try_login(force_authn=True, username=False)
+        result2 = self._try_login(force_authn=True, username=False)
 
         assert result2.finished_result is not None
         authn_response2 = self.parse_saml_authn_response(result2.finished_result)
         # Make sure the second response isn't referring to the first login request
         assert authn_response.in_response_to != authn_response2.in_response_to
 
-    def test_terminated_user(self) -> None:
+    def test_terminated_user(self, mocker: MockerFixture) -> None:
         user = self.app.managed_account_db.get_user_by_eppn(self.default_user.eppn)
         user.terminated = datetime.fromisoformat("2023-01-15T15:52:59.745")
         self.app.managed_account_db.save(user)
 
         # Patch the VCCSClient, so we do not need a vccs server
-        with patch.object(VCCSClient, "authenticate") as mock_vccs:
-            mock_vccs.return_value = True
-            result = self._try_login()
+        mocker.patch.object(VCCSClient, "authenticate", return_value=True)
+        result = self._try_login()
 
         self._check_login_result(
             result=result,
@@ -768,14 +737,13 @@ class IdPTestLoginAPIManagedAccounts(IdPAPITests):
             error={"payload": {"message": IdPMsg.user_terminated.value}},
         )
 
-    def test_with_unknown_sp(self) -> None:
+    def test_with_unknown_sp(self, mocker: MockerFixture) -> None:
         sp_config = get_saml2_config(self.app.conf.pysaml2_config, name="UNKNOWN_SP_CONFIG")
         saml2_client = Saml2Client(config=sp_config)
 
         # Patch the VCCSClient, so we do not need a vccs server
-        with patch.object(VCCSClient, "authenticate") as mock_vccs:
-            mock_vccs.return_value = True
-            result = self._try_login(saml2_client=saml2_client)
+        mocker.patch.object(VCCSClient, "authenticate", return_value=True)
+        result = self._try_login(saml2_client=saml2_client)
 
         self._check_login_result(
             result=result,
@@ -783,11 +751,10 @@ class IdPTestLoginAPIManagedAccounts(IdPAPITests):
             error={"status_code": 400, "status": "400 BAD REQUEST", "message": "SAML error: Unknown Service Provider"},
         )
 
-    def test_sso_to_unknown_sp(self) -> None:
+    def test_sso_to_unknown_sp(self, mocker: MockerFixture) -> None:
         # Patch the VCCSClient, so we do not need a vccs server
-        with patch.object(VCCSClient, "authenticate") as mock_vccs:
-            mock_vccs.return_value = True
-            result = self._try_login()
+        mocker.patch.object(VCCSClient, "authenticate", return_value=True)
+        result = self._try_login()
 
         assert result.visit_order == [IdPAction.USERNAMEPWAUTH, IdPAction.FINISHED]
 
@@ -804,7 +771,7 @@ class IdPTestLoginAPIManagedAccounts(IdPAPITests):
             error={"status_code": 400, "status": "400 BAD REQUEST", "message": "SAML error: Unknown Service Provider"},
         )
 
-    def test_eduperson_targeted_id(self) -> None:
+    def test_eduperson_targeted_id(self, mocker: MockerFixture) -> None:
         sp_config = get_saml2_config(self.app.conf.pysaml2_config, name="COCO_SP_CONFIG")
         saml2_client = Saml2Client(config=sp_config)
 
@@ -812,9 +779,8 @@ class IdPTestLoginAPIManagedAccounts(IdPAPITests):
         self.add_test_user_tou()
 
         # Patch the VCCSClient, so we do not need a vccs server
-        with patch.object(VCCSClient, "authenticate") as mock_vccs:
-            mock_vccs.return_value = True
-            result = self._try_login(saml2_client=saml2_client)
+        mocker.patch.object(VCCSClient, "authenticate", return_value=True)
+        result = self._try_login(saml2_client=saml2_client)
 
         self._check_login_result(
             result=result,
@@ -826,7 +792,7 @@ class IdPTestLoginAPIManagedAccounts(IdPAPITests):
         assert "eduPersonTargetedID" in attributes
         assert attributes["eduPersonTargetedID"] == ["f0e831c0fcc8d61aef72e92f34e51f415f101050b8291a8c2c41ab4978b18f93"]
 
-    def test_pairwise_id(self) -> None:
+    def test_pairwise_id(self, mocker: MockerFixture) -> None:
         sp_config = get_saml2_config(self.app.conf.pysaml2_config, name="COCO_SP_CONFIG")
         saml2_client = Saml2Client(config=sp_config)
 
@@ -834,9 +800,8 @@ class IdPTestLoginAPIManagedAccounts(IdPAPITests):
         self.add_test_user_tou()
 
         # Patch the VCCSClient, so we do not need a vccs server
-        with patch.object(VCCSClient, "authenticate") as mock_vccs:
-            mock_vccs.return_value = True
-            result = self._try_login(saml2_client=saml2_client)
+        mocker.patch.object(VCCSClient, "authenticate", return_value=True)
+        result = self._try_login(saml2_client=saml2_client)
 
         self._check_login_result(
             result=result,
@@ -849,7 +814,7 @@ class IdPTestLoginAPIManagedAccounts(IdPAPITests):
             "133d9ecc64c5d8ed99ef00329e87b8677e74fc573e3f41ba0c259695813b9c19@test.scope"
         ]
 
-    def test_subject_id(self) -> None:
+    def test_subject_id(self, mocker: MockerFixture) -> None:
         sp_config = get_saml2_config(self.app.conf.pysaml2_config, name="SP_CONFIG")
         saml2_client = Saml2Client(config=sp_config)
 
@@ -857,9 +822,8 @@ class IdPTestLoginAPIManagedAccounts(IdPAPITests):
         self.add_test_user_tou()
 
         # Patch the VCCSClient, so we do not need a vccs server
-        with patch.object(VCCSClient, "authenticate") as mock_vccs:
-            mock_vccs.return_value = True
-            result = self._try_login(saml2_client=saml2_client)
+        mocker.patch.object(VCCSClient, "authenticate", return_value=True)
+        result = self._try_login(saml2_client=saml2_client)
 
         self._check_login_result(
             result=result,
@@ -870,14 +834,13 @@ class IdPTestLoginAPIManagedAccounts(IdPAPITests):
         attributes = self.get_attributes(result, saml2_client=saml2_client)
         assert attributes["subject-id"] == [f"{self.test_eppn}@test.scope"]
 
-    def test_successful_authentication_alternative_acs(self) -> None:
+    def test_successful_authentication_alternative_acs(self, mocker: MockerFixture) -> None:
         # pre-accept ToU for this test
         self.add_test_user_tou()
 
         # Patch the VCCSClient, so we do not need a vccs server
-        with patch.object(VCCSClient, "authenticate") as mock_vccs:
-            mock_vccs.return_value = True
-            result = self._try_login(assertion_consumer_service_url="https://localhost:8080/acs/")
+        mocker.patch.object(VCCSClient, "authenticate", return_value=True)
+        result = self._try_login(assertion_consumer_service_url="https://localhost:8080/acs/")
 
         self._check_login_result(
             result=result,
@@ -885,35 +848,34 @@ class IdPTestLoginAPIManagedAccounts(IdPAPITests):
             finish_result=FinishedResultAPI(payload={"target": "https://localhost:8080/acs/"}),
         )
 
-    def test_geo_statistics_success(self) -> None:
+    def test_geo_statistics_success(self, mocker: MockerFixture) -> None:
         # enable geo statistics
         self.app.conf.geo_statistics_feature_enabled = True
         self.app.conf.geo_statistics_url = "http://eduid.docker"
 
         # Patch the VCCSClient, so we do not need a vccs server
-        with patch.object(VCCSClient, "authenticate") as mock_vccs:
-            mock_vccs.return_value = True
-            with patch("requests.post", new_callable=MagicMock) as mock_post:
-                result = self._try_login()
-                assert mock_post.call_count == 1
-                assert mock_post.call_args.kwargs.get("json") == {
-                    "data": {
-                        "user_id": "9e46df8e2f30d3f045b157741a1387ecfcbc840920d5a8386a8fd04c11ed7028",
-                        "client_ip": "127.0.0.1",
-                        "known_device": False,
-                        "user_agent": {
-                            "browser": {"family": "Other"},
-                            "os": {"family": "Other"},
-                            "device": {"family": "Other"},
-                            "sophisticated": {
-                                "is_mobile": False,
-                                "is_pc": False,
-                                "is_tablet": False,
-                                "is_touch_capable": False,
-                            },
-                        },
-                    }
-                }
+        mocker.patch.object(VCCSClient, "authenticate", return_value=True)
+        mock_post = mocker.patch("requests.post")
+        result = self._try_login()
+        assert mock_post.call_count == 1
+        assert mock_post.call_args.kwargs.get("json") == {
+            "data": {
+                "user_id": "9e46df8e2f30d3f045b157741a1387ecfcbc840920d5a8386a8fd04c11ed7028",
+                "client_ip": "127.0.0.1",
+                "known_device": False,
+                "user_agent": {
+                    "browser": {"family": "Other"},
+                    "os": {"family": "Other"},
+                    "device": {"family": "Other"},
+                    "sophisticated": {
+                        "is_mobile": False,
+                        "is_pc": False,
+                        "is_tablet": False,
+                        "is_touch_capable": False,
+                    },
+                },
+            }
+        }
 
         self._check_login_result(
             result=result,
@@ -921,18 +883,17 @@ class IdPTestLoginAPIManagedAccounts(IdPAPITests):
             finish_result=FinishedResultAPI(payload={"message": IdPMsg.finished.value}),
         )
 
-    def test_geo_statistics_fail(self) -> None:
+    def test_geo_statistics_fail(self, mocker: MockerFixture) -> None:
         # enable geo statistics
         self.app.conf.geo_statistics_feature_enabled = True
         self.app.conf.geo_statistics_url = "http://eduid.docker"
 
         # Patch the VCCSClient, so we do not need a vccs server
-        with patch.object(VCCSClient, "authenticate") as mock_vccs:
-            mock_vccs.return_value = True
-            with patch("requests.post", new_callable=MagicMock) as mock_post:
-                mock_post.side_effect = RequestException("Test Exception")
-                result = self._try_login()
-                assert mock_post.call_count == 1
+        mocker.patch.object(VCCSClient, "authenticate", return_value=True)
+        mock_post = mocker.patch("requests.post")
+        mock_post.side_effect = RequestException("Test Exception")
+        result = self._try_login()
+        assert mock_post.call_count == 1
 
         self._check_login_result(
             result=result,
@@ -940,15 +901,13 @@ class IdPTestLoginAPIManagedAccounts(IdPAPITests):
             finish_result=FinishedResultAPI(payload={"message": IdPMsg.finished.value}),
         )
 
-    def test_assurance_failure_unknown_authn_context(self) -> None:
+    def test_assurance_failure_unknown_authn_context(self, mocker: MockerFixture) -> None:
         """
         Test that requesting an unknown authn context class returns a SAML error response.
 
         This tests the code path in next.py that handles IdPMsg.assurance_failure for SAML requests,
         returning an AuthnContextClassNotSupported SAML error to the SP.
         """
-        from eduid.vccs.client import VCCSClient
-
         self.add_test_user_tou()
 
         # Request an unknown authn context class - this should trigger assurance_failure
@@ -958,9 +917,8 @@ class IdPTestLoginAPIManagedAccounts(IdPAPITests):
         }
 
         # Patch the VCCSClient so we do not need a vccs server
-        with patch.object(VCCSClient, "authenticate") as mock_vccs:
-            mock_vccs.return_value = True
-            result = self._try_login(authn_context=authn_context)
+        mocker.patch.object(VCCSClient, "authenticate", return_value=True)
+        result = self._try_login(authn_context=authn_context)
 
         # The login should complete with a FINISHED action (containing SAML error response)
         assert result.finished_result is not None, f"Expected finished_result but got {result}"
@@ -980,7 +938,7 @@ class IdPTestLoginAPIManagedAccounts(IdPAPITests):
             "Expected 'Authentication context class not supported' message in SAML response"
         )
 
-    def test_unsupported_binding(self) -> None:
+    def test_unsupported_binding(self, mocker: MockerFixture) -> None:
         """
         Test that requesting an unsupported response binding returns an error.
 
@@ -1017,48 +975,48 @@ class IdPTestLoginAPIManagedAccounts(IdPAPITests):
         # Send the SAML request to the SSO redirect endpoint
         query_string = urlencode({"SAMLRequest": saml_request, "RelayState": "test-relay-state"})
 
-        with patch.object(VCCSClient, "authenticate") as mock_vccs:
-            mock_vccs.return_value = True
+        # Patch the VCCSClient, so we do not need a vccs server
+        mocker.patch.object(VCCSClient, "authenticate", return_value=True)
 
-            with self.session_cookie_anon(self.browser) as client:
-                # First, send the SAML request
-                response = client.get(f"/sso/redirect?{query_string}")
-                assert response.status_code == HTTPStatus.FOUND, f"Expected redirect, got {response.status_code}"
+        with self.session_cookie_anon(self.browser) as client:
+            # First, send the SAML request
+            response = client.get(f"/sso/redirect?{query_string}")
+            assert response.status_code == HTTPStatus.FOUND, f"Expected redirect, got {response.status_code}"
 
-                # Extract the login ref from the redirect URL
-                redirect_loc = response.headers.get("Location", "")
-                ref = redirect_loc.split("/")[-1]
+            # Extract the login ref from the redirect URL
+            redirect_loc = response.headers.get("Location", "")
+            ref = redirect_loc.split("/")[-1]
 
-                with client.session_transaction() as sess:
-                    csrf_token = sess.get_csrf_token()
+            with client.session_transaction() as sess:
+                csrf_token = sess.get_csrf_token()
 
-                # Call next to get to the password auth step
-                data = json.dumps({"ref": ref, "csrf_token": csrf_token})
-                next_response = client.post("/next", data=data, content_type=self.content_type_json)
-                assert next_response.status_code == HTTPStatus.OK
+            # Call next to get to the password auth step
+            data = json.dumps({"ref": ref, "csrf_token": csrf_token})
+            next_response = client.post("/next", data=data, content_type=self.content_type_json)
+            assert next_response.status_code == HTTPStatus.OK
 
-                with client.session_transaction() as sess:
-                    csrf_token = sess.get_csrf_token()
+            with client.session_transaction() as sess:
+                csrf_token = sess.get_csrf_token()
 
-                # Now do password auth
-                data = json.dumps(
-                    {
-                        "ref": ref,
-                        "username": self.test_user.eppn,
-                        "password": "bar",
-                        "csrf_token": csrf_token,
-                    }
-                )
-                pw_response = client.post("/pw_auth", data=data, content_type=self.content_type_json)
-                assert pw_response.status_code == HTTPStatus.OK
+            # Now do password auth
+            data = json.dumps(
+                {
+                    "ref": ref,
+                    "username": self.test_user.eppn,
+                    "password": "bar",
+                    "csrf_token": csrf_token,
+                }
+            )
+            pw_response = client.post("/pw_auth", data=data, content_type=self.content_type_json)
+            assert pw_response.status_code == HTTPStatus.OK
 
-                with client.session_transaction() as sess:
-                    csrf_token = sess.get_csrf_token()
+            with client.session_transaction() as sess:
+                csrf_token = sess.get_csrf_token()
 
-                # Call next again - this should trigger the unsupported binding error
-                # The SAMLError is now caught and converted to a BadRequest
-                data = json.dumps({"ref": ref, "csrf_token": csrf_token})
-                final_response = client.post("/next", data=data, content_type=self.content_type_json)
+            # Call next again - this should trigger the unsupported binding error
+            # The SAMLError is now caught and converted to a BadRequest
+            data = json.dumps({"ref": ref, "csrf_token": csrf_token})
+            final_response = client.post("/next", data=data, content_type=self.content_type_json)
 
         # The response should be a BadRequest error about the unsupported binding
         assert final_response.status_code == HTTPStatus.BAD_REQUEST, (
