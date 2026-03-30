@@ -1,9 +1,10 @@
 import json
 from collections.abc import Mapping
 from typing import Any
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
+from pytest_mock import MockerFixture
 from werkzeug.test import TestResponse
 
 from eduid.userdb.orcid import OidcAuthorization, OidcIdToken, Orcid
@@ -19,7 +20,8 @@ class OrcidTests(EduidAPITestCase[OrcidApp]):
     """Base TestCase for those tests that need a full environment setup"""
 
     @pytest.fixture(autouse=True)
-    def setup(self, setup_api: None) -> None:
+    def setup(self, setup_api: None, mocker: MockerFixture) -> None:
+        self.mocker = mocker
         self.test_user_eppn = "hubba-bubba"
 
         self.oidc_id_token = OidcIdToken(
@@ -87,17 +89,14 @@ class OrcidTests(EduidAPITestCase[OrcidApp]):
         )
         return config
 
-    @patch("oic.oic.Client.parse_response")
-    @patch("oic.oic.Client.do_user_info_request")
-    @patch("oic.oic.Client.do_access_token_request")
     def mock_authorization_response(
         self,
         proofing_state: OrcidProofingState,
         userinfo: dict[str, Any],
-        mock_token_request: MagicMock,
-        mock_userinfo_request: MagicMock,
-        mock_auth_response: MagicMock,
     ) -> TestResponse:
+        mock_auth_response = self.mocker.patch("oic.oic.Client.parse_response")
+        mock_userinfo_request = self.mocker.patch("oic.oic.Client.do_user_info_request")
+        mock_token_request = self.mocker.patch("oic.oic.Client.do_access_token_request")
         mock_auth_response.return_value = {
             "id_token": "id_token",
             "code": "code",
@@ -134,8 +133,8 @@ class OrcidTests(EduidAPITestCase[OrcidApp]):
         assert response.status_code == 302  # Authenticated request redirected to OP
         assert response.location.startswith(self.app.conf.provider_configuration_info["issuer"])
 
-    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def test_oidc_flow(self, mock_request_user_sync: MagicMock) -> None:
+    def test_oidc_flow(self, mocker: MockerFixture) -> None:
+        mock_request_user_sync = mocker.patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
         mock_request_user_sync.side_effect = self.request_user_sync
 
         with self.session_cookie(self.browser, self.test_user_eppn) as browser:
@@ -178,8 +177,8 @@ class OrcidTests(EduidAPITestCase[OrcidApp]):
         }
         self._check_success_response(response, type_="GET_ORCID_SUCCESS", payload=expected_payload)
 
-    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def test_remove_orcid(self, mock_request_user_sync: MagicMock) -> None:
+    def test_remove_orcid(self, mocker: MockerFixture) -> None:
+        mock_request_user_sync = mocker.patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
         mock_request_user_sync.side_effect = self.request_user_sync
 
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)

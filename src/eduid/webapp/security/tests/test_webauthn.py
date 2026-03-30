@@ -2,7 +2,6 @@ import base64
 import json
 from collections.abc import Mapping
 from typing import Any
-from unittest.mock import MagicMock, patch
 
 import pytest
 from fido2.utils import websafe_decode
@@ -13,6 +12,7 @@ from fido2.webauthn import (
 )
 from fido_mds import FidoMetadataStore
 from future.backports.datetime import timedelta
+from pytest_mock import MockerFixture
 from werkzeug.http import dump_cookie
 from werkzeug.test import TestResponse
 
@@ -102,7 +102,8 @@ class SecurityWebauthnTests(EduidAPITestCase):
     app: SecurityApp
 
     @pytest.fixture(autouse=True)
-    def setup(self, setup_api: None) -> None:
+    def setup(self, setup_api: None, mocker: MockerFixture) -> None:
+        self.mocker = mocker
         # remove all FidoCredentials from the test user
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
         assert user is not None
@@ -266,14 +267,12 @@ class SecurityWebauthnTests(EduidAPITestCase):
 
             return response2
 
-    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
     def _finish_register_key(
         self,
-        mock_request_user_sync: MagicMock,
         client_data: bytes,
         attestation: bytes,
         state: dict,
-        cred_id: bytes,
+        cred_id: str,
         existing_legacy_token: bool = False,
         csrf: str | None = None,
         set_authn_action: bool = True,
@@ -288,6 +287,7 @@ class SecurityWebauthnTests(EduidAPITestCase):
         :param existing_legacy_token: whether to add a legacy U2F credential to the test user.
         :param csrf: to control the CSRF token to send
         """
+        mock_request_user_sync = self.mocker.patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
         mock_request_user_sync.side_effect = self.request_user_sync
 
         force_mfa = False
@@ -335,10 +335,8 @@ class SecurityWebauthnTests(EduidAPITestCase):
             )
             return response2
 
-    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
     def _remove(
         self,
-        mock_request_user_sync: MagicMock,
         client_data: bytes,
         attestation: bytes,
         state: dict,
@@ -361,6 +359,7 @@ class SecurityWebauthnTests(EduidAPITestCase):
         :param existing_legacy_token: whether to add a legacy U2F credential to the test user.
         :param csrf: to control the CSRF token to send
         """
+        mock_request_user_sync = self.mocker.patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
         mock_request_user_sync.side_effect = self.request_user_sync
 
         if existing_legacy_token:
@@ -633,8 +632,10 @@ class SecurityWebauthnTests(EduidAPITestCase):
         assert data["type"] == "POST_WEBAUTHN_WEBAUTHN_REMOVE_FAIL"
         assert data["payload"]["error"]["csrf_token"] == ["CSRF failed to validate"]
 
-    @patch("fido_mds.FidoMetadataStore.verify_attestation", _apple_special_verify_attestation)
-    def test_authenticator_information(self) -> None:
+    def test_authenticator_information(self, mocker: MockerFixture) -> None:
+        mocker.patch(
+            "fido_mds.FidoMetadataStore.verify_attestation", SecurityWebauthnTests._apple_special_verify_attestation
+        )
         authenticators = [YUBIKEY_4, YUBIKEY_5_NFC, MICROSOFT_SURFACE_1796, NEXUS_5, IPHONE_12, NONE_ATTESTATION]
         for authenticator in authenticators:
             self.app.logger.debug(f"Testing authenticator: {authenticator}")

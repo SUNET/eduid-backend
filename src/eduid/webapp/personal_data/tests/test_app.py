@@ -2,9 +2,9 @@ import json
 from collections.abc import Mapping
 from datetime import timedelta
 from typing import Any
-from unittest.mock import MagicMock, patch
 
 import pytest
+from pytest_mock import MockerFixture
 from werkzeug.test import TestResponse
 
 from eduid.common.config.base import FrontendAction
@@ -18,6 +18,10 @@ from eduid.webapp.personal_data.helpers import PDataMsg, is_valid_chosen_given_n
 
 class PersonalDataTests(EduidAPITestCase[PersonalDataApp]):
     copy_user_to_private = True
+
+    @pytest.fixture(autouse=True)
+    def setup(self, setup_api: None, mocker: MockerFixture) -> None:
+        self.mocker = mocker
 
     def load_app(self, config: Mapping[str, Any]) -> PersonalDataApp:
         """
@@ -50,13 +54,11 @@ class PersonalDataTests(EduidAPITestCase[PersonalDataApp]):
         with self.session_cookie(self.browser, eppn) as client:
             return client.get("/all-user-data")
 
-    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def _post_user_name(
-        self, mock_request_user_sync: MagicMock, mod_data: dict[str, Any] | None = None, verified_user: bool = True
-    ) -> TestResponse:
+    def _post_user_name(self, mod_data: dict[str, Any] | None = None, verified_user: bool = True) -> TestResponse:
         """
         POST user name for the test user
         """
+        mock_request_user_sync = self.mocker.patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
         mock_request_user_sync.side_effect = self.request_user_sync
         eppn = self.test_user_data["eduPersonPrincipalName"]
 
@@ -79,13 +81,11 @@ class PersonalDataTests(EduidAPITestCase[PersonalDataApp]):
                     data.update(mod_data)
             return client.post("/user/name", data=json.dumps(data), content_type=self.content_type_json)
 
-    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def _post_user_language(
-        self, mock_request_user_sync: MagicMock, mod_data: dict[str, Any] | None = None, verified_user: bool = True
-    ) -> TestResponse:
+    def _post_user_language(self, mod_data: dict[str, Any] | None = None, verified_user: bool = True) -> TestResponse:
         """
         POST user language for the test user
         """
+        mock_request_user_sync = self.mocker.patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
         mock_request_user_sync.side_effect = self.request_user_sync
         eppn = self.test_user_data["eduPersonPrincipalName"]
 
@@ -100,13 +100,11 @@ class PersonalDataTests(EduidAPITestCase[PersonalDataApp]):
                     data.update(mod_data)
             return client.post("/user/language", data=json.dumps(data), content_type=self.content_type_json)
 
-    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def _post_preferences(
-        self, mock_request_user_sync: MagicMock, mod_data: dict[str, Any] | None = None
-    ) -> TestResponse:
+    def _post_preferences(self, mod_data: dict[str, Any] | None = None) -> TestResponse:
         """
         POST preferences for the test user
         """
+        mock_request_user_sync = self.mocker.patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
         mock_request_user_sync.side_effect = self.request_user_sync
         eppn = self.test_user.eppn
 

@@ -6,12 +6,12 @@ from datetime import UTC, datetime, timedelta
 from enum import Enum
 from http import HTTPStatus
 from typing import Any
-from unittest.mock import MagicMock, patch
 from uuid import uuid4
 
 import pytest
 from flask import url_for
 from jwcrypto.jwk import JWK
+from pytest_mock import MockerFixture
 from werkzeug.test import TestResponse
 
 from eduid.common.clients.scim_client.testing import MockedScimAPIMixin
@@ -54,6 +54,10 @@ class SignupResult:
 
 class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
     copy_user_to_private = True
+
+    @pytest.fixture(autouse=True)
+    def setup(self, setup_api: None, mocker: MockerFixture) -> None:
+        self.mocker = mocker
 
     def load_app(self, config: Mapping[str, Any]) -> SignupApp:
         """
@@ -516,12 +520,8 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
                 sess.signup.email.reference = "test_ref"
                 sess.signup.credentials.generated_password = generated_password
 
-    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    @patch("eduid.vccs.client.VCCSClient.add_credentials")
     def _create_user(
         self,
-        mock_add_credentials: MagicMock,
-        mock_request_user_sync: MagicMock,
         data: dict[str, Any] | None = None,
         custom_password: str | None = None,
         expect_success: bool = True,
@@ -532,6 +532,8 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
         """
         Create a new user with the data in the session.
         """
+        mock_request_user_sync = self.mocker.patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
+        mock_add_credentials = self.mocker.patch("eduid.vccs.client.VCCSClient.add_credentials")
         mock_add_credentials.return_value = True
         mock_request_user_sync.side_effect = self.request_user_sync
 
@@ -778,16 +780,15 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
 
             return SignupResult(url=endpoint, reached_state=SignupState.S1_ACCEPT_INVITE, response=response)
 
-    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
     def _complete_invite(
         self,
-        mock_request_user_sync: MagicMock,
         eppn: str | None = None,
         data1: dict[str, Any] | None = None,
         expect_success: bool = True,
         expected_message: TranslatableMsg | None = None,
         expected_payload: Mapping[str, Any] | None = None,
     ) -> SignupResult:
+        mock_request_user_sync = self.mocker.patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
         mock_request_user_sync.side_effect = self.request_user_sync
         logged_in = False
         if eppn:
@@ -1290,14 +1291,10 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
 
     def test_create_user_out_of_sync(self) -> None:
         self._prepare_for_create_user()
-        with (
-            patch("eduid.webapp.signup.helpers.save_and_sync_user") as mock_save,
-            patch("eduid.vccs.client.VCCSClient.revoke_credentials") as mock_revoke,
-        ):
-            mock_save.side_effect = UserOutOfSync("unsync")
-            mock_revoke.return_value = True
-            response = self._create_user(expect_success=False, expected_message=CommonMsg.out_of_sync)
-            assert response.reached_state == SignupState.S6_CREATE_USER
+        self.mocker.patch("eduid.webapp.signup.helpers.save_and_sync_user", side_effect=UserOutOfSync("unsync"))
+        self.mocker.patch("eduid.vccs.client.VCCSClient.revoke_credentials", return_value=True)
+        response = self._create_user(expect_success=False, expected_message=CommonMsg.out_of_sync)
+        assert response.reached_state == SignupState.S6_CREATE_USER
 
     def test_create_user_existing_email(self) -> None:
         self._prepare_for_create_user(email="johnsmith@example.com")
@@ -1306,12 +1303,11 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
 
     def test_create_user_proofing_log_error(self) -> None:
         self._prepare_for_create_user()
-        with patch("eduid.webapp.signup.helpers.record_email_address") as mock_verify:
-            mock_verify.side_effect = ProofingLogFailure("fail")
-            res = self._create_user(
-                expect_success=False,
-                expected_message=CommonMsg.temp_problem,
-            )
+        self.mocker.patch("eduid.webapp.signup.helpers.record_email_address", side_effect=ProofingLogFailure("fail"))
+        res = self._create_user(
+            expect_success=False,
+            expected_message=CommonMsg.temp_problem,
+        )
         assert res.reached_state == SignupState.S6_CREATE_USER
 
     def test_create_user_no_csrf(self) -> None:

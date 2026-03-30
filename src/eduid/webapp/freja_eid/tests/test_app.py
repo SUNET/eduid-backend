@@ -2,12 +2,12 @@ import json
 from datetime import date, datetime, timedelta
 from http import HTTPStatus
 from typing import Any, ClassVar
-from unittest.mock import MagicMock, patch
 from urllib.parse import parse_qs, urlparse
 
 import pytest
 from flask import url_for
 from iso3166 import Country, countries
+from pytest_mock import MockerFixture
 from werkzeug.test import TestResponse
 
 from eduid.common.config.base import FrontendAction
@@ -41,7 +41,8 @@ class FrejaEIDTests(ProofingTests[FrejaEIDApp]):
     api_users: ClassVar[list[str]] = ["hubba-bubba", "hubba-baar"]
 
     @pytest.fixture(autouse=True)
-    def setup(self, setup_api: None) -> None:
+    def setup(self, setup_api: None, mocker: MockerFixture) -> None:
+        self.mocker = mocker
         self.unverified_test_user = self.app.central_userdb.get_user_by_eppn("hubba-baar")
         self.test_unverified_user_eppn = "hubba-baar"
         self._user_setup()
@@ -219,22 +220,23 @@ class FrejaEIDTests(ProofingTests[FrejaEIDApp]):
         auth_url_query = urlparse(auth_url).query
         return parse_qs(auth_url_query)["state"][0], parse_qs(auth_url_query)["nonce"][0]
 
-    @patch("authlib.integrations.requests_client.oauth2_session.OAuth2Session.request")
-    @patch("authlib.integrations.base_client.sync_openid.OpenIDMixin.parse_id_token")
-    @patch("authlib.integrations.base_client.sync_openid.OpenIDMixin.userinfo")
-    @patch("authlib.integrations.base_client.sync_app.OAuth2Mixin.fetch_access_token")
-    @patch("authlib.integrations.base_client.sync_app.OAuth2Mixin.load_server_metadata")
     def mock_authorization_callback(
         self,
-        mock_metadata: MagicMock,
-        mock_fetch_access_token: MagicMock,
-        mock_userinfo: MagicMock,
-        mock_parse_id_token: MagicMock,
-        mock_end_session: MagicMock,
         state: str,
         nonce: str,
         userinfo: FrejaEIDDocumentUserInfo,
     ) -> TestResponse:
+        mock_end_session = self.mocker.patch(
+            "authlib.integrations.requests_client.oauth2_session.OAuth2Session.request"
+        )
+        mock_parse_id_token = self.mocker.patch(
+            "authlib.integrations.base_client.sync_openid.OpenIDMixin.parse_id_token"
+        )
+        mock_userinfo = self.mocker.patch("authlib.integrations.base_client.sync_openid.OpenIDMixin.userinfo")
+        mock_fetch_access_token = self.mocker.patch(
+            "authlib.integrations.base_client.sync_app.OAuth2Mixin.fetch_access_token"
+        )
+        mock_metadata = self.mocker.patch("authlib.integrations.base_client.sync_app.OAuth2Mixin.load_server_metadata")
         with self.app.test_request_context():
             endpoint = url_for("freja_eid.authn_callback")
 
@@ -268,10 +270,8 @@ class FrejaEIDTests(ProofingTests[FrejaEIDApp]):
         mock_userinfo.return_value = userinfo.model_dump()
         return self.browser.get(f"{endpoint}?id_token=id_token&state={state}&code=mock_code")
 
-    @patch("authlib.integrations.base_client.sync_app.OAuth2Mixin.load_server_metadata")
-    def _start_auth(
-        self, mock_metadata: MagicMock, endpoint: str, data: dict[str, Any], eppn: str, logged_in: bool = True
-    ) -> TestResponse:
+    def _start_auth(self, endpoint: str, data: dict[str, Any], eppn: str, logged_in: bool = True) -> TestResponse:
+        mock_metadata = self.mocker.patch("authlib.integrations.base_client.sync_app.OAuth2Mixin.load_server_metadata")
         mock_metadata.return_value = self.oidc_provider_config
 
         with self.session_cookie(self.browser, eppn) as client:
@@ -375,11 +375,10 @@ class FrejaEIDTests(ProofingTests[FrejaEIDApp]):
         )
         assert query["code_challenge_method"] == ["S256"]
 
-    @patch("eduid.webapp.common.api.helpers.get_reference_nin_from_navet_data")
-    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def test_verify_nin_identity(self, mock_request_user_sync: MagicMock, mock_reference_nin: MagicMock) -> None:
+    def test_verify_nin_identity(self, mocker: MockerFixture) -> None:
+        mocker.patch("eduid.webapp.common.api.helpers.get_reference_nin_from_navet_data", return_value=None)
+        mock_request_user_sync = mocker.patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
         mock_request_user_sync.side_effect = self.request_user_sync
-        mock_reference_nin.return_value = None
 
         eppn = self.unverified_test_user.eppn
         country = countries.get("Sweden")
@@ -424,8 +423,8 @@ class FrejaEIDTests(ProofingTests[FrejaEIDApp]):
         assert doc["given_name"] == userinfo.given_name
         assert doc["surname"] == userinfo.family_name
 
-    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def test_verify_foreign_identity(self, mock_request_user_sync: MagicMock) -> None:
+    def test_verify_foreign_identity(self, mocker: MockerFixture) -> None:
+        mock_request_user_sync = mocker.patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
         mock_request_user_sync.side_effect = self.request_user_sync
 
         eppn = self.unverified_test_user.eppn
@@ -462,9 +461,9 @@ class FrejaEIDTests(ProofingTests[FrejaEIDApp]):
             proofing_version=self.app.conf.freja_eid_proofing_version,
         )
 
-    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def test_verify_foreign_identity_no_identity_number(self, mock_request_user_sync: MagicMock) -> None:
+    def test_verify_foreign_identity_no_identity_number(self, mocker: MockerFixture) -> None:
         """Not all countries have something like a Swedish NIN, so personal_identity_number may be None"""
+        mock_request_user_sync = mocker.patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
         mock_request_user_sync.side_effect = self.request_user_sync
 
         eppn = self.unverified_test_user.eppn
@@ -505,11 +504,9 @@ class FrejaEIDTests(ProofingTests[FrejaEIDApp]):
             proofing_version=self.app.conf.freja_eid_proofing_version,
         )
 
-    @patch("eduid.common.rpc.msg_relay.MsgRelay.get_all_navet_data")
-    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def test_verify_nin_identity_already_verified(
-        self, mock_request_user_sync: MagicMock, mock_get_all_navet_data: MagicMock
-    ) -> None:
+    def test_verify_nin_identity_already_verified(self, mocker: MockerFixture) -> None:
+        mock_get_all_navet_data = mocker.patch("eduid.common.rpc.msg_relay.MsgRelay.get_all_navet_data")
+        mock_request_user_sync = mocker.patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
         mock_get_all_navet_data.return_value = self._get_all_navet_data()
         mock_request_user_sync.side_effect = self.request_user_sync
 
@@ -538,8 +535,8 @@ class FrejaEIDTests(ProofingTests[FrejaEIDApp]):
         )
         self._verify_user_parameters(eppn, identity_verified=True, num_proofings=0, num_mfa_tokens=0)
 
-    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def test_verify_foreign_identity_already_verified(self, mock_request_user_sync: MagicMock) -> None:
+    def test_verify_foreign_identity_already_verified(self, mocker: MockerFixture) -> None:
+        mock_request_user_sync = mocker.patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
         mock_request_user_sync.side_effect = self.request_user_sync
 
         eppn = self.test_user.eppn
@@ -583,8 +580,8 @@ class FrejaEIDTests(ProofingTests[FrejaEIDApp]):
         )
         self._verify_user_parameters(eppn, identity_verified=True, num_proofings=0, num_mfa_tokens=0)
 
-    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def test_verify_foreign_identity_replace_locked_identity(self, mock_request_user_sync: MagicMock) -> None:
+    def test_verify_foreign_identity_replace_locked_identity(self, mocker: MockerFixture) -> None:
+        mock_request_user_sync = mocker.patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
         mock_request_user_sync.side_effect = self.request_user_sync
 
         eppn = self.test_user.eppn
@@ -638,8 +635,8 @@ class FrejaEIDTests(ProofingTests[FrejaEIDApp]):
             eppn, identity_verified=True, num_proofings=1, num_mfa_tokens=0, locked_identity=new_locked_identity
         )
 
-    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def test_verify_foreign_identity_replace_locked_identity_fail(self, mock_request_user_sync: MagicMock) -> None:
+    def test_verify_foreign_identity_replace_locked_identity_fail(self, mocker: MockerFixture) -> None:
+        mock_request_user_sync = mocker.patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
         mock_request_user_sync.side_effect = self.request_user_sync
 
         eppn = self.unverified_test_user.eppn
@@ -686,10 +683,10 @@ class FrejaEIDTests(ProofingTests[FrejaEIDApp]):
             eppn, identity_verified=False, num_proofings=0, num_mfa_tokens=0, locked_identity=user.locked_identity.freja
         )
 
-    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
     def test_verify_foreign_identity_replace_locked_identity_fail_personal_id_number(
-        self, mock_request_user_sync: MagicMock
+        self, mocker: MockerFixture
     ) -> None:
+        mock_request_user_sync = mocker.patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
         mock_request_user_sync.side_effect = self.request_user_sync
 
         eppn = self.unverified_test_user.eppn
@@ -738,11 +735,9 @@ class FrejaEIDTests(ProofingTests[FrejaEIDApp]):
             eppn, identity_verified=False, num_proofings=0, num_mfa_tokens=0, locked_identity=user.locked_identity.freja
         )
 
-    @patch("eduid.common.rpc.msg_relay.MsgRelay.get_all_navet_data")
-    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def test_verify_foreign_identity_already_verified_nin(
-        self, mock_request_user_sync: MagicMock, mock_get_all_navet_data: MagicMock
-    ) -> None:
+    def test_verify_foreign_identity_already_verified_nin(self, mocker: MockerFixture) -> None:
+        mock_get_all_navet_data = mocker.patch("eduid.common.rpc.msg_relay.MsgRelay.get_all_navet_data")
+        mock_request_user_sync = mocker.patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
         mock_get_all_navet_data.return_value = self._get_all_navet_data()
         mock_request_user_sync.side_effect = self.request_user_sync
 
@@ -776,11 +771,9 @@ class FrejaEIDTests(ProofingTests[FrejaEIDApp]):
             eppn, identity_verified=True, num_proofings=1, num_mfa_tokens=0, locked_identity=user.identities.nin
         )
 
-    @patch("eduid.common.rpc.msg_relay.MsgRelay.get_all_navet_data")
-    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def test_verify_identity_expired_document(
-        self, mock_request_user_sync: MagicMock, mock_get_all_navet_data: MagicMock
-    ) -> None:
+    def test_verify_identity_expired_document(self, mocker: MockerFixture) -> None:
+        mock_get_all_navet_data = mocker.patch("eduid.common.rpc.msg_relay.MsgRelay.get_all_navet_data")
+        mock_request_user_sync = mocker.patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
         mock_get_all_navet_data.return_value = self._get_all_navet_data()
         mock_request_user_sync.side_effect = self.request_user_sync
 
@@ -810,13 +803,10 @@ class FrejaEIDTests(ProofingTests[FrejaEIDApp]):
         )
         self._verify_user_parameters(eppn, identity_verified=False, num_proofings=0, num_mfa_tokens=0)
 
-    @patch("eduid.webapp.common.api.helpers.get_reference_nin_from_navet_data")
-    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def test_verify_credential_nin_identity(
-        self, mock_request_user_sync: MagicMock, mock_reference_nin: MagicMock
-    ) -> None:
+    def test_verify_credential_nin_identity(self, mocker: MockerFixture) -> None:
+        mocker.patch("eduid.webapp.common.api.helpers.get_reference_nin_from_navet_data", return_value=None)
+        mock_request_user_sync = mocker.patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
         mock_request_user_sync.side_effect = self.request_user_sync
-        mock_reference_nin.return_value = None
 
         eppn = self.unverified_test_user.eppn
         country = countries.get("Sweden")
@@ -857,13 +847,10 @@ class FrejaEIDTests(ProofingTests[FrejaEIDApp]):
 
         self._verify_user_parameters(eppn, token_verified=True, num_proofings=2, num_mfa_tokens=1)
 
-    @patch("eduid.webapp.common.api.helpers.get_reference_nin_from_navet_data")
-    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def test_verify_credential_credential_not_used_recently(
-        self, mock_request_user_sync: MagicMock, mock_reference_nin: MagicMock
-    ) -> None:
+    def test_verify_credential_credential_not_used_recently(self, mocker: MockerFixture) -> None:
+        mocker.patch("eduid.webapp.common.api.helpers.get_reference_nin_from_navet_data", return_value=None)
+        mock_request_user_sync = mocker.patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
         mock_request_user_sync.side_effect = self.request_user_sync
-        mock_reference_nin.return_value = None
 
         eppn = self.unverified_test_user.eppn
         self._verify_user_parameters(eppn, identity_present=False, num_mfa_tokens=0, token_verified=False)
@@ -900,8 +887,8 @@ class FrejaEIDTests(ProofingTests[FrejaEIDApp]):
         )
         self._verify_user_parameters(eppn, identity_present=False, num_mfa_tokens=1, token_verified=False)
 
-    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def test_verify_credential_foreign_identity(self, mock_request_user_sync: MagicMock) -> None:
+    def test_verify_credential_foreign_identity(self, mocker: MockerFixture) -> None:
+        mock_request_user_sync = mocker.patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
         mock_request_user_sync.side_effect = self.request_user_sync
 
         self.app.conf.freja_eid_required_loa = ["freja-loa3_nr", "freja-loa3"]
@@ -945,8 +932,8 @@ class FrejaEIDTests(ProofingTests[FrejaEIDApp]):
 
         self._verify_user_parameters(eppn, token_verified=True, num_proofings=2, num_mfa_tokens=1)
 
-    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def test_verify_credential_low_registration_level(self, mock_request_user_sync: MagicMock) -> None:
+    def test_verify_credential_low_registration_level(self, mocker: MockerFixture) -> None:
+        mock_request_user_sync = mocker.patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
         mock_request_user_sync.side_effect = self.request_user_sync
 
         eppn = self.unverified_test_user.eppn
@@ -989,8 +976,8 @@ class FrejaEIDTests(ProofingTests[FrejaEIDApp]):
 
         self._verify_user_parameters(eppn, token_verified=False, num_proofings=0, num_mfa_tokens=1)
 
-    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def test_mfa_login(self, mock_request_user_sync: MagicMock) -> None:
+    def test_mfa_login(self, mocker: MockerFixture) -> None:
+        mock_request_user_sync = mocker.patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
         mock_request_user_sync.side_effect = self.request_user_sync
 
         eppn = self.test_user.eppn
@@ -1029,8 +1016,8 @@ class FrejaEIDTests(ProofingTests[FrejaEIDApp]):
 
         self._verify_user_parameters(eppn, num_mfa_tokens=0, identity_verified=True, num_proofings=0)
 
-    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def test_mfa_login_foreign(self, mock_request_user_sync: MagicMock) -> None:
+    def test_mfa_login_foreign(self, mocker: MockerFixture) -> None:
+        mock_request_user_sync = mocker.patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
         mock_request_user_sync.side_effect = self.request_user_sync
 
         eppn = self.test_user.eppn
@@ -1116,11 +1103,9 @@ class FrejaEIDTests(ProofingTests[FrejaEIDApp]):
 
         self._verify_user_parameters(eppn, num_mfa_tokens=0, identity_verified=False, num_proofings=0)
 
-    @patch("eduid.common.rpc.msg_relay.MsgRelay.get_all_navet_data")
-    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def test_mfa_login_unverified_identity_nin(
-        self, mock_request_user_sync: MagicMock, mock_get_all_navet_data: MagicMock
-    ) -> None:
+    def test_mfa_login_unverified_identity_nin(self, mocker: MockerFixture) -> None:
+        mock_get_all_navet_data = mocker.patch("eduid.common.rpc.msg_relay.MsgRelay.get_all_navet_data")
+        mock_request_user_sync = mocker.patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
         mock_get_all_navet_data.return_value = self._get_all_navet_data()
         mock_request_user_sync.side_effect = self.request_user_sync
         eppn = self.test_unverified_user_eppn
@@ -1201,8 +1186,8 @@ class FrejaEIDTests(ProofingTests[FrejaEIDApp]):
 
         self._verify_user_parameters(eppn, num_mfa_tokens=0, identity_verified=False, num_proofings=0)
 
-    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def test_mfa_login_unverified_identity_foreign(self, mock_request_user_sync: MagicMock) -> None:
+    def test_mfa_login_unverified_identity_foreign(self, mocker: MockerFixture) -> None:
+        mock_request_user_sync = mocker.patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
         mock_request_user_sync.side_effect = self.request_user_sync
         eppn = self.test_unverified_user_eppn
 

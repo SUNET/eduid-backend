@@ -2,9 +2,9 @@ import logging
 import os
 from enum import Enum
 from http import HTTPStatus
-from unittest.mock import patch
 from urllib.parse import unquote
 
+from pytest_mock import MockerFixture
 from saml2 import BINDING_HTTP_REDIRECT, BINDING_SOAP
 from saml2.mdstore import locations
 from saml2.response import AuthnResponse, LogoutResponse
@@ -28,18 +28,16 @@ class LogoutState(Enum):
 
 
 class IdPTestLogoutAPI(IdPAPITests):
-    def test_basic_logout(self) -> None:
+    def test_basic_logout(self, mocker: MockerFixture) -> None:
         """This logs in, then out - but it calls the SOAP binding with the SSO cookie present"""
 
         # pre-accept ToU for this test
         self.add_test_user_tou()
+        mocker.patch.object(VCCSClient, "authenticate", return_value=True)
 
         with self.browser.session_transaction():
-            # Patch the VCCSClient so we do not need a vccs server
-            with patch.object(VCCSClient, "authenticate"):
-                VCCSClient.authenticate.return_value = True  # type: ignore[attr-defined]
-                login_result = self._try_login()
-                assert login_result.visit_order == [IdPAction.USERNAMEPWAUTH, IdPAction.FINISHED]
+            login_result = self._try_login()
+            assert login_result.visit_order == [IdPAction.USERNAMEPWAUTH, IdPAction.FINISHED]
 
             assert login_result.finished_result
 
@@ -51,7 +49,7 @@ class IdPTestLogoutAPI(IdPAPITests):
             logout_response = self.parse_saml_logout_response(response, BINDING_SOAP)
             assert logout_response.response.status.status_code.value == "urn:oasis:names:tc:SAML:2.0:status:Success"
 
-    def test_basic_logout_soap(self) -> None:
+    def test_basic_logout_soap(self, mocker: MockerFixture) -> None:
         """
         Simulate a user logging in using one browser,
         and then an SP logging the user out using SOAP with no SSO cookie.
@@ -59,12 +57,10 @@ class IdPTestLogoutAPI(IdPAPITests):
 
         # pre-accept ToU for this test
         self.add_test_user_tou()
+        mocker.patch.object(VCCSClient, "authenticate", return_value=True)
 
-        # Patch the VCCSClient so we do not need a vccs server
-        with patch.object(VCCSClient, "authenticate"):
-            VCCSClient.authenticate.return_value = True  # type: ignore[attr-defined]
-            login_result = self._try_login()
-            assert login_result.visit_order == [IdPAction.USERNAMEPWAUTH, IdPAction.FINISHED]
+        login_result = self._try_login()
+        assert login_result.visit_order == [IdPAction.USERNAMEPWAUTH, IdPAction.FINISHED]
 
         assert login_result.finished_result
         assert login_result.sso_cookie_val
@@ -95,16 +91,14 @@ class IdPTestLogoutAPI(IdPAPITests):
         assert sso_session2 is None
         assert self.app.sso_sessions.get_sessions_for_user(self.test_user.eppn) == []
 
-    def test_basic_logout_redirect(self) -> None:
+    def test_basic_logout_redirect(self, mocker: MockerFixture) -> None:
         # pre-accept ToU for this test
         self.add_test_user_tou()
+        mocker.patch.object(VCCSClient, "authenticate", return_value=True)
 
         with self.browser.session_transaction():
-            # Patch the VCCSClient so we do not need a vccs server
-            with patch.object(VCCSClient, "authenticate"):
-                VCCSClient.authenticate.return_value = True  # type: ignore[attr-defined]
-                login_result = self._try_login()
-                assert login_result.visit_order == [IdPAction.USERNAMEPWAUTH, IdPAction.FINISHED]
+            login_result = self._try_login()
+            assert login_result.visit_order == [IdPAction.USERNAMEPWAUTH, IdPAction.FINISHED]
 
             assert login_result.finished_result
             authn_response = self.parse_saml_authn_response(login_result.finished_result)

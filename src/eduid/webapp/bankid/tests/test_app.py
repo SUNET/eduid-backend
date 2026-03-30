@@ -6,9 +6,9 @@ from collections.abc import Mapping
 from datetime import timedelta
 from http import HTTPStatus
 from typing import Any, ClassVar
-from unittest.mock import MagicMock, patch
 
 import pytest
+from pytest_mock import MockerFixture
 
 from eduid.common.config.base import EduidEnvironment, FrontendAction
 from eduid.common.misc.timeutil import utc_now
@@ -432,8 +432,8 @@ class BankIDTests(ProofingTests[BankIDApp]):
             response = browser.get("/")
         self._check_success_response(response, type_="GET_BANKID_SUCCESS")
 
-    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def test_u2f_token_verify(self, mock_request_user_sync: MagicMock) -> None:
+    def test_u2f_token_verify(self, mocker: MockerFixture) -> None:
+        mock_request_user_sync = mocker.patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
         mock_request_user_sync.side_effect = self.request_user_sync
 
         eppn = self.test_user.eppn
@@ -452,8 +452,8 @@ class BankIDTests(ProofingTests[BankIDApp]):
 
         self._verify_user_parameters(eppn, token_verified=True, num_proofings=1)
 
-    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def test_webauthn_token_verify(self, mock_request_user_sync: MagicMock) -> None:
+    def test_webauthn_token_verify(self, mocker: MockerFixture) -> None:
+        mock_request_user_sync = mocker.patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
         mock_request_user_sync.side_effect = self.request_user_sync
 
         eppn = self.test_user.eppn
@@ -473,8 +473,8 @@ class BankIDTests(ProofingTests[BankIDApp]):
 
         self._verify_user_parameters(eppn, token_verified=True, num_proofings=1)
 
-    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def test_webauthn_token_verify_signup_authn(self, mock_request_user_sync: MagicMock) -> None:
+    def test_webauthn_token_verify_signup_authn(self, mocker: MockerFixture) -> None:
+        mock_request_user_sync = mocker.patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
         mock_request_user_sync.side_effect = self.request_user_sync
 
         eppn = self.test_user.eppn
@@ -496,8 +496,8 @@ class BankIDTests(ProofingTests[BankIDApp]):
 
         self._verify_user_parameters(eppn, token_verified=True, num_proofings=1)
 
-    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def test_webauthn_token_verify_signup_authn_token_to_old(self, mock_request_user_sync: MagicMock) -> None:
+    def test_webauthn_token_verify_signup_authn_token_to_old(self, mocker: MockerFixture) -> None:
+        mock_request_user_sync = mocker.patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
         mock_request_user_sync.side_effect = self.request_user_sync
 
         eppn = self.test_user.eppn
@@ -541,13 +541,10 @@ class BankIDTests(ProofingTests[BankIDApp]):
 
         self._verify_user_parameters(eppn, identity=nin, identity_present=False)
 
-    @patch("eduid.webapp.common.api.helpers.get_reference_nin_from_navet_data")
-    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def test_mfa_token_verify_no_verified_nin(
-        self, mock_request_user_sync: MagicMock, mock_reference_nin: MagicMock
-    ) -> None:
+    def test_mfa_token_verify_no_verified_nin(self, mocker: MockerFixture) -> None:
+        mocker.patch("eduid.webapp.common.api.helpers.get_reference_nin_from_navet_data", return_value=None)
+        mock_request_user_sync = mocker.patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
         mock_request_user_sync.side_effect = self.request_user_sync
-        mock_reference_nin.return_value = None
 
         eppn = self.test_unverified_user_eppn
         nin = self.test_user_nin
@@ -676,8 +673,8 @@ class BankIDTests(ProofingTests[BankIDApp]):
         self._verify_user_parameters(eppn)
 
     @pytest.mark.skip(reason="No support for magic cookie yet")
-    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def test_webauthn_token_verify_backdoor(self, mock_request_user_sync: MagicMock) -> None:
+    def test_webauthn_token_verify_backdoor(self, mocker: MockerFixture) -> None:
+        mock_request_user_sync = mocker.patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
         mock_request_user_sync.side_effect = self.request_user_sync
 
         eppn = self.test_unverified_user_eppn
@@ -701,11 +698,10 @@ class BankIDTests(ProofingTests[BankIDApp]):
 
         self._verify_user_parameters(eppn, identity=nin, identity_verified=True, token_verified=True, num_proofings=2)
 
-    @patch("eduid.webapp.common.api.helpers.get_reference_nin_from_navet_data")
-    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def test_nin_verify(self, mock_request_user_sync: MagicMock, mock_reference_nin: MagicMock) -> None:
+    def test_nin_verify(self, mocker: MockerFixture) -> None:
+        mocker.patch("eduid.webapp.common.api.helpers.get_reference_nin_from_navet_data", return_value=None)
+        mock_request_user_sync = mocker.patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
         mock_request_user_sync.side_effect = self.request_user_sync
-        mock_reference_nin.return_value = None
 
         eppn = self.test_unverified_user_eppn
         self._verify_user_parameters(eppn, num_mfa_tokens=0, identity_verified=False)
@@ -734,11 +730,10 @@ class BankIDTests(ProofingTests[BankIDApp]):
         assert doc["given_name"] == "Ûlla"
         assert doc["surname"] == "Älm"
 
-    @patch("eduid.webapp.common.api.helpers.get_reference_nin_from_navet_data")
-    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def test_nin_verify_signup_auth(self, mock_request_user_sync: MagicMock, mock_reference_nin: MagicMock) -> None:
+    def test_nin_verify_signup_auth(self, mocker: MockerFixture) -> None:
+        mocker.patch("eduid.webapp.common.api.helpers.get_reference_nin_from_navet_data", return_value=None)
+        mock_request_user_sync = mocker.patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
         mock_request_user_sync.side_effect = self.request_user_sync
-        mock_reference_nin.return_value = None
 
         eppn = self.test_unverified_user_eppn
         self._verify_user_parameters(eppn, num_mfa_tokens=0, identity_verified=False)
@@ -770,8 +765,8 @@ class BankIDTests(ProofingTests[BankIDApp]):
         assert doc["given_name"] == "Ûlla"
         assert doc["surname"] == "Älm"
 
-    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def test_mfa_login(self, mock_request_user_sync: MagicMock) -> None:
+    def test_mfa_login(self, mocker: MockerFixture) -> None:
+        mock_request_user_sync = mocker.patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
         mock_request_user_sync.side_effect = self.request_user_sync
 
         eppn = self.test_user.eppn
@@ -802,11 +797,10 @@ class BankIDTests(ProofingTests[BankIDApp]):
 
         self._verify_user_parameters(eppn, num_mfa_tokens=0, identity_verified=False, num_proofings=0)
 
-    @patch("eduid.webapp.common.api.helpers.get_reference_nin_from_navet_data")
-    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def test_mfa_login_unverified_nin(self, mock_request_user_sync: MagicMock, mock_reference_nin: MagicMock) -> None:
+    def test_mfa_login_unverified_nin(self, mocker: MockerFixture) -> None:
+        mocker.patch("eduid.webapp.common.api.helpers.get_reference_nin_from_navet_data", return_value=None)
+        mock_request_user_sync = mocker.patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
         mock_request_user_sync.side_effect = self.request_user_sync
-        mock_reference_nin.return_value = None
         eppn = self.test_unverified_user_eppn
 
         # Add locked nin to user
@@ -830,8 +824,8 @@ class BankIDTests(ProofingTests[BankIDApp]):
         )
 
     @pytest.mark.skip(reason="No support for magic cookie yet")
-    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def test_mfa_login_backdoor(self, mock_request_user_sync: MagicMock) -> None:
+    def test_mfa_login_backdoor(self, mocker: MockerFixture) -> None:
+        mock_request_user_sync = mocker.patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
         mock_request_user_sync.side_effect = self.request_user_sync
 
         eppn = self.test_unverified_user_eppn
@@ -858,8 +852,8 @@ class BankIDTests(ProofingTests[BankIDApp]):
         self._verify_user_parameters(eppn, num_mfa_tokens=0, identity_verified=True, num_proofings=0)
 
     @pytest.mark.skip(reason="No support for magic cookie yet")
-    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def test_nin_verify_backdoor(self, mock_request_user_sync: MagicMock) -> None:
+    def test_nin_verify_backdoor(self, mocker: MockerFixture) -> None:
+        mock_request_user_sync = mocker.patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
         mock_request_user_sync.side_effect = self.request_user_sync
 
         eppn = self.test_unverified_user_eppn
@@ -881,8 +875,8 @@ class BankIDTests(ProofingTests[BankIDApp]):
         self._verify_user_parameters(eppn, num_mfa_tokens=0, identity=nin, identity_verified=True, num_proofings=1)
 
     @pytest.mark.skip(reason="No support for magic cookie yet")
-    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def test_nin_verify_no_backdoor_in_pro(self, mock_request_user_sync: MagicMock) -> None:
+    def test_nin_verify_no_backdoor_in_pro(self, mocker: MockerFixture) -> None:
+        mock_request_user_sync = mocker.patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
         mock_request_user_sync.side_effect = self.request_user_sync
 
         eppn = self.test_unverified_user_eppn
@@ -909,8 +903,8 @@ class BankIDTests(ProofingTests[BankIDApp]):
         )
 
     @pytest.mark.skip(reason="No support for magic cookie yet")
-    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def test_nin_verify_no_backdoor_misconfigured(self, mock_request_user_sync: MagicMock) -> None:
+    def test_nin_verify_no_backdoor_misconfigured(self, mocker: MockerFixture) -> None:
+        mock_request_user_sync = mocker.patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
         mock_request_user_sync.side_effect = self.request_user_sync
 
         eppn = self.test_unverified_user_eppn
@@ -955,8 +949,8 @@ class BankIDTests(ProofingTests[BankIDApp]):
             identity=nin,
         )
 
-    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def test_mfa_authentication_verified_user(self, mock_request_user_sync: MagicMock) -> None:
+    def test_mfa_authentication_verified_user(self, mocker: MockerFixture) -> None:
+        mock_request_user_sync = mocker.patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
         mock_request_user_sync.side_effect = self.request_user_sync
 
         user = self.app.central_userdb.get_user_by_eppn(self.test_user.eppn)

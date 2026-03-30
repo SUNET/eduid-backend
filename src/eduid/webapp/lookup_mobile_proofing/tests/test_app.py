@@ -2,9 +2,9 @@ import json
 from collections.abc import Mapping
 from datetime import timedelta
 from typing import Any, ClassVar
-from unittest.mock import MagicMock, patch
 
 import pytest
+from pytest_mock import MockerFixture
 
 from eduid.common.config.base import EduidEnvironment
 from eduid.common.misc.timeutil import utc_now
@@ -72,12 +72,12 @@ class LookupMobileProofingTests(EduidAPITestCase[MobileProofingApp]):
             response = browser.get("/proofing")
         assert response.status_code == 200  # Authenticated request
 
-    @patch("eduid.common.rpc.lookup_mobile_relay.LookupMobileRelay.find_nin_by_mobile")
-    @patch("eduid.common.rpc.msg_relay.MsgRelay.get_all_navet_data")
-    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def test_proofing_flow(
-        self, mock_request_user_sync: MagicMock, mock_get_all_navet_data: MagicMock, mock_find_nin_by_mobile: MagicMock
-    ) -> None:
+    def test_proofing_flow(self, mocker: MockerFixture) -> None:
+        mock_find_nin_by_mobile = mocker.patch(
+            "eduid.common.rpc.lookup_mobile_relay.LookupMobileRelay.find_nin_by_mobile"
+        )
+        mock_get_all_navet_data = mocker.patch("eduid.common.rpc.msg_relay.MsgRelay.get_all_navet_data")
+        mock_request_user_sync = mocker.patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
         mock_find_nin_by_mobile.return_value = self.test_user_nin
         mock_get_all_navet_data.return_value = self._get_all_navet_data()
         mock_request_user_sync.side_effect = self.request_user_sync
@@ -98,12 +98,12 @@ class LookupMobileProofingTests(EduidAPITestCase[MobileProofingApp]):
         user = self.app.private_userdb.get_user_by_eppn(self.test_user_eppn)
         self._check_nin_verified_ok_no_proofing_state(user=user)
 
-    @patch("eduid.common.rpc.lookup_mobile_relay.LookupMobileRelay.find_nin_by_mobile")
-    @patch("eduid.common.rpc.msg_relay.MsgRelay.get_all_navet_data")
-    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def test_proofing_flow_underage(
-        self, mock_request_user_sync: MagicMock, mock_get_all_navet_data: MagicMock, mock_find_nin_by_mobile: MagicMock
-    ) -> None:
+    def test_proofing_flow_underage(self, mocker: MockerFixture) -> None:
+        mock_find_nin_by_mobile = mocker.patch(
+            "eduid.common.rpc.lookup_mobile_relay.LookupMobileRelay.find_nin_by_mobile"
+        )
+        mock_get_all_navet_data = mocker.patch("eduid.common.rpc.msg_relay.MsgRelay.get_all_navet_data")
+        mock_request_user_sync = mocker.patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
         mock_find_nin_by_mobile.return_value = self.test_user_nin_underage
         mock_get_all_navet_data.return_value = self._get_all_navet_data()
         mock_request_user_sync.side_effect = self.request_user_sync
@@ -124,12 +124,12 @@ class LookupMobileProofingTests(EduidAPITestCase[MobileProofingApp]):
         user = self.app.private_userdb.get_user_by_eppn(self.test_user_eppn)
         self._check_nin_verified_ok_no_proofing_state(user=user, number=self.test_user_nin_underage)
 
-    @patch("eduid.common.rpc.lookup_mobile_relay.LookupMobileRelay.find_nin_by_mobile")
-    @patch("eduid.common.rpc.msg_relay.MsgRelay.get_all_navet_data")
-    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def test_proofing_flow_no_match(
-        self, mock_request_user_sync: MagicMock, mock_get_all_navet_data: MagicMock, mock_find_nin_by_mobile: MagicMock
-    ) -> None:
+    def test_proofing_flow_no_match(self, mocker: MockerFixture) -> None:
+        mock_find_nin_by_mobile = mocker.patch(
+            "eduid.common.rpc.lookup_mobile_relay.LookupMobileRelay.find_nin_by_mobile"
+        )
+        mock_get_all_navet_data = mocker.patch("eduid.common.rpc.msg_relay.MsgRelay.get_all_navet_data")
+        mock_request_user_sync = mocker.patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
         mock_find_nin_by_mobile.return_value = None
         mock_get_all_navet_data.return_value = self._get_all_navet_data()
         mock_request_user_sync.side_effect = self.request_user_sync
@@ -149,12 +149,12 @@ class LookupMobileProofingTests(EduidAPITestCase[MobileProofingApp]):
         user = self.app.private_userdb.get_user_by_eppn(self.test_user_eppn)
         self._check_nin_not_verified_no_proofing_state(user=user)
 
-    @patch("eduid.common.rpc.lookup_mobile_relay.LookupMobileRelay.find_nin_by_mobile")
-    @patch("eduid.common.rpc.msg_relay.MsgRelay.get_all_navet_data")
-    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def test_proofing_flow_LookupMobileTaskFailed(
-        self, mock_request_user_sync: MagicMock, mock_get_all_navet_data: MagicMock, mock_find_nin_by_mobile: MagicMock
-    ) -> None:
+    def test_proofing_flow_LookupMobileTaskFailed(self, mocker: MockerFixture) -> None:
+        mock_find_nin_by_mobile = mocker.patch(
+            "eduid.common.rpc.lookup_mobile_relay.LookupMobileRelay.find_nin_by_mobile"
+        )
+        mock_get_all_navet_data = mocker.patch("eduid.common.rpc.msg_relay.MsgRelay.get_all_navet_data")
+        mock_request_user_sync = mocker.patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
         mock_find_nin_by_mobile.side_effect = LookupMobileTaskFailed("Test Exception")
         mock_get_all_navet_data.return_value = self._get_all_navet_data()
         mock_request_user_sync.side_effect = self.request_user_sync
@@ -175,17 +175,13 @@ class LookupMobileProofingTests(EduidAPITestCase[MobileProofingApp]):
         user = self.app.private_userdb.get_user_by_eppn(self.test_user_eppn)
         self._check_nin_not_verified_no_proofing_state(user=user)
 
-    @patch("eduid.webapp.common.api.helpers.get_reference_nin_from_navet_data")
-    @patch("eduid.common.rpc.lookup_mobile_relay.LookupMobileRelay.find_nin_by_mobile")
-    @patch("eduid.common.rpc.msg_relay.MsgRelay.get_postal_address")
-    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def test_proofing_flow_no_match_backdoor(
-        self,
-        mock_request_user_sync: MagicMock,
-        mock_get_postal_address: MagicMock,
-        mock_find_nin_by_mobile: MagicMock,
-        mock_reference_nin: MagicMock,
-    ) -> None:
+    def test_proofing_flow_no_match_backdoor(self, mocker: MockerFixture) -> None:
+        mock_reference_nin = mocker.patch("eduid.webapp.common.api.helpers.get_reference_nin_from_navet_data")
+        mock_find_nin_by_mobile = mocker.patch(
+            "eduid.common.rpc.lookup_mobile_relay.LookupMobileRelay.find_nin_by_mobile"
+        )
+        mock_get_postal_address = mocker.patch("eduid.common.rpc.msg_relay.MsgRelay.get_postal_address")
+        mock_request_user_sync = mocker.patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
         mock_find_nin_by_mobile.return_value = None
         mock_get_postal_address.return_value = None
         mock_request_user_sync.side_effect = self.request_user_sync
@@ -210,12 +206,12 @@ class LookupMobileProofingTests(EduidAPITestCase[MobileProofingApp]):
         user = self.app.private_userdb.get_user_by_eppn(self.test_user_eppn)
         self._check_nin_verified_ok_no_proofing_state(user=user, number=self.test_user_nin_underage)
 
-    @patch("eduid.common.rpc.lookup_mobile_relay.LookupMobileRelay.find_nin_by_mobile")
-    @patch("eduid.common.rpc.msg_relay.MsgRelay.get_postal_address")
-    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def test_proofing_flow_no_match_backdoor_code_in_pro(
-        self, mock_request_user_sync: MagicMock, mock_get_postal_address: MagicMock, mock_find_nin_by_mobile: MagicMock
-    ) -> None:
+    def test_proofing_flow_no_match_backdoor_code_in_pro(self, mocker: MockerFixture) -> None:
+        mock_find_nin_by_mobile = mocker.patch(
+            "eduid.common.rpc.lookup_mobile_relay.LookupMobileRelay.find_nin_by_mobile"
+        )
+        mock_get_postal_address = mocker.patch("eduid.common.rpc.msg_relay.MsgRelay.get_postal_address")
+        mock_request_user_sync = mocker.patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
         mock_find_nin_by_mobile.return_value = None
         mock_get_postal_address.return_value = None
         mock_request_user_sync.side_effect = self.request_user_sync
@@ -239,12 +235,12 @@ class LookupMobileProofingTests(EduidAPITestCase[MobileProofingApp]):
         user = self.app.private_userdb.get_user_by_eppn(self.test_user_eppn)
         self._check_nin_not_verified_no_proofing_state(user=user)
 
-    @patch("eduid.common.rpc.lookup_mobile_relay.LookupMobileRelay.find_nin_by_mobile")
-    @patch("eduid.common.rpc.msg_relay.MsgRelay.get_postal_address")
-    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def test_proofing_flow_no_match_backdoor_code_unconfigured(
-        self, mock_request_user_sync: MagicMock, mock_get_postal_address: MagicMock, mock_find_nin_by_mobile: MagicMock
-    ) -> None:
+    def test_proofing_flow_no_match_backdoor_code_unconfigured(self, mocker: MockerFixture) -> None:
+        mock_find_nin_by_mobile = mocker.patch(
+            "eduid.common.rpc.lookup_mobile_relay.LookupMobileRelay.find_nin_by_mobile"
+        )
+        mock_get_postal_address = mocker.patch("eduid.common.rpc.msg_relay.MsgRelay.get_postal_address")
+        mock_request_user_sync = mocker.patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
         mock_find_nin_by_mobile.return_value = None
         mock_get_postal_address.return_value = None
         mock_request_user_sync.side_effect = self.request_user_sync
@@ -267,17 +263,13 @@ class LookupMobileProofingTests(EduidAPITestCase[MobileProofingApp]):
         user = self.app.private_userdb.get_user_by_eppn(self.test_user_eppn)
         self._check_nin_not_verified_no_proofing_state(user=user)
 
-    @patch("eduid.common.rpc.msg_relay.MsgRelay.get_relations_to")
-    @patch("eduid.common.rpc.lookup_mobile_relay.LookupMobileRelay.find_nin_by_mobile")
-    @patch("eduid.common.rpc.msg_relay.MsgRelay.get_all_navet_data")
-    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def test_proofing_flow_relation(
-        self,
-        mock_request_user_sync: MagicMock,
-        mock_get_all_navet_data: MagicMock,
-        mock_find_nin_by_mobile: MagicMock,
-        mock_get_relations_to: MagicMock,
-    ) -> None:
+    def test_proofing_flow_relation(self, mocker: MockerFixture) -> None:
+        mock_get_relations_to = mocker.patch("eduid.common.rpc.msg_relay.MsgRelay.get_relations_to")
+        mock_find_nin_by_mobile = mocker.patch(
+            "eduid.common.rpc.lookup_mobile_relay.LookupMobileRelay.find_nin_by_mobile"
+        )
+        mock_get_all_navet_data = mocker.patch("eduid.common.rpc.msg_relay.MsgRelay.get_all_navet_data")
+        mock_request_user_sync = mocker.patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
         mock_get_relations_to.return_value = ["MO"]
         mock_find_nin_by_mobile.return_value = "197001021234"
         mock_get_all_navet_data.return_value = self._get_all_navet_data()
@@ -299,17 +291,13 @@ class LookupMobileProofingTests(EduidAPITestCase[MobileProofingApp]):
         user = self.app.private_userdb.get_user_by_eppn(self.test_user_eppn)
         self._check_nin_not_verified_no_proofing_state(user=user, number=self.test_user_nin_underage)
 
-    @patch("eduid.common.rpc.msg_relay.MsgRelay.get_relations_to")
-    @patch("eduid.common.rpc.lookup_mobile_relay.LookupMobileRelay.find_nin_by_mobile")
-    @patch("eduid.common.rpc.msg_relay.MsgRelay.get_all_navet_data")
-    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def test_proofing_flow_relation_no_match(
-        self,
-        mock_request_user_sync: MagicMock,
-        mock_get_all_navet_data: MagicMock,
-        mock_find_nin_by_mobile: MagicMock,
-        mock_get_relations_to: MagicMock,
-    ) -> None:
+    def test_proofing_flow_relation_no_match(self, mocker: MockerFixture) -> None:
+        mock_get_relations_to = mocker.patch("eduid.common.rpc.msg_relay.MsgRelay.get_relations_to")
+        mock_find_nin_by_mobile = mocker.patch(
+            "eduid.common.rpc.lookup_mobile_relay.LookupMobileRelay.find_nin_by_mobile"
+        )
+        mock_get_all_navet_data = mocker.patch("eduid.common.rpc.msg_relay.MsgRelay.get_all_navet_data")
+        mock_request_user_sync = mocker.patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
         mock_get_relations_to.return_value = []
         mock_find_nin_by_mobile.return_value = "197001021234"
         mock_get_all_navet_data.return_value = self._get_all_navet_data()

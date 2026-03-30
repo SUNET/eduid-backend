@@ -1,10 +1,11 @@
 import json
 from collections.abc import Mapping
 from typing import Any, ClassVar
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 from uuid import UUID, uuid4
 
 import pytest
+from pytest_mock import MockerFixture
 from werkzeug.test import TestResponse
 
 from eduid.common.config.base import EduidEnvironment
@@ -112,9 +113,9 @@ class LadokTests(EduidAPITestCase[LadokApp]):
         }
         self._check_success_response(response, type_="GET_LADOK_UNIVERSITIES_SUCCESS", payload=expected_payload)
 
-    @patch("requests.post")
-    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def test_link_user(self, mock_request_user_sync: MagicMock, mock_response: MagicMock) -> None:
+    def test_link_user(self, mocker: MockerFixture) -> None:
+        mock_request_user_sync = mocker.patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
+        mock_response = mocker.patch("requests.post")
         mock_request_user_sync.side_effect = self.request_user_sync
 
         ladok_user_external_id_str = str(self.ladok_user_external_id)
@@ -145,8 +146,8 @@ class LadokTests(EduidAPITestCase[LadokApp]):
         log_docs = self.app.proofing_log._get_documents_by_attr("eduPersonPrincipalName", self.test_user_eppn)
         assert len(log_docs) == 1
 
-    @patch("requests.post")
-    def test_link_user_error_response_from_worker(self, mock_response: MagicMock) -> None:
+    def test_link_user_error_response_from_worker(self, mocker: MockerFixture) -> None:
+        mock_response = mocker.patch("requests.post")
         error = Error(id="internal_server_error", details="some longer error message")
         mock_response.return_value = MockResponse(
             status_code=200, data=LadokUserInfoResponse(error=error, data=None).model_dump(by_alias=True)
@@ -178,8 +179,8 @@ class LadokTests(EduidAPITestCase[LadokApp]):
         )
         assert len(log_docs) == 0
 
-    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def test_unlink_user(self, mock_request_user_sync: MagicMock) -> None:
+    def test_unlink_user(self, mocker: MockerFixture) -> None:
+        mock_request_user_sync = mocker.patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
         mock_request_user_sync.side_effect = self.request_user_sync
 
         # set ladok data for user
@@ -240,8 +241,8 @@ class LadokDevTests(EduidAPITestCase[LadokApp]):
         config["dev_fake_users_in"] = ["DEV"]
         return config
 
-    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def test_link_user_backdoor(self, mock_request_user_sync: MagicMock) -> None:
+    def test_link_user_backdoor(self, mocker: MockerFixture) -> None:
+        mock_request_user_sync = mocker.patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
         mock_request_user_sync.side_effect = self.request_user_sync
 
         ladok_name = "DEV"

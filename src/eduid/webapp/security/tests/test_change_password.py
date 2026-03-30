@@ -2,9 +2,9 @@ import json
 from collections.abc import Mapping
 from http import HTTPStatus
 from typing import Any
-from unittest.mock import MagicMock, patch
 
 import pytest
+from pytest_mock import MockerFixture
 from werkzeug.test import TestResponse
 
 from eduid.common.config.base import FrontendAction
@@ -22,7 +22,8 @@ class ChangePasswordTests(EduidAPITestCase[SecurityApp]):
     copy_user_to_private = True
 
     @pytest.fixture(autouse=True)
-    def setup(self, setup_api: None) -> None:
+    def setup(self, setup_api: None, mocker: MockerFixture) -> None:
+        self.mocker = mocker
         self.test_user_eppn = "hubba-bubba"
         self.test_user_email = "johnsmith@example.com"
         self.test_user_nin = "197801011235"
@@ -62,10 +63,8 @@ class ChangePasswordTests(EduidAPITestCase[SecurityApp]):
         with self.session_cookie(self.browser, eppn) as client:
             return client.get("/change-password/suggested-password")
 
-    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
     def _change_password(
         self,
-        mock_request_user_sync: MagicMock,
         data1: dict[str, Any] | None = None,
     ) -> TestResponse:
         """
@@ -74,6 +73,7 @@ class ChangePasswordTests(EduidAPITestCase[SecurityApp]):
 
         :param data1: to control the data sent to the change-password endpoint.
         """
+        mock_request_user_sync = self.mocker.patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
         mock_request_user_sync.side_effect = self.request_user_sync
         eppn = self.test_user_data["eduPersonPrincipalName"]
         with self.app.test_request_context():
@@ -87,10 +87,8 @@ class ChangePasswordTests(EduidAPITestCase[SecurityApp]):
 
                 return client.post("/change-password/set-password", json=data)
 
-    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
     def _get_suggested_and_change(
         self,
-        mock_request_user_sync: MagicMock,
         data1: dict[str, Any] | None = None,
         correct_old_password: bool = True,
     ) -> TestResponse:
@@ -102,36 +100,35 @@ class ChangePasswordTests(EduidAPITestCase[SecurityApp]):
         :param data1: to control the data sent to the change-password endpoint.
         :param correct_old_password: mock result for authentication with old password
         """
+        mock_request_user_sync = self.mocker.patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
         mock_request_user_sync.side_effect = self.request_user_sync
+        self.mocker.patch("eduid.webapp.common.authn.vccs.VCCSClient.add_credentials", return_value=True)
+        self.mocker.patch("eduid.webapp.common.authn.vccs.VCCSClient.revoke_credentials", return_value=True)
+        self.mocker.patch("eduid.webapp.common.authn.vccs.VCCSClient.authenticate", return_value=correct_old_password)
         eppn = self.test_user_data["eduPersonPrincipalName"]
         with self.app.test_request_context():
             with self.session_cookie(self.browser, eppn) as client:
-                with patch("eduid.webapp.common.authn.vccs.VCCSClient.add_credentials", return_value=True):
-                    with patch("eduid.webapp.common.authn.vccs.VCCSClient.revoke_credentials", return_value=True):
-                        with patch(
-                            "eduid.webapp.common.authn.vccs.VCCSClient.authenticate", return_value=correct_old_password
-                        ):
-                            response2 = client.get("/change-password/suggested-password")
-                            passwd = json.loads(response2.data)
-                            assert passwd["type"] == "GET_CHANGE_PASSWORD_CHANGE_PASSWORD_SUGGESTED_PASSWORD_SUCCESS"
-                            password = passwd["payload"]["suggested_password"]
+                response2 = client.get("/change-password/suggested-password")
+                passwd = json.loads(response2.data)
+                assert passwd["type"] == "GET_CHANGE_PASSWORD_CHANGE_PASSWORD_SUGGESTED_PASSWORD_SUCCESS"
+                password = passwd["payload"]["suggested_password"]
 
-                            with client.session_transaction() as sess:
-                                sess.security.generated_password_hash = hash_password(password)
-                                data = {
-                                    "csrf_token": sess.get_csrf_token(),
-                                    "new_password": password,
-                                    "old_password": "5678",
-                                }
-                            if data1 is not None:
-                                data.update(data1)
-                            if data["old_password"] is None:
-                                del data["old_password"]
-                            return client.post(
-                                "/change-password/set-password",
-                                data=json.dumps(data),
-                                content_type=self.content_type_json,
-                            )
+                with client.session_transaction() as sess:
+                    sess.security.generated_password_hash = hash_password(password)
+                    data = {
+                        "csrf_token": sess.get_csrf_token(),
+                        "new_password": password,
+                        "old_password": "5678",
+                    }
+                if data1 is not None:
+                    data.update(data1)
+                if data["old_password"] is None:
+                    del data["old_password"]
+                return client.post(
+                    "/change-password/set-password",
+                    data=json.dumps(data),
+                    content_type=self.content_type_json,
+                )
 
     # actual tests
     def test_user_setup(self) -> None:
@@ -152,8 +149,8 @@ class ChangePasswordTests(EduidAPITestCase[SecurityApp]):
         response = self.browser.get("/change-password/suggested-password")
         assert response.status_code == 401
 
-    @patch("eduid.webapp.security.views.change_password.generate_suggested_password")
-    def test_get_suggested(self, mock_generate_password: MagicMock) -> None:
+    def test_get_suggested(self, mocker: MockerFixture) -> None:
+        mock_generate_password = mocker.patch("eduid.webapp.security.views.change_password.generate_suggested_password")
         mock_generate_password.return_value = "test-password"
 
         self.set_authn_action(
@@ -168,9 +165,8 @@ class ChangePasswordTests(EduidAPITestCase[SecurityApp]):
             payload={"suggested_password": "test-password"},
         )
 
-    @patch("eduid.webapp.security.views.change_password.change_password")
-    def test_change_passwd(self, mock_change_password: MagicMock) -> None:
-        mock_change_password.return_value = True
+    def test_change_passwd(self, mocker: MockerFixture) -> None:
+        mocker.patch("eduid.webapp.security.views.change_password.change_password", return_value=True)
 
         self.set_authn_action(
             eppn=self.test_user_eppn,
@@ -184,9 +180,8 @@ class ChangePasswordTests(EduidAPITestCase[SecurityApp]):
             msg=SecurityMsg.change_password_success,
         )
 
-    @patch("eduid.webapp.security.views.change_password.change_password")
-    def test_change_passwd_with_login_auth(self, mock_change_password: MagicMock) -> None:
-        mock_change_password.return_value = True
+    def test_change_passwd_with_login_auth(self, mocker: MockerFixture) -> None:
+        mocker.patch("eduid.webapp.security.views.change_password.change_password", return_value=True)
 
         self.set_authn_action(
             eppn=self.test_user_eppn,
@@ -220,9 +215,8 @@ class ChangePasswordTests(EduidAPITestCase[SecurityApp]):
             response, type_="POST_CHANGE_PASSWORD_CHANGE_PASSWORD_SET_PASSWORD_FAIL", msg=SecurityMsg.chpass_no_data
         )
 
-    @patch("eduid.webapp.security.views.change_password.change_password")
-    def test_change_passwd_no_csrf(self, mock_change_password: MagicMock) -> None:
-        mock_change_password.return_value = True
+    def test_change_passwd_no_csrf(self, mocker: MockerFixture) -> None:
+        mocker.patch("eduid.webapp.security.views.change_password.change_password", return_value=True)
 
         data1 = {"csrf_token": ""}
         response = self._change_password(data1=data1)
@@ -232,9 +226,8 @@ class ChangePasswordTests(EduidAPITestCase[SecurityApp]):
             error={"csrf_token": ["CSRF failed to validate"]},
         )
 
-    @patch("eduid.webapp.security.views.change_password.change_password")
-    def test_change_passwd_wrong_csrf(self, mock_change_password: MagicMock) -> None:
-        mock_change_password.return_value = True
+    def test_change_passwd_wrong_csrf(self, mocker: MockerFixture) -> None:
+        mocker.patch("eduid.webapp.security.views.change_password.change_password", return_value=True)
 
         data1 = {"csrf_token": "wrong-token"}
         response = self._change_password(data1=data1)
@@ -244,9 +237,8 @@ class ChangePasswordTests(EduidAPITestCase[SecurityApp]):
             error={"csrf_token": ["CSRF failed to validate"]},
         )
 
-    @patch("eduid.webapp.security.views.change_password.change_password")
-    def test_change_passwd_weak(self, mock_change_password: MagicMock) -> None:
-        mock_change_password.return_value = True
+    def test_change_passwd_weak(self, mocker: MockerFixture) -> None:
+        mocker.patch("eduid.webapp.security.views.change_password.change_password", return_value=True)
 
         self.set_authn_action(
             eppn=self.test_user_eppn,

@@ -1,8 +1,6 @@
 import logging
 from collections.abc import Iterator
 from datetime import datetime
-from typing import cast
-from unittest.mock import MagicMock
 
 import pytest
 
@@ -13,9 +11,8 @@ from eduid.userdb.meta import CleanerType
 from eduid.userdb.user import User
 from eduid.userdb.user_cleaner.db import CleanerQueueUser
 from eduid.userdb.userdb import AmDB
-from eduid.workers.job_runner.context import Context
 from eduid.workers.job_runner.jobs.skv import gather_skv_users
-from eduid.workers.job_runner.testing import CleanerQueueTestCase
+from eduid.workers.job_runner.testing import CleanerQueueTestCase, MockContext
 
 
 class TestGatherSkvUsers(CleanerQueueTestCase):
@@ -27,10 +24,11 @@ class TestGatherSkvUsers(CleanerQueueTestCase):
     def setup(self, setup_cleaner: None) -> Iterator[None]:
         self.amdb = AmDB(db_uri=self.mongo_uri)
         self.amdb._drop_whole_collection()  # clean any leftovers from other tests on this worker
-        self.context = cast(Context, MagicMock(spec=Context))
-        self.context.central_db = self.amdb
-        self.context.cleaner_queue = self.cleaner_queue_db
-        self.context.logger = logging.getLogger("test_gather_skv_users")
+        self.context = MockContext(
+            central_db=self.amdb,
+            cleaner_queue=self.cleaner_queue_db,
+            logger=logging.getLogger("test_gather_skv_users"),
+        )
 
         yield
 

@@ -6,11 +6,11 @@ from dataclasses import dataclass, field
 from http import HTTPStatus
 from pathlib import PurePath
 from typing import Any, ClassVar
-from unittest.mock import MagicMock, patch
 
 import pytest
 from bson import ObjectId
 from fido2.webauthn import AuthenticatorAttachment
+from pytest_mock import MockerFixture
 from saml2 import BINDING_HTTP_POST, BINDING_HTTP_REDIRECT
 from saml2.client import Saml2Client
 from saml2.response import AuthnResponse
@@ -108,7 +108,8 @@ class IdPAPITests(EduidAPITestCase[IdPApp]):
     default_user: TestUser
 
     @pytest.fixture(autouse=True)
-    def setup(self, setup_api: None) -> None:
+    def setup(self, setup_api: None, mocker: MockerFixture) -> None:
+        self.mocker = mocker
         self.idp_entity_id = "https://unittest-idp.example.edu/idp.xml"
         self.relay_state = AuthnRequestRef("test-fest")
         self.sp_config = get_saml2_config(self.app.conf.pysaml2_config, name="SP_CONFIG")
@@ -419,17 +420,15 @@ class IdPAPITests(EduidAPITestCase[IdPApp]):
         result = TouResult(payload=self.get_response_payload(response))
         return result
 
-    @patch("eduid.webapp.idp.views.mfa_auth._check_webauthn")
-    @patch("eduid.webapp.common.authn.fido_tokens.start_token_verification")
     def _call_mfa(
         self,
         device: CSRFTestClient,
         target: str,
         ref: str,
         mfa_credential: Credential,
-        mock_stv: MagicMock,
-        mock_cw: MagicMock,
     ) -> MfaResult:
+        mock_stv = self.mocker.patch("eduid.webapp.common.authn.fido_tokens.start_token_verification")
+        mock_cw = self.mocker.patch("eduid.webapp.idp.views.mfa_auth._check_webauthn")
         mock_stv.return_value = WebauthnChallenge(webauthn_options={"mock_webautn_options": "mock_webauthn_options"})
         mock_cw.return_value = None
         # first call to mfa endpoint returns a challenge

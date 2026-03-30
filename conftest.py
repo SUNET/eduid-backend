@@ -6,8 +6,20 @@ import pytest
 
 from eduid.graphdb.testing import Neo4jTemporaryInstance
 from eduid.queue.testing import MongoTemporaryInstanceReplicaSet, SMPTDFixTemporaryInstance
+from eduid.userdb.db.async_db import AsyncClientCache
 from eduid.userdb.testing import MongoTemporaryInstance
 from eduid.webapp.common.session.testing import RedisTemporaryInstance
+
+
+@pytest.fixture
+def isolated_async_client_cache() -> Iterator[None]:
+    """Ensure each test gets a fresh AsyncIOMotorClient by isolating the shared client cache."""
+    old = AsyncClientCache._clients
+    AsyncClientCache._clients = {}
+    try:
+        yield
+    finally:
+        AsyncClientCache._clients = old
 
 
 @pytest.fixture(scope="session")

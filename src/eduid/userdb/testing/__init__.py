@@ -150,7 +150,9 @@ class AsyncMongoTestCase:
     """
 
     @pytest.fixture(autouse=True)
-    def setup_async_mongo(self, mongo_instance: MongoTemporaryInstance) -> Iterator[None]:
+    def setup_async_mongo(
+        self, mongo_instance: MongoTemporaryInstance, isolated_async_client_cache: None
+    ) -> Iterator[None]:
         self._init_logging()
 
         self.tmp_db = mongo_instance
