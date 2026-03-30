@@ -14,16 +14,24 @@ import pytest
 from bson import ObjectId
 
 from eduid.common.rpc.am_relay import AmRelay
+from eduid.userdb import User
 from eduid.userdb.testing import MongoTestCase
 
 logger = logging.getLogger(__name__)
 
 
 class MockAmRelay(AmRelay):
-    """AmRelay stub for tests — skips Celery initialisation while passing isinstance checks."""
+    """AmRelay stub for tests — skips Celery initialisation while passing isinstance checks.
+
+    request_user_sync returns True by default; patch it at the class or instance level to
+    simulate failures or to assert call arguments.
+    """
 
     def __init__(self) -> None:
-        pass
+        self.app_name = "test"
+
+    def request_user_sync(self, user: User, timeout: int = 25, app_name_override: str | None = None) -> bool:
+        return True
 
 
 class CommonTestCase(MongoTestCase):
