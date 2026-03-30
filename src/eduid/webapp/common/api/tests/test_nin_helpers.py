@@ -1,9 +1,10 @@
 from collections.abc import Mapping
 from typing import Any
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 import pytest
 from pydantic import ValidationError
+from pytest_mock import MockerFixture
 
 from eduid.common.config.base import EduIDBaseAppConfig, MsgConfigMixin
 from eduid.common.config.parsers import load_config
@@ -67,7 +68,8 @@ class NinHelpersTest(EduidAPITestCase[HelpersTestApp]):
         return app
 
     @pytest.fixture(autouse=True)
-    def setup(self, setup_api: None) -> None:
+    def setup(self, setup_api: None, mocker: MockerFixture) -> None:
+        self.mocker = mocker
         self.test_user_nin = "200001023456"
         self.wrong_test_user_nin = "199909096789"
         self.locked_test_user_nin = "197801011234"
@@ -177,15 +179,14 @@ class NinHelpersTest(EduidAPITestCase[HelpersTestApp]):
             proofing_version="2018v1",
         )
 
-    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
     def _test_verify_nin_for_user(
         self,
-        mock_user_sync: MagicMock,
         user: User,
         nin_element: NinProofingElement,
         proofing_log_entry: NinProofingLogElement,
     ) -> None:
         """Test happy-case when calling verify_nin_for_user with a User instance (deprecated)"""
+        mock_user_sync = self.mocker.patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
         mock_user_sync.return_value = True
         proofing_state = NinProofingState.from_dict({"eduPersonPrincipalName": user.eppn, "nin": nin_element.to_dict()})
         assert nin_element.created_by is not None
@@ -222,8 +223,8 @@ class NinHelpersTest(EduidAPITestCase[HelpersTestApp]):
 
         self._check_nin_verified_ok(user=user, proofing_state=proofing_state, number=self.test_user_nin)
 
-    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def test_add_nin_to_user(self, mock_user_sync: MagicMock) -> None:
+    def test_add_nin_to_user(self, mocker: MockerFixture) -> None:
+        mock_user_sync = mocker.patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
         mock_user_sync.return_value = True
         user = self.insert_no_nins_user()
         nin_element = NinProofingElement.from_dict(
@@ -259,8 +260,8 @@ class NinHelpersTest(EduidAPITestCase[HelpersTestApp]):
 
     # _test_verify_nin_for_user expects User
     @pytest.mark.filterwarnings("ignore:verify_nin_for_user:DeprecationWarning")
-    @patch("eduid.webapp.common.api.helpers.get_reference_nin_from_navet_data")
-    def test_verify_nin_for_user_navet(self, mock_reference_nin: MagicMock) -> None:
+    def test_verify_nin_for_user_navet(self, mocker: MockerFixture) -> None:
+        mock_reference_nin = mocker.patch("eduid.webapp.common.api.helpers.get_reference_nin_from_navet_data")
         mock_reference_nin.return_value = self.test_user_nin
         user = self.insert_no_nins_user()
         nin_element = NinProofingElement.from_dict(
@@ -274,8 +275,8 @@ class NinHelpersTest(EduidAPITestCase[HelpersTestApp]):
 
     # _test_verify_nin_for_user expects User
     @pytest.mark.filterwarnings("ignore:verify_nin_for_user:DeprecationWarning")
-    @patch("eduid.webapp.common.api.helpers.get_reference_nin_from_navet_data")
-    def test_verify_nin_for_user_eid(self, mock_reference_nin: MagicMock) -> None:
+    def test_verify_nin_for_user_eid(self, mocker: MockerFixture) -> None:
+        mock_reference_nin = mocker.patch("eduid.webapp.common.api.helpers.get_reference_nin_from_navet_data")
         mock_reference_nin.return_value = None
         user = self.insert_no_nins_user()
         nin_element = NinProofingElement.from_dict(
@@ -287,8 +288,8 @@ class NinHelpersTest(EduidAPITestCase[HelpersTestApp]):
         )
         self._test_verify_nin_for_user(user=user, nin_element=nin_element, proofing_log_entry=proofing_log_entry)
 
-    @patch("eduid.webapp.common.api.helpers.get_reference_nin_from_navet_data")
-    def test_verify_nin_for_proofing_user_navet(self, mock_reference_nin: MagicMock) -> None:
+    def test_verify_nin_for_proofing_user_navet(self, mocker: MockerFixture) -> None:
+        mock_reference_nin = mocker.patch("eduid.webapp.common.api.helpers.get_reference_nin_from_navet_data")
         mock_reference_nin.return_value = None
         user = self.insert_no_nins_user()
         nin_element = NinProofingElement.from_dict(
@@ -302,8 +303,8 @@ class NinHelpersTest(EduidAPITestCase[HelpersTestApp]):
             user=user, nin_element=nin_element, proofing_log_entry=proofing_log_entry
         )
 
-    @patch("eduid.webapp.common.api.helpers.get_reference_nin_from_navet_data")
-    def test_verify_nin_for_proofing_user_eid(self, mock_reference_nin: MagicMock) -> None:
+    def test_verify_nin_for_proofing_user_eid(self, mocker: MockerFixture) -> None:
+        mock_reference_nin = mocker.patch("eduid.webapp.common.api.helpers.get_reference_nin_from_navet_data")
         mock_reference_nin.return_value = None
         user = self.insert_no_nins_user()
         nin_element = NinProofingElement.from_dict(
@@ -317,8 +318,8 @@ class NinHelpersTest(EduidAPITestCase[HelpersTestApp]):
             user=user, nin_element=nin_element, proofing_log_entry=proofing_log_entry
         )
 
-    @patch("eduid.webapp.common.api.helpers.get_reference_nin_from_navet_data")
-    def test_verify_nin_for_user_existing_not_verified(self, mock_reference_nin: MagicMock) -> None:
+    def test_verify_nin_for_user_existing_not_verified(self, mocker: MockerFixture) -> None:
+        mock_reference_nin = mocker.patch("eduid.webapp.common.api.helpers.get_reference_nin_from_navet_data")
         mock_reference_nin.return_value = None
         user = self.insert_not_verified_not_locked_user()
         user = ProofingUser.from_user(user, self.app.private_userdb)
@@ -338,12 +339,11 @@ class NinHelpersTest(EduidAPITestCase[HelpersTestApp]):
             user=user, proofing_state=proofing_state, number=self.test_user_nin, created_by="AlreadyAddedNinHelpersTest"
         )
 
-    @patch("eduid.common.rpc.msg_relay.MsgRelay.get_all_navet_data")
-    def test_verify_nin_no_navet_data(self, mock_get_all_navet_data: MagicMock) -> None:
+    def test_verify_nin_no_navet_data(self, mocker: MockerFixture) -> None:
         """
         Make sure that a user can be verified without navet data.
         """
-        mock_get_all_navet_data.side_effect = NoNavetData
+        mocker.patch("eduid.common.rpc.msg_relay.MsgRelay.get_all_navet_data", side_effect=NoNavetData)
 
         user = self.insert_not_verified_not_locked_user()
         user = ProofingUser.from_user(user, self.app.private_userdb)
@@ -363,8 +363,8 @@ class NinHelpersTest(EduidAPITestCase[HelpersTestApp]):
             user=user, proofing_state=proofing_state, number=self.test_user_nin, created_by="AlreadyAddedNinHelpersTest"
         )
 
-    @patch("eduid.webapp.common.api.helpers.get_reference_nin_from_navet_data")
-    def test_verify_nin_for_user_existing_locked_not_verified(self, mock_reference_nin: MagicMock) -> None:
+    def test_verify_nin_for_user_existing_locked_not_verified(self, mocker: MockerFixture) -> None:
+        mock_reference_nin = mocker.patch("eduid.webapp.common.api.helpers.get_reference_nin_from_navet_data")
         mock_reference_nin.return_value = None
         user = self.insert_not_verified_user()
         user = ProofingUser.from_user(user, self.app.private_userdb)
@@ -387,8 +387,8 @@ class NinHelpersTest(EduidAPITestCase[HelpersTestApp]):
             created_by="NinHelpersTest",
         )
 
-    @patch("eduid.webapp.common.api.helpers.get_reference_nin_from_navet_data")
-    def test_verify_wrong_nin_for_user_existing_not_verified(self, mock_reference_nin: MagicMock) -> None:
+    def test_verify_wrong_nin_for_user_existing_not_verified(self, mocker: MockerFixture) -> None:
+        mock_reference_nin = mocker.patch("eduid.webapp.common.api.helpers.get_reference_nin_from_navet_data")
         mock_reference_nin.return_value = None
         user = self.insert_not_verified_user()
         user = ProofingUser.from_user(user, self.app.private_userdb)
@@ -405,8 +405,8 @@ class NinHelpersTest(EduidAPITestCase[HelpersTestApp]):
             with pytest.raises(LockedIdentityViolation):
                 verify_nin_for_user(user, proofing_state, proofing_log_entry)
 
-    @patch("eduid.webapp.common.api.helpers.get_reference_nin_from_navet_data")
-    def test_verify_changed_nin_for_user_existing_not_verified(self, mock_reference_nin: MagicMock) -> None:
+    def test_verify_changed_nin_for_user_existing_not_verified(self, mocker: MockerFixture) -> None:
+        mock_reference_nin = mocker.patch("eduid.webapp.common.api.helpers.get_reference_nin_from_navet_data")
         mock_reference_nin.return_value = self.locked_test_user_nin
         user = self.insert_not_verified_user(nin=self.locked_test_user_nin)
         user = ProofingUser.from_user(user, self.app.private_userdb)
@@ -447,8 +447,8 @@ class NinHelpersTest(EduidAPITestCase[HelpersTestApp]):
         with self.app.app_context():
             assert verify_nin_for_user(user, proofing_state, proofing_log_entry) is True
 
-    @patch("eduid.webapp.common.api.helpers.get_reference_nin_from_navet_data")
-    def test_verify_changed_nin_for_user_existing_verified(self, mock_reference_nin: MagicMock) -> None:
+    def test_verify_changed_nin_for_user_existing_verified(self, mocker: MockerFixture) -> None:
+        mock_reference_nin = mocker.patch("eduid.webapp.common.api.helpers.get_reference_nin_from_navet_data")
         mock_reference_nin.return_value = self.locked_test_user_nin
         user = self.insert_verified_user(nin=self.locked_test_user_nin)
         user = ProofingUser.from_user(user, self.app.private_userdb)

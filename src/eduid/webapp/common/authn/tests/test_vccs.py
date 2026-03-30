@@ -1,9 +1,9 @@
 from collections.abc import Iterator
 from datetime import timedelta
 from typing import Any, NoReturn, cast
-from unittest.mock import MagicMock, patch
 
 import pytest
+from pytest_mock import MockerFixture
 
 from eduid.common.misc.timeutil import utc_now
 from eduid.userdb.credentials.password import Password
@@ -150,41 +150,38 @@ class VCCSTestCase(MongoTestCase):
         assert result3.success
         assert result3.password.is_generated
 
-    def test_change_password_error_adding(self) -> None:
+    def test_change_password_error_adding(self, mocker: MockerFixture) -> None:
         from eduid.webapp.common.authn.testing import MockVCCSClient
 
-        with patch.object(MockVCCSClient, "add_credentials"):
-            assert isinstance(MockVCCSClient.add_credentials, MagicMock)
-            MockVCCSClient.add_credentials.return_value = False
-            added = vccs_module.change_password(
-                self.user, new_password="wxyz", old_password="abcd", application="test", vccs=self.vccs_client
-            )
-            assert not added
-            result1 = self._check_credentials("abcd")
-            assert result1 is None
-            result2 = self._check_credentials("fghi")
-            assert result2 is None
-            result3 = self._check_credentials("wxyz")
-            assert result3 is None
+        mock_add = mocker.patch.object(MockVCCSClient, "add_credentials")
+        mock_add.return_value = False
+        added = vccs_module.change_password(
+            self.user, new_password="wxyz", old_password="abcd", application="test", vccs=self.vccs_client
+        )
+        assert not added
+        result1 = self._check_credentials("abcd")
+        assert result1 is None
+        result2 = self._check_credentials("fghi")
+        assert result2 is None
+        result3 = self._check_credentials("wxyz")
+        assert result3 is None
 
-    def test_reset_password_error_revoking(self) -> None:
+    def test_reset_password_error_revoking(self, mocker: MockerFixture) -> None:
         from eduid.webapp.common.authn.testing import MockVCCSClient
 
         def mock_revoke_creds(*args: Any) -> NoReturn:
             raise VCCSClientHTTPError("dummy", 500)
 
-        with patch.object(MockVCCSClient, "revoke_credentials", mock_revoke_creds):
-            added = vccs_module.reset_password(
-                self.user, new_password="wxyz", application="test", vccs=self.vccs_client
-            )
-            assert added
-            result1 = self._check_credentials("abcd")
-            assert result1 is None
-            result2 = self._check_credentials("fghi")
-            assert result2 is None
-            result3 = self._check_credentials("wxyz")
-            assert result3 is not None
-            assert result3.success
+        mocker.patch.object(MockVCCSClient, "revoke_credentials", mock_revoke_creds)
+        added = vccs_module.reset_password(self.user, new_password="wxyz", application="test", vccs=self.vccs_client)
+        assert added
+        result1 = self._check_credentials("abcd")
+        assert result1 is None
+        result2 = self._check_credentials("fghi")
+        assert result2 is None
+        result3 = self._check_credentials("wxyz")
+        assert result3 is not None
+        assert result3.success
 
     def test_upgrade_password_to_v2(self) -> None:
         """Test that upgrade_password_to_v2 creates a v2 credential alongside the existing v1."""
@@ -269,7 +266,7 @@ class VCCSTestCase(MongoTestCase):
         passwords_after_second = list(self.user.credentials.filter(Password))
         assert len(passwords_after_second) == 2
 
-    def test_check_password_upgrade_failure(self) -> None:
+    def test_check_password_upgrade_failure(self, mocker: MockerFixture) -> None:
         """Test that auth still succeeds when v2 upgrade fails."""
         from eduid.webapp.common.authn.testing import MockVCCSClient
 
@@ -278,17 +275,16 @@ class VCCSTestCase(MongoTestCase):
         assert len(passwords_before) == 1
         assert passwords_before[0].version == 1
 
-        with patch.object(MockVCCSClient, "add_credentials"):
-            assert isinstance(MockVCCSClient.add_credentials, MagicMock)
-            MockVCCSClient.add_credentials.return_value = False
+        mock_add = mocker.patch.object(MockVCCSClient, "add_credentials")
+        mock_add.return_value = False
 
-            result = vccs_module.check_password(
-                "abcd", self.user, vccs=self.vccs_client, upgrade_v2=True, application="test"
-            )
+        result = vccs_module.check_password(
+            "abcd", self.user, vccs=self.vccs_client, upgrade_v2=True, application="test"
+        )
 
-            # Auth should still succeed with v1
-            assert result is not None
-            assert result.password.version == 1
+        # Auth should still succeed with v1
+        assert result is not None
+        assert result.password.version == 1
 
         # No v2 should have been added
         passwords_after = list(self.user.credentials.filter(Password))
