@@ -7,7 +7,6 @@ from asyncio import Task
 from collections.abc import AsyncIterator, Iterator, Sequence
 from datetime import datetime, timedelta
 from typing import Any
-from unittest.mock import patch
 
 import pymongo
 import pymongo.errors
@@ -137,7 +136,7 @@ class QueueAsyncioTest(EduidQueueTestCase):
     worker_db: AsyncQueueDB
 
     @pytest_asyncio.fixture(autouse=True)
-    async def setup_asyncio_queue(self, setup_queue: None) -> AsyncIterator[None]:
+    async def setup_asyncio_queue(self, setup_queue: None, isolated_async_client_cache: None) -> AsyncIterator[None]:
         self.tasks: list[Task] = []
         await self._init_async_db()
         yield
@@ -149,9 +148,7 @@ class QueueAsyncioTest(EduidQueueTestCase):
         db_init_try = 0
         while True:
             try:
-                # Make sure the isolated test cases get to create their own mongodb clients
-                with patch("eduid.userdb.db.async_db.AsyncClientCache._clients", {}):
-                    self.worker_db = await AsyncQueueDB.create(db_uri=self.mongo_uri, collection=self.mongo_collection)
+                self.worker_db = await AsyncQueueDB.create(db_uri=self.mongo_uri, collection=self.mongo_collection)
                 break
             except pymongo.errors.NotPrimaryError as e:
                 db_init_try += 1
@@ -189,9 +186,5 @@ class QueueAsyncioTest(EduidQueueTestCase):
 
 
 class IsolatedWorkerDBMixin(QueueWorker):
-    # override run so we can mock cache of database clients
     async def run(self) -> None:
-        # Init db in the correct loop
-        # Make sure the isolated test cases get to create their own mongodb clients
-        with patch("eduid.userdb.db.async_db.AsyncClientCache._clients", {}):
-            await super().run()
+        await super().run()
