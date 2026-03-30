@@ -17,22 +17,10 @@ import pytest
 from eduid.common.logging import LocalContext, make_dict_config
 from eduid.userdb import User
 from eduid.userdb.db import TUserDbDocument
-from eduid.userdb.db.async_db import AsyncClientCache
 from eduid.userdb.testing.temp_instance import EduidTemporaryInstance
 from eduid.userdb.userdb import AmDB
 
 logger = logging.getLogger(__name__)
-
-
-@pytest.fixture
-def isolated_async_client_cache() -> Iterator[None]:
-    """Ensure each test gets a fresh AsyncIOMotorClient by isolating the shared client cache."""
-    old = AsyncClientCache._clients
-    AsyncClientCache._clients = {}
-    try:
-        yield
-    finally:
-        AsyncClientCache._clients = old
 
 
 class MongoTemporaryInstance(EduidTemporaryInstance):
