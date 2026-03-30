@@ -13,9 +13,17 @@ from typing import Any
 import pytest
 from bson import ObjectId
 
+from eduid.common.rpc.am_relay import AmRelay
 from eduid.userdb.testing import MongoTestCase
 
 logger = logging.getLogger(__name__)
+
+
+class MockAmRelay(AmRelay):
+    """AmRelay stub for tests — skips Celery initialisation while passing isinstance checks."""
+
+    def __init__(self) -> None:
+        pass
 
 
 class CommonTestCase(MongoTestCase):

@@ -3,7 +3,6 @@ import os
 import re
 from datetime import datetime, timedelta
 from typing import TYPE_CHECKING, Any, cast
-from unittest.mock import MagicMock
 from urllib.parse import urlparse
 from uuid import uuid4
 
@@ -34,11 +33,6 @@ def get_from_current_app[T](name: str, klass: type[T]) -> T:
     """Get a correctly typed attribute from an unknown Flask current app"""
     ret = getattr(current_app, name)
     if not isinstance(ret, klass):
-        # For tests, we may have a mock object here
-        conf = getattr(current_app, "conf")
-        if isinstance(conf, EduIDBaseAppConfig) and conf.testing:
-            if isinstance(ret, MagicMock):
-                return cast(T, ret)
         raise TypeError(f"current_app.{name} is not of type {klass} (is {type(ret)}")
     return ret
 

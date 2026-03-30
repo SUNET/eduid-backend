@@ -1,6 +1,5 @@
 from collections.abc import Mapping
 from typing import Any
-from unittest.mock import MagicMock
 
 import pytest
 from pydantic import ValidationError
@@ -11,7 +10,7 @@ from eduid.common.config.parsers import load_config
 from eduid.common.proofing_utils import get_marked_given_name
 from eduid.common.rpc.exceptions import NoNavetData
 from eduid.common.rpc.msg_relay import FullPostalAddress, MsgRelay
-from eduid.common.testing_base import normalised_data
+from eduid.common.testing_base import MockAmRelay, normalised_data
 from eduid.userdb import NinIdentity, User
 from eduid.userdb.exceptions import LockedIdentityViolation, UserDoesNotExist
 from eduid.userdb.fixtures.users import UserFixtures
@@ -53,7 +52,7 @@ class HelpersTestApp(EduIDBaseApp[HelpersTestConfig]):
         self.proofing_statedb = LetterProofingStateDB(self.conf.mongo_uri)
         self.proofing_log = ProofingLog(self.conf.mongo_uri)
         # Init celery
-        self.am_relay = MagicMock()
+        self.am_relay = MockAmRelay()
         self.msg_relay = MsgRelay(self.conf)
 
 
