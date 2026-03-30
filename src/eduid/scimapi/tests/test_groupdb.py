@@ -11,8 +11,6 @@ from eduid.scimapi.context import Context
 from eduid.scimapi.testing import ScimApiTestCase
 from eduid.userdb.scimapi import GroupExtensions, ScimApiGroup
 
-pytestmark = pytest.mark.xdist_group("neo4j")
-
 logger = logging.getLogger(__name__)
 
 

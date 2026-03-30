@@ -1,10 +1,6 @@
 from http import HTTPStatus
 
-import pytest
-
 from eduid.scimapi.testing import ScimApiTestCase
-
-pytestmark = pytest.mark.xdist_group("neo4j")
 
 
 class TestStatus(ScimApiTestCase):
