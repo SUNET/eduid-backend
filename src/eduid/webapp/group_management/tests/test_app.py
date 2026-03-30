@@ -1,5 +1,5 @@
 import json
-from collections.abc import Iterator, Mapping
+from collections.abc import Mapping
 from http import HTTPStatus
 from typing import Any, ClassVar
 from uuid import UUID
@@ -30,7 +30,8 @@ class GroupManagementTests(EduidAPITestCase[GroupManagementApp]):
     api_users: ClassVar[list[str]] = ["hubba-bubba", "hubba-baar", "hubba-fooo"]
 
     @pytest.fixture(autouse=True)
-    def setup(self, setup_api: None, neo4j_instance: Neo4jTemporaryInstance) -> Iterator[None]:
+    def setup(self, setup_api: None, neo4j_instance: Neo4jTemporaryInstance) -> None:
+        neo4j_instance.purge_db()
         self.test_user2 = self.app.central_userdb.get_user_by_eppn("hubba-baar")
         self.test_user3 = self.app.central_userdb.get_user_by_eppn("hubba-fooo")
         # Temporarily fix email address locally until test user fixtures are merged
@@ -47,11 +48,6 @@ class GroupManagementTests(EduidAPITestCase[GroupManagementApp]):
         self.scim_group2 = self._add_scim_group(
             scim_id=UUID("00000000-0000-0000-0000-000000000003"), display_name="Test Group 2"
         )
-
-        yield
-
-        with self.app.app_context():
-            neo4j_instance.purge_db()
 
     def _fix_mail_addresses(self) -> None:
         # Due to mixup in base user data

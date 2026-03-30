@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 import random
-from collections.abc import Iterator, Sequence
+from collections.abc import Sequence
 from os import environ
 
 import pytest
@@ -135,8 +135,4 @@ class Neo4jTestCase:
     def setup_neo4j(self, neo4j_instance: Neo4jTemporaryInstance) -> None:
         self.neo4j_instance = neo4j_instance
         self.neo4jdb = self.neo4j_instance.conn
-
-    @pytest.fixture(autouse=True)
-    def purge_db(self) -> Iterator[None]:
-        yield
         self.neo4j_instance.purge_db()
