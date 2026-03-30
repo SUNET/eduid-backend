@@ -100,9 +100,12 @@ class EduidTemporaryInstance(ABC):
                     break
 
             if container_name:
-                # Signal the daemon (non-blocking); daemon cleanup is async via --rm.
-                subprocess.Popen(["docker", "kill", container_name], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-                # Politely ask the docker run client to exit — don't wait, the OS will reap it.
+                # Non-blocking: docker kill is slow in this environment so we do not wait.
+                # The child will be reaped by init when pytest exits (not by us), leaving
+                # a brief zombie entry — acceptable since only one container runs per session.
+                subprocess.Popen(
+                    ["docker", "kill", container_name], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
+                )
                 self._process.terminate()
 
         if hasattr(self, "_logfile") and self._logfile and not self._logfile.closed:
