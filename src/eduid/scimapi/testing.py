@@ -84,6 +84,7 @@ class MongoNeoTestCase(BaseDBTestCase):
             f"bolt://{self.neo4j_instance.DEFAULT_USERNAME}:{self.neo4j_instance.DEFAULT_PASSWORD}"
             f"@localhost:{self.neo4j_instance.bolt_port}"
         )
+        self.neo4j_instance.purge_db()
 
 
 class ScimApiTestCase(MongoNeoTestCase):
@@ -129,7 +130,6 @@ class ScimApiTestCase(MongoNeoTestCase):
             self.messagedb._drop_whole_collection()
         if self.groupdb:
             self.groupdb._drop_whole_collection()
-            self.neo4j_instance.purge_db()
 
         # Close all Neo4j driver connections — each data owner has its own driver
         # with background threads. Without explicit close they outlive the test session

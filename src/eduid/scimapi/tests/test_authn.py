@@ -22,8 +22,6 @@ from eduid.scimapi.tests.test_scimuser import ScimApiTestUserResourceBase
 from eduid.userdb.scimapi import ScimApiProfile
 from eduid.userdb.scimapi.userdb import ScimApiUser
 
-pytestmark = pytest.mark.xdist_group("neo4j")
-
 logger = logging.getLogger(__name__)
 
 

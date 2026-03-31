@@ -4,11 +4,7 @@ import json
 from http import HTTPStatus
 from uuid import uuid4
 
-import pytest
-
 from eduid.scimapi.testing import ScimApiTestCase
-
-pytestmark = pytest.mark.xdist_group("neo4j")
 
 
 class TestLoginResource(ScimApiTestCase):
