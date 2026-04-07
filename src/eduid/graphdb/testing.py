@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import logging
-import random
 import unittest
 from collections.abc import Sequence
 from os import environ
@@ -10,6 +9,7 @@ from neo4j.exceptions import ServiceUnavailable
 
 from eduid.graphdb.db import Neo4jDB
 from eduid.userdb.testing import EduidTemporaryInstance
+from eduid.userdb.testing.temp_instance import _random_available_port
 
 __author__ = "lundberg"
 
@@ -39,9 +39,9 @@ class Neo4jTemporaryInstance(EduidTemporaryInstance):
     DEFAULT_PASSWORD = "testingtesting"
 
     def __init__(self, max_retry_seconds: int = 60, neo4j_version: str = NEO4J_VERSION) -> None:
-        self._http_port = random.randint(40000, 43000)
-        self._https_port = random.randint(44000, 46000)
-        self._bolt_port = random.randint(47000, 50000)
+        self._http_port = _random_available_port(40000, 43000)
+        self._https_port = _random_available_port(44000, 46000)
+        self._bolt_port = _random_available_port(47000, 50000)
         self._docker_name = f"test_neo4j_{self.bolt_port}"
         self._neo4j_version = neo4j_version
         self._host = "localhost"
@@ -53,7 +53,7 @@ class Neo4jTemporaryInstance(EduidTemporaryInstance):
         return [
             "docker",
             "run",
-            "--rm",
+            "--restart=always",
             "--name",
             f"{self._docker_name}",
             "-p",

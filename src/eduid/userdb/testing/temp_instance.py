@@ -4,6 +4,7 @@ import atexit
 import logging
 import random
 import shutil
+import socket
 import subprocess
 import tempfile
 import time
@@ -14,6 +15,29 @@ from typing import Any, Self
 from eduid.common.misc.timeutil import utc_now
 
 logger = logging.getLogger(__name__)
+
+# Track all ports reserved by EduidTemporaryInstance subclasses to avoid collisions
+_reserved_ports: set[int] = set()
+
+
+def _is_port_free(port: int) -> bool:
+    """Check if a port is actually available for binding."""
+    try:
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            s.bind(("127.0.0.1", port))
+            return True
+    except OSError:
+        return False
+
+
+def _random_available_port(low: int = 40000, high: int = 65535) -> int:
+    """Pick a random port that hasn't been reserved by another temporary instance and is free on the system."""
+    for _ in range(100):
+        port = random.randint(low, high)
+        if port not in _reserved_ports and _is_port_free(port):
+            _reserved_ports.add(port)
+            return port
+    raise RuntimeError(f"Could not find an available port in range {low}-{high} after 100 attempts")
 
 
 class EduidTemporaryInstance(ABC):
@@ -28,7 +52,7 @@ class EduidTemporaryInstance(ABC):
     def __init__(self, max_retry_seconds: int) -> None:
         self._conn: Any | None = None  # self._conn should be initialised by subclasses in `setup_conn'
         self._tmpdir = tempfile.mkdtemp()
-        self._port = random.randint(40000, 65535)
+        self._port = _random_available_port()
         self._logfile = open(f"/tmp/{self.__class__.__name__}-{self.port}.log", "w")  # noqa: SIM115
 
         start_time = utc_now()
@@ -118,15 +142,15 @@ class EduidTemporaryInstance(ABC):
                     break
 
             if container_name:
-                # Stop the container - docker stop handles graceful shutdown with SIGTERM
-                subprocess.run(["docker", "stop", container_name], check=False, capture_output=True)
+                # Force-remove the container immediately (don't wait for graceful shutdown)
+                subprocess.run(["docker", "rm", "-f", container_name], check=False, capture_output=True, timeout=5)
 
-                # Wait for the docker run process to exit (it should exit when container stops)
+                # Wait for the docker run process to exit
                 try:
-                    self._process.wait(timeout=10)
+                    self._process.wait(timeout=5)
                 except subprocess.TimeoutExpired:
                     logger.warning("Docker run process didn't exit, terminating it")
-                    self._process.terminate()
+                    self._process.kill()
                     self._process.wait()
 
         # Flush the logfile but don't close it - closing it causes "ValueError: I/O operation on closed file"

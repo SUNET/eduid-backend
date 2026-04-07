@@ -35,7 +35,7 @@ class MongoTemporaryInstance(EduidTemporaryInstance):
         return [
             "docker",
             "run",
-            "--rm",
+            "--restart=always",
             "-p",
             f"{self.port}:27017",
             "--name",

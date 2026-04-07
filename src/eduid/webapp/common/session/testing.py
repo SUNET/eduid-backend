@@ -21,7 +21,7 @@ class RedisTemporaryInstance(EduidTemporaryInstance):
         return [
             "docker",
             "run",
-            "--rm",
+            "--restart=always",
             "-p",
             f"{self.port!s}:6379",
             "--name",

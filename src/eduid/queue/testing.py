@@ -38,7 +38,7 @@ class MongoTemporaryInstanceReplicaSet(MongoTemporaryInstance):
         return [
             "docker",
             "run",
-            "--rm",
+            "--restart=always",
             "-p",
             f"{self.port}:{self.port}",
             "-e",
@@ -90,7 +90,7 @@ class SMPTDFixTemporaryInstance(EduidTemporaryInstance):
         return [
             "docker",
             "run",
-            "--rm",
+            "--restart=always",
             "-p",
             f"{self.port}:8025",
             "--name",
