@@ -9,7 +9,7 @@ from enum import StrEnum
 from uuid import UUID
 
 from fido2.server import Fido2Server, PublicKeyCredentialRpEntity
-from fido2.webauthn import AttestationConveyancePreference, AttestedCredentialData, AttestationObject
+from fido2.webauthn import AttestationConveyancePreference, AttestationObject, AttestedCredentialData
 from fido_mds import Attestation, FidoMetadataStore
 from fido_mds.exceptions import AttestationVerificationError, MetadataValidationError
 from fido_mds.models.fido_mds import AuthenticatorStatus

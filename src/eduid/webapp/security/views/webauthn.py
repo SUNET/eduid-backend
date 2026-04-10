@@ -46,7 +46,6 @@ from eduid.webapp.security.schemas import (
     WebauthnRegisterRequestSchema,
 )
 
-
 webauthn_views = Blueprint("webauthn", __name__, url_prefix="/webauthn", template_folder="templates")
 
 

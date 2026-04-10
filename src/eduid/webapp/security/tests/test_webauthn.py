@@ -21,9 +21,13 @@ from eduid.common.misc.timeutil import utc_now
 from eduid.userdb.credentials import U2F, FidoCredential, Webauthn
 from eduid.webapp.common.api.schemas.authn_status import AuthnActionStatus
 from eduid.webapp.common.api.testing import CSRFTestClient, EduidAPITestCase
+from eduid.webapp.common.authn.webauthn import (
+    get_authenticator_information,
+    get_webauthn_server,
+    is_authenticator_mfa_approved,
+)
 from eduid.webapp.common.session import EduidSession
 from eduid.webapp.common.session.namespaces import WebauthnRegistration, WebauthnState
-from eduid.webapp.common.authn.webauthn import get_authenticator_information, get_webauthn_server, is_authenticator_mfa_approved
 from eduid.webapp.security.app import SecurityApp, security_init_app
 
 __author__ = "eperez"
