@@ -3,22 +3,12 @@ from __future__ import annotations
 from collections.abc import Iterator
 
 import pytest
-from celery import Celery, Signature
-from celery.app.task import Task
-from celery.local import class_property
-from celery.result import AsyncResult
-from celery.utils.objects import FallbackContext
 
 from eduid.graphdb.testing import Neo4jTemporaryInstance
 from eduid.queue.testing import MongoTemporaryInstanceReplicaSet, SMPTDFixTemporaryInstance
 from eduid.userdb.db.async_db import AsyncClientCache
 from eduid.userdb.testing import MongoTemporaryInstance
 from eduid.webapp.common.session.testing import RedisTemporaryInstance
-
-# celery-types requires these classes to be patched so that generic params
-# (e.g. Task[str]) work at runtime without raising TypeError.
-for _cls in [Celery, Task, AsyncResult, Signature, FallbackContext, class_property]:
-    setattr(_cls, "__class_getitem__", classmethod(lambda cls, *_, **__: cls))  # noqa: B010
 
 
 @pytest.fixture
