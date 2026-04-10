@@ -48,7 +48,7 @@ class SignupStatusResponse(FluxStandardAction):
                 completed = fields.Boolean(required=True)
                 generated_password = fields.String(required=True, dump_default=None)
                 custom_password = fields.Boolean(required=True, dump_default=False)
-                # TODO: implement webauthn signup
+                webauthn_registered = fields.Boolean(required=True, dump_default=False)
 
             already_signed_up = fields.Boolean(required=True)
             name = fields.Nested(Name, required=True)
@@ -107,6 +107,14 @@ class SignupStatusResponse(FluxStandardAction):
             )
         return out_data
 
+    @pre_dump
+    def set_webauthn_registered(self, out_data: dict, **kwargs: Any) -> dict:
+        if out_data["payload"].get("state", {}).get("credentials"):
+            out_data["payload"]["state"]["credentials"]["webauthn_registered"] = bool(
+                out_data["payload"]["state"]["credentials"].get("webauthn_credential_data")
+            )
+        return out_data
+
 
 class AcceptTouRequest(EduidSchema, CSRFRequestMixin):
     tou_accepted = fields.Boolean(required=True)
@@ -159,3 +167,13 @@ class InviteCompletedResponse(FluxStandardAction):
         finish_url = fields.String(required=False)
 
     payload = fields.Nested(InviteCompletedSchema)
+
+
+class WebauthnRegisterBeginRequest(EduidSchema, CSRFRequestMixin):
+    authenticator = fields.String(required=True)
+
+
+class WebauthnRegisterCompleteRequest(EduidSchema, CSRFRequestMixin):
+    response = fields.Dict(required=True)
+    description = fields.String(required=True)
+    client_extension_results = fields.Dict(required=False, data_key="clientExtensionResults")

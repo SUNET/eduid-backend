@@ -9,6 +9,7 @@ from enum import StrEnum, unique
 from typing import Any, NewType, Self, cast
 
 from fido2.webauthn import AuthenticatorAttachment
+from fido_mds.models.webauthn import AttestationFormat
 from pydantic import BaseModel, Field, ValidationError, field_serializer
 
 from eduid.common.config.base import FrontendAction
@@ -156,12 +157,20 @@ class Tou(SessionNSBase):
 class Credentials(SessionNSBase):
     completed: bool = False
     generated_password: str | None = None
-    webauthn: Any | None = None  # TODO: implement webauthn signup
+    webauthn_registration: WebauthnRegistration | None = None
+    webauthn_credential_data: str | None = None
+    webauthn_authenticator: AuthenticatorAttachment | None = None
+    webauthn_authenticator_id: str | None = None
+    webauthn_keyhandle: str | None = None
+    webauthn_mfa_approved: bool = False
+    webauthn_attestation_format: AttestationFormat | None = None
+    webauthn_description: str | None = None
 
 
 class Signup(TimestampedNS):
     user_created: bool = False
     user_created_at: datetime | None = None
+    eppn: str | None = None
     name: Name = Field(default_factory=Name)
     email: EmailVerification = Field(default_factory=EmailVerification)
     invite: Invite = Field(default_factory=Invite)

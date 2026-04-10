@@ -1,6 +1,7 @@
 from collections.abc import Mapping
 from typing import Any, cast
 
+from fido_mds import FidoMetadataStore
 from flask import current_app
 
 from eduid.common.clients import SCIMClient
@@ -9,6 +10,7 @@ from eduid.common.config.parsers import load_config
 from eduid.common.rpc.am_relay import AmRelay
 from eduid.queue.db.message import MessageDB
 from eduid.userdb.logs import ProofingLog
+from eduid.userdb.logs.db import FidoMetadataLog
 from eduid.userdb.signup import SignupInviteDB, SignupUserDB
 from eduid.webapp.common.api.app import EduIDBaseApp
 from eduid.webapp.common.api.captcha import init_captcha
@@ -31,6 +33,8 @@ class SignupApp(EduIDBaseApp[SignupConfig]):
         self.proofing_log = ProofingLog(config.mongo_uri)
         self.invite_db = SignupInviteDB(config.mongo_uri)
         self.messagedb = MessageDB(config.mongo_uri)
+        self.fido_mds = FidoMetadataStore()
+        self.fido_metadata_log = FidoMetadataLog(config.mongo_uri)
 
     def get_scim_client_for(self, data_owner: str) -> SCIMClient:
         if self.conf.gnap_auth_data is None or self.conf.scim_api_url is None:

@@ -12,6 +12,12 @@ from re import Pattern
 from typing import IO, Annotated, Any
 
 import importlib_resources
+from fido2.webauthn import (
+    AttestationConveyancePreference,
+    ResidentKeyRequirement,
+    UserVerificationRequirement,
+)
+from fido_mds.models.fido_mds import AuthenticatorStatus
 from pydantic import AfterValidator, BaseModel, ConfigDict, Field
 
 from eduid.userdb.credentials import CredentialProofingMethod
@@ -236,6 +242,26 @@ class ProfilingConfig(BaseModel):
 class WebauthnConfigMixin2(BaseModel):
     fido2_rp_id: str  # 'eduid.se'
     fido2_rp_name: str = "eduID Sweden"
+
+
+class WebauthnAppConfigMixin(BaseModel):
+    """Common webauthn application settings shared by security and signup apps."""
+
+    webauthn_proofing_method: str = Field(default="webauthn metadata")
+    webauthn_proofing_version: str = Field(default="2024v1")
+    webauthn_max_allowed_tokens: int = 10
+    webauthn_attestation: AttestationConveyancePreference | None = None
+    webauthn_user_verification: UserVerificationRequirement = UserVerificationRequirement.PREFERRED
+    webauthn_resident_key_requirement: ResidentKeyRequirement = ResidentKeyRequirement.PREFERRED
+    webauthn_disallowed_status: list[AuthenticatorStatus] = Field(
+        default=[
+            AuthenticatorStatus.USER_VERIFICATION_BYPASS,
+            AuthenticatorStatus.ATTESTATION_KEY_COMPROMISE,
+            AuthenticatorStatus.USER_KEY_REMOTE_COMPROMISE,
+            AuthenticatorStatus.USER_KEY_PHYSICAL_COMPROMISE,
+            AuthenticatorStatus.REVOKED,
+        ]
+    )
 
 
 class MagicCookieMixin(BaseModel):
