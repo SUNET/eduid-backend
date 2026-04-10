@@ -166,7 +166,7 @@ class MsgRelay:
         :param allow_deregistered: allow return of deregistered persons
         :return: All Navet data about the person
         """
-        rtask = self._get_all_navet_data.apply_async(args=[nin])
+        rtask = self._get_all_navet_data.apply_async(args=(nin,))
         try:
             ret = rtask.get(timeout=timeout)
         except Exception as e:
@@ -207,7 +207,7 @@ class MsgRelay:
                     ]))
                 ])
         """
-        rtask = self._get_postal_address.apply_async(args=[nin])
+        rtask = self._get_postal_address.apply_async(args=(nin,))
         try:
             ret = rtask.get(timeout=timeout)
         except Exception as e:
@@ -240,7 +240,7 @@ class MsgRelay:
         :param timeout: Max wait time for task to finish
         :return: List of codes. Empty list if the NINs are not related.
         """
-        rtask = self._get_relations_to.apply_async(args=[nin, relative_nin])
+        rtask = self._get_relations_to.apply_async(args=(nin, relative_nin))
         try:
             ret = rtask.get(timeout=timeout)
         except Exception as e:
@@ -260,7 +260,7 @@ class MsgRelay:
         """
         logger.info(f"Trying to send SMS with reference: {reference}")
         logger.debug(f"Recipient: {recipient}. Message: {message}")
-        rtask = self._send_sms.apply_async(args=[recipient, message, reference])
+        rtask = self._send_sms.apply_async(args=(recipient, message, reference))
 
         try:
             res = rtask.get(timeout=timeout)
