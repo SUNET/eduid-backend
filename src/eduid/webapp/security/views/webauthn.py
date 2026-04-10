@@ -1,11 +1,7 @@
 import base64
-from collections.abc import Sequence
 from typing import Any
 
-from fido2.server import Fido2Server, PublicKeyCredentialRpEntity
 from fido2.webauthn import (
-    AttestationConveyancePreference,
-    AttestedCredentialData,
     AuthenticatorAttachment,
     AuthenticatorData,
     PublicKeyCredentialUserEntity,
@@ -18,7 +14,7 @@ from eduid.common.config.base import FrontendAction
 from eduid.common.rpc.exceptions import AmTaskFailed
 from eduid.userdb import User
 from eduid.userdb.credentials import Webauthn
-from eduid.userdb.credentials.fido import U2F, FidoCredential
+from eduid.userdb.credentials.fido import FidoCredential
 from eduid.userdb.security import SecurityUser
 from eduid.webapp.common.api.decorators import MarshalWith, UnmarshalWith, require_user
 from eduid.webapp.common.api.helpers import check_magic_cookie
@@ -26,6 +22,14 @@ from eduid.webapp.common.api.messages import CommonMsg, FluxData, error_response
 from eduid.webapp.common.api.schemas.base import FluxStandardAction
 from eduid.webapp.common.api.utils import save_and_sync_user
 from eduid.webapp.common.authn.utils import check_reauthn, get_authn_for_action
+from eduid.webapp.common.authn.webauthn import (
+    OtherAuthenticatorStatus,
+    get_authenticator_information,
+    get_webauthn_server,
+    is_authenticator_mfa_approved,
+    make_credentials,
+    save_webauthn_proofing_log,
+)
 from eduid.webapp.common.session import session
 from eduid.webapp.common.session.namespaces import WebauthnRegistration
 from eduid.webapp.security.app import current_security_app as current_app
@@ -41,38 +45,6 @@ from eduid.webapp.security.schemas import (
     WebauthnRegisterBeginSchema,
     WebauthnRegisterRequestSchema,
 )
-from eduid.webapp.security.webauthn_proofing import (
-    OtherAuthenticatorStatus,
-    get_authenticator_information,
-    is_authenticator_mfa_approved,
-    save_webauthn_proofing_log,
-)
-
-
-def get_webauthn_server(
-    rp_id: str, rp_name: str, attestation: AttestationConveyancePreference | None = None
-) -> Fido2Server:
-    rp = PublicKeyCredentialRpEntity(id=rp_id, name=rp_name)
-    return Fido2Server(rp, attestation=attestation)
-
-
-def make_credentials(creds: Sequence[FidoCredential]) -> list[AttestedCredentialData]:
-    credentials = []
-    for cred in creds:
-        if isinstance(cred, Webauthn):
-            cred_data = base64.urlsafe_b64decode(cred.credential_data.encode("ascii"))
-            credential_data, rest = AttestedCredentialData.unpack_from(cred_data)
-            if rest:
-                continue
-        elif isinstance(cred, U2F):
-            # cred is of type U2F (legacy registration)
-            credential_data = AttestedCredentialData.from_ctap1(
-                cred.keyhandle.encode("ascii"), cred.public_key.encode("ascii")
-            )
-        else:
-            raise ValueError(f"Unknown credential {cred!r}")
-        credentials.append(credential_data)
-    return credentials
 
 
 webauthn_views = Blueprint("webauthn", __name__, url_prefix="/webauthn", template_folder="templates")
@@ -156,7 +128,11 @@ def registration_complete(
     # verify attestation and gather authenticator information from metadata
     try:
         authenticator_info = get_authenticator_information(
-            attestation=registration.response.attestation_object, client_data=registration.response.client_data
+            attestation=registration.response.attestation_object,
+            client_data=registration.response.client_data,
+            fido_mds=current_app.fido_mds,
+            fido_metadata_log=current_app.fido_metadata_log,
+            config=current_app.conf,
         )
     except (AttestationVerificationError, NotImplementedError, ValueError):
         current_app.logger.exception("attestation verification failed")
@@ -179,7 +155,9 @@ def registration_complete(
 
     credential_data = base64.urlsafe_b64encode(auth_data.credential_data).decode("ascii")
     current_app.logger.debug(f"Processed Webauthn credential data: {credential_data}")
-    mfa_approved = is_authenticator_mfa_approved(authenticator_info=authenticator_info)
+    mfa_approved = is_authenticator_mfa_approved(
+        authenticator_info=authenticator_info, disallowed_status=current_app.conf.webauthn_disallowed_status
+    )
     current_app.logger.info(f"authenticator mfa approved: {mfa_approved}")
 
     credential = Webauthn(
@@ -196,7 +174,14 @@ def registration_complete(
     )
     security_user.credentials.add(credential)
 
-    if mfa_approved and not save_webauthn_proofing_log(user.eppn, authenticator_info):
+    if mfa_approved and not save_webauthn_proofing_log(
+        eppn=user.eppn,
+        authenticator_info=authenticator_info,
+        proofing_log=current_app.proofing_log,
+        app_name=current_app.conf.app_name,
+        proofing_version=current_app.conf.webauthn_proofing_version,
+        proofing_method=current_app.conf.webauthn_proofing_method,
+    ):
         current_app.logger.info("Could not save webauthn proofing log")
         current_app.logger.debug(f"credential: {credential}")
         current_app.logger.debug(f"authenticator_info: {authenticator_info}")

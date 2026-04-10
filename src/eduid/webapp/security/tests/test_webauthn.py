@@ -23,9 +23,8 @@ from eduid.webapp.common.api.schemas.authn_status import AuthnActionStatus
 from eduid.webapp.common.api.testing import CSRFTestClient, EduidAPITestCase
 from eduid.webapp.common.session import EduidSession
 from eduid.webapp.common.session.namespaces import WebauthnRegistration, WebauthnState
+from eduid.webapp.common.authn.webauthn import get_authenticator_information, get_webauthn_server, is_authenticator_mfa_approved
 from eduid.webapp.security.app import SecurityApp, security_init_app
-from eduid.webapp.security.views.webauthn import get_webauthn_server
-from eduid.webapp.security.webauthn_proofing import get_authenticator_information, is_authenticator_mfa_approved
 
 __author__ = "eperez"
 
@@ -639,25 +638,29 @@ class SecurityWebauthnTests(EduidAPITestCase):
         authenticators = [YUBIKEY_4, YUBIKEY_5_NFC, MICROSOFT_SURFACE_1796, NEXUS_5, IPHONE_12, NONE_ATTESTATION]
         for authenticator in authenticators:
             self.app.logger.debug(f"Testing authenticator: {authenticator}")
-            with self.app.test_request_context():
-                authenticator_info = get_authenticator_information(
-                    attestation=Attestation.from_base64(authenticator[0]).attestation_obj,
-                    client_data=websafe_decode(authenticator[1]),
-                )
+            authenticator_info = get_authenticator_information(
+                attestation=Attestation.from_base64(authenticator[0]).attestation_obj,
+                client_data=websafe_decode(authenticator[1]),
+                fido_mds=self.app.fido_mds,
+                fido_metadata_log=self.app.fido_metadata_log,
+                config=self.app.conf,
+            )
             assert authenticator_info is not None
             assert authenticator_info.authenticator_id is not None
             assert authenticator_info.attestation_format is not None
             assert authenticator_info.user_present is not None
             assert authenticator_info.user_verified is not None
 
-            with self.app.test_request_context():
-                res = is_authenticator_mfa_approved(authenticator_info=authenticator_info)
-                if authenticator in [YUBIKEY_4, YUBIKEY_5_NFC]:
-                    # Yubikey 4 does not support any user verification we accept
-                    # The test data for Yubikey 5 do not include user verification
-                    assert res is False
-                else:
-                    assert res is True
+            res = is_authenticator_mfa_approved(
+                authenticator_info=authenticator_info,
+                disallowed_status=self.app.conf.webauthn_disallowed_status,
+            )
+            if authenticator in [YUBIKEY_4, YUBIKEY_5_NFC]:
+                # Yubikey 4 does not support any user verification we accept
+                # The test data for Yubikey 5 do not include user verification
+                assert res is False
+            else:
+                assert res is True
 
             if authenticator not in [IPHONE_12, NONE_ATTESTATION]:
                 # No metadata for Apple devices or none attestation
@@ -701,11 +704,16 @@ class SecurityWebauthnTests(EduidAPITestCase):
             authenticator_info = get_authenticator_information(
                 attestation=Attestation.from_base64(attestation_object).attestation_obj,
                 client_data=websafe_decode(client_data),
+                fido_mds=self.app.fido_mds,
+                fido_metadata_log=self.app.fido_metadata_log,
+                config=self.app.conf,
             )
         assert authenticator_info is not None
 
-        with self.app.test_request_context():
-            res = is_authenticator_mfa_approved(authenticator_info=authenticator_info)
+        res = is_authenticator_mfa_approved(
+            authenticator_info=authenticator_info,
+            disallowed_status=self.app.conf.webauthn_disallowed_status,
+        )
         assert res is True
 
     def test_approved_security_keys(self) -> None:

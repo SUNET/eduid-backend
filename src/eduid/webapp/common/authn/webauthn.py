@@ -1,19 +1,30 @@
+"""Shared WebAuthn helper functions for registration and proofing."""
+
+import base64
+import logging
+from collections.abc import Sequence
 from dataclasses import dataclass, field
 from datetime import date, datetime, time
 from enum import StrEnum
 from uuid import UUID
 
-from fido2.webauthn import AttestationObject
-from fido_mds import Attestation
+from fido2.server import Fido2Server, PublicKeyCredentialRpEntity
+from fido2.webauthn import AttestationConveyancePreference, AttestedCredentialData, AttestationObject
+from fido_mds import Attestation, FidoMetadataStore
 from fido_mds.exceptions import AttestationVerificationError, MetadataValidationError
 from fido_mds.models.fido_mds import AuthenticatorStatus
 from fido_mds.models.webauthn import AttestationFormat
 
+from eduid.common.config.base import MagicCookieMixin
+from eduid.userdb.credentials import Webauthn
+from eduid.userdb.credentials.fido import U2F, FidoCredential
+from eduid.userdb.logs.db import FidoMetadataLog, ProofingLog
 from eduid.userdb.logs.element import FidoMetadataLogElement, WebauthnMfaCapabilityProofingLog
 from eduid.webapp.common.api.helpers import check_magic_cookie
-from eduid.webapp.security.app import current_security_app as current_app
 
 __author__ = "lundberg"
+
+logger = logging.getLogger(__name__)
 
 
 class OtherAuthenticatorStatus(StrEnum):
@@ -35,12 +46,44 @@ class AuthenticatorInformation:
     user_verification_methods: list[str] = field(default_factory=list)
 
 
-def get_authenticator_information(attestation: AttestationObject, client_data: bytes) -> AuthenticatorInformation:
+def get_webauthn_server(
+    rp_id: str, rp_name: str, attestation: AttestationConveyancePreference | None = None
+) -> Fido2Server:
+    rp = PublicKeyCredentialRpEntity(id=rp_id, name=rp_name)
+    return Fido2Server(rp, attestation=attestation)
+
+
+def make_credentials(creds: Sequence[FidoCredential]) -> list[AttestedCredentialData]:
+    credentials = []
+    for cred in creds:
+        if isinstance(cred, Webauthn):
+            cred_data = base64.urlsafe_b64decode(cred.credential_data.encode("ascii"))
+            credential_data, rest = AttestedCredentialData.unpack_from(cred_data)
+            if rest:
+                continue
+        elif isinstance(cred, U2F):
+            # cred is of type U2F (legacy registration)
+            credential_data = AttestedCredentialData.from_ctap1(
+                cred.keyhandle.encode("ascii"), cred.public_key.encode("ascii")
+            )
+        else:
+            raise ValueError(f"Unknown credential {cred!r}")
+        credentials.append(credential_data)
+    return credentials
+
+
+def get_authenticator_information(
+    attestation: AttestationObject,
+    client_data: bytes,
+    fido_mds: FidoMetadataStore,
+    fido_metadata_log: FidoMetadataLog,
+    config: MagicCookieMixin,
+) -> AuthenticatorInformation:
     # parse attestation object
     try:
         att = Attestation.from_attestation_object(attestation)
     except ValueError as e:
-        current_app.logger.exception("Failed to parse attestation object")
+        logger.exception("Failed to parse attestation object")
         raise e
 
     user_present = att.auth_data.flags.user_present
@@ -48,7 +91,7 @@ def get_authenticator_information(attestation: AttestationObject, client_data: b
     authenticator_id = att.aaguid or att.certificate_key_identifier
 
     # allow automatic tests to use any webauthn device
-    if check_magic_cookie(current_app.conf):
+    if check_magic_cookie(config):
         return AuthenticatorInformation(
             attestation_format=att.fmt,
             authenticator_id=authenticator_id,
@@ -73,18 +116,16 @@ def get_authenticator_information(attestation: AttestationObject, client_data: b
 
     # verify attestation
     try:
-        current_app.fido_mds.verify_attestation(attestation=att, client_data=client_data)
+        fido_mds.verify_attestation(attestation=att, client_data=client_data)
     except AttestationVerificationError as e:
-        current_app.logger.debug(f"attestation: {att}")
-        current_app.logger.debug(f"client_data: {client_data!r}")
-        current_app.logger.exception("Failed to get authenticator information")
+        logger.debug(f"attestation: {att}")
+        logger.debug(f"client_data: {client_data!r}")
+        logger.exception("Failed to get authenticator information")
         raise e
     except MetadataValidationError:
-        current_app.logger.debug(f"attestation: {att}")
-        current_app.logger.debug(f"client_data: {client_data!r}")
-        current_app.logger.exception(
-            "Failed to get authenticator information from metadata, continuing without metadata"
-        )
+        logger.debug(f"attestation: {att}")
+        logger.debug(f"client_data: {client_data!r}")
+        logger.exception("Failed to get authenticator information from metadata, continuing without metadata")
         # Continue even if the security key _should_ be found and validated with metadata as we have seen security keys
         # in the wild that fails
         return AuthenticatorInformation(
@@ -110,7 +151,7 @@ def get_authenticator_information(attestation: AttestationObject, client_data: b
         )
 
     # create authenticator information from attestation and metadata
-    metadata_entry = current_app.fido_mds.get_entry(authenticator_id=authenticator_id)
+    metadata_entry = fido_mds.get_entry(authenticator_id=authenticator_id)
     # mongodb does not support date
     last_status_change = metadata_entry.time_of_last_status_change
     user_verification_methods = [
@@ -118,10 +159,8 @@ def get_authenticator_information(attestation: AttestationObject, client_data: b
     ]
 
     # save current metadata entry as proof if we haven't done so before
-    if not current_app.fido_metadata_log.exists(
-        authenticator_id=authenticator_id, last_status_change=last_status_change
-    ):
-        current_app.fido_metadata_log.save(
+    if not fido_metadata_log.exists(authenticator_id=authenticator_id, last_status_change=last_status_change):
+        fido_metadata_log.save(
             FidoMetadataLogElement(
                 created_by="security",
                 authenticator_id=authenticator_id,
@@ -146,38 +185,48 @@ def get_authenticator_information(attestation: AttestationObject, client_data: b
     )
 
 
-def is_authenticator_mfa_approved(authenticator_info: AuthenticatorInformation) -> bool:
+def is_authenticator_mfa_approved(
+    authenticator_info: AuthenticatorInformation,
+    disallowed_status: Sequence[AuthenticatorStatus] = (),
+) -> bool:
     """
     This is our current policy for determine if a FIDO2 authenticator can do multi-factor authentications.
     """
     if authenticator_info.user_verified:
-        current_app.logger.info(
+        logger.info(
             f"AttestationFormat {authenticator_info.attestation_format}: user verified - authenticator is mfa capable"
         )
 
         # check status in metadata (if any) and disallow incident statuses
-        if authenticator_info.status and authenticator_info.status in current_app.conf.webauthn_disallowed_status:
-            current_app.logger.debug(f"status {authenticator_info.status} is not mfa capable")
+        if authenticator_info.status and authenticator_info.status in disallowed_status:
+            logger.debug(f"status {authenticator_info.status} is not mfa capable")
             return False
 
         return True
-    current_app.logger.info(
+    logger.info(
         f"AttestationFormat {authenticator_info.attestation_format}: user NOT verified - authenticator is not mfa "
         f"capable"
     )
     return False
 
 
-def save_webauthn_proofing_log(eppn: str, authenticator_info: AuthenticatorInformation) -> bool:
+def save_webauthn_proofing_log(
+    eppn: str,
+    authenticator_info: AuthenticatorInformation,
+    proofing_log: ProofingLog,
+    app_name: str,
+    proofing_version: str,
+    proofing_method: str,
+) -> bool:
     proofing_element = WebauthnMfaCapabilityProofingLog(
-        created_by=current_app.conf.app_name,
+        created_by=app_name,
         eppn=eppn,
-        proofing_version=current_app.conf.webauthn_proofing_version,
-        proofing_method=current_app.conf.webauthn_proofing_method,
+        proofing_version=proofing_version,
+        proofing_method=proofing_method,
         authenticator_id=authenticator_info.authenticator_id,
         attestation_format=authenticator_info.attestation_format,
         user_verification_methods=authenticator_info.user_verification_methods,
         key_protection=authenticator_info.key_protection,
     )
-    current_app.logger.debug(f"webauthn mfa capability proofing element: {proofing_element}")
-    return current_app.proofing_log.save(proofing_element)
+    logger.debug(f"webauthn mfa capability proofing element: {proofing_element}")
+    return proofing_log.save(proofing_element)
