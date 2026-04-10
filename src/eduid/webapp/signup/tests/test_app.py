@@ -860,7 +860,12 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
         assert state == {
             "already_signed_up": False,
             "captcha": {"completed": False},
-            "credentials": {"completed": False, "custom_password": False, "generated_password": None, "webauthn_registered": False},
+            "credentials": {
+                "completed": False,
+                "custom_password": False,
+                "generated_password": None,
+                "webauthn_registered": False,
+            },
             "email": {"address": None, "bad_attempts": 0, "bad_attempts_max": 3, "completed": False, "sent_at": None},
             "invite": {"completed": False, "finish_url": None, "initiated_signup": False},
             "name": {"given_name": None, "surname": None},
@@ -875,7 +880,12 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
         assert state == {
             "already_signed_up": True,
             "captcha": {"completed": False},
-            "credentials": {"completed": False, "custom_password": False, "generated_password": None, "webauthn_registered": False},
+            "credentials": {
+                "completed": False,
+                "custom_password": False,
+                "generated_password": None,
+                "webauthn_registered": False,
+            },
             "email": {"address": None, "bad_attempts": 0, "bad_attempts_max": 3, "completed": False, "sent_at": None},
             "invite": {"completed": False, "finish_url": None, "initiated_signup": False},
             "name": {"given_name": None, "surname": None},
@@ -1403,7 +1413,12 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
         assert normalised_data(state, exclude_keys=["expires_time_left", "throttle_time_left", "sent_at"]) == {
             "already_signed_up": False,
             "captcha": {"completed": False},
-            "credentials": {"completed": False, "custom_password": False, "generated_password": None, "webauthn_registered": False},
+            "credentials": {
+                "completed": False,
+                "custom_password": False,
+                "generated_password": None,
+                "webauthn_registered": False,
+            },
             "email": {
                 "address": "dummy@example.com",
                 "bad_attempts": 0,

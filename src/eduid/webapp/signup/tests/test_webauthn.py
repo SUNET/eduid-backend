@@ -117,7 +117,9 @@ class SignupWebauthnTests(EduidAPITestCase[SignupApp]):
             with client.session_transaction() as sess:
                 csrf_token = sess.get_csrf_token()
                 data = {"csrf_token": csrf_token, "authenticator": authenticator}
-            response = client.post("/webauthn/register/begin", data=json.dumps(data), content_type=self.content_type_json)
+            response = client.post(
+                "/webauthn/register/begin", data=json.dumps(data), content_type=self.content_type_json
+            )
             return response
 
     def _complete_register_webauthn(self) -> TestResponse:

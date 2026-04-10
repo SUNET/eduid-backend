@@ -366,9 +366,7 @@ def webauthn_register_complete(
 
     server = get_webauthn_server(rp_id=current_app.conf.fido2_rp_id, rp_name=current_app.conf.fido2_rp_name)
     try:
-        auth_data: AuthenticatorData = server.register_complete(
-            state=reg_state.webauthn_state, response=registration
-        )
+        auth_data: AuthenticatorData = server.register_complete(state=reg_state.webauthn_state, response=registration)
     except ValueError:
         current_app.logger.exception("Webauthn registration failed")
         return error_response(message=SignupMsg.webauthn_not_registered)
@@ -383,9 +381,9 @@ def webauthn_register_complete(
     )
 
     # Store credential fields in session for user creation
-    session.signup.credentials.webauthn_credential_data = base64.urlsafe_b64encode(
-        auth_data.credential_data
-    ).decode("ascii")
+    session.signup.credentials.webauthn_credential_data = base64.urlsafe_b64encode(auth_data.credential_data).decode(
+        "ascii"
+    )
     session.signup.credentials.webauthn_keyhandle = auth_data.credential_data.credential_id.hex()
     session.signup.credentials.webauthn_authenticator = reg_state.authenticator
     session.signup.credentials.webauthn_authenticator_id = str(authenticator_info.authenticator_id)
