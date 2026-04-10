@@ -96,7 +96,7 @@ def update_attributes_keep_result(self: AttributeManager, app_name: str, user_id
         self.userdb.update_user(_id, attributes)
     except DBConnectionError as e:
         logger.error(f"update_attributes_keep_result connection error: {e}", exc_info=True)
-        self.retry(default_retry_delay=1, max_retries=3, exc=e)
+        self.retry(countdown=1, max_retries=3, exc=e)
     return True
 
 
