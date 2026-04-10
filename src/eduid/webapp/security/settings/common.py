@@ -5,20 +5,20 @@ from pydantic import Field
 from eduid.common.config.base import (
     AmConfigMixin,
     EduIDBaseAppConfig,
+    Fido2RpConfigMixin,
     FrontendActionMixin,
     MagicCookieMixin,
     MsgConfigMixin,
     PasswordConfigMixin,
     VCCSConfigMixin,
-    WebauthnAppConfigMixin,
-    WebauthnConfigMixin2,
+    WebauthnRegistrationConfigMixin,
 )
 
 
 class SecurityConfig(
     EduIDBaseAppConfig,
-    WebauthnConfigMixin2,
-    WebauthnAppConfigMixin,
+    Fido2RpConfigMixin,
+    WebauthnRegistrationConfigMixin,
     MagicCookieMixin,
     AmConfigMixin,
     MsgConfigMixin,
@@ -39,7 +39,7 @@ class SecurityConfig(
     chpass_reauthn_timeout: timedelta = Field(default=timedelta(seconds=120))
     chpass_old_password_needed: bool = True
 
-    # webauthn (security-specific settings; common ones inherited from WebauthnAppConfigMixin)
+    # webauthn (security-specific settings; common ones inherited from WebauthnRegistrationConfigMixin)
     webauthn_recommended_user_verification_methods: list[str] = Field(
         default=[
             "faceprint_internal",

@@ -7,12 +7,12 @@ from eduid.common.config.base import (
     AmConfigMixin,
     CaptchaConfigMixin,
     EduIDBaseAppConfig,
+    Fido2RpConfigMixin,
     MagicCookieMixin,
     PasswordConfigMixin,
     TouConfigMixin,
     VCCSConfigMixin,
-    WebauthnAppConfigMixin,
-    WebauthnConfigMixin2,
+    WebauthnRegistrationConfigMixin,
 )
 from eduid.common.models.generic import AnyUrlStr
 
@@ -25,8 +25,8 @@ class SignupConfig(
     CaptchaConfigMixin,
     PasswordConfigMixin,
     VCCSConfigMixin,
-    WebauthnConfigMixin2,
-    WebauthnAppConfigMixin,
+    Fido2RpConfigMixin,
+    WebauthnRegistrationConfigMixin,
 ):
     """
     Configuration for the signup app

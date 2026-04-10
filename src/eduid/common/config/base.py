@@ -239,13 +239,15 @@ class ProfilingConfig(BaseModel):
     filename_format: str = "{method}.{path}.{elapsed:.0f}ms.{time:.0f}.prof"
 
 
-class WebauthnConfigMixin2(BaseModel):
+class Fido2RpConfigMixin(BaseModel):
+    """FIDO2 Relying Party identity — needed by any app that verifies or registers WebAuthn credentials."""
+
     fido2_rp_id: str  # 'eduid.se'
     fido2_rp_name: str = "eduID Sweden"
 
 
-class WebauthnAppConfigMixin(BaseModel):
-    """Common webauthn application settings shared by security and signup apps."""
+class WebauthnRegistrationConfigMixin(BaseModel):
+    """WebAuthn registration and proofing settings for apps that register security keys."""
 
     webauthn_proofing_method: str = Field(default="webauthn metadata")
     webauthn_proofing_version: str = Field(default="2024v1")
