@@ -39,7 +39,7 @@ class AcsResult:
     authn_ref: AuthnRequestRef
 
 
-class AuthnAPITestBase(EduidAPITestCase):
+class AuthnAPITestBase(EduidAPITestCase[AuthnApp]):
     """Test cases for the real eduid-authn app"""
 
     app: AuthnApp
@@ -309,7 +309,7 @@ class AuthnTestApp(AuthnBaseApp[AuthnConfig]):
         self.conf = config
 
 
-class UnAuthnAPITestCase(EduidAPITestCase):
+class UnAuthnAPITestCase(EduidAPITestCase[AuthnTestApp]):
     """Tests for a fictitious app based on AuthnBaseApp"""
 
     app: AuthnTestApp
@@ -350,7 +350,7 @@ class UnAuthnAPITestCase(EduidAPITestCase):
                 c.get("/")
 
 
-class NoAuthnAPITestCase(EduidAPITestCase):
+class NoAuthnAPITestCase(EduidAPITestCase[AuthnTestApp]):
     """Tests for a fictitious app based on AuthnBaseApp"""
 
     app: AuthnTestApp

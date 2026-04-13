@@ -2,6 +2,7 @@ import base64
 import json
 from http import HTTPStatus
 from io import BytesIO
+from typing import Any
 
 from hammock import Hammock
 
@@ -65,7 +66,7 @@ class Ekopost:
 
         return closed_campaign["id"]
 
-    def _create_campaign(self, name: str, output_date: str, cost_center: str) -> dict:
+    def _create_campaign(self, name: str, output_date: str, cost_center: str) -> dict[str, Any]:
         """
         Create a new campaign
 
@@ -85,7 +86,7 @@ class Ekopost:
 
     def _create_envelope(
         self, campaign_id: str, name: str, postage: str = "priority", plex: str = "simplex", color: str = "false"
-    ) -> dict:
+    ) -> dict[str, Any]:
         """
         Create an envelope for a specified campaign
 
@@ -116,7 +117,7 @@ class Ekopost:
         data: bytes,
         mime: str = "application/pdf",
         content_type: str = "document",
-    ) -> dict:
+    ) -> dict[str, Any]:
         """
         Create the content that should be linked to an envelope
 
@@ -148,7 +149,7 @@ class Ekopost:
 
         raise EkopostException(f"Ekopost exception: {response.status_code!s} {response.text!s}")
 
-    def _close_envelope(self, campaign_id: str, envelope_id: str) -> dict:
+    def _close_envelope(self, campaign_id: str, envelope_id: str) -> dict[str, Any]:
         """
         Change an envelope state to closed and mark it as ready for print & distribution.
         :param campaign_id: Unique id of a campaign within which the envelope exists
@@ -165,7 +166,7 @@ class Ekopost:
 
         raise EkopostException(f"Ekopost exception: {response.status_code!s} {response.text!s}")
 
-    def _close_campaign(self, campaign_id: str) -> dict:
+    def _close_campaign(self, campaign_id: str) -> dict[str, Any]:
         """
         Change a campains state to closed and mark it and all its
         envelopes as ready for print & distribution.

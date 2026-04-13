@@ -11,7 +11,7 @@ from eduid.webapp.support.app import SupportApp, support_init_app
 __author__ = "lundberg"
 
 
-class SupportAppTests(EduidAPITestCase):
+class SupportAppTests(EduidAPITestCase[SupportApp]):
     """Base TestCase for those tests that need a full environment setup"""
 
     app: SupportApp

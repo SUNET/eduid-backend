@@ -24,7 +24,7 @@ class MaxRetriesReached(Exception):
 class ErrorDetail(BaseModel):
     scimType: str | None = None
     schemas: list[str] = [SCIMSchema.ERROR.value]
-    detail: str | dict | list | None = None
+    detail: str | dict[str, Any] | list[Any] | None = None
     status: int | None = None
 
 
@@ -75,18 +75,18 @@ class HTTPErrorDetail(Exception):
             schemas = [SCIMSchema.ERROR.value]
 
         self._error_detail = ErrorDetail(scimType=scim_type, schemas=schemas, detail=detail, status=status_code)
-        self._extra_headers: dict | None = None
+        self._extra_headers: dict[str, str] | None = None
 
     @property
     def error_detail(self) -> ErrorDetail:
         return self._error_detail
 
     @property
-    def extra_headers(self) -> dict | None:
+    def extra_headers(self) -> dict[str, str] | None:
         return self._extra_headers
 
     @extra_headers.setter
-    def extra_headers(self, headers: dict) -> None:
+    def extra_headers(self, headers: dict[str, str]) -> None:
         self._extra_headers = headers
 
 

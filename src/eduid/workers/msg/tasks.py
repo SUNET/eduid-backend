@@ -32,7 +32,7 @@ logger: logging.Logger = get_task_logger(__name__)
 app = MsgCelerySingleton.celery
 
 
-class MessageSender(Task):
+class MessageSender(Task[Any, Any]):
     """
     Singleton that stores reusable objects.
     """
@@ -75,7 +75,9 @@ class MessageSender(Task):
         # Remove initiated cache dbs
         cls._cache_store = {}
 
-    def on_failure(self, exc: Exception, task_id: str, args: tuple, kwargs: dict, einfo: ExceptionInfo) -> None:
+    def on_failure(
+        self, exc: Exception, task_id: str, args: tuple[Any, ...], kwargs: dict[str, Any], einfo: ExceptionInfo
+    ) -> None:
         # Try to reload the db on connection failures (mongodb has probably switched master)
         if isinstance(exc, DBConnectionError):
             logger.error("Task failed with db exception ConnectionError. Reloading db.")
@@ -86,7 +88,7 @@ class MessageSender(Task):
         self,
         message_type: str,
         reference: str,
-        message_dict: dict,
+        message_dict: dict[str, Any],
         recipient: str,
         template: str,
         language: str,

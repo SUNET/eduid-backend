@@ -46,7 +46,7 @@ def register_template_funcs(app: SupportApp) -> None:
         return value.strftime(fmt)
 
     @app.template_filter("multisort")
-    def sort_multi(items: list, *operators: str, **kwargs: Any) -> list:
+    def sort_multi(items: list[Any], *operators: str, **kwargs: Any) -> list[Any]:
         # Don't try to sort on missing keys
         keys = list(operators)  # operators are immutable
         for key in operators:

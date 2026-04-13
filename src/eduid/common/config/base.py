@@ -26,15 +26,15 @@ class CeleryConfig(BaseModel):
     accept_content: list[str] = Field(default=["application/json"])
     broker_url: str = ""
     result_backend: str = "cache"
-    result_backend_transport_options: dict = Field(default={})
+    result_backend_transport_options: dict[str, Any] = Field(default={})
     cache_backend: str = "memory"
     task_serializer: str = "json"
     task_eager_propagates: bool = False
     task_always_eager: bool = False
     # backwards incompatible setting that the documentation says will be the default in the future
     broker_transport: str = ""
-    broker_transport_options: dict = Field(default={"fanout_prefix": True})
-    task_routes: dict = Field(
+    broker_transport_options: dict[str, Any] = Field(default={"fanout_prefix": True})
+    task_routes: dict[str, Any] = Field(
         default={
             "eduid.workers.am.*": {"queue": "am"},
             "eduid.workers.msg.*": {"queue": "msg"},
@@ -112,7 +112,7 @@ class CORSMixin(BaseModel):
     cors_methods: str | list[str] = ["GET", "HEAD", "POST", "OPTIONS", "PUT", "PATCH", "DELETE"]
     # The origin(s) to allow requests from. An origin configured here that matches the value of the Origin header in a
     # preflight OPTIONS request is returned as the value of the Access-Control-Allow-Origin response header.
-    cors_origins: str | list[str] | Pattern = [r"^eduid\.se$", r".*\.eduid\.se$"]
+    cors_origins: str | list[str] | Pattern[str] = [r"^eduid\.se$", r".*\.eduid\.se$"]
     # The series of regular expression and (optionally) associated CORS options to be applied to the given resource
     # path.
     # If the value is a dictionary, it’s keys must be regular expressions matching resources, and the values must be
@@ -121,7 +121,7 @@ class CORSMixin(BaseModel):
     # app-wide configured options are applied.
     # If the argument is a string, it is expected to be a regular expression matching resources for which the app-wide
     # configured options are applied.
-    cors_resources: dict[str | Pattern, CORSMixin] | list[str | Pattern] | str | Pattern = r"/*"
+    cors_resources: dict[str | Pattern[str], CORSMixin] | list[str | Pattern[str]] | str | Pattern[str] = r"/*"
     cors_send_wildcard: bool = False
     cors_supports_credentials: bool = True
     cors_vary_header: bool = True
@@ -165,7 +165,7 @@ class FlaskConfig(CORSMixin):
     # the name of the session cookie
     session_cookie_name: str = "sessid"
     # Sets a cookie with legacy SameSite=None, the SameSite key and value is omitted
-    cookies_samesite_compat: list = Field(default=[("sessid", "sessid_samesite_compat")])
+    cookies_samesite_compat: list[tuple[str, str]] = Field(default=[("sessid", "sessid_samesite_compat")])
     # the domain for the session cookie. If this is not set, the cookie will
     # be valid for all subdomains of SERVER_NAME.
     session_cookie_domain: str | None = None
@@ -226,7 +226,7 @@ class ProfilingConfig(BaseModel):
     """
 
     model_config = ConfigDict(arbitrary_types_allowed=True)  # allow IO type
-    stream: IO | None = None
+    stream: IO[str] | None = None
     sort_by: Iterable[str] = Field(default_factory=lambda: ("time", "calls"))
     restrictions: Iterable[str | int | float] = Field(default_factory=tuple)
     profile_dir: str | None = None
@@ -260,7 +260,7 @@ class LoggingConfigMixin(BaseModel):
     log_format: str = "{asctime} | {levelname:7} | {hostname} | {eppn:11} | {name:35} | {module:10} | {message}"
     log_level: str = "INFO"
     log_filters: Sequence[LoggingFilters] = Field(default=[LoggingFilters.NAMES, LoggingFilters.SESSION_USER])
-    logging_config: dict = Field(default={})
+    logging_config: dict[str, Any] = Field(default={})
 
 
 class StatsConfigMixin(BaseModel):

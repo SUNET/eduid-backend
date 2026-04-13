@@ -3,6 +3,7 @@ from collections.abc import Mapping
 from datetime import datetime, timedelta
 from io import BytesIO, StringIO
 from pathlib import Path
+from typing import Any
 
 from xhtml2pdf import pisa
 
@@ -16,7 +17,7 @@ class AddressFormatException(Exception):
     pass
 
 
-def format_address(recipient: Mapping) -> tuple:
+def format_address(recipient: Mapping[str, Any]) -> tuple[str, ...]:
     """
     :param recipient: official address
     :type recipient: OrderedDict

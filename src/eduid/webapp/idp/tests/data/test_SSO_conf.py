@@ -1,4 +1,5 @@
 import os
+from typing import Any
 
 from saml2 import BINDING_HTTP_POST, BINDING_HTTP_REDIRECT, BINDING_SOAP
 from saml2.saml import NAME_FORMAT_URI, NAMEID_FORMAT_PERSISTENT, NAMEID_FORMAT_TRANSIENT
@@ -100,7 +101,7 @@ CONFIG = {
 
 
 # SP config
-def get_sp_config(sp_base: str) -> dict:
+def get_sp_config(sp_base: str) -> dict[str, Any]:
     """
     Use this to change SP_BASE in config
     """

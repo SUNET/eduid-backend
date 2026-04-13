@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
 
-class TestNameSpaceBase(EduidAPITestCase):
+class TestNameSpaceBase(EduidAPITestCase[SessionTestApp]):
     app: SessionTestApp
 
     def load_app(self, config: Mapping[str, Any]) -> SessionTestApp:

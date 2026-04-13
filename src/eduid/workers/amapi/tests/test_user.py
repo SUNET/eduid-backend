@@ -34,7 +34,7 @@ class TestUsers(TestAMBase, GNAPBearerTokenMixin):
         assert audit_logs[0].source == self.source
         assert audit_logs[0].diff == self.as_json(diff)
 
-    def make_put_call(self, json_data: dict, oauth_header: Headers, endpoint: str | None = None) -> Response:
+    def make_put_call(self, json_data: dict[str, Any], oauth_header: Headers, endpoint: str | None = None) -> Response:
         response = self.client.put(
             url=self._make_url(endpoint),
             json=json_data,

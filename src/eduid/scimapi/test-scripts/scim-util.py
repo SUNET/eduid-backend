@@ -40,10 +40,10 @@ def parse_args() -> Args:
 
 
 def scim_request(
-    func: Callable,
+    func: Callable[..., Any],
     url: str,
-    data: dict | None = None,
-    headers: dict | None = None,
+    data: dict[str, Any] | None = None,
+    headers: dict[str, Any] | None = None,
     token: str | None = None,
     verify: bool = True,
 ) -> dict[str, Any] | None:
@@ -64,10 +64,10 @@ def scim_request(
 
 
 def _make_request(
-    func: Callable,
+    func: Callable[..., Any],
     url: str,
-    data: dict | None = None,
-    headers: dict | None = None,
+    data: dict[str, Any] | None = None,
+    headers: dict[str, Any] | None = None,
     verify: bool = True,
 ) -> requests.Response | None:
     r = func(url, json=data, headers=headers, verify=verify)

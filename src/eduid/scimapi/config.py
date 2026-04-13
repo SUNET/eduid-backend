@@ -1,4 +1,5 @@
 import logging
+from typing import Any
 
 from pydantic import BaseModel, Field, field_validator
 
@@ -19,7 +20,7 @@ class ScimApiConfig(AuthnBearerTokenConfig, LoggingConfigMixin, AWSMixin):
     """
 
     neo4j_uri: str = ""
-    neo4j_config: dict = Field(default_factory=dict)
+    neo4j_config: dict[str, Any] = Field(default_factory=dict)
     signing_key_id: str
     login_enabled: bool = False
     no_authn_urls: list[str] = Field(

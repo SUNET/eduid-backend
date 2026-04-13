@@ -70,7 +70,7 @@ def get_authn_request(
     authn_id: AuthnRequestRef,
     selected_idp: str | None,
     force_authn: bool = False,
-    req_authn_ctx: list | None = None,
+    req_authn_ctx: list[Any] | None = None,
     sign_alg: str | None = None,
     digest_alg: str | None = None,
     subject: Subject | None = None,
@@ -168,7 +168,7 @@ def get_authn_response(
     return response, authn_reqref
 
 
-def authenticate(session_info: SessionInfo, strip_suffix: str | None, userdb: UserDB) -> User | None:
+def authenticate(session_info: SessionInfo, strip_suffix: str | None, userdb: UserDB[User]) -> User | None:
     """
     Locate a user using the identity found in the SAML assertion.
 

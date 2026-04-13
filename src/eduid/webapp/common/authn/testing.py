@@ -1,5 +1,6 @@
 import logging
 from collections.abc import Sequence
+from typing import Any
 
 from eduid.vccs.client import VCCSFactor, VCCSPasswordFactor, VCCSRevokeFactor
 
@@ -51,13 +52,13 @@ class MockVCCSClient:
         return found
 
     def add_credentials(self, user_id: str, factors: Sequence[VCCSFactor]) -> bool:
-        user_factors: list = self.factors.get(str(user_id), [])
+        user_factors: list[Any] = self.factors.get(str(user_id), [])
         user_factors.extend(factors)
         self.factors[str(user_id)] = user_factors
         return True
 
     def revoke_credentials(self, user_id: str, revoked: Sequence[VCCSRevokeFactor]) -> bool:
-        stored: list | None = self.factors.get(user_id, None)
+        stored: list[Any] | None = self.factors.get(user_id, None)
         removed: bool = False
         if stored:  # Nothing stored in test client yet
             for rfactor in revoked:

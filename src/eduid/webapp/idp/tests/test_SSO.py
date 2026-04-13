@@ -3,6 +3,7 @@
 import logging
 from collections.abc import Mapping
 from datetime import UTC, datetime
+from typing import Any
 from uuid import uuid4
 
 import saml2.server
@@ -122,7 +123,7 @@ class SSOIdPTests(IdPAPITests):
 
     def _parse_SAMLRequest(
         self,
-        info: Mapping,
+        info: Mapping[str, Any],
         binding: str,
         idp: saml2.server.Server,
         debug: bool = False,

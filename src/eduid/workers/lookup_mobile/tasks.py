@@ -1,3 +1,5 @@
+from typing import Any
+
 from celery import Task
 from celery.utils.log import get_task_logger
 
@@ -10,7 +12,7 @@ logger = get_task_logger(__name__)
 app = MobCelerySingleton.celery
 
 
-class MobWorker(Task):
+class MobWorker(Task[Any, Any]):
     """Singleton that stores reusable objects like the MobileLookupClient"""
 
     abstract = True  # This means Celery won't register this as another task

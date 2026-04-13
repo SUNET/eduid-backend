@@ -51,7 +51,7 @@ def _demote_duplicate_phone(userdb: AmDB, user: User, number: str) -> None:
     userdb.save(user)
 
 
-def unverify_duplicates(userdb: AmDB, user_id: ObjectId, attributes: dict) -> dict[str, int]:
+def unverify_duplicates(userdb: AmDB, user_id: ObjectId, attributes: dict[str, Any]) -> dict[str, int]:
     """
     Checks supplied attributes for keys that should have only one user with that
     element verified.
@@ -165,8 +165,12 @@ def unverify_identities(userdb: AmDB, user_id: ObjectId, identities: list[dict[s
 
 
 def check_locked_identity(
-    userdb: AmDB, user_id: ObjectId, attributes: dict, app_name: str, replace_locked: IdentityType | None = None
-) -> dict:
+    userdb: AmDB,
+    user_id: ObjectId,
+    attributes: dict[str, Any],
+    app_name: str,
+    replace_locked: IdentityType | None = None,
+) -> dict[str, Any]:
     """
     :param userdb: Central userdb
     :param user_id: User document _id

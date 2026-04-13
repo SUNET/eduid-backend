@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 class Config:
     mongo_uri: str
     neo4j_uri: str | None = None
-    neo4j_config: dict = field(default_factory=dict)
+    neo4j_config: dict[str, Any] = field(default_factory=dict)
     only_configure_and_expose_scim: bool = False
     allow_users_not_in_database: Mapping[str, bool] = field(default_factory=lambda: {"default": False})
     fallback_data_owner: str | None = None

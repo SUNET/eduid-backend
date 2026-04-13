@@ -1,5 +1,6 @@
 __author__ = "lundberg"
 
+from typing import Any
 
 import pytest
 
@@ -50,7 +51,7 @@ class TestTransactionAudit(LookupMobileMongoTestCase):
         @TransactionAudit()
         def find_mobiles_by_nin(
             self: TestTransactionAudit, national_identity_number: str, number_region: str | None = None
-        ) -> list:
+        ) -> list[Any]:
             return []
 
         find_mobiles_by_nin(self, "200202025678")

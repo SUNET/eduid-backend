@@ -67,7 +67,7 @@ class MongoNeoTestCase(BaseDBTestCase):
     neo4j_instance: Neo4jTemporaryInstance
     neo4j_uri: str
 
-    def _get_config(self) -> dict:
+    def _get_config(self) -> dict[str, Any]:
         config = super()._get_config()
         config.update(
             {
@@ -137,7 +137,7 @@ class ScimApiTestCase(MongoNeoTestCase):
         for dbs in self.context._dbs.values():
             dbs.groupdb.graphdb.db.close()
 
-    def _get_config(self) -> dict:
+    def _get_config(self) -> dict[str, Any]:
         config = super()._get_config()
         config["keystore_path"] = f"{self.datadir}/testing_jwks.json"
         config["signing_key_id"] = "testing-scimapi-2106210000"

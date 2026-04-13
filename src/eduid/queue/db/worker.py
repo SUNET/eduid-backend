@@ -34,7 +34,7 @@ class AsyncQueueDB(AsyncBaseDB, QueuePayloadMixin):
         await instance.setup_indexes(indexes)
         return instance
 
-    def parse_queue_item(self, doc: Mapping, parse_payload: bool = True) -> QueueItem:
+    def parse_queue_item(self, doc: Mapping[str, Any], parse_payload: bool = True) -> QueueItem:
         item = QueueItem.from_dict(doc)
         if parse_payload is False:
             # Return the item with the generic RawPayload
@@ -95,7 +95,7 @@ class AsyncQueueDB(AsyncBaseDB, QueuePayloadMixin):
 
     async def find_items(
         self, processed: bool, min_age_in_seconds: int | None = None, expired: bool | None = None
-    ) -> list:
+    ) -> list[Any]:
         # TODO: Add registered payload types to spec
         spec: dict[str, Any] = {}
         if not processed:

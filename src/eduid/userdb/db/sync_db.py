@@ -27,9 +27,9 @@ class MongoClientCache:
     A cache for pymongo.MongoClient instances.
     """
 
-    _clients: ClassVar[dict[str, pymongo.MongoClient]] = {}
+    _clients: ClassVar[dict[str, pymongo.MongoClient[Any]]] = {}
 
-    def get_client(self, db: BaseMongoDB) -> pymongo.MongoClient:
+    def get_client(self, db: BaseMongoDB) -> pymongo.MongoClient[Any]:
         db_args = db.db_args
         connection_uri: str = db_args["host"]
         if connection_uri in self._clients:

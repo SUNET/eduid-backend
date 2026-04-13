@@ -20,7 +20,7 @@ class EventApiResult:
     response: Response
     event: NutidEventExtensionV1
     parsed_response: EventResponse
-    request: Mapping | None = None
+    request: Mapping[str, Any] | None = None
 
 
 class TestEventResource(ScimApiTestCase):
@@ -49,7 +49,7 @@ class TestEventResource(ScimApiTestCase):
         parsed_response = EventResponse.model_validate_json(response.text)
         return EventApiResult(event=parsed_response.nutid_event_v1, response=response, parsed_response=parsed_response)
 
-    def _assertEventUpdateSuccess(self, req: Mapping, response: Response, event: ScimApiEvent) -> None:
+    def _assertEventUpdateSuccess(self, req: Mapping[str, Any], response: Response, event: ScimApiEvent) -> None:
         """Function to validate successful responses to SCIM calls that update a event according to a request."""
 
         if response.json().get("schemas") == [SCIMSchema.ERROR.value]:

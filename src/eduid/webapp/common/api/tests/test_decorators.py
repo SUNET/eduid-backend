@@ -36,7 +36,7 @@ def flask_view(ret: FluxData) -> FluxData:
     return ret
 
 
-class MarshalDecoratorTests(EduidAPITestCase):
+class MarshalDecoratorTests(EduidAPITestCase[DecoratorTestApp]):
     app: DecoratorTestApp
 
     def load_app(self, config: Mapping[str, Any]) -> DecoratorTestApp:

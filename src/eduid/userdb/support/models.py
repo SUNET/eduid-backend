@@ -7,7 +7,7 @@ __author__ = "lundberg"
 
 
 # Models for filtering out unneeded or unwanted data from eduID database objects
-class GenericFilterDict(dict):
+class GenericFilterDict(dict[str, Any]):
     add_keys: ClassVar[list[str] | None] = None
     remove_keys: ClassVar[list[str] | None] = None
 

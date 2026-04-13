@@ -21,7 +21,9 @@ from eduid.vccs.server.log import InterceptHandler, init_logging
 
 
 class VCCS_API(FastAPI):
-    def __init__(self, test_config: Mapping[str, Any] | None = None, lifespan: Callable | None = None) -> None:
+    def __init__(
+        self, test_config: Mapping[str, Any] | None = None, lifespan: Callable[..., Any] | None = None
+    ) -> None:
         print("vccs_api is starting", file=sys.stderr)
         super().__init__(lifespan=lifespan)
 

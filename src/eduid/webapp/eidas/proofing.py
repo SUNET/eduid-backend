@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from datetime import UTC, datetime
+from typing import Any
 
 from eduid.common.config.base import ProofingConfigMixin
 from eduid.common.rpc.exceptions import AmTaskFailed
@@ -342,7 +343,7 @@ def get_proofing_functions(
     app_name: str,
     config: ProofingConfigMixin,
     backdoor: bool,
-) -> ProofingFunctions:
+) -> ProofingFunctions[Any]:
     if isinstance(session_info, NinSessionInfo):
         return FrejaProofingFunctions(session_info=session_info, app_name=app_name, config=config, backdoor=backdoor)
     elif isinstance(session_info, ForeignEidSessionInfo):

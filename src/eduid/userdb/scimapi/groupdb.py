@@ -35,7 +35,7 @@ class GroupExtensions:
         return asdict(self)
 
     @classmethod
-    def from_mapping(cls: type[Self], data: Mapping) -> Self:
+    def from_mapping(cls: type[Self], data: Mapping[str, Any]) -> Self:
         return cls(
             data=data.get("data", {}),
         )

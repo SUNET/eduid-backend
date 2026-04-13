@@ -1,4 +1,5 @@
 from dataclasses import replace
+from typing import Any
 
 import pytest
 from bson import ObjectId
@@ -17,12 +18,12 @@ class TestGroupDB(Neo4jTestCase):
     def setup(self, setup_neo4j: None) -> None:
         self.db_config = {"encrypted": False, "auth": basic_auth("neo4j", "testingtesting")}
         self.group_db = GroupDB(db_uri=self.neo4jdb.db_uri, scope="__testing__", config=self.db_config)
-        self.group1: dict[str, str | list | None] = {
+        self.group1: dict[str, str | list[Any] | None] = {
             "identifier": "test1",
             "version": None,
             "display_name": "Test Group 1",
         }
-        self.group2: dict[str, str | list | None] = {
+        self.group2: dict[str, str | list[Any] | None] = {
             "identifier": "test2",
             "version": None,
             "display_name": "Test Group 2",

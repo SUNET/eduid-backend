@@ -403,7 +403,7 @@ class TestAuthnUserResource(ScimApiTestUserResourceBase):
     def setup(self) -> None:
         self.test_profile = ScimApiProfile(attributes={"displayName": "Test User 1"}, data={"test_key": "test_value"})
 
-    def _get_config(self) -> dict:
+    def _get_config(self) -> dict[str, Any]:
         config = super()._get_config()
         config["keystore_path"] = f"{self.datadir}/testing_jwks.json"
         config["signing_key_id"] = "testing-scimapi-2106210000"

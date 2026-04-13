@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from typing import Any
 
 from eduid.common.config.base import ProofingConfigMixin
 from eduid.common.models.saml_models import BaseSessionInfo
@@ -143,7 +144,7 @@ def get_proofing_functions(
     app_name: str,
     config: ProofingConfigMixin,
     backdoor: bool,
-) -> ProofingFunctions:
+) -> ProofingFunctions[Any]:
     if isinstance(session_info, BankIDSessionInfo):
         return BankIDProofingFunctions(session_info=session_info, app_name=app_name, config=config, backdoor=backdoor)
     else:

@@ -66,7 +66,7 @@ class EmailTests(EduidAPITestCase[EmailApp]):
 
     # Parameterized test methods
 
-    def _get_all_emails(self) -> dict:
+    def _get_all_emails(self) -> dict[str, Any]:
         """
         GET a list with all the email addresses of the test user
         """
