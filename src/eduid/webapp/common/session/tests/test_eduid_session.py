@@ -197,10 +197,10 @@ class EduidSessionTests(EduidAPITestCase[SessionTestApp]):
             keyvalues = cookie[1].split(";")
             for keyvalue in keyvalues:
                 value = keyvalue.split("=")
-                if value == self.app.conf.flask.session_cookie_name:
-                    assert value == ""
-                elif value == "expires":
-                    assert value == "Thu, 01-Jan-1970 00:00:00 GMT"
+                if value[0].strip() == self.app.conf.flask.session_cookie_name:
+                    assert value[1] == ""
+                elif value[0].strip() == "expires":
+                    assert value[1] == "Thu, 01 Jan 1970 00:00:00 GMT"
 
     def _test_bad_session_cookie(self, bad_cookie_value: str) -> None:
         with self.browser as browser:
