@@ -398,6 +398,4 @@ class User(BaseModel):
         Parse the Profile elements.
         """
         profiles = data.pop("profiles", [])
-        if isinstance(profiles, list):
-            return ProfileList.from_list_of_dicts(profiles)
-        return cast(ProfileList, profiles)
+        return ProfileList.from_list_of_dicts(profiles)
