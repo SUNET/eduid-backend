@@ -1,3 +1,4 @@
+from typing import cast
 from uuid import UUID
 
 from flask import Blueprint
@@ -77,7 +78,7 @@ def create_group(user: User, display_name: str) -> FluxData:
 
     current_app.logger.info(f"Created ScimApiGroup with scim_id: {group.scim_id}")
     current_app.stats.count(name="group_created")
-    return get_groups()
+    return cast(FluxData, get_groups())
 
 
 @group_management_views.route("/delete", methods=["POST"])
@@ -101,7 +102,7 @@ def delete_group(user: User, group_identifier: UUID) -> FluxData:
             current_app.invite_state_db.remove_state(state)
         current_app.logger.info(f"Deleted ScimApiGroup with scim_id: {group.scim_id}")
         current_app.stats.count(name="group_deleted")
-    return get_groups()
+    return cast(FluxData, get_groups())
 
 
 @group_management_views.route("/remove-user", methods=["POST"])
@@ -146,4 +147,4 @@ def remove_user(user: User, group_identifier: UUID, user_identifier: UUID, role:
         current_app.stats.count(name=f"{role.value}_left_group")
     else:
         current_app.stats.count(name=f"{role.value}_removed_from_group")
-    return get_groups()
+    return cast(FluxData, get_groups())
