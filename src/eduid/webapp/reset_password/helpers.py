@@ -352,7 +352,7 @@ def reset_user_password(
     return success_response(message=ResetPwMsg.pw_reset_success)
 
 
-def get_extra_security_alternatives(user: User) -> dict:
+def get_extra_security_alternatives(user: User) -> dict[str, Any]:
     """
     :param user: The user
     :return: Dict of alternatives
@@ -389,7 +389,7 @@ def get_extra_security_alternatives(user: User) -> dict:
     return alternatives
 
 
-def mask_alternatives(alternatives: dict) -> dict:
+def mask_alternatives(alternatives: dict[str, Any]) -> dict[str, Any]:
     """
     :param alternatives: Extra security alternatives collected from user
     :return: Masked extra security alternatives

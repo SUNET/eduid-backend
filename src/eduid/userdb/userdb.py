@@ -464,7 +464,7 @@ class AmDB(UserDB[User]):
         return count
 
 
-class AutoExpiringUserDB[UserVar](UserDB):
+class AutoExpiringUserDB[UserVar](UserDB[UserVar]):
     """
     This should be used for all private userdbs as we only need to keep
     the user around for the sync to am and for any debugging.

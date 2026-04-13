@@ -6,6 +6,7 @@ from asyncio import CancelledError, Task
 from collections.abc import Sequence
 from dataclasses import replace
 from os import environ
+from typing import Any
 
 from eduid.common.logging import init_logging
 from eduid.common.misc.timeutil import utc_now
@@ -20,7 +21,7 @@ __author__ = "lundberg"
 logger = logging.getLogger(__name__)
 
 
-def cancel_task(signame: str, task: Task) -> None:
+def cancel_task(signame: str, task: Task[Any]) -> None:
     logger.info(f"got signal {signame}: exit")
     task.cancel()
 
@@ -39,7 +40,7 @@ class QueueWorker:
         logger.info(f"Starting {self.config.app_name}: {self.worker_name}...")
 
     @staticmethod
-    def add_task(tasks: set[Task], task: Task) -> set[Task]:
+    def add_task(tasks: set[Task[None]], task: Task[None]) -> set[Task[None]]:
         # To prevent keeping references to finished tasks forever, make each task remove its own reference
         # from the set after completion.
         task.add_done_callback(tasks.discard)
@@ -127,7 +128,7 @@ class QueueWorker:
 
     async def watch_collection(self) -> None:
         change_stream = None
-        tasks: set[Task] = set()
+        tasks: set[Task[None]] = set()
         try:
             async with self.db.collection.watch() as change_stream:
                 async for change in change_stream:
@@ -151,7 +152,7 @@ class QueueWorker:
                 await asyncio.gather(*tasks)
 
     async def periodic_collection_check(self) -> None:
-        tasks: set[Task] = set()
+        tasks: set[Task[None]] = set()
         try:
             while True:
                 logger.debug("Running periodic collection check")
@@ -170,13 +171,13 @@ class QueueWorker:
             logger.info("Cleaning up periodic_collection_check task...")
             await asyncio.gather(*tasks)
 
-    async def collect_periodic_tasks(self) -> set[Task]:
+    async def collect_periodic_tasks(self) -> set[Task[None]]:
         tasks = await self.collect_forgotten_items()
         tasks.update(await self.collect_expired_items())
         return tasks
 
-    async def collect_forgotten_items(self) -> set[Task]:
-        tasks: set[Task] = set()
+    async def collect_forgotten_items(self) -> set[Task[None]]:
+        tasks: set[Task[None]] = set()
         # Check for forgotten untouched queue items
         items = await self.db.find_items(
             processed=False, min_age_in_seconds=self.config.periodic_min_retry_wait_in_seconds, expired=False
@@ -191,8 +192,8 @@ class QueueWorker:
             )
         return tasks
 
-    async def collect_expired_items(self) -> set[Task]:
-        tasks: set[Task] = set()
+    async def collect_expired_items(self) -> set[Task[None]]:
+        tasks: set[Task[None]] = set()
         # Check for expired untouched queue items
         items = await self.db.find_items(
             processed=False, min_age_in_seconds=self.config.periodic_min_retry_wait_in_seconds, expired=True

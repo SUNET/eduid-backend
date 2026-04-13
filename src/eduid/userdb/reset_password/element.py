@@ -53,7 +53,9 @@ class CodeElement(Element):
         return expiry_date < now
 
     @classmethod
-    def parse(cls: type[CodeElement], code_or_element: Mapping | CodeElement | str, application: str) -> CodeElement:
+    def parse(
+        cls: type[CodeElement], code_or_element: Mapping[str, Any] | CodeElement | str, application: str
+    ) -> CodeElement:
         if isinstance(code_or_element, str):
             return cls(created_by=application, code=code_or_element, is_verified=False)
         if isinstance(code_or_element, dict):

@@ -80,7 +80,7 @@ def session_init_app(name: str, test_config: Mapping[str, Any]) -> SessionTestAp
     return app
 
 
-class EduidSessionTests(EduidAPITestCase):
+class EduidSessionTests(EduidAPITestCase[SessionTestApp]):
     app: SessionTestApp
 
     @pytest.fixture(autouse=True)

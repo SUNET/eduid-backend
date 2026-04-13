@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from dataclasses import dataclass, field
 from datetime import datetime
+from typing import Any
 
 from bson import ObjectId
 
@@ -76,7 +77,7 @@ class Group:
         return identifier in [owner.identifier for owner in self.owners]
 
     @classmethod
-    def from_mapping(cls, data: Mapping) -> Group:
+    def from_mapping(cls, data: Mapping[str, Any]) -> Group:
         dt = neo4j_ts_to_dt(data)
         version = data.get("version")
         if version is not None:

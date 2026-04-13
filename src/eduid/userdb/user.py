@@ -66,7 +66,7 @@ class User(BaseModel):
     orcid: Orcid | None = None
     ladok: Ladok | None = None
     profiles: ProfileList = Field(default_factory=ProfileList)
-    letter_proofing_data: list | dict | None = None  # remove dict after a full load-save-users
+    letter_proofing_data: list[Any] | dict[str, Any] | None = None  # remove dict after a full load-save-users
     revoked_ts: datetime | None = None
     preferences: UserPreferences = Field(default_factory=UserPreferences)
     model_config = ConfigDict(

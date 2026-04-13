@@ -137,7 +137,7 @@ class QueueAsyncioTest(EduidQueueTestCase):
 
     @pytest_asyncio.fixture(autouse=True)
     async def setup_asyncio_queue(self, setup_queue: None, isolated_async_client_cache: None) -> AsyncIterator[None]:
-        self.tasks: list[Task] = []
+        self.tasks: list[Task[Any]] = []
         await self._init_async_db()
         yield
         for task in self.tasks:

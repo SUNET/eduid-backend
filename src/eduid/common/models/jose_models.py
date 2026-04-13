@@ -100,7 +100,7 @@ class JOSEHeader(BaseModel):
     x5tS256: str | None = Field(default=None, alias="x5t#S256")
     typ: str | None = None
     cty: str | None = None
-    crit: list | None = None
+    crit: list[str] | None = None
 
 
 class RegisteredClaims(BaseModel):

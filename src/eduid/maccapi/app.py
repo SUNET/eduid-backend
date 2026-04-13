@@ -1,3 +1,5 @@
+from typing import Any
+
 from fastapi import FastAPI
 from starlette.middleware.cors import CORSMiddleware
 
@@ -13,7 +15,7 @@ from eduid.vccs.client import VCCSClient
 
 class MAccAPI(FastAPI):
     def __init__(
-        self, name: str = "maccapi", test_config: dict | None = None, vccs_client: VCCSClient | None = None
+        self, name: str = "maccapi", test_config: dict[str, Any] | None = None, vccs_client: VCCSClient | None = None
     ) -> None:
         self.config = load_config(typ=MAccApiConfig, app_name=name, ns="api", test_config=test_config)
         super().__init__(root_path=self.config.application_root)
@@ -21,7 +23,9 @@ class MAccAPI(FastAPI):
         self.context.logger.info(f"Starting {name} app")
 
 
-def init_api(name: str = "maccapi", test_config: dict | None = None, vccs_client: VCCSClient | None = None) -> MAccAPI:
+def init_api(
+    name: str = "maccapi", test_config: dict[str, Any] | None = None, vccs_client: VCCSClient | None = None
+) -> MAccAPI:
     """
     Initialize the API.
     """

@@ -95,7 +95,7 @@ def merge_group_lists(owner_groups: list[ScimApiGroup], member_groups: list[Scim
     return list(combined_groups.values())
 
 
-def list_of_group_data(group_list: list[UserGroup]) -> list[dict]:
+def list_of_group_data(group_list: list[UserGroup]) -> list[dict[str, Any]]:
     ret = []
     for group in group_list:
         members = [{"identifier": member.identifier, "display_name": member.display_name} for member in group.members]

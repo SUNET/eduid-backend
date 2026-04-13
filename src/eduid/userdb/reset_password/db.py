@@ -91,7 +91,9 @@ class ResetPasswordStateDB(BaseDB):
         return None
 
     @staticmethod
-    def init_state(state_mapping: Mapping) -> ResetPasswordEmailState | ResetPasswordEmailAndPhoneState | None:
+    def init_state(
+        state_mapping: Mapping[str, Any],
+    ) -> ResetPasswordEmailState | ResetPasswordEmailAndPhoneState | None:
         state = dict(state_mapping)
         if state.get("method") == "email":
             return ResetPasswordEmailState.from_dict(data=state)

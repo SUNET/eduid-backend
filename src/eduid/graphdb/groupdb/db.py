@@ -406,17 +406,17 @@ class GroupDB(BaseGraphDB):
         saved_group = replace(saved_group, members=saved_members, owners=saved_owners)
         return saved_group
 
-    def _load_node(self, data: dict | Node) -> User | Group:
+    def _load_node(self, data: dict[str, Any] | Node) -> User | Group:
         if data.get("scope"):
             return self._load_group(data=data)
         return self._load_user(data=data)
 
     @staticmethod
-    def _load_group(data: dict | Node) -> Group:
+    def _load_group(data: dict[str, Any] | Node) -> Group:
         """Method meant to be overridden by subclasses wanting to annotate the group."""
         return Group.from_mapping(data)
 
     @staticmethod
-    def _load_user(data: dict | Node) -> User:
+    def _load_user(data: dict[str, Any] | Node) -> User:
         """Method meant to be overridden by subclasses wanting to annotate the user."""
         return User.from_mapping(data)

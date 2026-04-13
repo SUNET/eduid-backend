@@ -47,7 +47,7 @@ class ContextRequestRoute(APIRoute, ContextRequestMixin):
     # Override in subclass to change the default context class
     contextClass: type[Context] = Context
 
-    def get_route_handler(self) -> Callable:
+    def get_route_handler(self) -> Callable[..., Any]:
         original_route_handler = super().get_route_handler()
 
         async def context_route_handler(request: Request | ContextRequest) -> Response:

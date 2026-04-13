@@ -9,7 +9,7 @@ class AmConfig(WorkerConfig):
     """
 
     new_user_date: str = "2001-01-01"
-    action_plugins: list = Field(default_factory=lambda: ["tou"])
+    action_plugins: list[str] = Field(default_factory=lambda: ["tou"])
 
 
 class MsgConfig(WorkerConfig):

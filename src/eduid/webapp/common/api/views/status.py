@@ -16,7 +16,7 @@ from eduid.webapp.common.api.utils import get_from_current_app
 if TYPE_CHECKING:
     from eduid.webapp.common.api.app import EduIDBaseApp
 
-    current_app = cast(EduIDBaseApp, flask_current_app)
+    current_app = cast(EduIDBaseApp[EduIDBaseAppConfig], flask_current_app)
 else:
     current_app = flask_current_app
 

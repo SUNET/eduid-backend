@@ -382,7 +382,7 @@ class VCCSClient:
             raise TypeError(f"Operation success value type error : {success!r}")
         return success is True
 
-    def _execute(self, data: str, response_label: str) -> dict:
+    def _execute(self, data: str, response_label: str) -> dict[str, Any]:
         """
         Make a HTTP POST request to the authentication backend, and parse the result.
 

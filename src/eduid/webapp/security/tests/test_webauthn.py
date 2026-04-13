@@ -100,7 +100,7 @@ CREDENTIAL_ID_2 = (
 )
 
 
-class SecurityWebauthnTests(EduidAPITestCase):
+class SecurityWebauthnTests(EduidAPITestCase[SecurityApp]):
     app: SecurityApp
 
     @pytest.fixture(autouse=True)
@@ -195,17 +195,17 @@ class SecurityWebauthnTests(EduidAPITestCase):
         assert webauthn_state["user_verification"] == UserVerificationRequirement.PREFERRED.value
         assert "challenge" in webauthn_state
 
-    def _check_registration_begun(self, data: dict) -> None:
+    def _check_registration_begun(self, data: dict[str, Any]) -> None:
         assert data["type"] == "POST_WEBAUTHN_WEBAUTHN_REGISTER_BEGIN_SUCCESS"
         assert "registration_data" in data["payload"]
         assert "csrf_token" in data["payload"]
 
-    def _check_registration_complete(self, data: dict) -> None:
+    def _check_registration_complete(self, data: dict[str, Any]) -> None:
         assert data["type"] == "POST_WEBAUTHN_WEBAUTHN_REGISTER_COMPLETE_SUCCESS"
         assert len(data["payload"]["credentials"]) > 0
         assert data["payload"]["message"] == "security.webauthn_register_success"
 
-    def _check_removal(self, data: dict, user_token: Webauthn) -> None:
+    def _check_removal(self, data: dict[str, Any], user_token: Webauthn) -> None:
         assert data["type"] == "POST_WEBAUTHN_WEBAUTHN_REMOVE_SUCCESS"
         assert data["payload"]["credentials"] is not None
         for credential in data["payload"]["credentials"]:
@@ -273,7 +273,7 @@ class SecurityWebauthnTests(EduidAPITestCase):
         self,
         client_data: bytes,
         attestation: bytes,
-        state: dict,
+        state: dict[str, Any],
         cred_id: str,
         existing_legacy_token: bool = False,
         csrf: str | None = None,
@@ -341,10 +341,10 @@ class SecurityWebauthnTests(EduidAPITestCase):
         self,
         client_data: bytes,
         attestation: bytes,
-        state: dict,
+        state: dict[str, Any],
         client_data_2: bytes,
         attestation_2: bytes,
-        state_2: dict,
+        state_2: dict[str, Any],
         existing_legacy_token: bool = False,
         csrf: str | None = None,
     ) -> tuple[Webauthn, TestResponse]:

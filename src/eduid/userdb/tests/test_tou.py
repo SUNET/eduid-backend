@@ -1,5 +1,6 @@
 import copy
 from datetime import datetime, timedelta
+from typing import Any
 from uuid import uuid4
 
 import bson
@@ -49,7 +50,7 @@ _three_dict = {
 class TestToUEvent:
     @pytest.fixture(autouse=True)
     def setup(self) -> None:
-        self.empty: EventList = EventList()
+        self.empty: EventList[Any] = EventList()
         self.one = ToUList.from_list_of_dicts([_one_dict])
         self.two = ToUList.from_list_of_dicts([_one_dict, _two_dict])
         self.three = ToUList.from_list_of_dicts([_one_dict, _two_dict, _three_dict])

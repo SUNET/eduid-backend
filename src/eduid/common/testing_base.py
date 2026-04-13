@@ -49,7 +49,7 @@ def normalised_data[SomeData: dict[str, Any] | list[Any]](
     """Utility function for normalising data before comparisons in test cases."""
 
     class NormaliseEncoder(json.JSONEncoder):
-        def default(self, o: object) -> Iterable:
+        def default(self, o: object) -> Iterable[Any]:
             if isinstance(o, datetime):
                 if replace_datetime is not None:
                     return replace_datetime
@@ -78,7 +78,7 @@ def normalised_data[SomeData: dict[str, Any] | list[Any]](
         def __init__(self, **kwargs: Any) -> None:
             super().__init__(object_hook=self.object_hook, **kwargs)
 
-        def object_hook(self, o: dict) -> dict[str, Any]:
+        def object_hook(self, o: dict[str, Any]) -> dict[str, Any]:
             """
             Decode any keys ending in _ts to datetime objects.
 

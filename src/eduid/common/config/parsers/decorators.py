@@ -11,7 +11,7 @@ __author__ = "lundberg"
 from eduid.common.config.parsers.exceptions import SecretKeyException
 
 
-def decrypt(f: Callable) -> Callable:
+def decrypt(f: Callable[..., Mapping[str, Any]]) -> Callable[..., Mapping[str, Any]]:
     @wraps(f)
     def decrypt_decorator(*args: Any, **kwargs: Any) -> Mapping[str, Any]:
         config_dict = f(*args, **kwargs)
@@ -50,8 +50,8 @@ def decrypt_config(config_dict: Mapping[str, Any]) -> Mapping[str, Any]:
     :param config_dict: Configuration dictionary
     :return: Configuration dictionary
     """
-    boxes: dict = {}
-    new_config_dict: dict = {}
+    boxes: dict[str, secret.SecretBox] = {}
+    new_config_dict: dict[str, Any] = {}
     for key, value in config_dict.items():
         if key.lower().endswith("_encrypted"):
             decrypted = False
@@ -83,10 +83,10 @@ def decrypt_config(config_dict: Mapping[str, Any]) -> Mapping[str, Any]:
     return new_config_dict
 
 
-def interpolate(f: Callable) -> Callable:
+def interpolate(f: Callable[..., Mapping[str, Any]]) -> Callable[..., dict[str, Any]]:
     @wraps(f)
     def interpolation_decorator(*args: Any, **kwargs: Any) -> dict[str, Any]:
-        config_dict = f(*args, **kwargs)
+        config_dict = dict(f(*args, **kwargs))
         interpolated_config_dict = interpolate_config(config_dict)
         for key in list(interpolated_config_dict.keys()):
             if key.lower().startswith("var_"):
@@ -96,7 +96,7 @@ def interpolate(f: Callable) -> Callable:
     return interpolation_decorator
 
 
-def interpolate_list(config_dict: dict[str, Any], sub_list: list) -> list:
+def interpolate_list(config_dict: dict[str, Any], sub_list: list[Any]) -> list[Any]:
     """
     :param config_dict: Configuration dictionary
     :param sub_list: Sub configuration list

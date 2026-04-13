@@ -245,7 +245,7 @@ class TestInviteResource(ScimApiTestCase):
         return db_invite
 
     def _assertUpdateSuccess(
-        self, req: Mapping, response: Response, invite: ScimApiInvite, signup_invite: SignupInvite
+        self, req: Mapping[str, Any], response: Response, invite: ScimApiInvite, signup_invite: SignupInvite
     ) -> None:
         """Function to validate successful responses to SCIM calls that update an invite according to a request."""
         if response.json().get("schemas") == [SCIMSchema.ERROR.value]:
@@ -293,7 +293,7 @@ class TestInviteResource(ScimApiTestCase):
         expected_invite: ScimApiInvite | None = None,
         expected_num_resources: int | None = None,
         expected_total_results: int | None = None,
-    ) -> dict:
+    ) -> dict[str, Any]:
         logger.info(f"Searching for group(s) using filter {search_filter!r}")
         req = {
             "schemas": [SCIMSchema.API_MESSAGES_20_SEARCH_REQUEST.value],

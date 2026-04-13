@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import datetime
+from typing import Any
 
 from eduid.graphdb.helpers import neo4j_ts_to_dt
 
@@ -17,7 +18,7 @@ class User:
     modified_ts: datetime | None = None
 
     @classmethod
-    def from_mapping(cls, data: Mapping) -> User:
+    def from_mapping(cls, data: Mapping[str, Any]) -> User:
         dt = neo4j_ts_to_dt(data)
         return cls(
             identifier=data["identifier"],

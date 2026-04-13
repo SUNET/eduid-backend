@@ -15,7 +15,7 @@ class LoggingTestApp(EduIDBaseApp[EduIDBaseAppConfig]):
     pass
 
 
-class LoggingTest(EduidAPITestCase):
+class LoggingTest(EduidAPITestCase[LoggingTestApp]):
     app: LoggingTestApp
 
     def load_app(self, config: Mapping[str, Any]) -> LoggingTestApp:

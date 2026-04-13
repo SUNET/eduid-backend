@@ -43,5 +43,5 @@ class TestAMBase(CommonTestCase):
         return config
 
     @staticmethod
-    def as_json(data: dict) -> str:
+    def as_json(data: dict[str, Any]) -> str:
         return json.dumps(data)

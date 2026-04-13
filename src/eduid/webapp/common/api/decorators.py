@@ -142,7 +142,7 @@ class MarshalWith:
     def __init__(self, schema: type[Schema]) -> None:
         self.schema = schema
 
-    def __call__(self, f: EduidRouteCallable) -> Callable:
+    def __call__(self, f: EduidRouteCallable) -> Callable[..., Any]:
         @wraps(f)
         def marshal_decorator(*args: Any, **kwargs: Any) -> Response:
             # Call the Flask view, which is expected to return a FluxData instance,
@@ -187,7 +187,7 @@ class UnmarshalWith:
     def __init__(self, schema: type[Schema]) -> None:
         self.schema = schema
 
-    def __call__(self, f: EduidRouteCallable) -> Callable:
+    def __call__(self, f: EduidRouteCallable) -> Callable[..., Any]:
         @wraps(f)
         def unmarshal_decorator(*args: Any, **kwargs: Any) -> ResponseReturnValue:
             flux_logger.debug("")

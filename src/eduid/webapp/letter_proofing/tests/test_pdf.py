@@ -133,7 +133,7 @@ class FormatAddressTest:
                 pdf.format_address(response)
 
 
-class CreatePDFTest(EduidAPITestCase):
+class CreatePDFTest(EduidAPITestCase[LetterProofingApp]):
     def load_app(self, config: dict[str, Any]) -> LetterProofingApp:
         """
         Called from the parent class, so we can provide the appropriate flask

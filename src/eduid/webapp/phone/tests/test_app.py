@@ -44,7 +44,7 @@ class PhoneTests(EduidAPITestCase[PhoneApp]):
 
     # parameterized test methods
 
-    def _get_all_phone(self, eppn: str | None = None) -> dict:
+    def _get_all_phone(self, eppn: str | None = None) -> dict[str, Any]:
         """
         GET all phone data for some user
 

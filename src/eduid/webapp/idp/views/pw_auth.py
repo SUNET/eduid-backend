@@ -70,7 +70,7 @@ def pw_auth(
         try:
             save_and_sync_user(
                 credential_user,
-                private_userdb=current_app.credential_db,
+                private_userdb=current_app.credential_db,  # type: ignore[arg-type]
                 app_name_override="eduid_idp",
             )
             current_app.logger.info(f"Saved credential changes for user {pwauth.user}")

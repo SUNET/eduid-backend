@@ -214,7 +214,7 @@ class TestPasswordV2Upgrade(IdPAPITests):
             credential_user = CredentialUser.from_user(pwauth.user, self.app.credential_db)
             save_and_sync_user(
                 credential_user,
-                private_userdb=self.app.credential_db,
+                private_userdb=self.app.credential_db,  # type: ignore[arg-type]
                 app_name_override="eduid_idp",
             )
 
