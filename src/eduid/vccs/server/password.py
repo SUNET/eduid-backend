@@ -1,5 +1,4 @@
 from binascii import unhexlify
-from typing import cast
 
 from ndnkdf import NDNKDF
 
@@ -106,4 +105,4 @@ async def calculate_cred_hash(
 
     # PBKDF2 again with iter=1 to mix in the local_salt into the final H2.
     H2 = kdf.pbkdf2_hmac_sha512(T2, 1, local_salt)
-    return cast(str, H2.hex())
+    return H2.hex()

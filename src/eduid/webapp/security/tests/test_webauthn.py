@@ -387,17 +387,17 @@ class SecurityWebauthnTests(EduidAPITestCase[SecurityApp]):
         self: FidoMetadataStore, attestation: Attestation, client_data: bytes
     ) -> bool:
         if attestation.fmt is AttestationFormat.PACKED:
-            return cast(bool, self.verify_packed_attestation(attestation=attestation, client_data=client_data))
+            return self.verify_packed_attestation(attestation=attestation, client_data=client_data)
         if attestation.fmt is AttestationFormat.APPLE:
             # apple attestation cert in fido_mds test data is only valid for three days
             return True
         if attestation.fmt is AttestationFormat.TPM:
-            return cast(bool, self.verify_tpm_attestation(attestation=attestation, client_data=client_data))
+            return self.verify_tpm_attestation(attestation=attestation, client_data=client_data)
         if attestation.fmt is AttestationFormat.ANDROID_SAFETYNET:
             # android attestation cert in fido_mds test data is only valid for three months
             return True
         if attestation.fmt is AttestationFormat.FIDO_U2F:
-            return cast(bool, self.verify_fido_u2f_attestation(attestation=attestation, client_data=client_data))
+            return self.verify_fido_u2f_attestation(attestation=attestation, client_data=client_data)
         raise NotImplementedError(f"verification of {attestation.fmt.value} not implemented")
 
     # actual tests
