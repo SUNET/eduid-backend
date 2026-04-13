@@ -356,7 +356,7 @@ def webauthn_register_complete(
             client_data=registration.response.client_data,
             fido_mds=current_app.fido_mds,
             fido_metadata_log=current_app.fido_metadata_log,
-            config=current_app.conf,
+            is_backdoor=check_magic_cookie(current_app.conf),
         )
     except (AttestationVerificationError, NotImplementedError, ValueError):
         current_app.logger.exception("attestation verification failed")

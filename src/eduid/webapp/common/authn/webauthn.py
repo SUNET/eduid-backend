@@ -15,12 +15,10 @@ from fido_mds.exceptions import AttestationVerificationError, MetadataValidation
 from fido_mds.models.fido_mds import AuthenticatorStatus
 from fido_mds.models.webauthn import AttestationFormat
 
-from eduid.common.config.base import MagicCookieMixin
 from eduid.userdb.credentials import Webauthn
 from eduid.userdb.credentials.fido import U2F, FidoCredential
 from eduid.userdb.logs.db import FidoMetadataLog, ProofingLog
 from eduid.userdb.logs.element import FidoMetadataLogElement, WebauthnMfaCapabilityProofingLog
-from eduid.webapp.common.api.helpers import check_magic_cookie
 
 __author__ = "lundberg"
 
@@ -77,7 +75,7 @@ def get_authenticator_information(
     client_data: bytes,
     fido_mds: FidoMetadataStore,
     fido_metadata_log: FidoMetadataLog,
-    config: MagicCookieMixin,
+    is_backdoor: bool = False,
 ) -> AuthenticatorInformation:
     # parse attestation object
     try:
@@ -91,7 +89,7 @@ def get_authenticator_information(
     authenticator_id = att.aaguid or att.certificate_key_identifier
 
     # allow automatic tests to use any webauthn device
-    if check_magic_cookie(config):
+    if is_backdoor:
         return AuthenticatorInformation(
             attestation_format=att.fmt,
             authenticator_id=authenticator_id,

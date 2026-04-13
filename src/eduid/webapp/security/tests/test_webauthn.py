@@ -13,10 +13,9 @@ from fido2.webauthn import (
 from fido_mds import FidoMetadataStore
 from future.backports.datetime import timedelta
 from pytest_mock import MockerFixture
-from werkzeug.http import dump_cookie
 from werkzeug.test import TestResponse
 
-from eduid.common.config.base import EduidEnvironment, FrontendAction
+from eduid.common.config.base import FrontendAction
 from eduid.common.misc.timeutil import utc_now
 from eduid.userdb.credentials import U2F, FidoCredential, Webauthn
 from eduid.webapp.common.api.schemas.authn_status import AuthnActionStatus
@@ -647,7 +646,7 @@ class SecurityWebauthnTests(EduidAPITestCase):
                 client_data=websafe_decode(authenticator[1]),
                 fido_mds=self.app.fido_mds,
                 fido_metadata_log=self.app.fido_metadata_log,
-                config=self.app.conf,
+                is_backdoor=False,
             )
             assert authenticator_info is not None
             assert authenticator_info.authenticator_id is not None
@@ -678,12 +677,6 @@ class SecurityWebauthnTests(EduidAPITestCase):
                 )
 
     def test_authenticator_information_backdoor(self) -> None:
-        # setup magic cookie backdoor
-        self.app.conf.magic_cookie_name = "magic-cookie"
-        self.app.conf.magic_cookie = "magic"
-        self.app.conf.environment = EduidEnvironment.dev
-        cookie = dump_cookie(self.app.conf.magic_cookie_name, self.app.conf.magic_cookie)
-
         attestation_object = (
             "o2NmbXRmcGFja2VkZ2F0dFN0bXSjY2FsZyZjc2lnWEYwRAIgYveunFJbAigRE3KZ0jq8Av_fVO82NPR6"
             "YLxr-PTBeb8CICzfv9hjw8Y4uln8JlROLeCt64v7HggN_I_GcQItOTGrY3g1Y4FZAd8wggHbMIIBfaAD"
@@ -704,14 +697,13 @@ class SecurityWebauthnTests(EduidAPITestCase):
             "N09EUzVXdzAtNUg0QnQweVR0dzNSYyIsIm9yaWdpbiI6Imh0dHBzOi8vZGFzaGJvYXJkLmRldi5lZHVp"
             "ZC5zZSIsImNyb3NzT3JpZ2luIjpmYWxzZX0"
         )
-        with self.app.test_request_context(headers={"Cookie": cookie}):
-            authenticator_info = get_authenticator_information(
-                attestation=Attestation.from_base64(attestation_object).attestation_obj,
-                client_data=websafe_decode(client_data),
-                fido_mds=self.app.fido_mds,
-                fido_metadata_log=self.app.fido_metadata_log,
-                config=self.app.conf,
-            )
+        authenticator_info = get_authenticator_information(
+            attestation=Attestation.from_base64(attestation_object).attestation_obj,
+            client_data=websafe_decode(client_data),
+            fido_mds=self.app.fido_mds,
+            fido_metadata_log=self.app.fido_metadata_log,
+            is_backdoor=True,
+        )
         assert authenticator_info is not None
 
         res = is_authenticator_mfa_approved(
