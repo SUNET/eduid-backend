@@ -9,6 +9,7 @@ from fido2.webauthn import (
     RegistrationResponse,
 )
 from fido_mds.exceptions import AttestationVerificationError
+from fido_mds.models.webauthn import AttestationFormat
 from flask import Blueprint, abort, request
 
 from eduid.common.misc.timeutil import utc_now
@@ -31,7 +32,7 @@ from eduid.webapp.common.authn.webauthn import (
     is_authenticator_mfa_approved,
 )
 from eduid.webapp.common.session import session
-from eduid.webapp.common.session.namespaces import WebauthnRegistration
+from eduid.webapp.common.session.namespaces import WebauthnCredential, WebauthnRegistration
 from eduid.webapp.signup.app import current_signup_app as current_app
 from eduid.webapp.signup.helpers import (
     EmailAlreadyVerifiedException,
@@ -296,7 +297,7 @@ def webauthn_register_begin(authenticator: str) -> FluxData:
     try:
         _auth_enum = AuthenticatorAttachment(authenticator)
     except ValueError:
-        return error_response(message=SignupMsg.webauthn_not_registered)
+        return error_response(message=SignupMsg.webauthn_registration_failed)
 
     eppn = ensure_eppn()
 
@@ -306,8 +307,8 @@ def webauthn_register_begin(authenticator: str) -> FluxData:
         attestation=current_app.conf.webauthn_attestation,
     )
 
-    assert session.signup.name.given_name is not None
-    assert session.signup.name.surname is not None
+    if not session.signup.name.given_name or not session.signup.name.surname:
+        return error_response(message=SignupMsg.name_not_set)
     user_entity = PublicKeyCredentialUserEntity(
         id=bytes(eppn, "utf-8"),
         name=eppn,
@@ -347,7 +348,7 @@ def webauthn_register_complete(
 
     if not session.signup.credentials.webauthn_registration:
         current_app.logger.info("Found no webauthn registration state in the session")
-        return error_response(message=SignupMsg.webauthn_not_registered)
+        return error_response(message=SignupMsg.webauthn_registration_failed)
 
     # verify attestation and gather authenticator information
     try:
@@ -356,11 +357,12 @@ def webauthn_register_complete(
             client_data=registration.response.client_data,
             fido_mds=current_app.fido_mds,
             fido_metadata_log=current_app.fido_metadata_log,
+            app_name=current_app.conf.app_name,
             is_backdoor=check_magic_cookie(current_app.conf),
         )
     except (AttestationVerificationError, NotImplementedError, ValueError):
         current_app.logger.exception("attestation verification failed")
-        return error_response(message=SignupMsg.webauthn_not_registered)
+        return error_response(message=SignupMsg.webauthn_registration_failed)
 
     reg_state = session.signup.credentials.webauthn_registration
     session.signup.credentials.webauthn_registration = None
@@ -370,29 +372,31 @@ def webauthn_register_complete(
         auth_data: AuthenticatorData = server.register_complete(state=reg_state.webauthn_state, response=registration)
     except ValueError:
         current_app.logger.exception("Webauthn registration failed")
-        return error_response(message=SignupMsg.webauthn_not_registered)
+        return error_response(message=SignupMsg.webauthn_registration_failed)
 
     if auth_data.credential_data is None:
         current_app.logger.error("Webauthn credential data is missing")
-        return error_response(message=SignupMsg.webauthn_not_registered)
+        return error_response(message=SignupMsg.webauthn_registration_failed)
 
     mfa_approved = is_authenticator_mfa_approved(
         authenticator_info=authenticator_info,
         disallowed_status=current_app.conf.webauthn_disallowed_status,
     )
 
-    # Store credential fields in session for user creation
-    session.signup.credentials.webauthn_credential_data = base64.urlsafe_b64encode(auth_data.credential_data).decode(
-        "ascii"
+    # Store completed credential in session for user creation
+    session.signup.credentials.webauthn = WebauthnCredential(
+        credential_data=base64.urlsafe_b64encode(auth_data.credential_data).decode("ascii"),
+        keyhandle=auth_data.credential_data.credential_id.hex(),
+        authenticator=reg_state.authenticator,
+        authenticator_id=str(authenticator_info.authenticator_id),
+        mfa_approved=mfa_approved,
+        attestation_format=authenticator_info.attestation_format,
+        description=description,
+        user_present=authenticator_info.user_present,
+        user_verified=authenticator_info.user_verified,
+        user_verification_methods=authenticator_info.user_verification_methods,
+        key_protection=authenticator_info.key_protection,
     )
-    session.signup.credentials.webauthn_keyhandle = auth_data.credential_data.credential_id.hex()
-    session.signup.credentials.webauthn_authenticator = reg_state.authenticator
-    session.signup.credentials.webauthn_authenticator_id = str(authenticator_info.authenticator_id)
-    session.signup.credentials.webauthn_mfa_approved = mfa_approved
-    session.signup.credentials.webauthn_attestation_format = authenticator_info.attestation_format
-    session.signup.credentials.webauthn_description = description
-    session.signup.credentials.webauthn_user_verification_methods = authenticator_info.user_verification_methods
-    session.signup.credentials.webauthn_key_protection = authenticator_info.key_protection
     session.signup.credentials.completed = True
 
     current_app.logger.info("WebAuthn registration completed")
@@ -437,9 +441,9 @@ def create_user(use_suggested_password: bool, use_webauthn: bool, custom_passwor
         if not is_valid_custom_password(custom_password):
             current_app.logger.error("Weak custom password")
             return error_response(message=SignupMsg.weak_custom_password)
-    if use_webauthn and not session.signup.credentials.webauthn_credential_data:
+    if use_webauthn and not session.signup.credentials.webauthn:
         current_app.logger.error("No webauthn registered")
-        return error_response(message=SignupMsg.webauthn_not_registered)
+        return error_response(message=SignupMsg.webauthn_registration_failed)
     if not use_password and not use_webauthn:
         current_app.logger.error("Neither generated_password nor webauthn selected")
         return error_response(message=SignupMsg.credential_not_added)
@@ -452,29 +456,27 @@ def create_user(use_suggested_password: bool, use_webauthn: bool, custom_passwor
     webauthn_credential = None
     webauthn_authenticator_info = None
     if use_webauthn:
-        assert session.signup.credentials.webauthn_keyhandle is not None
-        assert session.signup.credentials.webauthn_credential_data is not None
-        assert session.signup.credentials.webauthn_authenticator is not None
-        assert session.signup.credentials.webauthn_attestation_format is not None
+        wn = session.signup.credentials.webauthn
+        assert wn is not None  # checked above
         webauthn_credential = Webauthn(
-            keyhandle=session.signup.credentials.webauthn_keyhandle,
-            credential_data=session.signup.credentials.webauthn_credential_data,
-            authenticator_id=session.signup.credentials.webauthn_authenticator_id,
-            authenticator=session.signup.credentials.webauthn_authenticator,
+            keyhandle=wn.keyhandle,
+            credential_data=wn.credential_data,
+            authenticator_id=wn.authenticator_id,
+            authenticator=wn.authenticator,
             app_id=current_app.conf.fido2_rp_id,
-            description=session.signup.credentials.webauthn_description or "",
+            description=wn.description,
             created_by=current_app.conf.app_name,
-            mfa_approved=session.signup.credentials.webauthn_mfa_approved,
+            mfa_approved=wn.mfa_approved,
             webauthn_proofing_version=current_app.conf.webauthn_proofing_version,
-            attestation_format=session.signup.credentials.webauthn_attestation_format,
+            attestation_format=wn.attestation_format,
         )
         webauthn_authenticator_info = AuthenticatorInformation(
-            authenticator_id=session.signup.credentials.webauthn_authenticator_id or "",
-            attestation_format=session.signup.credentials.webauthn_attestation_format,
-            user_present=True,
-            user_verified=session.signup.credentials.webauthn_mfa_approved,
-            user_verification_methods=session.signup.credentials.webauthn_user_verification_methods,
-            key_protection=session.signup.credentials.webauthn_key_protection,
+            authenticator_id=wn.authenticator_id or "",
+            attestation_format=wn.attestation_format or AttestationFormat.NONE,
+            user_present=wn.user_present,
+            user_verified=wn.user_verified,
+            user_verification_methods=wn.user_verification_methods,
+            key_protection=wn.key_protection,
         )
 
     try:

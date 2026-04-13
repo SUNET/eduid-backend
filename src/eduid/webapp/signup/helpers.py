@@ -68,8 +68,10 @@ class SignupMsg(TranslatableMsg):
     password_not_generated = "signup.password-not-generated"
     # user has provided a weak custom password
     weak_custom_password = "signup.weak-custom-password"
-    # user has not registered webauthn
-    webauthn_not_registered = "signup.webauthn-not-registered"
+    # webauthn registration failed or not completed
+    webauthn_registration_failed = "signup.webauthn-registration-failed"
+    # user has not set name (given_name and surname)
+    name_not_set = "signup.name-not-set"
     # user has no credential
     credential_not_added = "signup.credential-not-added"
     # invite not found

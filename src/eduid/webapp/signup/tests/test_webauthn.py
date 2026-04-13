@@ -6,7 +6,6 @@ from typing import Any
 
 import pytest
 from fido2.webauthn import AuthenticatorAttachment, RegistrationResponse
-from fido_mds.models.webauthn import AttestationFormat
 from jwcrypto.jwk import JWK
 from pytest_mock import MockerFixture
 from werkzeug.test import TestResponse
@@ -16,7 +15,7 @@ from eduid.userdb.credentials import Password, Webauthn
 from eduid.webapp.common.api.testing import EduidAPITestCase
 from eduid.webapp.common.authn.webauthn import get_webauthn_server
 from eduid.webapp.common.session import EduidSession
-from eduid.webapp.common.session.namespaces import WebauthnRegistration, WebauthnState
+from eduid.webapp.common.session.namespaces import WebauthnCredential, WebauthnRegistration, WebauthnState
 from eduid.webapp.signup.app import SignupApp, signup_init_app
 from eduid.webapp.signup.helpers import SignupMsg
 
@@ -199,15 +198,13 @@ class SignupWebauthnTests(EduidAPITestCase[SignupApp]):
 
         with self.session_cookie(self.browser, eppn=None) as client:
             with client.session_transaction() as sess:
-                sess.signup.credentials.webauthn_credential_data = base64.urlsafe_b64encode(
-                    auth_data.credential_data
-                ).decode("ascii")
-                sess.signup.credentials.webauthn_keyhandle = auth_data.credential_data.credential_id.hex()
-                sess.signup.credentials.webauthn_authenticator = AuthenticatorAttachment.CROSS_PLATFORM
-                sess.signup.credentials.webauthn_authenticator_id = "test-authenticator-id"
-                sess.signup.credentials.webauthn_mfa_approved = False
-                sess.signup.credentials.webauthn_attestation_format = AttestationFormat.FIDO_U2F
-                sess.signup.credentials.webauthn_description = "test security key"
+                sess.signup.credentials.webauthn = WebauthnCredential(
+                    credential_data=base64.urlsafe_b64encode(auth_data.credential_data).decode("ascii"),
+                    keyhandle=auth_data.credential_data.credential_id.hex(),
+                    authenticator=AuthenticatorAttachment.CROSS_PLATFORM,
+                    authenticator_id="test-authenticator-id",
+                    description="test security key",
+                )
                 sess.signup.credentials.completed = True
 
     # --- Tests ---
@@ -308,7 +305,7 @@ class SignupWebauthnTests(EduidAPITestCase[SignupApp]):
         resp_data = response.json
         assert resp_data is not None
         assert resp_data["type"] == "POST_SIGNUP_WEBAUTHN_REGISTER_COMPLETE_FAIL"
-        assert resp_data["payload"]["message"] == SignupMsg.webauthn_not_registered.value
+        assert resp_data["payload"]["message"] == SignupMsg.webauthn_registration_failed.value
 
     def test_create_user_with_webauthn_only(self) -> None:
         """Full flow with webauthn, no password."""
@@ -372,3 +369,50 @@ class SignupWebauthnTests(EduidAPITestCase[SignupApp]):
         assert data is not None
         assert data["type"] == "POST_SIGNUP_CREATE_USER_FAIL"
         assert data["payload"]["message"] == SignupMsg.credential_not_added.value
+
+    def test_create_user_with_mfa_approved_webauthn(self) -> None:
+        """Verify proofing log is written when webauthn credential is MFA-approved."""
+        self._prepare_for_webauthn()
+
+        # Set up credential with mfa_approved=True and user_verified=True
+        server = get_webauthn_server(rp_id=self.app.conf.fido2_rp_id, rp_name=self.app.conf.fido2_rp_name)
+        reg_response = {
+            "credentialId": CREDENTIAL_ID,
+            "rawId": CREDENTIAL_ID,
+            "response": {
+                "attestationObject": ATTESTATION_OBJECT.decode("ascii").strip("="),
+                "clientDataJSON": CLIENT_DATA_JSON.decode("ascii").strip("="),
+            },
+        }
+        registration = RegistrationResponse.from_dict(reg_response)
+        auth_data = server.register_complete(state=STATE, response=registration)
+        assert auth_data.credential_data is not None
+
+        with self.session_cookie(self.browser, eppn=None) as client:
+            with client.session_transaction() as sess:
+                sess.signup.credentials.webauthn = WebauthnCredential(
+                    credential_data=base64.urlsafe_b64encode(auth_data.credential_data).decode("ascii"),
+                    keyhandle=auth_data.credential_data.credential_id.hex(),
+                    authenticator=AuthenticatorAttachment.CROSS_PLATFORM,
+                    authenticator_id="test-authenticator-id",
+                    mfa_approved=True,
+                    user_verified=True,
+                    description="mfa security key",
+                )
+                sess.signup.credentials.completed = True
+
+        response = self._create_user_with_webauthn(use_suggested_password=False, use_webauthn=True)
+        data = response.json
+        assert data is not None
+        assert data["type"] == "POST_SIGNUP_CREATE_USER_SUCCESS"
+
+        # Verify proofing log was written
+        with self.session_cookie(self.browser, eppn=None) as client:
+            with client.session_transaction() as sess:
+                eppn = sess.common.eppn
+                assert eppn is not None
+        proofing_logs = self.app.proofing_log._coll.find({"eduPersonPrincipalName": eppn})
+        # Should have mail address proofing + webauthn mfa capability proofing
+        log_entries = list(proofing_logs)
+        proofing_types = [entry.get("proofing_method") for entry in log_entries]
+        assert "webauthn metadata" in proofing_types

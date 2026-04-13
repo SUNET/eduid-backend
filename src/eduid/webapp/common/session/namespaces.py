@@ -154,19 +154,28 @@ class Tou(SessionNSBase):
     version: str | None = None
 
 
+class WebauthnCredential(BaseModel):
+    """Completed WebAuthn credential data, stored between register/complete and create-user."""
+
+    credential_data: str  # base64 AttestedCredentialData
+    keyhandle: str
+    authenticator: AuthenticatorAttachment
+    authenticator_id: str | None = None
+    mfa_approved: bool = False
+    attestation_format: AttestationFormat | None = None
+    description: str = ""
+    # attestation flags for proofing log
+    user_present: bool = True
+    user_verified: bool = False
+    user_verification_methods: list[str] = Field(default_factory=list)
+    key_protection: list[str] = Field(default_factory=list)
+
+
 class Credentials(SessionNSBase):
     completed: bool = False
     generated_password: str | None = None
     webauthn_registration: WebauthnRegistration | None = None
-    webauthn_credential_data: str | None = None
-    webauthn_authenticator: AuthenticatorAttachment | None = None
-    webauthn_authenticator_id: str | None = None
-    webauthn_keyhandle: str | None = None
-    webauthn_mfa_approved: bool = False
-    webauthn_attestation_format: AttestationFormat | None = None
-    webauthn_description: str | None = None
-    webauthn_user_verification_methods: list[str] = Field(default_factory=list)
-    webauthn_key_protection: list[str] = Field(default_factory=list)
+    webauthn: WebauthnCredential | None = None
 
 
 class Signup(TimestampedNS):

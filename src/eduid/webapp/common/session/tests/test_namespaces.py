@@ -59,12 +59,7 @@ class TestNamespace(TestNameSpaceBase):
                 "name": {},
                 "tou": {"completed": False},
                 "captcha": {"bad_attempts": 0, "completed": False},
-                "credentials": {
-                    "completed": False,
-                    "webauthn_key_protection": [],
-                    "webauthn_mfa_approved": False,
-                    "webauthn_user_verification_methods": [],
-                },
+                "credentials": {"completed": False},
             },
             "idp": {"sso_cookie_val": "abc", "pending_requests": {}},
         }, f"Actual result: {normalised_out}"

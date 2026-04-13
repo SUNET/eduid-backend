@@ -111,7 +111,7 @@ class SignupStatusResponse(FluxStandardAction):
     def set_webauthn_registered(self, out_data: dict, **kwargs: Any) -> dict:
         if out_data["payload"].get("state", {}).get("credentials"):
             out_data["payload"]["state"]["credentials"]["webauthn_registered"] = bool(
-                out_data["payload"]["state"]["credentials"].get("webauthn_credential_data")
+                out_data["payload"]["state"]["credentials"].get("webauthn")
             )
         return out_data
 

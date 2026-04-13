@@ -646,6 +646,7 @@ class SecurityWebauthnTests(EduidAPITestCase):
                 client_data=websafe_decode(authenticator[1]),
                 fido_mds=self.app.fido_mds,
                 fido_metadata_log=self.app.fido_metadata_log,
+                app_name="testing",
                 is_backdoor=False,
             )
             assert authenticator_info is not None
@@ -702,6 +703,7 @@ class SecurityWebauthnTests(EduidAPITestCase):
             client_data=websafe_decode(client_data),
             fido_mds=self.app.fido_mds,
             fido_metadata_log=self.app.fido_metadata_log,
+            app_name="testing",
             is_backdoor=True,
         )
         assert authenticator_info is not None

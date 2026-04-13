@@ -131,6 +131,7 @@ def registration_complete(
             client_data=registration.response.client_data,
             fido_mds=current_app.fido_mds,
             fido_metadata_log=current_app.fido_metadata_log,
+            app_name=current_app.conf.app_name,
             is_backdoor=check_magic_cookie(current_app.conf),
         )
     except (AttestationVerificationError, NotImplementedError, ValueError):

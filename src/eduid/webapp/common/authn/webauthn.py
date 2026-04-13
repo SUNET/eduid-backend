@@ -75,6 +75,7 @@ def get_authenticator_information(
     client_data: bytes,
     fido_mds: FidoMetadataStore,
     fido_metadata_log: FidoMetadataLog,
+    app_name: str,
     is_backdoor: bool = False,
 ) -> AuthenticatorInformation:
     # parse attestation object
@@ -160,7 +161,7 @@ def get_authenticator_information(
     if not fido_metadata_log.exists(authenticator_id=authenticator_id, last_status_change=last_status_change):
         fido_metadata_log.save(
             FidoMetadataLogElement(
-                created_by="security",
+                created_by=app_name,
                 authenticator_id=authenticator_id,
                 last_status_change=last_status_change,
                 metadata_entry=metadata_entry,
