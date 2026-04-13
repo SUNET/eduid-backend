@@ -4,7 +4,7 @@ import logging
 from collections.abc import Mapping
 from dataclasses import asdict, dataclass
 from datetime import datetime, timedelta
-from typing import Any
+from typing import Any, cast
 from uuid import UUID, uuid4
 
 import bson
@@ -827,7 +827,7 @@ class TestUserResource(ScimApiTestUserResourceBase):
         response = self.client.post(url="/Users/.search", json=req, headers=self.headers)
         logger.info(f"Search parsed_response:\n{response.json()}")
         if return_json:
-            return response.json()
+            return cast(list[dict[str, Any]], response.json())
         self._assertResponse(response)
         expected_schemas = [SCIMSchema.API_MESSAGES_20_LIST_RESPONSE.value]
         response_schemas = response.json().get("schemas")
@@ -860,7 +860,7 @@ class TestUserResource(ScimApiTestUserResourceBase):
 
         assert [SCIMSchema.API_MESSAGES_20_LIST_RESPONSE.value] == response.json().get("schemas")
         resources = response.json().get("Resources")
-        return resources
+        return cast(list[dict[str, Any]], resources)
 
 
 class TestAsyncUserResource(ScimApiTestCase):
