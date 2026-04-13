@@ -35,7 +35,7 @@ from eduid.webapp.signup.helpers import (
     check_email_status,
     complete_and_update_invite,
     create_and_sync_user,
-    ensure_eppn,
+    get_eppn,
     is_email_verification_expired,
     is_valid_custom_password,
     send_signup_mail,
@@ -291,7 +291,7 @@ def webauthn_register_begin(authenticator: str) -> FluxData:
     except ValueError:
         return error_response(message=SignupMsg.webauthn_registration_failed)
 
-    eppn = ensure_eppn()
+    eppn = get_eppn()
 
     server = get_webauthn_server(
         rp_id=current_app.conf.fido2_rp_id,
@@ -464,7 +464,6 @@ def create_user(use_suggested_password: bool, use_webauthn: bool, custom_passwor
             tou_version=session.signup.tou.version,
             webauthn=webauthn_credential,
             webauthn_authenticator_info=webauthn_authenticator_info,
-            eppn=session.signup.eppn,
         )
     except EmailAlreadyVerifiedException:
         return error_response(message=SignupMsg.email_used)

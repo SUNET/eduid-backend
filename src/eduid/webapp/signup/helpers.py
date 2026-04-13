@@ -197,7 +197,7 @@ def send_signup_mail(email: str, verification_code: str, reference: str) -> None
         current_app.logger.debug(f"Generating verification e-mail with context:\n{payload}")
 
 
-def ensure_eppn() -> str:
+def get_eppn() -> str:
     """Generate and store an eppn in the signup session if not already present."""
     if session.signup.eppn is None:
         session.signup.eppn = generate_eppn()
@@ -213,7 +213,6 @@ def create_and_sync_user(
     custom_password: str | None = None,
     webauthn: Webauthn | None = None,
     webauthn_authenticator_info: AuthenticatorInformation | None = None,
-    eppn: str | None = None,
 ) -> SignupUser:
     """
     * Create a new user in the central userdb
@@ -226,7 +225,7 @@ def create_and_sync_user(
     """
     current_app.logger.info("Creating new user")
 
-    signup_user = SignupUser(eppn=eppn or generate_eppn())
+    signup_user = SignupUser(eppn=get_eppn())
     signup_user.given_name = given_name
     signup_user.surname = surname
 
