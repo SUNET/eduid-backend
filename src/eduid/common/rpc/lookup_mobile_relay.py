@@ -21,9 +21,9 @@ class LookupMobileRelay:
 
     def find_nin_by_mobile(self, mobile_number: str) -> str | None:
         try:
-            result = self._find_nin_by_mobile.delay(mobile_number)
+            rtask = self._find_nin_by_mobile.delay(mobile_number)
             result = cast(
-                str | None, result.get(timeout=10)
+                str | None, rtask.get(timeout=10)
             )  # Lower timeout than standard gunicorn worker timeout (25)
             return result
         except Exception as e:
