@@ -6,10 +6,18 @@ from collections.abc import Sequence
 from dataclasses import dataclass, field
 from datetime import date, datetime, time
 from enum import StrEnum
+from typing import Any
 from uuid import UUID
 
 from fido2.server import Fido2Server, PublicKeyCredentialRpEntity
-from fido2.webauthn import AttestationConveyancePreference, AttestationObject, AttestedCredentialData
+from fido2.webauthn import (
+    AttestationConveyancePreference,
+    AttestationObject,
+    AttestedCredentialData,
+    AuthenticatorAttachment,
+    AuthenticatorData,
+    RegistrationResponse,
+)
 from fido_mds import Attestation, FidoMetadataStore
 from fido_mds.exceptions import AttestationVerificationError, MetadataValidationError
 from fido_mds.models.fido_mds import AuthenticatorStatus
@@ -229,3 +237,82 @@ def save_webauthn_proofing_log(
     )
     logger.debug(f"webauthn mfa capability proofing element: {proofing_element}")
     return proofing_log.save(proofing_element)
+
+
+@dataclass
+class RegistrationResult:
+    credential_data: str  # base64 AttestedCredentialData
+    keyhandle: str
+    authenticator: AuthenticatorAttachment
+    authenticator_info: AuthenticatorInformation
+    mfa_approved: bool
+
+
+class RegistrationError(Exception):
+    """Raised when WebAuthn registration verification fails."""
+
+
+def verify_webauthn_registration(
+    response: dict[str, Any],
+    webauthn_state: dict[str, Any],
+    authenticator: AuthenticatorAttachment,
+    rp_id: str,
+    rp_name: str,
+    fido_mds: FidoMetadataStore,
+    fido_metadata_log: FidoMetadataLog,
+    app_name: str,
+    is_backdoor: bool = False,
+    disallowed_status: Sequence[AuthenticatorStatus] = (),
+    client_extension_results: dict[str, Any] | None = None,
+) -> RegistrationResult:
+    """
+    Verify a WebAuthn registration response and return the result.
+
+    Shared between security and signup apps. Handles:
+    - Parsing the RegistrationResponse
+    - Attestation verification via get_authenticator_information
+    - Completing registration via Fido2Server.register_complete
+    - MFA approval check
+
+    Raises RegistrationError on any verification failure.
+    """
+    if client_extension_results:
+        response["client_extension_results"] = client_extension_results
+    registration = RegistrationResponse.from_dict(response)
+
+    try:
+        authenticator_info = get_authenticator_information(
+            attestation=registration.response.attestation_object,
+            client_data=registration.response.client_data,
+            fido_mds=fido_mds,
+            fido_metadata_log=fido_metadata_log,
+            app_name=app_name,
+            is_backdoor=is_backdoor,
+        )
+    except (AttestationVerificationError, NotImplementedError, ValueError) as e:
+        logger.exception("attestation verification failed")
+        raise RegistrationError("attestation verification failed") from e
+
+    server = get_webauthn_server(rp_id=rp_id, rp_name=rp_name)
+    try:
+        auth_data: AuthenticatorData = server.register_complete(state=webauthn_state, response=registration)
+    except ValueError as e:
+        logger.exception("Webauthn registration failed")
+        raise RegistrationError("registration completion failed") from e
+
+    if auth_data.credential_data is None:
+        logger.error("Webauthn credential data is missing")
+        raise RegistrationError("credential data missing")
+
+    mfa_approved = is_authenticator_mfa_approved(
+        authenticator_info=authenticator_info,
+        disallowed_status=disallowed_status,
+    )
+
+    return RegistrationResult(
+        credential_data=base64.urlsafe_b64encode(auth_data.credential_data).decode("ascii"),
+        keyhandle=auth_data.credential_data.credential_id.hex(),
+        authenticator=authenticator,
+        authenticator_info=authenticator_info,
+        mfa_approved=mfa_approved,
+    )

@@ -1,14 +1,7 @@
-import base64
 from typing import Any
 from uuid import uuid4
 
-from fido2.webauthn import (
-    AuthenticatorAttachment,
-    AuthenticatorData,
-    PublicKeyCredentialUserEntity,
-    RegistrationResponse,
-)
-from fido_mds.exceptions import AttestationVerificationError
+from fido2.webauthn import AuthenticatorAttachment, PublicKeyCredentialUserEntity
 from fido_mds.models.webauthn import AttestationFormat
 from flask import Blueprint, abort, request
 
@@ -27,9 +20,9 @@ from eduid.webapp.common.api.schemas.csrf import EmptyRequest
 from eduid.webapp.common.api.utils import make_short_code
 from eduid.webapp.common.authn.webauthn import (
     AuthenticatorInformation,
-    get_authenticator_information,
+    RegistrationError,
     get_webauthn_server,
-    is_authenticator_mfa_approved,
+    verify_webauthn_registration,
 )
 from eduid.webapp.common.session import session
 from eduid.webapp.common.session.namespaces import WebauthnCredential, WebauthnRegistration
@@ -342,66 +335,49 @@ def webauthn_register_complete(
 ) -> FluxData:
     current_app.logger.info("WebAuthn registration complete")
 
-    if client_extension_results:
-        response["client_extension_results"] = client_extension_results
-    registration = RegistrationResponse.from_dict(response)
-
     if not session.signup.credentials.webauthn_registration:
         current_app.logger.info("Found no webauthn registration state in the session")
-        return error_response(message=SignupMsg.webauthn_registration_failed)
-
-    # verify attestation and gather authenticator information
-    try:
-        authenticator_info = get_authenticator_information(
-            attestation=registration.response.attestation_object,
-            client_data=registration.response.client_data,
-            fido_mds=current_app.fido_mds,
-            fido_metadata_log=current_app.fido_metadata_log,
-            app_name=current_app.conf.app_name,
-            is_backdoor=check_magic_cookie(current_app.conf),
-        )
-    except (AttestationVerificationError, NotImplementedError, ValueError):
-        current_app.logger.exception("attestation verification failed")
         return error_response(message=SignupMsg.webauthn_registration_failed)
 
     reg_state = session.signup.credentials.webauthn_registration
     session.signup.credentials.webauthn_registration = None
 
-    server = get_webauthn_server(rp_id=current_app.conf.fido2_rp_id, rp_name=current_app.conf.fido2_rp_name)
     try:
-        auth_data: AuthenticatorData = server.register_complete(state=reg_state.webauthn_state, response=registration)
-    except ValueError:
-        current_app.logger.exception("Webauthn registration failed")
+        result = verify_webauthn_registration(
+            response=response,
+            webauthn_state=reg_state.webauthn_state,
+            authenticator=reg_state.authenticator,
+            rp_id=current_app.conf.fido2_rp_id,
+            rp_name=current_app.conf.fido2_rp_name,
+            fido_mds=current_app.fido_mds,
+            fido_metadata_log=current_app.fido_metadata_log,
+            app_name=current_app.conf.app_name,
+            is_backdoor=check_magic_cookie(current_app.conf),
+            disallowed_status=current_app.conf.webauthn_disallowed_status,
+            client_extension_results=client_extension_results,
+        )
+    except RegistrationError:
         return error_response(message=SignupMsg.webauthn_registration_failed)
-
-    if auth_data.credential_data is None:
-        current_app.logger.error("Webauthn credential data is missing")
-        return error_response(message=SignupMsg.webauthn_registration_failed)
-
-    mfa_approved = is_authenticator_mfa_approved(
-        authenticator_info=authenticator_info,
-        disallowed_status=current_app.conf.webauthn_disallowed_status,
-    )
 
     # Store completed credential in session for user creation
     session.signup.credentials.webauthn = WebauthnCredential(
-        credential_data=base64.urlsafe_b64encode(auth_data.credential_data).decode("ascii"),
-        keyhandle=auth_data.credential_data.credential_id.hex(),
-        authenticator=reg_state.authenticator,
-        authenticator_id=str(authenticator_info.authenticator_id),
-        mfa_approved=mfa_approved,
-        attestation_format=authenticator_info.attestation_format,
+        credential_data=result.credential_data,
+        keyhandle=result.keyhandle,
+        authenticator=result.authenticator,
+        authenticator_id=str(result.authenticator_info.authenticator_id),
+        mfa_approved=result.mfa_approved,
+        attestation_format=result.authenticator_info.attestation_format,
         description=description,
-        user_present=authenticator_info.user_present,
-        user_verified=authenticator_info.user_verified,
-        user_verification_methods=authenticator_info.user_verification_methods,
-        key_protection=authenticator_info.key_protection,
+        user_present=result.authenticator_info.user_present,
+        user_verified=result.authenticator_info.user_verified,
+        user_verification_methods=result.authenticator_info.user_verification_methods,
+        key_protection=result.authenticator_info.key_protection,
     )
     session.signup.credentials.completed = True
 
     current_app.logger.info("WebAuthn registration completed")
     current_app.stats.count(name="webauthn_register_complete")
-    if mfa_approved:
+    if result.mfa_approved:
         current_app.stats.count(name="webauthn_mfa_approved")
 
     return success_response(payload={"state": session.signup.to_dict()})
