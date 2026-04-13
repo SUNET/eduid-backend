@@ -266,7 +266,6 @@ def captcha_response(internal_response: str | None = None) -> FluxData:
 @require_not_logged_in
 def get_password() -> FluxData:
     current_app.logger.info("Password requested")
-    ensure_eppn()
     if session.signup.credentials.generated_password is None:
         session.signup.credentials.generated_password = generate_password(length=current_app.conf.password_length)
         session.signup.credentials.completed = True
