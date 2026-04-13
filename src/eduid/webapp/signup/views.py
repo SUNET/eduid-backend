@@ -25,7 +25,7 @@ from eduid.webapp.common.authn.webauthn import (
     verify_webauthn_registration,
 )
 from eduid.webapp.common.session import session
-from eduid.webapp.common.session.namespaces import WebauthnCredential, WebauthnRegistration
+from eduid.webapp.common.session.namespaces import RequestRef, WebauthnCredential, WebauthnRegistration
 from eduid.webapp.signup.app import current_signup_app as current_app
 from eduid.webapp.signup.helpers import (
     EmailAlreadyVerifiedException,
@@ -46,6 +46,7 @@ from eduid.webapp.signup.schemas import (
     InviteCodeRequest,
     InviteDataResponse,
     NameAndEmailSchema,
+    ReturnToAuthRequest,
     SignupStatusResponse,
     VerifyEmailRequest,
     WebauthnRegisterBeginRequest,
@@ -379,6 +380,28 @@ def webauthn_register_complete(
     if result.mfa_approved:
         current_app.stats.count(name="webauthn_mfa_approved")
 
+    return success_response(payload={"state": session.signup.to_dict()})
+
+
+@signup_views.route("/return-to-auth", methods=["POST"])
+@UnmarshalWith(ReturnToAuthRequest)
+@MarshalWith(SignupStatusResponse)
+@require_not_logged_in
+def return_to_auth(ref: str) -> FluxData:
+    """Store a reference to a pending IdP SAML request for resumption after signup."""
+    current_app.logger.info("Setting IdP request ref for post-signup auth resumption")
+
+    if session.signup.user_created:
+        current_app.logger.info("User already created, too late to set idp_request_ref")
+        return error_response(message=SignupMsg.user_already_exists)
+
+    request_ref = RequestRef(ref)
+    if request_ref not in session.idp.pending_requests:
+        current_app.logger.info(f"Request ref {ref} not found in IdP pending requests")
+        return error_response(message=SignupMsg.idp_request_ref_not_found)
+
+    session.signup.idp_request_ref = request_ref
+    current_app.logger.info(f"Stored idp_request_ref: {request_ref}")
     return success_response(payload={"state": session.signup.to_dict()})
 
 

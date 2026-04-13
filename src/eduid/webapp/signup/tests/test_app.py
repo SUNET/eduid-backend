@@ -1557,3 +1557,79 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
         client2 = self.app.get_scim_client_for("owner_b")
         assert not client2.is_closed
         assert client1 is not client2
+
+    def test_return_to_auth(self) -> None:
+        """Happy path: store a pending IdP request ref in session."""
+        from eduid.webapp.common.session.namespaces import IdP_SAMLPendingRequest, RequestRef
+
+        with self.session_cookie(self.browser, eppn=None) as client:
+            with self.app.test_request_context():
+                endpoint = url_for("signup.return_to_auth")
+                with client.session_transaction() as sess:
+                    sess.idp.pending_requests[RequestRef("test-ref")] = IdP_SAMLPendingRequest(
+                        request="<fake-saml-request>",
+                        binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST",
+                        relay_state="https://sp.example.com",
+                    )
+                    data = {
+                        "ref": "test-ref",
+                        "csrf_token": sess.get_csrf_token(),
+                    }
+
+            response = client.post(endpoint, data=json.dumps(data), content_type=self.content_type_json)
+
+        self._check_api_response(
+            response,
+            status=200,
+            type_="POST_SIGNUP_RETURN_TO_AUTH_SUCCESS",
+        )
+        payload = self.get_response_payload(response)
+        assert payload["state"]["idp_request_ref"] == "test-ref"
+
+    def test_return_to_auth_invalid_ref(self) -> None:
+        """Call with a ref that doesn't exist in pending_requests."""
+        with self.session_cookie(self.browser, eppn=None) as client:
+            with self.app.test_request_context():
+                endpoint = url_for("signup.return_to_auth")
+                with client.session_transaction() as sess:
+                    data = {
+                        "ref": "nonexistent-ref",
+                        "csrf_token": sess.get_csrf_token(),
+                    }
+
+            response = client.post(endpoint, data=json.dumps(data), content_type=self.content_type_json)
+
+        self._check_api_response(
+            response,
+            status=200,
+            type_="POST_SIGNUP_RETURN_TO_AUTH_FAIL",
+            message=SignupMsg.idp_request_ref_not_found,
+        )
+
+    def test_return_to_auth_already_created(self) -> None:
+        """Reject setting idp_request_ref when user already created."""
+        from eduid.webapp.common.session.namespaces import IdP_SAMLPendingRequest, RequestRef
+
+        with self.session_cookie(self.browser, eppn=None) as client:
+            with self.app.test_request_context():
+                endpoint = url_for("signup.return_to_auth")
+                with client.session_transaction() as sess:
+                    sess.signup.user_created = True
+                    sess.idp.pending_requests[RequestRef("test-ref")] = IdP_SAMLPendingRequest(
+                        request="<fake-saml-request>",
+                        binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST",
+                        relay_state="https://sp.example.com",
+                    )
+                    data = {
+                        "ref": "test-ref",
+                        "csrf_token": sess.get_csrf_token(),
+                    }
+
+            response = client.post(endpoint, data=json.dumps(data), content_type=self.content_type_json)
+
+        self._check_api_response(
+            response,
+            status=200,
+            type_="POST_SIGNUP_RETURN_TO_AUTH_FAIL",
+            message=SignupMsg.user_already_exists,
+        )
