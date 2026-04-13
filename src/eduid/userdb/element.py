@@ -431,7 +431,7 @@ class PrimaryElementList[ListElement: Element](VerifiedElementList[ListElement],
         if not isinstance(match, PrimaryElement):
             raise UserDBValueError(f"Primary element {match!r} is not of type PrimaryElement")
 
-        return cast(ListElement, match)
+        return match
 
     def set_primary(self, key: ElementKey) -> None:
         """
@@ -462,7 +462,7 @@ class PrimaryElementList[ListElement: Element](VerifiedElementList[ListElement],
                 raise UserDBValueError(f"Element {this!r} is not of type PrimaryElement")
             this.is_primary = bool(this.key == key)
             new += [this]
-        self.elements = cast(list[ListElement], new)
+        self.elements = new
 
     @classmethod
     def _get_primary(cls, elements: list[ListElement]) -> ListElement | None:
@@ -488,7 +488,7 @@ class PrimaryElementList[ListElement: Element](VerifiedElementList[ListElement],
         if not primary.is_verified:
             raise PrimaryElementViolation("Primary element is not verified")
 
-        return cast(ListElement, primary)
+        return primary
 
     def remove(self, key: ElementKey) -> None:
         """
