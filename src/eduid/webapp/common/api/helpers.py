@@ -1,6 +1,6 @@
 import warnings
 from dataclasses import dataclass
-from typing import Any, cast, overload
+from typing import cast, overload
 
 from flask import current_app, request
 
