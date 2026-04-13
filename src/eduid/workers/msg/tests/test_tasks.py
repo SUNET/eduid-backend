@@ -30,7 +30,7 @@ class TestTasks(MsgMongoTestCase):
         with pytest.raises(Retry) as exc_info:
             self.msg_relay.sendsms(recipient="+466666a", message="foo", reference="ref")
 
-        assert exc_info.value.excs == "ValueError(\"'to' is not a valid phone number\")"
+        assert repr(exc_info.value.exc) == "ValueError(\"'to' is not a valid phone number\")"
 
     def test_send_message_sms_exception(self, mocker: MockerFixture) -> None:
         """Test creating an artificial exception in the SMSClient.send"""
@@ -38,7 +38,7 @@ class TestTasks(MsgMongoTestCase):
         sms_mock.side_effect = MockException("Unrecoverable error")
         with pytest.raises(Retry) as exc_info:
             self.msg_relay.sendsms(recipient="+466666", message="foo", reference="ref")
-        assert exc_info.value.excs == "MockException('Unrecoverable error')"
+        assert repr(exc_info.value.exc) == "MockException('Unrecoverable error')"
 
     def test_ping(self) -> None:
         ret = self.msg_relay.ping()

@@ -14,5 +14,6 @@ pytest-mock
 pytest-xdist
 respx
 uv
+celery-types
 motor-types
 ruff
