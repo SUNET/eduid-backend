@@ -25,7 +25,7 @@ from eduid.webapp.common.authn.webauthn import (
     verify_webauthn_registration,
 )
 from eduid.webapp.common.session import session
-from eduid.webapp.common.session.namespaces import RequestRef, WebauthnCredential, WebauthnRegistration
+from eduid.webapp.common.session.namespaces import LoginApplication, RequestRef, WebauthnCredential, WebauthnRegistration
 from eduid.webapp.signup.app import current_signup_app as current_app
 from eduid.webapp.signup.helpers import (
     EmailAlreadyVerifiedException,
@@ -499,6 +499,7 @@ def create_user(use_suggested_password: bool, use_webauthn: bool, custom_passwor
     session.signup.user_created_at = utc_now()
     session.signup.credentials.completed = True
     session.common.eppn = signup_user.eppn
+    session.common.login_source = LoginApplication.signup
     # create payload before clearing generated password
     state = session.signup.to_dict()
     if custom_password is not None:
@@ -509,7 +510,7 @@ def create_user(use_suggested_password: bool, use_webauthn: bool, custom_passwor
     del custom_password
     session.signup.credentials.generated_password = None
     # clear signup session if the user is done
-    if not session.signup.invite.initiated_signup:
+    if not session.signup.invite.initiated_signup and not session.signup.idp_request_ref:
         del session.signup
     current_app.stats.count(name="signup_complete")
     return success_response(payload={"state": state})

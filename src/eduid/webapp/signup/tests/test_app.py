@@ -1357,6 +1357,46 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
         )
         assert res.reached_state == SignupState.S6_CREATE_USER
 
+    def test_create_user_sp_flow(self) -> None:
+        """Test that when idp_request_ref is set, the signup session is preserved after create-user
+        and login_source is set to LoginApplication.signup."""
+        from eduid.webapp.common.session.namespaces import (
+            IdP_SAMLPendingRequest,
+            LoginApplication,
+            RequestRef,
+        )
+
+        given_name = "Testaren Test"
+        surname = "Test"
+        email = "test@example.com"
+        self._prepare_for_create_user(given_name=given_name, surname=surname, email=email)
+
+        # Set idp_request_ref in the signup session and add a matching pending request in idp namespace
+        with self.session_cookie_anon(self.browser) as client:
+            with client.session_transaction() as sess:
+                sess.idp.pending_requests[RequestRef("sp-ref")] = IdP_SAMLPendingRequest(
+                    request="<fake>",
+                    binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST",
+                    relay_state=None,
+                )
+                sess.signup.idp_request_ref = RequestRef("sp-ref")
+
+        response = self._create_user(expect_success=True)
+        assert response.reached_state == SignupState.S6_CREATE_USER
+
+        # Verify the response state contains idp_request_ref
+        state = self.get_response_payload(response.response)["state"]
+        assert state["idp_request_ref"] == "sp-ref"
+
+        # Verify the signup session is preserved (not deleted) and login_source is set
+        with self.session_cookie_anon(self.browser) as client:
+            with client.session_transaction() as sess:
+                assert sess.common.eppn is not None
+                assert sess.common.login_source == LoginApplication.signup
+                assert sess.signup.idp_request_ref == RequestRef("sp-ref")
+                assert sess.signup.user_created is True
+                assert sess.signup.user_created_at is not None
+
     def test_get_invite_data(self) -> None:
         invite = self._create_invite()
         primary_mail = invite.get_primary_mail_address()
