@@ -456,7 +456,7 @@ class PrimaryElementList[ListElement: Element](VerifiedElementList[ListElement],
 
         # Go through the whole list. Mark element as primary and all other as *not* primary.
         # Build a new list and re-assign to make sure the validators run.
-        new = []
+        new: list[ListElement] = []
         for this in self.elements:
             if not isinstance(this, PrimaryElement):
                 raise UserDBValueError(f"Element {this!r} is not of type PrimaryElement")
