@@ -1,5 +1,6 @@
 import logging
 from enum import StrEnum
+from typing import cast
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
@@ -276,7 +277,7 @@ class MsgRelay:
         """
         rtask = self._pong.apply_async(kwargs={"app_name": self.app_name})
         try:
-            return rtask.get(timeout=timeout)
+            return cast(str, rtask.get(timeout=timeout))
         except Exception as e:
             rtask.forget()
             raise MsgTaskFailed(f"ping task failed: {e!r}") from e

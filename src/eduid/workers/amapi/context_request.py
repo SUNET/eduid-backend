@@ -2,7 +2,7 @@ __author__ = "masv"
 
 from collections.abc import Callable
 from dataclasses import asdict, dataclass
-from typing import Any
+from typing import Any, cast
 
 from fastapi.routing import APIRoute
 from starlette.requests import Request, empty_receive, empty_send
@@ -23,7 +23,7 @@ class ContextRequest(Request):
     @property
     def context(self) -> Context:
         try:
-            return self.state.context
+            return cast(Context, self.state.context)
         except AttributeError:
             # Lazy init of self.state.context
             self.state.context = Context()

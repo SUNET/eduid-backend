@@ -1,4 +1,5 @@
 import logging
+from typing import cast
 
 import eduid.workers.am
 from eduid.common.config.base import AmConfigMixin
@@ -56,7 +57,7 @@ class AmRelay:
         logger.debug(f"Asking Attribute Manager to sync user {user} from {_app_name}")
         rtask = self._update_attrs.delay(_app_name, user_id)
         try:
-            result = rtask.get(timeout=timeout)
+            result = cast(bool, rtask.get(timeout=timeout))
             logger.debug(f"Attribute Manager sync result: {result} for user {user}")
             return result
         except LockedIdentityViolation as e:
@@ -74,7 +75,7 @@ class AmRelay:
         """
         rtask = self._pong.apply_async(kwargs={"app_name": self.app_name})
         try:
-            return rtask.get(timeout=timeout)
+            return cast(str, rtask.get(timeout=timeout))
         except Exception as e:
             rtask.forget()
             raise AmTaskFailed(f"ping task failed: {e!r}") from e

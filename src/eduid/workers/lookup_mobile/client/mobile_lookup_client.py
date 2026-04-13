@@ -1,5 +1,5 @@
 from logging import Logger
-from typing import Any
+from typing import Any, cast
 
 from suds.client import Client
 from suds.sudsobject import Object
@@ -118,4 +118,4 @@ class MobileLookupClient:
             self.logger.debug(f"Got no search result on mobile number: {mobile_number}")
             return None
 
-        return record[0].SSNo
+        return cast(str, record[0].SSNo)
