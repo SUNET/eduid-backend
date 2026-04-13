@@ -11,16 +11,16 @@ from eduid.common.config.base import (
     AmConfigMixin,
     CookieConfig,
     EduIDBaseAppConfig,
+    Fido2RpConfigMixin,
     TouConfigMixin,
     VCCSConfigMixin,
-    WebauthnConfigMixin2,
 )
 from eduid.common.models.generic import HttpUrlStr
 from eduid.userdb.identity import IdentityProofingMethod
 from eduid.webapp.idp.assurance_data import SwamidAssurance
 
 
-class IdPConfig(EduIDBaseAppConfig, TouConfigMixin, WebauthnConfigMixin2, AmConfigMixin, VCCSConfigMixin):
+class IdPConfig(EduIDBaseAppConfig, TouConfigMixin, Fido2RpConfigMixin, AmConfigMixin, VCCSConfigMixin):
     """
     Configuration for the idp app
     """

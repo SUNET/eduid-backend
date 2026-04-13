@@ -1,28 +1,24 @@
 from datetime import timedelta
 
-from fido2.webauthn import (
-    AttestationConveyancePreference,
-    ResidentKeyRequirement,
-    UserVerificationRequirement,
-)
-from fido_mds.models.fido_mds import AuthenticatorStatus
 from pydantic import Field
 
 from eduid.common.config.base import (
     AmConfigMixin,
     EduIDBaseAppConfig,
+    Fido2RpConfigMixin,
     FrontendActionMixin,
     MagicCookieMixin,
     MsgConfigMixin,
     PasswordConfigMixin,
     VCCSConfigMixin,
-    WebauthnConfigMixin2,
+    WebauthnRegistrationConfigMixin,
 )
 
 
 class SecurityConfig(
     EduIDBaseAppConfig,
-    WebauthnConfigMixin2,
+    Fido2RpConfigMixin,
+    WebauthnRegistrationConfigMixin,
     MagicCookieMixin,
     AmConfigMixin,
     MsgConfigMixin,
@@ -43,13 +39,7 @@ class SecurityConfig(
     chpass_reauthn_timeout: timedelta = Field(default=timedelta(seconds=120))
     chpass_old_password_needed: bool = True
 
-    # webauthn
-    webauthn_proofing_method: str = Field(default="webauthn metadata")
-    webauthn_proofing_version: str = Field(default="2024v1")
-    webauthn_max_allowed_tokens: int = 10
-    webauthn_attestation: AttestationConveyancePreference | None = None
-    webauthn_user_verification: UserVerificationRequirement = UserVerificationRequirement.PREFERRED
-    webauthn_resident_key_requirement: ResidentKeyRequirement = ResidentKeyRequirement.PREFERRED
+    # webauthn (security-specific settings; common ones inherited from WebauthnRegistrationConfigMixin)
     webauthn_recommended_user_verification_methods: list[str] = Field(
         default=[
             "faceprint_internal",
@@ -65,15 +55,6 @@ class SecurityConfig(
     )
     webauthn_recommended_key_protection: list[str] = Field(
         default=["remote_handle", "hardware", "secure_element", "tee", "apple"]
-    )
-    webauthn_disallowed_status: list[AuthenticatorStatus] = Field(
-        default=[
-            AuthenticatorStatus.USER_VERIFICATION_BYPASS,
-            AuthenticatorStatus.ATTESTATION_KEY_COMPROMISE,
-            AuthenticatorStatus.USER_KEY_REMOTE_COMPROMISE,
-            AuthenticatorStatus.USER_KEY_PHYSICAL_COMPROMISE,
-            AuthenticatorStatus.REVOKED,
-        ]
     )
 
     # for logging out when terminating an account

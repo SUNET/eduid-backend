@@ -9,6 +9,7 @@ from enum import StrEnum, unique
 from typing import Any, NewType, Self, cast
 
 from fido2.webauthn import AuthenticatorAttachment
+from fido_mds.models.webauthn import AttestationFormat
 from pydantic import BaseModel, Field, ValidationError, field_serializer
 
 from eduid.common.config.base import FrontendAction
@@ -153,15 +154,34 @@ class Tou(SessionNSBase):
     version: str | None = None
 
 
+class WebauthnCredential(BaseModel):
+    """Completed WebAuthn credential data, stored between register/complete and create-user."""
+
+    credential_data: str  # base64 AttestedCredentialData
+    keyhandle: str
+    authenticator: AuthenticatorAttachment
+    authenticator_id: str | None = None
+    mfa_approved: bool = False
+    attestation_format: AttestationFormat | None = None
+    description: str = ""
+    # attestation flags for proofing log
+    user_present: bool = True
+    user_verified: bool = False
+    user_verification_methods: list[str] = Field(default_factory=list)
+    key_protection: list[str] = Field(default_factory=list)
+
+
 class Credentials(SessionNSBase):
     completed: bool = False
     generated_password: str | None = None
-    webauthn: Any | None = None  # TODO: implement webauthn signup
+    webauthn_registration: WebauthnRegistration | None = None
+    webauthn: WebauthnCredential | None = None
 
 
 class Signup(TimestampedNS):
     user_created: bool = False
     user_created_at: datetime | None = None
+    eppn: str | None = None
     name: Name = Field(default_factory=Name)
     email: EmailVerification = Field(default_factory=EmailVerification)
     invite: Invite = Field(default_factory=Invite)

@@ -1,20 +1,31 @@
 from typing import Any
 from uuid import uuid4
 
+from fido2.webauthn import AuthenticatorAttachment, PublicKeyCredentialUserEntity
+from fido_mds.models.webauthn import AttestationFormat
 from flask import Blueprint, abort, request
 
 from eduid.common.misc.timeutil import utc_now
 from eduid.common.utils import generate_password
 from eduid.userdb import User
+from eduid.userdb.credentials import Webauthn
 from eduid.userdb.exceptions import UserOutOfSync
 from eduid.webapp.common.api.captcha import CaptchaCompleteRequest, CaptchaResponse
 from eduid.webapp.common.api.decorators import MarshalWith, UnmarshalWith, require_not_logged_in, require_user
 from eduid.webapp.common.api.exceptions import ProofingLogFailure
 from eduid.webapp.common.api.helpers import check_magic_cookie
 from eduid.webapp.common.api.messages import CommonMsg, FluxData, error_response, success_response
+from eduid.webapp.common.api.schemas.base import FluxStandardAction
 from eduid.webapp.common.api.schemas.csrf import EmptyRequest
 from eduid.webapp.common.api.utils import make_short_code
+from eduid.webapp.common.authn.webauthn import (
+    AuthenticatorInformation,
+    RegistrationError,
+    get_webauthn_server,
+    verify_webauthn_registration,
+)
 from eduid.webapp.common.session import session
+from eduid.webapp.common.session.namespaces import WebauthnCredential, WebauthnRegistration
 from eduid.webapp.signup.app import current_signup_app as current_app
 from eduid.webapp.signup.helpers import (
     EmailAlreadyVerifiedException,
@@ -24,6 +35,7 @@ from eduid.webapp.signup.helpers import (
     check_email_status,
     complete_and_update_invite,
     create_and_sync_user,
+    get_eppn,
     is_email_verification_expired,
     is_valid_custom_password,
     send_signup_mail,
@@ -36,6 +48,8 @@ from eduid.webapp.signup.schemas import (
     NameAndEmailSchema,
     SignupStatusResponse,
     VerifyEmailRequest,
+    WebauthnRegisterBeginRequest,
+    WebauthnRegisterCompleteRequest,
 )
 
 signup_views = Blueprint("signup", __name__, url_prefix="", template_folder="templates")
@@ -258,6 +272,116 @@ def get_password() -> FluxData:
     return success_response(payload={"state": session.signup.to_dict()})
 
 
+@signup_views.route("/webauthn/register/begin", methods=["POST"])
+@UnmarshalWith(WebauthnRegisterBeginRequest)
+@MarshalWith(FluxStandardAction)
+@require_not_logged_in
+def webauthn_register_begin(authenticator: str) -> FluxData:
+    current_app.logger.info("WebAuthn registration begin")
+
+    if not session.signup.captcha.completed:
+        return error_response(message=SignupMsg.captcha_not_completed)
+    if not session.signup.email.completed:
+        return error_response(message=SignupMsg.email_verification_not_complete)
+    if not session.signup.tou.completed:
+        return error_response(message=SignupMsg.tou_not_completed)
+
+    try:
+        _auth_enum = AuthenticatorAttachment(authenticator)
+    except ValueError:
+        return error_response(message=SignupMsg.webauthn_registration_failed)
+
+    eppn = get_eppn()
+
+    server = get_webauthn_server(
+        rp_id=current_app.conf.fido2_rp_id,
+        rp_name=current_app.conf.fido2_rp_name,
+        attestation=current_app.conf.webauthn_attestation,
+    )
+
+    if not session.signup.name.given_name or not session.signup.name.surname:
+        return error_response(message=SignupMsg.name_not_set)
+    user_entity = PublicKeyCredentialUserEntity(
+        id=bytes(eppn, "utf-8"),
+        name=eppn,
+        display_name=f"{session.signup.name.given_name} {session.signup.name.surname}",
+    )
+    registration_data, state = server.register_begin(
+        user=user_entity,
+        credentials=[],
+        user_verification=current_app.conf.webauthn_user_verification,
+        resident_key_requirement=current_app.conf.webauthn_resident_key_requirement,
+        authenticator_attachment=_auth_enum,
+    )
+    session.signup.credentials.webauthn_registration = WebauthnRegistration(
+        webauthn_state=state, authenticator=_auth_enum
+    )
+
+    current_app.logger.info("WebAuthn registration begun")
+    current_app.stats.count(name="webauthn_register_begin")
+
+    return success_response(
+        payload={"csrf_token": session.new_csrf_token(), "registration_data": dict(registration_data)}
+    )
+
+
+@signup_views.route("/webauthn/register/complete", methods=["POST"])
+@UnmarshalWith(WebauthnRegisterCompleteRequest)
+@MarshalWith(SignupStatusResponse)
+@require_not_logged_in
+def webauthn_register_complete(
+    response: dict[str, Any], description: str, client_extension_results: dict[str, Any] | None = None
+) -> FluxData:
+    current_app.logger.info("WebAuthn registration complete")
+
+    if not session.signup.credentials.webauthn_registration:
+        current_app.logger.info("Found no webauthn registration state in the session")
+        return error_response(message=SignupMsg.webauthn_registration_failed)
+
+    reg_state = session.signup.credentials.webauthn_registration
+    session.signup.credentials.webauthn_registration = None
+
+    try:
+        result = verify_webauthn_registration(
+            response=response,
+            webauthn_state=reg_state.webauthn_state,
+            authenticator=reg_state.authenticator,
+            rp_id=current_app.conf.fido2_rp_id,
+            rp_name=current_app.conf.fido2_rp_name,
+            fido_mds=current_app.fido_mds,
+            fido_metadata_log=current_app.fido_metadata_log,
+            app_name=current_app.conf.app_name,
+            is_backdoor=check_magic_cookie(current_app.conf),
+            disallowed_status=current_app.conf.webauthn_disallowed_status,
+            client_extension_results=client_extension_results,
+        )
+    except RegistrationError:
+        return error_response(message=SignupMsg.webauthn_registration_failed)
+
+    # Store completed credential in session for user creation
+    session.signup.credentials.webauthn = WebauthnCredential(
+        credential_data=result.credential_data,
+        keyhandle=result.keyhandle,
+        authenticator=result.authenticator,
+        authenticator_id=str(result.authenticator_info.authenticator_id),
+        mfa_approved=result.mfa_approved,
+        attestation_format=result.authenticator_info.attestation_format,
+        description=description,
+        user_present=result.authenticator_info.user_present,
+        user_verified=result.authenticator_info.user_verified,
+        user_verification_methods=result.authenticator_info.user_verification_methods,
+        key_protection=result.authenticator_info.key_protection,
+    )
+    session.signup.credentials.completed = True
+
+    current_app.logger.info("WebAuthn registration completed")
+    current_app.stats.count(name="webauthn_register_complete")
+    if result.mfa_approved:
+        current_app.stats.count(name="webauthn_mfa_approved")
+
+    return success_response(payload={"state": session.signup.to_dict()})
+
+
 @signup_views.route("/create-user", methods=["POST"])
 @UnmarshalWith(CreateUserRequest)
 @MarshalWith(SignupStatusResponse)
@@ -294,7 +418,7 @@ def create_user(use_suggested_password: bool, use_webauthn: bool, custom_passwor
             return error_response(message=SignupMsg.weak_custom_password)
     if use_webauthn and not session.signup.credentials.webauthn:
         current_app.logger.error("No webauthn registered")
-        return error_response(message=SignupMsg.webauthn_not_registered)
+        return error_response(message=SignupMsg.webauthn_registration_failed)
     if not use_password and not use_webauthn:
         current_app.logger.error("Neither generated_password nor webauthn selected")
         return error_response(message=SignupMsg.credential_not_added)
@@ -303,6 +427,33 @@ def create_user(use_suggested_password: bool, use_webauthn: bool, custom_passwor
     assert session.signup.name.surname is not None  # please mypy
     assert session.signup.email.address is not None  # please mypy
     assert session.signup.tou.version is not None  # please mypy
+
+    webauthn_credential = None
+    webauthn_authenticator_info = None
+    if use_webauthn:
+        wn = session.signup.credentials.webauthn
+        assert wn is not None  # checked above
+        webauthn_credential = Webauthn(
+            keyhandle=wn.keyhandle,
+            credential_data=wn.credential_data,
+            authenticator_id=wn.authenticator_id,
+            authenticator=wn.authenticator,
+            app_id=current_app.conf.fido2_rp_id,
+            description=wn.description,
+            created_by=current_app.conf.app_name,
+            mfa_approved=wn.mfa_approved,
+            webauthn_proofing_version=current_app.conf.webauthn_proofing_version,
+            attestation_format=wn.attestation_format,
+        )
+        webauthn_authenticator_info = AuthenticatorInformation(
+            authenticator_id=wn.authenticator_id or "",
+            attestation_format=wn.attestation_format or AttestationFormat.NONE,
+            user_present=wn.user_present,
+            user_verified=wn.user_verified,
+            user_verification_methods=wn.user_verification_methods,
+            key_protection=wn.key_protection,
+        )
+
     try:
         signup_user = create_and_sync_user(
             given_name=session.signup.name.given_name,
@@ -311,6 +462,8 @@ def create_user(use_suggested_password: bool, use_webauthn: bool, custom_passwor
             generated_password=session.signup.credentials.generated_password,
             custom_password=custom_password,
             tou_version=session.signup.tou.version,
+            webauthn=webauthn_credential,
+            webauthn_authenticator_info=webauthn_authenticator_info,
         )
     except EmailAlreadyVerifiedException:
         return error_response(message=SignupMsg.email_used)

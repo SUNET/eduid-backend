@@ -16,6 +16,7 @@ from eduid.common.models.scim_user import NutidUserExtensionV1, UserCreateReques
 from eduid.queue.client import init_queue_item
 from eduid.queue.db.message import EduidSignupEmail
 from eduid.userdb import MailAddress, NinIdentity, PhoneNumber, Profile, User
+from eduid.userdb.credentials import Webauthn
 from eduid.userdb.exceptions import UserDoesNotExist, UserOutOfSync
 from eduid.userdb.logs import MailAddressProofing
 from eduid.userdb.signup import Invite, InviteType, SCIMReference, SignupUser
@@ -26,6 +27,7 @@ from eduid.webapp.common.api.translation import get_user_locale
 from eduid.webapp.common.api.utils import is_throttled, save_and_sync_user, time_left
 from eduid.webapp.common.api.validation import is_valid_password
 from eduid.webapp.common.authn.vccs import add_password, revoke_passwords
+from eduid.webapp.common.authn.webauthn import AuthenticatorInformation, save_webauthn_proofing_log
 from eduid.webapp.common.session import session
 from eduid.webapp.signup.app import current_signup_app as current_app
 
@@ -66,8 +68,10 @@ class SignupMsg(TranslatableMsg):
     password_not_generated = "signup.password-not-generated"
     # user has provided a weak custom password
     weak_custom_password = "signup.weak-custom-password"
-    # user has not registered webauthn
-    webauthn_not_registered = "signup.webauthn-not-registered"
+    # webauthn registration failed or not completed
+    webauthn_registration_failed = "signup.webauthn-registration-failed"
+    # user has not set name (given_name and surname)
+    name_not_set = "signup.name-not-set"
     # user has no credential
     credential_not_added = "signup.credential-not-added"
     # invite not found
@@ -193,6 +197,13 @@ def send_signup_mail(email: str, verification_code: str, reference: str) -> None
         current_app.logger.debug(f"Generating verification e-mail with context:\n{payload}")
 
 
+def get_eppn() -> str:
+    """Generate and store an eppn in the signup session if not already present."""
+    if session.signup.eppn is None:
+        session.signup.eppn = generate_eppn()
+    return session.signup.eppn
+
+
 def create_and_sync_user(
     given_name: str,
     surname: str,
@@ -200,6 +211,8 @@ def create_and_sync_user(
     tou_version: str,
     generated_password: str | None = None,
     custom_password: str | None = None,
+    webauthn: Webauthn | None = None,
+    webauthn_authenticator_info: AuthenticatorInformation | None = None,
 ) -> SignupUser:
     """
     * Create a new user in the central userdb
@@ -212,7 +225,7 @@ def create_and_sync_user(
     """
     current_app.logger.info("Creating new user")
 
-    signup_user = SignupUser(eppn=generate_eppn())
+    signup_user = SignupUser(eppn=get_eppn())
     signup_user.given_name = given_name
     signup_user.surname = surname
 
@@ -239,12 +252,27 @@ def create_and_sync_user(
             current_app.logger.debug(f"signup_user: {signup_user}")
             raise VCCSBackendFailure("Failed to add a credential to user")
 
+    if webauthn is not None:
+        signup_user.credentials.add(webauthn)
+
     try:
         save_and_sync_user(signup_user)
     except UserOutOfSync as e:
         revoke_passwords(user=signup_user, reason="UserOutOfSync during signup", application=current_app.conf.app_name)
         current_app.logger.error(f"Failed saving user {signup_user}, data out of sync")
         raise e
+
+    # Write webauthn proofing log after user is saved (eppn exists in DB)
+    if webauthn is not None and webauthn_authenticator_info is not None and webauthn.mfa_approved:
+        if not save_webauthn_proofing_log(
+            eppn=signup_user.eppn,
+            authenticator_info=webauthn_authenticator_info,
+            proofing_log=current_app.proofing_log,
+            app_name=current_app.conf.app_name,
+            proofing_version=current_app.conf.webauthn_proofing_version,
+            proofing_method=current_app.conf.webauthn_proofing_method,
+        ):
+            current_app.logger.error("Failed to save webauthn proofing log")
 
     current_app.stats.count(name="user_created")
     current_app.logger.info("Signup user created")

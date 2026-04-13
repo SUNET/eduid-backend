@@ -10,17 +10,17 @@ from eduid.common.config.base import (
     AmConfigMixin,
     CaptchaConfigMixin,
     EduIDBaseAppConfig,
+    Fido2RpConfigMixin,
     MagicCookieMixin,
     MsgConfigMixin,
     PasswordConfigMixin,
     VCCSConfigMixin,
-    WebauthnConfigMixin2,
 )
 
 
 class ResetPasswordConfig(
     EduIDBaseAppConfig,
-    WebauthnConfigMixin2,
+    Fido2RpConfigMixin,
     MagicCookieMixin,
     AmConfigMixin,
     MsgConfigMixin,
