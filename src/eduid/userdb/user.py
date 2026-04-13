@@ -400,4 +400,4 @@ class User(BaseModel):
         profiles = data.pop("profiles", [])
         if isinstance(profiles, list):
             return ProfileList.from_list_of_dicts(profiles)
-        return profiles
+        return cast(ProfileList, profiles)

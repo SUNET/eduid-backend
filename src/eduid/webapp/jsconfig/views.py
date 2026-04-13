@@ -1,3 +1,5 @@
+from typing import cast
+
 from flask import Blueprint, abort
 
 from eduid.webapp.common.api.decorators import MarshalWith
@@ -30,6 +32,6 @@ def get_config_for(frontend_app: str) -> FluxData:
     """
     if frontend_app in ["dashboard", "signup", "login", "errors"]:
         current_app.logger.info(f"requesting config for frontend app {frontend_app}")
-        return get_config()
+        return cast(FluxData, get_config())
     current_app.logger.error(f"{frontend_app} not in the list of supported apps")
     abort(404)

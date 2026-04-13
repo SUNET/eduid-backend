@@ -4,6 +4,7 @@ import logging
 import random
 from collections.abc import Sequence
 from os import environ
+from typing import cast
 
 import pytest
 from neo4j.exceptions import ServiceUnavailable
@@ -91,7 +92,7 @@ class Neo4jTemporaryInstance(EduidTemporaryInstance):
     def conn(self) -> Neo4jDB:
         if self._conn is None:
             raise RuntimeError("Missing temporary Neo4jDB instance")
-        return self._conn
+        return cast(Neo4jDB, self._conn)
 
     @property
     def host(self) -> str:

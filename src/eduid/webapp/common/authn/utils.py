@@ -54,7 +54,7 @@ def get_location(http_info: SAMLHttpArgs) -> str:
     assert len(headers) == 1
     header_name, header_value = headers[0]
     assert header_name == "Location"
-    return header_value
+    return cast(str, header_value)
 
 
 def get_saml_attribute(session_info: SessionInfo, attr_name: str) -> list[str] | None:
@@ -84,7 +84,7 @@ def get_saml_attribute(session_info: SessionInfo, attr_name: str) -> list[str] |
     # Look for the canonicalized attribute in the SAML assertion attributes
     for saml_attr in attributes:
         if saml_attr.lower() == attr_name.lower():
-            return attributes[saml_attr]
+            return cast(list[str], attributes[saml_attr])
     return None
 
 

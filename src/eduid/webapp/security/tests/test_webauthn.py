@@ -1,7 +1,7 @@
 import base64
 import json
 from collections.abc import Mapping
-from typing import Any
+from typing import Any, cast
 
 import pytest
 from fido2.utils import websafe_decode
@@ -185,7 +185,7 @@ class SecurityWebauthnTests(EduidAPITestCase[SecurityApp]):
         data = response.json
         assert data is not None, "No json data returned"
         assert isinstance(data, dict) is True, "returned json is not a dict"
-        return data
+        return cast(dict[Any, Any], data)
 
     def _check_session_state(self, client: CSRFTestClient) -> None:
         with client.session_transaction() as sess:
@@ -387,17 +387,17 @@ class SecurityWebauthnTests(EduidAPITestCase[SecurityApp]):
         self: FidoMetadataStore, attestation: Attestation, client_data: bytes
     ) -> bool:
         if attestation.fmt is AttestationFormat.PACKED:
-            return self.verify_packed_attestation(attestation=attestation, client_data=client_data)
+            return cast(bool, self.verify_packed_attestation(attestation=attestation, client_data=client_data))
         if attestation.fmt is AttestationFormat.APPLE:
             # apple attestation cert in fido_mds test data is only valid for three days
             return True
         if attestation.fmt is AttestationFormat.TPM:
-            return self.verify_tpm_attestation(attestation=attestation, client_data=client_data)
+            return cast(bool, self.verify_tpm_attestation(attestation=attestation, client_data=client_data))
         if attestation.fmt is AttestationFormat.ANDROID_SAFETYNET:
             # android attestation cert in fido_mds test data is only valid for three months
             return True
         if attestation.fmt is AttestationFormat.FIDO_U2F:
-            return self.verify_fido_u2f_attestation(attestation=attestation, client_data=client_data)
+            return cast(bool, self.verify_fido_u2f_attestation(attestation=attestation, client_data=client_data))
         raise NotImplementedError(f"verification of {attestation.fmt.value} not implemented")
 
     # actual tests

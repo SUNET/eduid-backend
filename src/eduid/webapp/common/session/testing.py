@@ -1,5 +1,6 @@
 import logging
 from collections.abc import Sequence
+from typing import cast
 
 import redis
 
@@ -47,7 +48,7 @@ class RedisTemporaryInstance(EduidTemporaryInstance):
     def conn(self) -> redis.Redis:
         if self._conn is None:
             raise RuntimeError("Missing temporary Redis instance")
-        return self._conn
+        return cast(redis.Redis, self._conn)
 
     def get_params(self) -> tuple[str, int, int]:
         """

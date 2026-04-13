@@ -1,4 +1,4 @@
-from typing import Annotated, Any
+from typing import Annotated, Any, cast
 
 from bson import ObjectId
 from jwcrypto.common import JWException
@@ -76,7 +76,7 @@ class JWKPydanticAnnotation:
 
         def serialize_to_dict(instance: JWK) -> dict[str, str]:
             # JWK inherits from dict, so we can just return it
-            return instance
+            return cast(dict[str, str], instance)
 
         from_dict_schema = core_schema.chain_schema(
             [

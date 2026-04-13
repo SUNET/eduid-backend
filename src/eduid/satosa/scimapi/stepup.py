@@ -4,7 +4,7 @@ import functools
 import json
 import logging
 from collections.abc import Callable, Iterable, Mapping
-from typing import Any, NewType
+from typing import Any, NewType, cast
 from urllib.parse import urlparse
 
 import satosa.context
@@ -564,7 +564,7 @@ class AuthnContext(RequestMicroService):
     def get_from_state(context: Context, state_key: str) -> list[str]:
         _res = context.state.get(CONTEXT_NAME, {}).get(state_key, [])
         logger.debug(f"Retrieved state from context {CONTEXT_NAME}: {_res} (state_key: {state_key})")
-        return _res
+        return cast(list[str], _res)
 
     @staticmethod
     def sp_wants_mfa(context: Context, state_key: str = STATE_KEY_MFA) -> bool:

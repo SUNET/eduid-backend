@@ -195,7 +195,7 @@ class CredentialDB(BaseDB):
         except DuplicateKeyError:
             logger.warning(f"A credential with credential_id {credential.credential_id} already exists in the db")
             return False
-        _success = result.inserted_id == credential.obj_id
+        _success: bool = result.inserted_id == credential.obj_id
         logger.debug(f"Added credential {credential} to the db: {_success}")
         return _success
 

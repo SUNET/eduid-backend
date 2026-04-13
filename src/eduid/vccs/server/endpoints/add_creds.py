@@ -1,5 +1,5 @@
 import json
-from typing import Annotated
+from typing import Annotated, cast
 
 from fastapi import APIRouter, Form, Request
 from pydantic.main import BaseModel
@@ -115,4 +115,4 @@ async def _add_password_credential(
     req.app.logger.info(
         f"AUDIT: Add credential credential_id={cred.credential_id}, version={version.value}, H2[16]={H2[:8]}, res={_res!r}"
     )
-    return _res
+    return cast(bool, _res)

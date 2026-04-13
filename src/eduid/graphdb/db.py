@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from collections.abc import Mapping
-from typing import Any
+from typing import Any, cast
 from urllib.parse import urlparse
 
 from neo4j import Driver, GraphDatabase, basic_auth
@@ -54,7 +54,7 @@ class Neo4jDB:
         with self.driver.session() as session:
             record = session.run(q).single()
             if record:
-                return record["count"]
+                return cast(int | None, record["count"])
         return None
 
     @property

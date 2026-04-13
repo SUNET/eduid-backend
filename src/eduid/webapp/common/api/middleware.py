@@ -1,7 +1,7 @@
 __author__ = "lundberg"
 
 from collections.abc import Callable, Iterable
-from typing import Any
+from typing import Any, cast
 from wsgiref.types import StartResponse, WSGIEnvironment
 
 
@@ -21,11 +21,11 @@ class PrefixMiddleware:
         if environ.get("REMOTE_ADDR") == "127.0.0.1":
             environ["HTTP_HOST"] = self.server_name or "localhost"
             environ["SCRIPT_NAME"] = self.prefix
-            return self.app(environ, start_response)
+            return cast(Iterable[bytes], self.app(environ, start_response))
         elif environ.get("PATH_INFO", "").startswith(self.prefix):
             environ["PATH_INFO"] = environ["PATH_INFO"][len(self.prefix) :]
             environ["SCRIPT_NAME"] = self.prefix
-            return self.app(environ, start_response)
+            return cast(Iterable[bytes], self.app(environ, start_response))
         else:
             start_response("404", [("Content-Type", "text/plain")])
             return [b"Not found."]
