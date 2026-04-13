@@ -58,6 +58,7 @@ class SignupStatusResponse(FluxStandardAction):
             captcha = fields.Nested(Captcha, required=True)
             credentials = fields.Nested(Credentials, required=True)
             user_created = fields.Boolean(required=True)
+            idp_request_ref = fields.String(required=False, load_default=None)
 
         state = fields.Nested(State, required=True)
 
@@ -177,3 +178,7 @@ class WebauthnRegisterCompleteRequest(EduidSchema, CSRFRequestMixin):
     response = fields.Dict(required=True)
     description = fields.String(required=True)
     client_extension_results = fields.Dict(required=False, data_key="clientExtensionResults")
+
+
+class ReturnToAuthRequest(EduidSchema, CSRFRequestMixin):
+    ref = fields.String(required=True)

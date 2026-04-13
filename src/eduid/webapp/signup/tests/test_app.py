@@ -871,6 +871,7 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
             "name": {"given_name": None, "surname": None},
             "tou": {"completed": False, "version": "2016-v1"},
             "user_created": False,
+            "idp_request_ref": None,
         }, f"actual state is {state}"
 
     def test_get_state_initial_logged_in(self) -> None:
@@ -891,6 +892,7 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
             "name": {"given_name": None, "surname": None},
             "tou": {"completed": False, "version": "2016-v1"},
             "user_created": False,
+            "idp_request_ref": None,
         }, f"actual state is {state}"
 
     def test_accept_tou(self) -> None:
@@ -1431,6 +1433,7 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
             "name": {"given_name": "Invite", "surname": "Invitesson"},
             "tou": {"completed": False, "version": "2016-v1"},
             "user_created": False,
+            "idp_request_ref": None,
         }, f"Actual state {normalised_data(state, exclude_keys=['expires_time_left', 'throttle_time_left', 'sent_at'])}"
 
     def test_complete_invite_new_user(self) -> None:

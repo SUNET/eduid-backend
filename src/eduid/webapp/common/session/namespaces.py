@@ -188,6 +188,7 @@ class Signup(TimestampedNS):
     tou: Tou = Field(default_factory=Tou)
     captcha: Captcha = Field(default_factory=Captcha)
     credentials: Credentials = Field(default_factory=Credentials)
+    idp_request_ref: RequestRef | None = None
 
 
 class Phone(SessionNSBase):

@@ -78,6 +78,8 @@ class SignupMsg(TranslatableMsg):
     invite_not_found = "signup.invite-not-found"
     # invite already completed
     invite_already_completed = "signup.invite-already-completed"
+    # IdP request ref not found in session
+    idp_request_ref_not_found = "signup.idp-request-ref-not-found"
 
     # backwards compatibility
     # partial success registering new account
