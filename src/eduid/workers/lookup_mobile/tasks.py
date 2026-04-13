@@ -1,9 +1,9 @@
 from typing import Any
 
-from celery import Task
 from celery.utils.log import get_task_logger
 
 from eduid.common.decorators import deprecated
+from eduid.workers.celery_typing import Task
 from eduid.workers.lookup_mobile.client.mobile_lookup_client import MobileLookupClient
 from eduid.workers.lookup_mobile.common import MobCelerySingleton
 

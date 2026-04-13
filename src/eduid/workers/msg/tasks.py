@@ -5,13 +5,13 @@ from http import HTTPStatus
 from typing import Any, ClassVar
 
 from billiard.einfo import ExceptionInfo
-from celery import Task
 from celery.utils.log import get_task_logger
 from hammock import Hammock
 from smscom import SMSClient
 
 from eduid.common.config.base import EduidEnvironment
 from eduid.userdb.exceptions import DBConnectionError
+from eduid.workers.celery_typing import Task
 from eduid.workers.msg.cache import CacheMDB
 from eduid.workers.msg.common import MsgCelerySingleton
 from eduid.workers.msg.decorators import TransactionAudit

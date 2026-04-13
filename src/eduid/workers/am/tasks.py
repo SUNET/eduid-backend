@@ -2,13 +2,13 @@ from typing import Any
 
 import bson
 from billiard.einfo import ExceptionInfo
-from celery import Task
 from celery.utils.log import get_task_logger
 
 from eduid.userdb import AmDB
 from eduid.userdb.exceptions import DBConnectionError, LockedIdentityViolation, UserDoesNotExist
 from eduid.workers.am.common import AmCelerySingleton
 from eduid.workers.am.consistency_checks import check_locked_identity, unverify_duplicates
+from eduid.workers.celery_typing import Task
 
 logger = get_task_logger(__name__)
 
