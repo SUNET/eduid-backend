@@ -659,7 +659,7 @@ class TestNewUser:
         data["locked_identity"] = [locked_identity]
         user = User.from_dict(data)
         assert user.locked_identity.nin is not None
-        assert user.locked_identity.nin.identity_type == IdentityType.NIN.value
+        assert user.locked_identity.nin.identity_type == IdentityType.NIN
         assert user.locked_identity.nin.created_by == "test"
         assert user.locked_identity.nin.created_ts == created_ts
         assert user.locked_identity.nin.number == "197801012345"
@@ -677,7 +677,7 @@ class TestNewUser:
         data["locked_identity"] = [locked_identity]
         user = User.from_dict(data)
         assert user.locked_identity.nin is not None
-        assert user.locked_identity.nin.identity_type == IdentityType.NIN.value
+        assert user.locked_identity.nin.identity_type == IdentityType.NIN
         assert user.locked_identity.nin.created_by == "test"
         assert user.locked_identity.nin.created_ts == created_ts
         assert user.locked_identity.nin.number == "197801012345"
@@ -694,7 +694,7 @@ class TestNewUser:
         assert user.locked_identity.count == 1
 
         assert user.locked_identity.nin is not None
-        assert user.locked_identity.nin.identity_type == IdentityType.NIN.value
+        assert user.locked_identity.nin.identity_type == IdentityType.NIN
         assert user.locked_identity.nin.created_by == "test"
         assert user.locked_identity.nin.number == "197801012345"
         assert user.locked_identity.nin.is_verified is True
@@ -717,14 +717,14 @@ class TestNewUser:
 
         old_user = User.from_dict(user.to_dict())
         assert old_user.locked_identity.nin is not None
-        assert old_user.locked_identity.nin.identity_type == IdentityType.NIN.value
+        assert old_user.locked_identity.nin.identity_type == IdentityType.NIN
         assert old_user.locked_identity.nin.created_by == "test"
         assert old_user.locked_identity.nin.number == "197801012345"
         assert old_user.locked_identity.nin.is_verified is True
 
         new_user = User.from_dict(user.to_dict())
         assert new_user.locked_identity.nin is not None
-        assert new_user.locked_identity.nin.identity_type == IdentityType.NIN.value
+        assert new_user.locked_identity.nin.identity_type == IdentityType.NIN
         assert new_user.locked_identity.nin.created_by == "test"
         assert new_user.locked_identity.nin.number == "197801012345"
         assert new_user.locked_identity.nin.is_verified is True
