@@ -25,6 +25,7 @@ from eduid.webapp.common.api.schemas.base import FluxStandardAction
 from eduid.webapp.common.api.schemas.csrf import EmptyRequest
 from eduid.webapp.common.api.utils import make_short_code
 from eduid.webapp.common.authn.webauthn import (
+    AuthenticatorInformation,
     get_authenticator_information,
     get_webauthn_server,
     is_authenticator_mfa_approved,
@@ -390,6 +391,8 @@ def webauthn_register_complete(
     session.signup.credentials.webauthn_mfa_approved = mfa_approved
     session.signup.credentials.webauthn_attestation_format = authenticator_info.attestation_format
     session.signup.credentials.webauthn_description = description
+    session.signup.credentials.webauthn_user_verification_methods = authenticator_info.user_verification_methods
+    session.signup.credentials.webauthn_key_protection = authenticator_info.key_protection
     session.signup.credentials.completed = True
 
     current_app.logger.info("WebAuthn registration completed")
@@ -447,10 +450,12 @@ def create_user(use_suggested_password: bool, use_webauthn: bool, custom_passwor
     assert session.signup.tou.version is not None  # please mypy
 
     webauthn_credential = None
+    webauthn_authenticator_info = None
     if use_webauthn:
         assert session.signup.credentials.webauthn_keyhandle is not None
         assert session.signup.credentials.webauthn_credential_data is not None
         assert session.signup.credentials.webauthn_authenticator is not None
+        assert session.signup.credentials.webauthn_attestation_format is not None
         webauthn_credential = Webauthn(
             keyhandle=session.signup.credentials.webauthn_keyhandle,
             credential_data=session.signup.credentials.webauthn_credential_data,
@@ -463,6 +468,14 @@ def create_user(use_suggested_password: bool, use_webauthn: bool, custom_passwor
             webauthn_proofing_version=current_app.conf.webauthn_proofing_version,
             attestation_format=session.signup.credentials.webauthn_attestation_format,
         )
+        webauthn_authenticator_info = AuthenticatorInformation(
+            authenticator_id=session.signup.credentials.webauthn_authenticator_id or "",
+            attestation_format=session.signup.credentials.webauthn_attestation_format,
+            user_present=True,
+            user_verified=session.signup.credentials.webauthn_mfa_approved,
+            user_verification_methods=session.signup.credentials.webauthn_user_verification_methods,
+            key_protection=session.signup.credentials.webauthn_key_protection,
+        )
 
     try:
         signup_user = create_and_sync_user(
@@ -473,6 +486,7 @@ def create_user(use_suggested_password: bool, use_webauthn: bool, custom_passwor
             custom_password=custom_password,
             tou_version=session.signup.tou.version,
             webauthn=webauthn_credential,
+            webauthn_authenticator_info=webauthn_authenticator_info,
             eppn=session.signup.eppn,
         )
     except EmailAlreadyVerifiedException:

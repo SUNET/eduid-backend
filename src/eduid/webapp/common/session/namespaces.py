@@ -165,6 +165,8 @@ class Credentials(SessionNSBase):
     webauthn_mfa_approved: bool = False
     webauthn_attestation_format: AttestationFormat | None = None
     webauthn_description: str | None = None
+    webauthn_user_verification_methods: list[str] = Field(default_factory=list)
+    webauthn_key_protection: list[str] = Field(default_factory=list)
 
 
 class Signup(TimestampedNS):
