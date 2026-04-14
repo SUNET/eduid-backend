@@ -10,7 +10,9 @@ from fido2.webauthn import (
     RegistrationResponse,
     UserVerificationRequirement,
 )
-from fido_mds import FidoMetadataStore
+from fido_mds import Attestation, FidoMetadataStore
+from fido_mds.models.webauthn import AttestationFormat
+from fido_mds.tests.data import IPHONE_12, MICROSOFT_SURFACE_1796, NEXUS_5, NONE_ATTESTATION, YUBIKEY_4, YUBIKEY_5_NFC
 from future.backports.datetime import timedelta
 from pytest_mock import MockerFixture
 from werkzeug.test import TestResponse
@@ -34,10 +36,22 @@ __author__ = "eperez"
 
 # CTAP1 test data
 
-# result of calling Fido2Server.register_begin
-from fido_mds import Attestation
-from fido_mds.models.webauthn import AttestationFormat
-from fido_mds.tests.data import IPHONE_12, MICROSOFT_SURFACE_1796, NEXUS_5, NONE_ATTESTATION, YUBIKEY_4, YUBIKEY_5_NFC
+
+def _apple_special_verify_attestation(self: FidoMetadataStore, attestation: Attestation, client_data: bytes) -> bool:
+    if attestation.fmt is AttestationFormat.PACKED:
+        return self.verify_packed_attestation(attestation=attestation, client_data=client_data)
+    if attestation.fmt is AttestationFormat.APPLE:
+        # apple attestation cert in fido_mds test data is only valid for three days
+        return True
+    if attestation.fmt is AttestationFormat.TPM:
+        return self.verify_tpm_attestation(attestation=attestation, client_data=client_data)
+    if attestation.fmt is AttestationFormat.ANDROID_SAFETYNET:
+        # android attestation cert in fido_mds test data is only valid for three months
+        return True
+    if attestation.fmt is AttestationFormat.FIDO_U2F:
+        return self.verify_fido_u2f_attestation(attestation=attestation, client_data=client_data)
+    raise NotImplementedError(f"verification of {attestation.fmt.value} not implemented")
+
 
 # CTAP1 security key
 STATE = {"challenge": "u3zHzb7krB4c4wj0Uxuhsz2lCXqLnwV9ZxMhvL2lcfo", "user_verification": "discouraged"}
@@ -383,23 +397,6 @@ class SecurityWebauthnTests(EduidAPITestCase[SecurityApp]):
             response2 = client.post("/webauthn/remove", json=data)
             return user_token, response2
 
-    def _apple_special_verify_attestation(
-        self: FidoMetadataStore, attestation: Attestation, client_data: bytes
-    ) -> bool:
-        if attestation.fmt is AttestationFormat.PACKED:
-            return cast(bool, self.verify_packed_attestation(attestation=attestation, client_data=client_data))
-        if attestation.fmt is AttestationFormat.APPLE:
-            # apple attestation cert in fido_mds test data is only valid for three days
-            return True
-        if attestation.fmt is AttestationFormat.TPM:
-            return cast(bool, self.verify_tpm_attestation(attestation=attestation, client_data=client_data))
-        if attestation.fmt is AttestationFormat.ANDROID_SAFETYNET:
-            # android attestation cert in fido_mds test data is only valid for three months
-            return True
-        if attestation.fmt is AttestationFormat.FIDO_U2F:
-            return cast(bool, self.verify_fido_u2f_attestation(attestation=attestation, client_data=client_data))
-        raise NotImplementedError(f"verification of {attestation.fmt.value} not implemented")
-
     # actual tests
 
     def test_begin_no_login(self) -> None:
@@ -636,7 +633,7 @@ class SecurityWebauthnTests(EduidAPITestCase[SecurityApp]):
 
     def test_authenticator_information(self, mocker: MockerFixture) -> None:
         mocker.patch(
-            "fido_mds.FidoMetadataStore.verify_attestation", SecurityWebauthnTests._apple_special_verify_attestation
+            "fido_mds.FidoMetadataStore.verify_attestation", _apple_special_verify_attestation
         )
         authenticators = [YUBIKEY_4, YUBIKEY_5_NFC, MICROSOFT_SURFACE_1796, NEXUS_5, IPHONE_12, NONE_ATTESTATION]
         for authenticator in authenticators:
