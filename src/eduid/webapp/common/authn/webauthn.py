@@ -96,6 +96,8 @@ def get_authenticator_information(
     user_present = att.auth_data.flags.user_present
     user_verified = att.auth_data.flags.user_verified
     authenticator_id = att.aaguid or att.certificate_key_identifier
+    if authenticator_id is None:
+        raise AttestationVerificationError("attestation contains no authenticator id (aaguid or certificate key identifier)")
 
     # allow automatic tests to use any webauthn device
     if is_backdoor:
@@ -159,6 +161,8 @@ def get_authenticator_information(
 
     # create authenticator information from attestation and metadata
     metadata_entry = fido_mds.get_entry(authenticator_id=authenticator_id)
+    if metadata_entry is None:
+        raise AttestationVerificationError(f"no metadata entry found for authenticator {authenticator_id}")
     # mongodb does not support date
     last_status_change = metadata_entry.time_of_last_status_change
     user_verification_methods = [
@@ -178,7 +182,7 @@ def get_authenticator_information(
 
     return AuthenticatorInformation(
         attestation_format=att.fmt,
-        authenticator_id=att.aaguid or att.certificate_key_identifier,
+        authenticator_id=authenticator_id,
         status=max(
             metadata_entry.status_reports, key=lambda sr: sr.effective_date
         ).status,  # latest status reports status
