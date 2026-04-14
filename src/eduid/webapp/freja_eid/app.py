@@ -21,7 +21,6 @@ class FrejaEIDApp(AuthnBaseApp[FrejaEIDConfig]):
     def __init__(self, config: FrejaEIDConfig, **kwargs: Any) -> None:
         super().__init__(config, **kwargs)
 
-        self.conf = config
         # Init dbs
         self.private_userdb = FrejaEIDProofingUserDB(self.conf.mongo_uri, auto_expire=config.private_userdb_auto_expire)
         self.proofing_log = ProofingLog(config.mongo_uri)

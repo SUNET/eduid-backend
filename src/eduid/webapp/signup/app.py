@@ -21,7 +21,6 @@ class SignupApp(EduIDBaseApp[SignupConfig]):
     def __init__(self, config: SignupConfig, **kwargs: Any) -> None:
         super().__init__(config, **kwargs)
 
-        self.conf = config
 
         self.am_relay = AmRelay(config)
 

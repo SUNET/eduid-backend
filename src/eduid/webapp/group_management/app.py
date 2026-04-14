@@ -19,7 +19,6 @@ class GroupManagementApp(AuthnBaseApp[GroupManagementConfig]):
     def __init__(self, config: GroupManagementConfig, **kwargs: Any) -> None:
         super().__init__(config, **kwargs)
 
-        self.conf = config
 
         # Init dbs
         self.invite_state_db = GroupManagementInviteStateDB(config.mongo_uri)

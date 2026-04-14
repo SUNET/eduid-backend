@@ -15,7 +15,6 @@ class JSConfigApp(EduIDBaseApp[JSConfigConfig]):
 
         super().__init__(config, **kwargs)
 
-        self.conf = config
 
 
 current_jsconfig_app: JSConfigApp = cast(JSConfigApp, current_app)

@@ -65,6 +65,7 @@ class EduIDBaseApp[C: EduIDBaseAppConfig](Flask, metaclass=ABCMeta):
         :param handle_exceptions: Whether to install exception handler or not.
         """
         super().__init__(config.app_name, **kwargs)
+        self.conf = config
         _flask_config = {x.upper(): v for x, v in config.flask.to_mapping().items()}
         self.config.from_mapping(_flask_config)
 

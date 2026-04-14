@@ -14,7 +14,6 @@ class PersonalDataApp(AuthnBaseApp[PersonalDataConfig]):
     def __init__(self, config: PersonalDataConfig, **kwargs: Any) -> None:
         super().__init__(config, **kwargs)
 
-        self.conf = config
 
         # Init celery
         self.am_relay = AmRelay(config)

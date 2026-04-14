@@ -18,7 +18,6 @@ class PhoneApp(AuthnBaseApp[PhoneConfig]):
     def __init__(self, config: PhoneConfig, **kwargs: Any) -> None:
         super().__init__(config, **kwargs)
 
-        self.conf = config
 
         # Init celery
         self.am_relay = AmRelay(config)
