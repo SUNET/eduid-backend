@@ -89,7 +89,7 @@ TEST_CONFIG = {
 }
 
 
-class EduidAPITestCase[T: EduIDBaseApp](CommonTestCase):
+class EduidAPITestCase[T: EduIDBaseApp[Any]](CommonTestCase):
     """
     Base Test case for eduID APIs.
 

@@ -1,3 +1,5 @@
+from typing import Any
+
 from eduid.common.config.base import EduIDBaseAppConfig, FrontendAction
 from eduid.userdb.credentials import FidoCredential
 from eduid.userdb.identity import IdentityElement, IdentityProofingMethod
@@ -11,7 +13,7 @@ from eduid.webapp.common.api.testing import CSRFTestClient, EduidAPITestCase, lo
 __author__ = "lundberg"
 
 
-class ProofingTests[T: EduIDBaseApp](EduidAPITestCase[T]):
+class ProofingTests[T: EduIDBaseApp[Any]](EduidAPITestCase[T]):
     def _verify_status(
         self,
         finish_url: str,

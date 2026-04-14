@@ -1,4 +1,5 @@
 from importlib.resources import files
+from typing import Any
 
 from flask import current_app, request
 from flask_babel import Babel
@@ -27,7 +28,7 @@ def get_user_locale() -> str | None:
     return lang
 
 
-def init_babel(app: EduIDBaseApp) -> Babel:
+def init_babel(app: EduIDBaseApp[Any]) -> Babel:
     """
     :param app: Flask app
     """

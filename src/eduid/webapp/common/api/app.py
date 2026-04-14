@@ -169,7 +169,7 @@ class EduIDBaseApp[C: EduIDBaseAppConfig](Flask, metaclass=ABCMeta):
         return res
 
 
-def init_status_views(app: EduIDBaseApp, config: EduIDBaseAppConfig) -> None:
+def init_status_views(app: EduIDBaseApp[Any], config: EduIDBaseAppConfig) -> None:
     """
     Register status views for any app, and configure them as public.
     """
