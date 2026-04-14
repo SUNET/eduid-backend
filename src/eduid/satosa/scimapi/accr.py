@@ -18,7 +18,7 @@ InternalACCRRewriteMap = Mapping[str, str]
 type ProcessReturnType = InternalData | Response
 
 
-class request(RequestMicroService):
+class request(RequestMicroService):  # type: ignore[misc]
     """
     A class to handle and the ACCR request flowing through Satosa.
     ```yaml
@@ -105,7 +105,7 @@ class request(RequestMicroService):
         return super().process(context, data)
 
 
-class response(ResponseMicroService):
+class response(ResponseMicroService):  # type: ignore[misc]
     """
     A class to handle and the ACCR response flowing through Satosa.
     ```yaml

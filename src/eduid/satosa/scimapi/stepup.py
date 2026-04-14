@@ -58,7 +58,7 @@ STATE_KEY_LOA = "returned-authn-class"
 STATE_KEY_MFA = "requester-authn-class-ref"
 
 
-class StepUpError(SATOSAError):
+class StepUpError(SATOSAError):  # type: ignore[misc]
     """Generic error for this plugin."""
 
 
@@ -104,7 +104,7 @@ class StepupParams(BaseModel):
 
 
 # Applied to response from IDP
-class StepUp(ResponseMicroService):
+class StepUp(ResponseMicroService):  # type: ignore[misc]
     """
     A micro-SP just to handle the communication towards the StepUp Service for SFO.
 
@@ -512,7 +512,7 @@ class StepUp(ResponseMicroService):
 
 
 # applied to incoming request from SP
-class AuthnContext(RequestMicroService):
+class AuthnContext(RequestMicroService):  # type: ignore[misc]
     """
     A micro-service that runs when the authnRequest is first received from the SP.
 
@@ -634,7 +634,7 @@ def get_loa_settings_for_entity_id(
     return None
 
 
-class StepupSAMLBackend(SAMLBackend):
+class StepupSAMLBackend(SAMLBackend):  # type: ignore[misc]
     """
     A SAML backend to request custom authn context class references from IdP:s with certain entity attributes.
     """
@@ -665,7 +665,7 @@ class StepupSAMLBackend(SAMLBackend):
         return super().authn_request(context, entity_id)
 
 
-class RewriteAuthnContextClass(ResponseMicroService):
+class RewriteAuthnContextClass(ResponseMicroService):  # type: ignore[misc]
     """
     When we receive a response from an IdP, we check if we have configuration specifying
     'normalisation' of the authn context class reference in our MFA configuration.

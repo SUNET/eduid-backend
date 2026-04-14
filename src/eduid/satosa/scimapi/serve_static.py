@@ -14,7 +14,7 @@ from satosa.satosa_config import SATOSAConfig
 logger = logging.getLogger("satosa")
 
 
-class ServeStatic(RequestMicroService):
+class ServeStatic(RequestMicroService):  # type: ignore[misc]
     """
     A class to serve static files from a given directory
 

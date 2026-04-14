@@ -39,7 +39,7 @@ class UserGroups:
     manager: list[ScimApiGroup] = field(default_factory=list)
 
 
-class ScimAttributes(ResponseMicroService):
+class ScimAttributes(ResponseMicroService):  # type: ignore[misc]
     """
     Add attributes from the scim db to the responses.
     """
