@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, cast
 
 import eduid.workers.lookup_mobile
 
@@ -21,8 +21,10 @@ class LookupMobileRelay:
 
     def find_nin_by_mobile(self, mobile_number: str) -> str | None:
         try:
-            result = self._find_nin_by_mobile.delay(mobile_number)
-            result = result.get(timeout=10)  # Lower timeout than standard gunicorn worker timeout (25)
+            rtask = self._find_nin_by_mobile.delay(mobile_number)
+            result = cast(
+                str | None, rtask.get(timeout=10)
+            )  # Lower timeout than standard gunicorn worker timeout (25)
             return result
         except Exception as e:
             raise LookupMobileTaskFailed(f"find_nin_by_mobile task failed: {e}") from e
@@ -43,7 +45,7 @@ class LookupMobileRelay:
         """
         rtask = self._pong.apply_async(kwargs={"app_name": self.app_name})
         try:
-            return rtask.get(timeout=timeout)
+            return cast(str, rtask.get(timeout=timeout))
         except Exception as e:
             rtask.forget()
             raise LookupMobileTaskFailed(f"ping task failed: {e!r}") from e

@@ -58,7 +58,7 @@ def scim_request(
     if not r:
         return None
 
-    response = r.json()
+    response = cast(dict[str, Any], r.json())
     logger.debug(f"Response:\n{pformat(response, width=120)}")
     return response
 
@@ -82,7 +82,7 @@ def _make_request(
         except Exception:
             logger.error(f"Error {r} received from server: {r.text}")
         return None
-    return r
+    return cast(requests.Response, r)
 
 
 def search_user(api: Api, search_filter: str) -> dict[str, Any] | None:

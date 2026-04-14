@@ -2,7 +2,7 @@ import json
 import logging
 from collections import OrderedDict
 from http import HTTPStatus
-from typing import Any, ClassVar
+from typing import Any, ClassVar, cast
 
 from billiard.einfo import ExceptionInfo
 from celery.utils.log import get_task_logger
@@ -133,7 +133,7 @@ class MessageSender(Task[Any, Any]):
             raise NotImplementedError(f"message_type {message_type} is not implemented")
 
         logger.debug(f"send_message result: {status}")
-        return status
+        return cast(str, status)
 
     def get_postal_address(self, identity_number: str) -> OrderedDict[str, Any] | None:
         """
@@ -315,7 +315,7 @@ class MessageSender(Task[Any, Any]):
             logger.debug(f"\nType: sms\nReference: {reference}\nRecipient: {recipient}\nMessage:\n{message}")
             return "no_op_number"
 
-        return self.sms.send(message, MsgCelerySingleton.worker_config.sms_sender, recipient, prio=2)
+        return cast(str, self.sms.send(message, MsgCelerySingleton.worker_config.sms_sender, recipient, prio=2))
 
     def pong(self, app_name: str | None) -> str:
         # Leverage cache to test mongo db health
@@ -336,7 +336,7 @@ def sendsms(self: MessageSender, recipient: str, message: str, reference: str) -
     :param reference: Audit reference to help cross reference audit log and events
     """
     try:
-        return self.sendsms(recipient, message, reference)
+        return cast(str, self.sendsms(recipient, message, reference))
     except Exception as e:
         logger.error(f"sendsms task error: {e}", exc_info=True)
         raise self.retry(countdown=1, max_retries=3, exc=e) from e

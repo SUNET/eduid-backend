@@ -49,7 +49,7 @@ import json
 import logging
 import typing
 from collections.abc import Iterator, Mapping
-from typing import Any
+from typing import Any, cast
 
 import nacl.encoding
 import nacl.secret
@@ -305,7 +305,7 @@ class RedisEncryptedSession(typing.MutableMapping[str, Any]):
         if "v2" in versioned:
             _data = self.secret_box.decrypt(versioned["v2"], encoder=nacl.encoding.Base64Encoder)
             decrypted = json.loads(_data)
-            return decrypted
+            return cast(dict[str, Any], decrypted)
 
         logger.error(f"Unknown data retrieved from Redis[{self.short_id}]: {data_str!r}")
         raise ValueError("Unknown data retrieved from Redis")

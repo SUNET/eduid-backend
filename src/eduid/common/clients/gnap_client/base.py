@@ -2,7 +2,7 @@ import logging
 from abc import ABC
 from collections.abc import Coroutine
 from datetime import datetime, timedelta
-from typing import Annotated, Any
+from typing import Annotated, Any, cast
 
 from httpx import Request
 from jwcrypto.jwk import JWK
@@ -72,7 +72,7 @@ class GNAPBearerTokenMixin(ABC):
             key=self._auth_data.client_jwk,
             protected=jws_header.model_dump_json(exclude_none=True),
         )
-        return _jws.serialize(compact=True)
+        return cast(str, _jws.serialize(compact=True))
 
     def _set_bearer_token(self, grant_response: GrantResponse) -> None:
         logger.debug(f"gnap response: {grant_response}")

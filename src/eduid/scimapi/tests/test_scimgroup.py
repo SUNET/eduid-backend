@@ -2,7 +2,7 @@ __author__ = "lundberg"
 
 import logging
 from collections.abc import Iterator, Mapping
-from typing import Any
+from typing import Any, cast
 from uuid import UUID, uuid4
 
 import pytest
@@ -102,7 +102,7 @@ class TestGroupResource(ScimApiTestCase):
         response = self.client.post(url="/Groups/.search", json=req, headers=self.headers)
         logger.info(f"Search parsed_response:\n{response.json}")
         if return_json:
-            return response.json()
+            return cast(dict[str, Any], response.json())
 
         expected_schemas = [SCIMSchema.API_MESSAGES_20_LIST_RESPONSE.value]
         response_schemas = response.json().get("schemas")
@@ -135,7 +135,7 @@ class TestGroupResource(ScimApiTestCase):
                 f"Search parsed_response group does not have the expected displayName: {expected_group.display_name!s}"
             )
 
-        return resources
+        return cast(dict[str, Any], resources)
 
     def _assertGroupUpdateSuccess(self, req: Mapping[str, Any], response: Response, group: ScimApiGroup) -> None:
         """Function to validate successful responses to SCIM calls that update a group according to a request."""

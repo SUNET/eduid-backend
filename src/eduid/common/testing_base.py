@@ -8,7 +8,7 @@ from collections.abc import Iterable
 from copy import deepcopy
 from datetime import UTC, datetime, timedelta
 from enum import Enum
-from typing import Any
+from typing import Any, cast
 
 import pytest
 from bson import ObjectId
@@ -70,7 +70,7 @@ def normalised_data[SomeData: dict[str, Any] | list[Any]](
 
             # catch all for wierd stuff in pydantic 2 errors
             try:
-                return super().default(o)
+                return cast(Iterable[Any], super().default(o))
             except TypeError:
                 return repr(o)
 
@@ -128,4 +128,4 @@ def normalised_data[SomeData: dict[str, Any] | list[Any]](
             _exclude_keys(exclude_key=_key, obj=_data)
     _dumped = json.dumps(_data, sort_keys=True, cls=NormaliseEncoder)
     _loaded = json.loads(_dumped, cls=NormaliseDecoder)
-    return _loaded
+    return cast(SomeData, _loaded)

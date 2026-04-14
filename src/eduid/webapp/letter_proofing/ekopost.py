@@ -2,7 +2,7 @@ import base64
 import json
 from http import HTTPStatus
 from io import BytesIO
-from typing import Any
+from typing import Any, cast
 
 from hammock import Hammock
 
@@ -64,7 +64,7 @@ class Ekopost:
         self._close_envelope(campaign["id"], envelope["id"])
         closed_campaign = self._close_campaign(campaign["id"])
 
-        return closed_campaign["id"]
+        return cast(str, closed_campaign["id"])
 
     def _create_campaign(self, name: str, output_date: str, cost_center: str) -> dict[str, Any]:
         """
@@ -80,7 +80,7 @@ class Ekopost:
         response = self.ekopost_api.campaigns.POST(data=campaign_data, headers={"Content-Type": "application/json"})
 
         if response.status_code == HTTPStatus.OK:
-            return response.json()
+            return cast(dict[str, Any], response.json())
 
         raise EkopostException(f"Ekopost exception: {response.status_code!s} {response.text!s}")
 
@@ -106,7 +106,7 @@ class Ekopost:
         )
 
         if response.status_code == HTTPStatus.OK:
-            return response.json()
+            return cast(dict[str, Any], response.json())
 
         raise EkopostException(f"Ekopost exception: {response.status_code!s} {response.text!s}")
 
@@ -145,7 +145,7 @@ class Ekopost:
         )
 
         if response.status_code == HTTPStatus.OK:
-            return response.json()
+            return cast(dict[str, Any], response.json())
 
         raise EkopostException(f"Ekopost exception: {response.status_code!s} {response.text!s}")
 
@@ -162,7 +162,7 @@ class Ekopost:
         )
 
         if response.status_code == HTTPStatus.OK:
-            return response.json()
+            return cast(dict[str, Any], response.json())
 
         raise EkopostException(f"Ekopost exception: {response.status_code!s} {response.text!s}")
 
@@ -176,6 +176,6 @@ class Ekopost:
         response = self.ekopost_api.campaigns(campaign_id).close.POST(headers={"Content-Type": "application/json"})
 
         if response.status_code == HTTPStatus.OK:
-            return response.json()
+            return cast(dict[str, Any], response.json())
 
         raise EkopostException(f"Ekopost exception: {response.status_code!s} {response.text!s}")

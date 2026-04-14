@@ -43,7 +43,7 @@ Revoke a credential (irreversible!) :
 
 import os
 from collections.abc import Sequence
-from typing import Any
+from typing import Any, cast
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
@@ -409,9 +409,9 @@ class VCCSClient:
         resp_ver = resp[response_label]["version"]
         if resp_ver != 1:
             raise AssertionError(f"Received response of unknown version {resp_ver!r}")
-        return resp[response_label]
+        return cast(dict[str, Any], resp[response_label])
 
-    def _execute_request_response(self, service: str, values: dict[str, Any]) -> str:
+    def _execute_request_response(self, service: str, values: dict[str, Any]) -> bytes:
         """
         The part of _execute that has actual side effects. In a separate function
         to make everything else easily testable.
@@ -427,7 +427,7 @@ class VCCSClient:
         except URLError as exc:
             raise VCCSClientHTTPError(reason="Authentication backend unavailable", http_code=503) from exc
 
-        return response.read()
+        return cast(bytes, response.read())
 
     def _make_request(self, action: str, user_id: str, factors: Sequence[VCCSFactor]) -> str:
         """

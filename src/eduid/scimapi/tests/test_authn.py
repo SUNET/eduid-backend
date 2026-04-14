@@ -3,7 +3,7 @@ import os
 from collections.abc import Mapping
 from dataclasses import asdict
 from pathlib import PurePath
-from typing import Any
+from typing import Any, cast
 from uuid import uuid4
 
 import pytest
@@ -421,7 +421,7 @@ class TestAuthnUserResource(ScimApiTestUserResourceBase):
         token = jwt.JWT(header={"alg": "ES256"}, claims=claims)
         jwk = next(iter(self.context.jwks))
         token.make_signed_token(jwk)
-        return token.serialize()
+        return cast(str, token.serialize())
 
     def test_get_user_no_authn(self) -> None:
         db_user = self.add_user(identifier=str(uuid4()), external_id="test-id-1", profiles={"test": self.test_profile})

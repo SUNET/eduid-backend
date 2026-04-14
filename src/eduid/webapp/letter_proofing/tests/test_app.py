@@ -1,7 +1,7 @@
 import json
 from collections.abc import Mapping
 from datetime import datetime, timedelta
-from typing import Any, ClassVar
+from typing import Any, ClassVar, cast
 
 import pytest
 from pytest_mock import MockerFixture
@@ -82,7 +82,7 @@ class LetterProofingTests(EduidAPITestCase[LetterProofingApp]):
         with self.session_cookie(self.browser, self.test_user_eppn) as client:
             response = client.get("/proofing")
         assert response.status_code == 200
-        return json.loads(response.data)
+        return cast(dict[str, Any], json.loads(response.data))
 
     def send_letter(self, nin: str, csrf_token: str | None = None, validate_response: bool = True) -> TestResponse:
         """

@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, cast
 
 from pymongo.results import DeleteResult
 
@@ -27,8 +27,8 @@ class CacheMDB(BaseDB):
         query = {"identifier": identifier}
         result = self._coll.find_one(query)
         if result is not None:
-            return result["data"]
-        return result
+            return cast(dict[str, Any], result["data"])
+        return None
 
     def get_cached_items_by_query(self, query: dict[str, Any]) -> list[TUserDbDocument]:
         result = self._coll.find(query)

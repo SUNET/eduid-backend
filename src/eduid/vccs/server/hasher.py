@@ -5,7 +5,7 @@ from abc import ABC, abstractmethod
 from asyncio.locks import Lock
 from binascii import unhexlify
 from hashlib import sha1, sha256
-from typing import Literal
+from typing import Literal, cast
 
 import pkcs11
 import pyhsm
@@ -108,7 +108,7 @@ class VCCSYHSMHasher(VCCSHasher):
             self.lock_release()
 
     def unsafe_hmac_sha1(self, key_handle: int, data: bytes) -> bytes:
-        return self._yhsm.hmac_sha1(key_handle, data).get_hash()
+        return cast(bytes, self._yhsm.hmac_sha1(key_handle, data).get_hash())
 
     async def hmac_sha256(self, key_label: str, data: bytes) -> bytes:
         raise NotImplementedError("hmac sha256 not supported by YubiHSM")
@@ -311,7 +311,7 @@ class VCCSHSMKeyHasher(VCCSHasher):
         with self._pool.session() as session:
             key = self._get_hmac_key(session, key_handle)
             # Use the key's sign method with SHA_1_HMAC mechanism
-            return key.sign(data, mechanism=Mechanism.SHA_1_HMAC)
+            return cast(bytes, key.sign(data, mechanism=Mechanism.SHA_1_HMAC))
 
     async def hmac_sha256(self, key_label: str, data: bytes) -> bytes:
         """
@@ -340,7 +340,7 @@ class VCCSHSMKeyHasher(VCCSHasher):
         with self._pool.session() as session:
             key = self._get_hmac_key(session, key_label=key_label)
             # Use the key's sign method with SHA256_HMAC mechanism
-            return key.sign(data, mechanism=Mechanism.SHA256_HMAC)
+            return cast(bytes, key.sign(data, mechanism=Mechanism.SHA256_HMAC))
 
     async def safe_random(self, byte_count: int) -> bytes:
         """

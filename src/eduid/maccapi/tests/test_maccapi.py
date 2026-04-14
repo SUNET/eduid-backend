@@ -1,7 +1,7 @@
 import json
 from collections.abc import Mapping
 from http import HTTPStatus
-from typing import Any
+from typing import Any, cast
 
 import pytest
 from jwcrypto import jwt
@@ -28,7 +28,7 @@ class TestMAccApi(MAccApiTestCase):
         token = jwt.JWT(header={"alg": "ES256"}, claims=claims)
         jwk = next(iter(self.context.jwks))
         token.make_signed_token(jwk)
-        return token.serialize()
+        return cast(str, token.serialize())
 
     def _is_presentable_format(self, password: str) -> bool:
         return len(password) == 14 and password[4] == " " and password[9] == " "

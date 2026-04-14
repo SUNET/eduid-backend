@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, cast
 
 from celery.utils.log import get_task_logger
 
@@ -35,7 +35,7 @@ def find_mobiles_by_nin(self: MobWorker, national_identity_number: str, number_r
     :param national_identity_number:
     :return: a list of formatted mobile numbers. Empty list if no numbers was registered to the nin
     """
-    return self.lookup_client.find_mobiles_by_nin(national_identity_number, number_region)
+    return cast(list[str], self.lookup_client.find_mobiles_by_nin(national_identity_number, number_region))
 
 
 @app.task(bind=True, base=MobWorker, name="eduid_lookup_mobile.tasks.find_NIN_by_mobile")
@@ -44,7 +44,7 @@ def find_nin_by_mobile(self: MobWorker, mobile_number: str) -> str | None:
     Searches nin with the registered mobile number
     :return: the nin with the registered mobile number
     """
-    return self.lookup_client.find_nin_by_mobile(mobile_number)
+    return cast(str | None, self.lookup_client.find_nin_by_mobile(mobile_number))
 
 
 @app.task(bind=True, base=MobWorker, name="eduid_lookup_mobile.tasks.pong")
