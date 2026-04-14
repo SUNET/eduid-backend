@@ -16,6 +16,7 @@ def _remove_test_containers() -> None:
     try:
         result = subprocess.run(
             ["docker", "ps", "-a", "--filter", "name=test_", "--format", "{{.Names}}"],
+            check=False,
             capture_output=True,
             text=True,
             timeout=5,
@@ -23,7 +24,7 @@ def _remove_test_containers() -> None:
         if result.returncode == 0 and result.stdout.strip():
             containers = [c.strip() for c in result.stdout.strip().split("\n") if c.strip()]
             if containers:
-                subprocess.run(["docker", "rm", "-f", *containers], capture_output=True, timeout=10)
+                subprocess.run(["docker", "rm", "-f", *containers], check=False, capture_output=True, timeout=10)
     except Exception:
         pass
 
