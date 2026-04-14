@@ -114,7 +114,7 @@ class InputsTestApp(EduIDBaseApp[EduIDBaseAppConfig]):
         self.session_interface = SessionFactory(config)
 
 
-class InputsTests(EduidAPITestCase[InputsTestApp]):
+class InputsTests(EduidAPITestCase[Any]):
     def load_app(self, config: Mapping[str, Any]) -> InputsTestApp:
         """
         Called from the parent class, so we can provide the appropriate flask
