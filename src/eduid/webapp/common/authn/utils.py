@@ -236,8 +236,7 @@ def check_reauthn(
 ) -> FluxData | None:
     """Check if a re-authentication has been performed recently enough for this action"""
 
-    # please mypy
-    conf = getattr(current_app, "conf", None)
+    conf = current_app.conf
     if not isinstance(conf, FrontendActionMixin):
         raise RuntimeError(f"Could not find conf in {current_app}")
 

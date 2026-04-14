@@ -36,7 +36,7 @@ class ProofingTests[T: EduIDBaseApp[Any]](EduidAPITestCase[T]):
         app_name, authn_id = finish_url.split("/")[-2:]
 
         assert isinstance(self.app, EduIDBaseApp)
-        _conf = getattr(self.app, "conf")
+        _conf = self.app.conf
         assert isinstance(_conf, EduIDBaseAppConfig)
         assert app_name == _conf.app_name, f"expected app_name {_conf.app_name} but got {app_name}"
 

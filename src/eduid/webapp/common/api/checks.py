@@ -26,9 +26,9 @@ __author__ = "lundberg"
 def get_current_app() -> EduIDBaseApp[EduIDBaseAppConfig]:
     from eduid.webapp.common.api.app import EduIDBaseApp
 
-    _conf = getattr(flask_current_app, "conf")
-    assert isinstance(_conf, EduIDBaseAppConfig)
-    return cast(EduIDBaseApp[EduIDBaseAppConfig], flask_current_app)
+    _app = cast(EduIDBaseApp[EduIDBaseAppConfig], flask_current_app)
+    assert isinstance(_app.conf, EduIDBaseAppConfig)
+    return _app
 
 
 @dataclass
@@ -113,7 +113,7 @@ def check_mongo() -> bool:
 
 def check_redis() -> bool:
     current_app = get_current_app()
-    _conf = getattr(current_app, "conf")
+    _conf = current_app.conf
     assert isinstance(_conf, RedisConfigMixin)
     pool = get_redis_pool(_conf.redis_config)
     client = redis.StrictRedis(connection_pool=pool)
@@ -184,7 +184,7 @@ def check_lookup_mobile() -> bool:
 def check_vccs() -> bool:
     current_app = get_current_app()
 
-    _conf = getattr(current_app, "conf")
+    _conf = current_app.conf
     if not isinstance(_conf, VCCSConfigMixin):
         return True
     # Do not force this check if not configured

@@ -22,7 +22,7 @@ def get_user_locale() -> str | None:
         return lang
     # otherwise try to guess the language from the user accept
     # header the browser transmits. The best match wins.
-    _conf = getattr(app, "conf")
+    _conf = app.conf
     lang = request.accept_languages.best_match(_conf.available_languages)
     app.logger.debug(f"Language (best match) for request: {lang}")
     return lang
@@ -33,7 +33,7 @@ def init_babel(app: EduIDBaseApp[Any]) -> Babel:
     :param app: Flask app
     """
 
-    _conf = getattr(app, "conf")
+    _conf = app.conf
     assert isinstance(_conf, EduIDBaseAppConfig)
     conf_translations_dirs = ";".join(_conf.flask.babel_translation_directories)
     # Add pkg_resource path to translation directory as the default location does not work
