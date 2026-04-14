@@ -1,8 +1,7 @@
 TOPDIR:=	$(abspath .)
 SRCDIR=		$(TOPDIR)/src
 SOURCE=		$(SRCDIR)/eduid
-MYPY_ARGS=	--install-types --non-interactive --pretty --ignore-missing-imports \
-			--warn-unused-ignores \
+MYPY_ARGS=	--install-types --non-interactive --pretty \
 			# --disallow-untyped-decorators
 MYPY_STRICT= --strict \
 			 --implicit-reexport \
