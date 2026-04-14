@@ -5,7 +5,6 @@ from eduid.userdb.credentials import FidoCredential
 from eduid.userdb.identity import IdentityElement, IdentityProofingMethod
 from eduid.userdb.logs.db import ProofingLog
 from eduid.userdb.user import User
-from eduid.userdb.userdb import AmDB
 from eduid.webapp.common.api.app import EduIDBaseApp
 from eduid.webapp.common.api.messages import TranslatableMsg
 from eduid.webapp.common.api.testing import CSRFTestClient, EduidAPITestCase, logger
@@ -70,8 +69,7 @@ class ProofingTests[T: EduIDBaseApp[Any]](EduidAPITestCase[T]):
         """This function is used to verify a user's parameters at the start of a test case,
         and then again at the end to ensure the right set of changes occurred to the user in the database.
         """
-        _am_db = getattr(self.app, "central_userdb")
-        assert isinstance(_am_db, AmDB)
+        _am_db = self.app.central_userdb
         user = _am_db.get_user_by_eppn(eppn)
         assert isinstance(user, User)
         user_mfa_tokens = user.credentials.filter(FidoCredential)
