@@ -83,7 +83,7 @@ class ProofingTests[T: EduIDBaseApp[Any]](EduidAPITestCase[T]):
                 f"User token was expected to be verified={token_verified}"
             )
 
-        _log = getattr(self.app, "proofing_log")
+        _log = getattr(self.app, "proofing_log")  # noqa: B009 — not on EduIDBaseApp, varies by app subclass
         assert isinstance(_log, ProofingLog)
         assert _log.db_count() == num_proofings, (
             f"Unexpected number of proofings in db. {_log.db_count()}, expected {num_proofings}"

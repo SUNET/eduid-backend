@@ -155,7 +155,7 @@ class EduidAPITestCase[T: EduIDBaseApp[Any]](CommonTestCase):
 
         if self.copy_user_to_private:
             data = self.test_user.to_dict()
-            _private_userdb = getattr(self.app, "private_userdb")
+            _private_userdb = getattr(self.app, "private_userdb")  # noqa: B009 — not on EduIDBaseApp, varies by app subclass
             assert isinstance(_private_userdb, UserDB)
             logging.info(f"Copying test-user {self.test_user} to private_userdb {_private_userdb}")
             _private_userdb.save(_private_userdb.user_from_dict(data=data))
@@ -585,7 +585,7 @@ class EduidAPITestCase[T: EduIDBaseApp[Any]](CommonTestCase):
         assert user.identities.nin.proofing_method is not None
         assert user.identities.nin.proofing_version is not None
 
-        _log = getattr(self.app, "proofing_log")
+        _log = getattr(self.app, "proofing_log")  # noqa: B009 — not on EduIDBaseApp, varies by app subclass
         assert isinstance(_log, ProofingLog)
         assert _log.db_count() == 1
 
@@ -599,7 +599,7 @@ class EduidAPITestCase[T: EduIDBaseApp[Any]](CommonTestCase):
             assert user.identities.nin.created_by == created_by
         assert user.identities.nin.is_verified is False
 
-        _log = getattr(self.app, "proofing_log")
+        _log = getattr(self.app, "proofing_log")  # noqa: B009 — not on EduIDBaseApp, varies by app subclass
         assert isinstance(_log, ProofingLog)
         assert _log.db_count() == 0
 
