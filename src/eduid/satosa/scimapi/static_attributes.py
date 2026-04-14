@@ -15,7 +15,7 @@ StaticAttributesConfig = dict[str, list[dict[str, str]]]
 StaticAppendedAttributesConfig = dict[str, list[dict[str, str]]]
 
 
-class AddStaticAttributesForVirtualIdp(ResponseMicroService):
+class AddStaticAttributesForVirtualIdp(ResponseMicroService):  # type: ignore[misc]
     """
     A class that add static attributes to a response set.
     The following example configuration illustrates most common features:

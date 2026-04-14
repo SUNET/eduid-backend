@@ -64,7 +64,7 @@ class OutstandingQueriesCache:
             del self._db[saml2_session_id]
 
 
-class IdentityCache(Cache):
+class IdentityCache(Cache):  # type: ignore[misc]
     """Handles information about the users that have been successfully logged in.
 
     This information is useful because when the user logs out we must
