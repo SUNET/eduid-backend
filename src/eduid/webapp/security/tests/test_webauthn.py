@@ -632,9 +632,7 @@ class SecurityWebauthnTests(EduidAPITestCase[SecurityApp]):
         assert data["payload"]["error"]["csrf_token"] == ["CSRF failed to validate"]
 
     def test_authenticator_information(self, mocker: MockerFixture) -> None:
-        mocker.patch(
-            "fido_mds.FidoMetadataStore.verify_attestation", _apple_special_verify_attestation
-        )
+        mocker.patch("fido_mds.FidoMetadataStore.verify_attestation", _apple_special_verify_attestation)
         authenticators = [YUBIKEY_4, YUBIKEY_5_NFC, MICROSOFT_SURFACE_1796, NEXUS_5, IPHONE_12, NONE_ATTESTATION]
         for authenticator in authenticators:
             self.app.logger.debug(f"Testing authenticator: {authenticator}")
