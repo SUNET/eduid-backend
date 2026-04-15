@@ -25,7 +25,12 @@ from eduid.webapp.common.authn.webauthn import (
     verify_webauthn_registration,
 )
 from eduid.webapp.common.session import session
-from eduid.webapp.common.session.namespaces import LoginApplication, RequestRef, WebauthnCredential, WebauthnRegistration
+from eduid.webapp.common.session.namespaces import (
+    LoginApplication,
+    RequestRef,
+    WebauthnCredential,
+    WebauthnRegistration,
+)
 from eduid.webapp.signup.app import current_signup_app as current_app
 from eduid.webapp.signup.helpers import (
     EmailAlreadyVerifiedException,

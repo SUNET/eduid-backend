@@ -87,6 +87,7 @@ def init_idp_app(name: str = "idp", test_config: Mapping[str, Any] | None = None
     from eduid.webapp.idp.views.next import next_views
     from eduid.webapp.idp.views.pw_auth import pw_auth_views
     from eduid.webapp.idp.views.saml import saml_views
+    from eduid.webapp.idp.views.signup_auth import signup_auth_views
     from eduid.webapp.idp.views.tou import tou_views
     from eduid.webapp.idp.views.use_other import other_device_views
 
@@ -97,6 +98,7 @@ def init_idp_app(name: str = "idp", test_config: Mapping[str, Any] | None = None
     app.register_blueprint(other_device_views)
     app.register_blueprint(pw_auth_views)
     app.register_blueprint(saml_views)
+    app.register_blueprint(signup_auth_views)
     app.register_blueprint(tou_views)
     app.register_blueprint(error_info_views)
 
