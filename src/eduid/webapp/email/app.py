@@ -16,7 +16,6 @@ class EmailApp(AuthnBaseApp[EmailConfig]):
     def __init__(self, config: EmailConfig, **kwargs: Any) -> None:
         super().__init__(config, **kwargs)
 
-
         # Init celery
         self.am_relay = AmRelay(config)
 

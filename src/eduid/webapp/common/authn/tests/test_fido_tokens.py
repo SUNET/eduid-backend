@@ -54,8 +54,6 @@ class MockFidoApp(EduIDBaseApp[MockFidoConfig]):
     def __init__(self, config: MockFidoConfig) -> None:
         super().__init__(config)
 
-        self.conf = config
-
 
 # These values were extracted from a working webauthn login in our development environment.
 #

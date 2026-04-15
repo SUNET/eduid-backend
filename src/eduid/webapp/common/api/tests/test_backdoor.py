@@ -39,8 +39,6 @@ class BackdoorTestApp(EduIDBaseApp[BackdoorTestConfig]):
     def __init__(self, config: BackdoorTestConfig) -> None:
         super().__init__(config)
 
-        self.conf = config
-
 
 class BackdoorTests(EduidAPITestCase[BackdoorTestApp]):
     @pytest.fixture(autouse=True)

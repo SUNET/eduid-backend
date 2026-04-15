@@ -18,7 +18,6 @@ class LadokApp(AuthnBaseApp[LadokConfig]):
     def __init__(self, config: LadokConfig, **kwargs: Any) -> None:
         super().__init__(config, **kwargs)
 
-
         # Init dbs
         self.private_userdb = LadokProofingUserDB(config.mongo_uri, auto_expire=config.private_userdb_auto_expire)
         self.proofing_log = ProofingLog(config.mongo_uri)

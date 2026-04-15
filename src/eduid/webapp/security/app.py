@@ -20,7 +20,6 @@ class SecurityApp(AuthnBaseApp[SecurityConfig]):
     def __init__(self, config: SecurityConfig, **kwargs: Any) -> None:
         super().__init__(config, **kwargs)
 
-
         self.am_relay = AmRelay(config)
         self.msg_relay = MsgRelay(config)
 

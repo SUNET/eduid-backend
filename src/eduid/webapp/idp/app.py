@@ -25,7 +25,6 @@ class IdPApp(EduIDBaseApp[IdPConfig]):
     def __init__(self, config: IdPConfig, **kwargs: Any) -> None:
         super().__init__(config, **kwargs)
 
-
         # Initiate external modules
         self.babel = translation.init_babel(self)
 
