@@ -108,9 +108,6 @@ def values_view() -> Response:
 class InputsTestApp(EduIDBaseApp[EduIDBaseAppConfig]):
     def __init__(self, config: EduIDBaseAppConfig) -> None:
         super().__init__(config)
-
-        self.conf = config
-
         self.session_interface = SessionFactory(config)
 
 

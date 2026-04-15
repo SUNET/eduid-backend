@@ -23,8 +23,6 @@ class SessionTestApp(AuthnBaseApp[SessionTestConfig]):
     def __init__(self, config: SessionTestConfig, **kwargs: Any) -> None:
         super().__init__(config, **kwargs)
 
-        self.conf = config
-
 
 def session_init_app(name: str, test_config: Mapping[str, Any]) -> SessionTestApp:
     config = load_config(typ=SessionTestConfig, app_name=name, ns="webapp", test_config=test_config)

@@ -23,8 +23,6 @@ class DecoratorTestApp(EduIDBaseApp[DecoratorTestConfig]):
     def __init__(self, config: DecoratorTestConfig) -> None:
         super().__init__(config)
 
-        self.conf = config
-
 
 test_views = flask.Blueprint("test", __name__, url_prefix="/test")
 
