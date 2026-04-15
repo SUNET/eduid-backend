@@ -129,8 +129,8 @@ def has_user_logged_in_with_mfa() -> bool:
     return False
 
 
-def save_and_sync_user(
-    user: User, private_userdb: UserDB[User] | None = None, app_name_override: str | None = None
+def save_and_sync_user[U: User](
+    user: U, private_userdb: UserDB[U] | None = None, app_name_override: str | None = None
 ) -> bool:
     """
     Save (new) user object to the private userdb and propagate the changes to the central user db.
