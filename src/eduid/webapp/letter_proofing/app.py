@@ -20,7 +20,6 @@ class LetterProofingApp(AuthnBaseApp[LetterProofingConfig]):
     def __init__(self, config: LetterProofingConfig, **kwargs: Any) -> None:
         super().__init__(config, **kwargs)
 
-
         # Init dbs
         self.private_userdb = LetterProofingUserDB(config.mongo_uri, auto_expire=config.private_userdb_auto_expire)
         self.proofing_statedb = LetterProofingStateDB(config.mongo_uri, auto_expire=config.state_db_auto_expire)

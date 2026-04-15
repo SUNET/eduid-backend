@@ -19,7 +19,6 @@ class SupportApp(EduIDBaseApp[SupportConfig]):
     def __init__(self, config: SupportConfig, **kwargs: Any) -> None:
         super().__init__(config, **kwargs)
 
-
         self.support_user_db = db.SupportUserDB(config.mongo_uri)
         self.support_authn_db = db.SupportAuthnInfoDB(config.mongo_uri)
         self.support_proofing_log_db = db.SupportProofingLogDB(config.mongo_uri)

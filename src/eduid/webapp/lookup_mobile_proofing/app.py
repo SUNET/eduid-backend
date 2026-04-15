@@ -19,7 +19,6 @@ class MobileProofingApp(AuthnBaseApp[MobileProofingConfig]):
     def __init__(self, config: MobileProofingConfig, **kwargs: Any) -> None:
         super().__init__(config, **kwargs)
 
-
         # Init dbs
         self.private_userdb = LookupMobileProofingUserDB(
             config.mongo_uri, auto_expire=config.private_userdb_auto_expire

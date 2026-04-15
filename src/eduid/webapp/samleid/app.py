@@ -19,7 +19,6 @@ class SamlEidApp(AuthnBaseApp[SamlEidConfig]):
     def __init__(self, config: SamlEidConfig, **kwargs: Any) -> None:
         super().__init__(config, **kwargs)
 
-
         self.saml2_config = get_saml2_config(config.saml2_settings_module)
 
         # Init dbs
