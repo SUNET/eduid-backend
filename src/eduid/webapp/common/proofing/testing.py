@@ -1,9 +1,10 @@
+from typing import Any
+
 from eduid.common.config.base import EduIDBaseAppConfig, FrontendAction
 from eduid.userdb.credentials import FidoCredential
 from eduid.userdb.identity import IdentityElement, IdentityProofingMethod
 from eduid.userdb.logs.db import ProofingLog
 from eduid.userdb.user import User
-from eduid.userdb.userdb import AmDB
 from eduid.webapp.common.api.app import EduIDBaseApp
 from eduid.webapp.common.api.messages import TranslatableMsg
 from eduid.webapp.common.api.testing import CSRFTestClient, EduidAPITestCase, logger
@@ -11,7 +12,7 @@ from eduid.webapp.common.api.testing import CSRFTestClient, EduidAPITestCase, lo
 __author__ = "lundberg"
 
 
-class ProofingTests[T: EduIDBaseApp](EduidAPITestCase[T]):
+class ProofingTests[T: EduIDBaseApp[Any]](EduidAPITestCase[T]):
     def _verify_status(
         self,
         finish_url: str,
@@ -34,7 +35,7 @@ class ProofingTests[T: EduIDBaseApp](EduidAPITestCase[T]):
         app_name, authn_id = finish_url.split("/")[-2:]
 
         assert isinstance(self.app, EduIDBaseApp)
-        _conf = getattr(self.app, "conf")
+        _conf = self.app.conf
         assert isinstance(_conf, EduIDBaseAppConfig)
         assert app_name == _conf.app_name, f"expected app_name {_conf.app_name} but got {app_name}"
 
@@ -68,8 +69,7 @@ class ProofingTests[T: EduIDBaseApp](EduidAPITestCase[T]):
         """This function is used to verify a user's parameters at the start of a test case,
         and then again at the end to ensure the right set of changes occurred to the user in the database.
         """
-        _am_db = getattr(self.app, "central_userdb")
-        assert isinstance(_am_db, AmDB)
+        _am_db = self.app.central_userdb
         user = _am_db.get_user_by_eppn(eppn)
         assert isinstance(user, User)
         user_mfa_tokens = user.credentials.filter(FidoCredential)
@@ -83,7 +83,7 @@ class ProofingTests[T: EduIDBaseApp](EduidAPITestCase[T]):
                 f"User token was expected to be verified={token_verified}"
             )
 
-        _log = getattr(self.app, "proofing_log")
+        _log = getattr(self.app, "proofing_log")  # noqa: B009 — not on EduIDBaseApp, varies by app subclass
         assert isinstance(_log, ProofingLog)
         assert _log.db_count() == num_proofings, (
             f"Unexpected number of proofings in db. {_log.db_count()}, expected {num_proofings}"

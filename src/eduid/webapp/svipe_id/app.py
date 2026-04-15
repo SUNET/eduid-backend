@@ -19,7 +19,6 @@ class SvipeIdApp(AuthnBaseApp[SvipeIdConfig]):
     def __init__(self, config: SvipeIdConfig, **kwargs: Any) -> None:
         super().__init__(config, **kwargs)
 
-        self.conf = config
         # Init dbs
         self.private_userdb = SvideIDProofingUserDB(self.conf.mongo_uri, auto_expire=config.private_userdb_auto_expire)
         self.proofing_log = ProofingLog(config.mongo_uri)

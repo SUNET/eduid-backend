@@ -89,7 +89,7 @@ TEST_CONFIG = {
 }
 
 
-class EduidAPITestCase[T: EduIDBaseApp](CommonTestCase):
+class EduidAPITestCase[T: EduIDBaseApp[Any]](CommonTestCase):
     """
     Base Test case for eduID APIs.
 
@@ -134,8 +134,7 @@ class EduidAPITestCase[T: EduIDBaseApp](CommonTestCase):
         self.test_domain = "test.localhost"
 
         # Save app conf so mutations by individual tests don't leak to subsequent tests.
-        # Use getattr so mypy doesn't complain about T not having "conf".
-        _saved_conf = deepcopy(getattr(self.app, "conf", None))
+        _saved_conf = deepcopy(self.app.conf)
 
         _users = UserFixtures()
         _standard_test_users = {
@@ -156,7 +155,7 @@ class EduidAPITestCase[T: EduIDBaseApp](CommonTestCase):
 
         if self.copy_user_to_private:
             data = self.test_user.to_dict()
-            _private_userdb = getattr(self.app, "private_userdb")
+            _private_userdb = getattr(self.app, "private_userdb")  # noqa: B009 — not on EduIDBaseApp, varies by app subclass
             assert isinstance(_private_userdb, UserDB)
             logging.info(f"Copying test-user {self.test_user} to private_userdb {_private_userdb}")
             _private_userdb.save(_private_userdb.user_from_dict(data=data))
@@ -222,7 +221,7 @@ class EduidAPITestCase[T: EduIDBaseApp](CommonTestCase):
                 sess.common.eppn = eppn
                 sess.common.is_logged_in = logged_in
             assert isinstance(self.app, EduIDBaseApp)
-            _conf = getattr(self.app, "conf")
+            _conf = self.app.conf
             assert isinstance(_conf, EduIDBaseAppConfig)
             client.set_cookie(domain=domain, key=_conf.flask.session_cookie_name, value=sess.meta.cookie_val)
         yield client
@@ -246,7 +245,7 @@ class EduidAPITestCase[T: EduIDBaseApp](CommonTestCase):
         if domain is None:
             domain = self.test_domain
         assert isinstance(self.app, EduIDBaseApp)
-        _conf = getattr(self.app, "conf")
+        _conf = self.app.conf
         assert isinstance(_conf, MagicCookieMixin)
         if magic_cookie_name is None:
             assert _conf.magic_cookie_name is not None
@@ -586,7 +585,7 @@ class EduidAPITestCase[T: EduIDBaseApp](CommonTestCase):
         assert user.identities.nin.proofing_method is not None
         assert user.identities.nin.proofing_version is not None
 
-        _log = getattr(self.app, "proofing_log")
+        _log = getattr(self.app, "proofing_log")  # noqa: B009 — not on EduIDBaseApp, varies by app subclass
         assert isinstance(_log, ProofingLog)
         assert _log.db_count() == 1
 
@@ -600,7 +599,7 @@ class EduidAPITestCase[T: EduIDBaseApp](CommonTestCase):
             assert user.identities.nin.created_by == created_by
         assert user.identities.nin.is_verified is False
 
-        _log = getattr(self.app, "proofing_log")
+        _log = getattr(self.app, "proofing_log")  # noqa: B009 — not on EduIDBaseApp, varies by app subclass
         assert isinstance(_log, ProofingLog)
         assert _log.db_count() == 0
 
@@ -615,7 +614,7 @@ class CSRFTestClient(FlaskClient):
         that makes it harder to override per call to post.
         """
         assert isinstance(self.application, EduIDBaseApp)
-        _conf = getattr(self.application, "conf")
+        _conf = self.application.conf
         assert isinstance(_conf, EduIDBaseAppConfig)
 
         test_host = f"{_conf.flask.preferred_url_scheme}://{_conf.flask.server_name}"

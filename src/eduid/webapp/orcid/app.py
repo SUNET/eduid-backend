@@ -18,7 +18,6 @@ class OrcidApp(AuthnBaseApp[OrcidConfig]):
     def __init__(self, config: OrcidConfig, **kwargs: Any) -> None:
         super().__init__(config, **kwargs)
 
-        self.conf = config
 
         # Init dbs
         self.private_userdb = OrcidProofingUserDB(config.mongo_uri, auto_expire=config.private_userdb_auto_expire)

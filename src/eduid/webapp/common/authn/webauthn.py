@@ -97,7 +97,9 @@ def get_authenticator_information(
     user_verified = att.auth_data.flags.user_verified
     authenticator_id = att.aaguid or att.certificate_key_identifier
     if authenticator_id is None:
-        raise AttestationVerificationError("attestation contains no authenticator id (aaguid or certificate key identifier)")
+        raise AttestationVerificationError(
+            "attestation contains no authenticator id (aaguid or certificate key identifier)"
+        )
 
     # allow automatic tests to use any webauthn device
     if is_backdoor:

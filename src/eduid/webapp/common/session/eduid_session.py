@@ -6,7 +6,7 @@ import os
 import pprint
 from collections.abc import Iterator
 from datetime import datetime
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from flask import Flask, Request, Response
 from flask.sessions import SessionInterface, SessionMixin
@@ -99,7 +99,7 @@ class EduidSession(SessionMixin):
     """
 
     def __init__(
-        self, app: EduIDBaseApp, meta: SessionMeta, base_session: RedisEncryptedSession, new: bool = False
+        self, app: EduIDBaseApp[Any], meta: SessionMeta, base_session: RedisEncryptedSession, new: bool = False
     ) -> None:
         """
         :param app: the flask app
@@ -376,7 +376,7 @@ class EduidSession(SessionMixin):
             self._session.commit()
             self.new = False
             self.modified = False
-            _conf = getattr(self.app, "conf", None)
+            _conf = self.app.conf
             if self.app.debug or (isinstance(_conf, EduIDBaseAppConfig) and _conf.testing):
                 _saved_data = json.dumps(self._session.to_dict(), indent=4, sort_keys=True, cls=EduidJSONEncoder)
                 logger.debug(f"Saved session {self}:\n{_saved_data}")

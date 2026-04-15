@@ -31,7 +31,7 @@ class AttributeFetcher(ABC):
 
     @classmethod
     @abstractmethod
-    def get_user_db(cls, uri: str) -> UserDB:
+    def get_user_db(cls, uri: str) -> UserDB[Any]:
         """
         return an instance of the subclass of eduid.userdb.userdb.UserDB
         corresponding to the database holding the data to be fetched.

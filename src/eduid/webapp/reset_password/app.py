@@ -21,7 +21,6 @@ class ResetPasswordApp(EduIDBaseApp[ResetPasswordConfig]):
     def __init__(self, config: ResetPasswordConfig, **kwargs: Any) -> None:
         super().__init__(config, **kwargs)
 
-        self.conf = config
 
         # Init celery
         self.msg_relay = MsgRelay(config)
