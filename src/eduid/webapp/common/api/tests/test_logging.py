@@ -11,7 +11,7 @@ __author__ = "lundberg"
 from eduid.common.config.parsers import load_config
 
 
-class LoggingTestApp(EduIDBaseApp[EduIDBaseAppConfig]):
+class LoggingTestApp(EduIDBaseApp):
     pass
 
 

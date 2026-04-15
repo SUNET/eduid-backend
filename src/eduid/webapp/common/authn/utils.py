@@ -26,7 +26,7 @@ from eduid.webapp.common.session.namespaces import SP_AuthnRequest
 if TYPE_CHECKING:
     from eduid.webapp.common.authn.middleware import AuthnBaseApp
 
-    current_app = cast(AuthnBaseApp[EduIDBaseAppConfig], flask_current_app)
+    current_app = cast(AuthnBaseApp, flask_current_app)
 else:
     current_app = flask_current_app
 

@@ -23,10 +23,10 @@ if TYPE_CHECKING:
 __author__ = "lundberg"
 
 
-def get_current_app() -> EduIDBaseApp[EduIDBaseAppConfig]:
+def get_current_app() -> EduIDBaseApp:
     from eduid.webapp.common.api.app import EduIDBaseApp
 
-    _app = cast(EduIDBaseApp[EduIDBaseAppConfig], flask_current_app)
+    _app = cast(EduIDBaseApp, flask_current_app)
     assert isinstance(_app.conf, EduIDBaseAppConfig)
     return _app
 

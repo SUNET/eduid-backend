@@ -10,7 +10,9 @@ from eduid.webapp.common.authn.middleware import AuthnBaseApp
 from eduid.webapp.personal_data.settings import PersonalDataConfig
 
 
-class PersonalDataApp(AuthnBaseApp[PersonalDataConfig]):
+class PersonalDataApp(AuthnBaseApp):
+    conf: PersonalDataConfig
+
     def __init__(self, config: PersonalDataConfig, **kwargs: Any) -> None:
         super().__init__(config, **kwargs)
 

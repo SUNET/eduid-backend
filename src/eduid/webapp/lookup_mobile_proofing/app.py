@@ -15,7 +15,9 @@ from eduid.webapp.lookup_mobile_proofing.settings.common import MobileProofingCo
 __author__ = "lundberg"
 
 
-class MobileProofingApp(AuthnBaseApp[MobileProofingConfig]):
+class MobileProofingApp(AuthnBaseApp):
+    conf: MobileProofingConfig
+
     def __init__(self, config: MobileProofingConfig, **kwargs: Any) -> None:
         super().__init__(config, **kwargs)
 

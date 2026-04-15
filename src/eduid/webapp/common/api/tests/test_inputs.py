@@ -105,7 +105,7 @@ def values_view() -> Response:
     return _make_response(safe_param)
 
 
-class InputsTestApp(EduIDBaseApp[EduIDBaseAppConfig]):
+class InputsTestApp(EduIDBaseApp):
     def __init__(self, config: EduIDBaseAppConfig) -> None:
         super().__init__(config)
         self.session_interface = SessionFactory(config)

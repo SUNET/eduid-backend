@@ -50,7 +50,9 @@ def start_verification() -> str | dict[str, Any]:
     return result
 
 
-class MockFidoApp(EduIDBaseApp[MockFidoConfig]):
+class MockFidoApp(EduIDBaseApp):
+    conf: MockFidoConfig
+
     def __init__(self, config: MockFidoConfig) -> None:
         super().__init__(config)
 

@@ -19,7 +19,9 @@ class DecoratorTestConfig(EduIDBaseAppConfig):
     pass
 
 
-class DecoratorTestApp(EduIDBaseApp[DecoratorTestConfig]):
+class DecoratorTestApp(EduIDBaseApp):
+    conf: DecoratorTestConfig
+
     def __init__(self, config: DecoratorTestConfig) -> None:
         super().__init__(config)
 
