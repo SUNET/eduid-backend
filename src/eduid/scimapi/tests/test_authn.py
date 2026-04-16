@@ -1,9 +1,8 @@
 import logging
 import os
-from collections.abc import Mapping
 from dataclasses import asdict
 from pathlib import PurePath
-from typing import Any, cast
+from typing import Any
 from uuid import uuid4
 
 import pytest
@@ -417,11 +416,11 @@ class TestAuthnUserResource(ScimApiTestUserResourceBase):
 
         return self.client.get(url=f"/Users/{user.scim_id}", headers=headers)
 
-    def _make_bearer_token(self, claims: Mapping[str, Any]) -> str:
+    def _make_bearer_token(self, claims: dict[str, Any]) -> str:
         token = jwt.JWT(header={"alg": "ES256"}, claims=claims)
-        jwk = next(iter(self.context.jwks))
+        jwk = next(iter(self.context.jwks["keys"]))
         token.make_signed_token(jwk)
-        return cast(str, token.serialize())
+        return token.serialize()
 
     def test_get_user_no_authn(self) -> None:
         db_user = self.add_user(identifier=str(uuid4()), external_id="test-id-1", profiles={"test": self.test_profile})

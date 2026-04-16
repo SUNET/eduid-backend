@@ -79,7 +79,7 @@ class AuthnBaseApp(EduIDBaseApp, metaclass=ABCMeta):
         cors_options = get_cors_options(self)
         cors_headers = get_cors_headers(
             options=cors_options,
-            request_headers=req.headers,
+            request_headers=req.headers,  # type: ignore[arg-type]
             request_method=req.method,
         )
         # cors_headers is a MultiDict, start_response wants a list of tuples

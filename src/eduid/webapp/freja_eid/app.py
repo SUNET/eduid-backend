@@ -31,7 +31,7 @@ class FrejaEIDApp(AuthnBaseApp):
         self.msg_relay = MsgRelay(config)
 
         # Initialize the oidc_client
-        self.oidc_client = OAuth(self, cache=SessionOAuthCache())
+        self.oidc_client = OAuth(self, cache=SessionOAuthCache())  # type: ignore[no-untyped-call]
         client_kwargs = {}
         if self.conf.freja_eid_client.scopes:
             client_kwargs["scope"] = " ".join(self.conf.freja_eid_client.scopes)
@@ -40,7 +40,7 @@ class FrejaEIDApp(AuthnBaseApp):
         authorize_params = {}
         if self.conf.freja_eid_client.acr_values:
             authorize_params["acr_values"] = " ".join(self.conf.freja_eid_client.acr_values)
-        self.oidc_client.register(
+        self.oidc_client.register(  # type: ignore[no-untyped-call]
             name="freja_eid",
             client_id=self.conf.freja_eid_client.client_id,
             client_secret=self.conf.freja_eid_client.client_secret,

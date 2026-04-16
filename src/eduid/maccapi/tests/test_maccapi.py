@@ -1,7 +1,6 @@
 import json
-from collections.abc import Mapping
 from http import HTTPStatus
-from typing import Any, cast
+from typing import Any
 
 import pytest
 from jwcrypto import jwt
@@ -24,11 +23,11 @@ class TestMAccApi(MAccApiTestCase):
             "requested_access": [{"type": "maccapi", "scope": "eduid.se"}],
         }
 
-    def _make_bearer_token(self, claims: Mapping[str, Any]) -> str:
+    def _make_bearer_token(self, claims: dict[str, Any]) -> str:
         token = jwt.JWT(header={"alg": "ES256"}, claims=claims)
-        jwk = next(iter(self.context.jwks))
+        jwk = next(iter(self.context.jwks["keys"]))
         token.make_signed_token(jwk)
-        return cast(str, token.serialize())
+        return token.serialize()
 
     def _is_presentable_format(self, password: str) -> bool:
         return len(password) == 14 and password[4] == " " and password[9] == " "
