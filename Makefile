@@ -3,8 +3,7 @@ SRCDIR=		$(TOPDIR)/src
 SOURCE=		$(SRCDIR)/eduid
 MYPY_ARGS=	--install-types --non-interactive --pretty
 MYPY_STRICT= --strict \
-			 --implicit-reexport \
-			 --allow-untyped-calls
+			 --implicit-reexport
 
 PYTEST_WORKERS ?= 2  # override with e.g. make test PYTEST_WORKERS=4; use 1 for serial fallback; avoid 'auto' (OOMs on large machines)
 # --dist=loadgroup: tests with xdist_group("neo4j") all go to one worker; ungrouped tests are load-balanced.
@@ -23,7 +22,7 @@ lint:
 	ruff check
 
 typecheck:
-	MYPYPATH=$(SRCDIR) mypy $(MYPY_ARGS) $(MYPY_STRICT) --namespace-packages -p eduid --check-untyped-defs
+	MYPYPATH=$(SRCDIR) mypy $(MYPY_ARGS) $(MYPY_STRICT) --namespace-packages -p eduid
 
 typecheck_strict: typecheck
 

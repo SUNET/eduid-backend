@@ -42,12 +42,12 @@ def authorize(user: User) -> WerkzeugResponse:
                 )
                 current_app.proofing_statedb.save(proofing_state, is_in_database=False)
 
-            claims_request = ClaimsRequest(userinfo=Claims(id=None))
+            claims_request = ClaimsRequest(userinfo=Claims(id=None))  # type: ignore[no-untyped-call]
             oidc_args = {
                 "client_id": current_app.oidc_client.client_id,
                 "response_type": "code",
                 "scope": "openid",
-                "claims": claims_request.to_json(),
+                "claims": claims_request.to_json(),  # type: ignore[no-untyped-call]
                 "redirect_uri": url_for("orcid.authorization_response", _external=True),
                 "state": proofing_state.state,
                 "nonce": proofing_state.nonce,
@@ -86,10 +86,10 @@ def authorization_response(user: User) -> WerkzeugResponse:
         current_app.logger.warning(f"ORCID service unavailable during authorization response: {e}")
         return redirect_with_msg(redirect_url, CommonMsg.temp_problem, error=True)
 
-    if authn_resp.get("error"):
+    if authn_resp.get("error"):  # type: ignore[no-untyped-call]
         current_app.logger.error(
             "AuthorizationError from {}: {} - {} ({})".format(
-                request.host, authn_resp["error"], authn_resp.get("error_message"), authn_resp.get("error_description")
+                request.host, authn_resp["error"], authn_resp.get("error_message"), authn_resp.get("error_description")  # type: ignore[no-untyped-call]
             )
         )
         return redirect_with_msg(redirect_url, OrcidMsg.authz_error)
@@ -107,7 +107,7 @@ def authorization_response(user: User) -> WerkzeugResponse:
     }
     current_app.logger.debug(f"Trying to do token request: {args!s}")
     try:
-        token_resp = current_app.oidc_client.do_access_token_request(
+        token_resp = current_app.oidc_client.do_access_token_request(  # type: ignore[no-untyped-call]
             scope="openid", state=authn_resp["state"], request_args=args, authn_method="client_secret_basic"
         )
         current_app.logger.debug(f"token response received: {token_resp!s}")
@@ -120,7 +120,7 @@ def authorization_response(user: User) -> WerkzeugResponse:
 
         # do userinfo request
         current_app.logger.debug("Trying to do userinfo request:")
-        userinfo_result = current_app.oidc_client.do_user_info_request(
+        userinfo_result = current_app.oidc_client.do_user_info_request(  # type: ignore[no-untyped-call]
             method=current_app.conf.userinfo_endpoint_method, state=authn_resp["state"]
         )
         current_app.logger.debug(f"userinfo received: {userinfo_result}")

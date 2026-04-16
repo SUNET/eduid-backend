@@ -136,8 +136,8 @@ def get_redis_pool(cfg: RedisConfig) -> sentinel.SentinelConnectionPool | redis.
     logger.debug(f"Redis configuration: {cfg}")
     if cfg.sentinel_hosts and cfg.sentinel_service_name:
         host_port = [(x, cfg.port) for x in cfg.sentinel_hosts]
-        manager = sentinel.Sentinel(host_port, socket_timeout=0.1)
-        return sentinel.SentinelConnectionPool(cfg.sentinel_service_name, manager)
+        manager = sentinel.Sentinel(host_port, socket_timeout=0.1)  # type: ignore[no-untyped-call]
+        return sentinel.SentinelConnectionPool(cfg.sentinel_service_name, manager)  # type: ignore[no-untyped-call]
     else:
         if not cfg.host:
             logger.error("Redis configuration without sentinel parameters does not have host")

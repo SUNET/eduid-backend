@@ -45,7 +45,7 @@ class VCCS_API(FastAPI):
             self.logger.info(f"Starting new_hasher: {self.state.new_hasher}")
             self.logger.info(f"new_hasher info: {self.state.new_hasher.info()}")
 
-        self.state.kdf = ndnkdf.NDNKDF()
+        self.state.kdf = ndnkdf.NDNKDF()  # type: ignore[no-untyped-call]
 
         self.state.credstore = CredentialDB(db_uri=self.state.config.mongo_uri)
 
