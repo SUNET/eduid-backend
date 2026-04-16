@@ -47,6 +47,7 @@ class HasPrivateUserDB(Protocol):
 
     private_userdb: UserDB[Any]
 
+
 TEST_CONFIG = {
     "debug": True,
     "testing": True,
