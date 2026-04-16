@@ -11,7 +11,7 @@ from eduid.common.config.base import EduidEnvironment
 from eduid.userdb import NinIdentity
 from eduid.userdb.element import ElementKey
 from eduid.userdb.identity import IdentityType
-from eduid.webapp.common.api.testing import EduidAPITestCase
+from eduid.webapp.common.proofing.testing import ProofingTests
 from eduid.webapp.letter_proofing.app import LetterProofingApp, init_letter_proofing_app
 from eduid.webapp.letter_proofing.helpers import LetterMsg
 
@@ -43,7 +43,7 @@ class MockResponse:
         return self._json_data
 
 
-class LetterProofingTests(EduidAPITestCase[LetterProofingApp]):
+class LetterProofingTests(ProofingTests[LetterProofingApp]):
     """Base TestCase for those tests that need a full environment setup"""
 
     api_users: ClassVar[list[str]] = ["hubba-baar"]

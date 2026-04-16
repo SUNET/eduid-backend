@@ -9,7 +9,7 @@ from collections.abc import Generator, Iterable, Iterator, Mapping
 from contextlib import contextmanager
 from copy import deepcopy
 from datetime import datetime, timedelta
-from typing import Any, ClassVar, cast
+from typing import Any, ClassVar, Protocol, cast, runtime_checkable
 
 import pytest
 from flask.testing import FlaskClient
@@ -27,8 +27,6 @@ from eduid.userdb.element import ElementKey
 from eduid.userdb.fixtures.fido_credentials import u2f_credential, webauthn_credential
 from eduid.userdb.fixtures.users import UserFixtures
 from eduid.userdb.identity import IdentityType
-from eduid.userdb.logs.db import ProofingLog
-from eduid.userdb.proofing.state import NinProofingState
 from eduid.userdb.testing import MongoTemporaryInstance
 from eduid.userdb.userdb import UserDB
 from eduid.webapp.common.api.app import EduIDBaseApp
@@ -41,6 +39,13 @@ from eduid.webapp.common.session.testing import RedisTemporaryInstance
 from eduid.workers.msg.tasks import MessageSender
 
 logger = logging.getLogger(__name__)
+
+
+@runtime_checkable
+class HasPrivateUserDB(Protocol):
+    """Protocol for apps that have a private_userdb attribute."""
+
+    private_userdb: UserDB[Any]
 
 TEST_CONFIG = {
     "debug": True,
@@ -155,8 +160,8 @@ class EduidAPITestCase[T: EduIDBaseApp](CommonTestCase):
 
         if self.copy_user_to_private:
             data = self.test_user.to_dict()
-            _private_userdb = getattr(self.app, "private_userdb")  # noqa: B009 — not on EduIDBaseApp, varies by app subclass
-            assert isinstance(_private_userdb, UserDB)
+            assert isinstance(self.app, HasPrivateUserDB), f"{type(self.app)} does not have private_userdb"
+            _private_userdb = self.app.private_userdb
             logging.info(f"Copying test-user {self.test_user} to private_userdb {_private_userdb}")
             _private_userdb.save(_private_userdb.user_from_dict(data=data))
 
@@ -564,44 +569,6 @@ class EduidAPITestCase[T: EduIDBaseApp](CommonTestCase):
             else:
                 logger.info(f"Test case got unexpected response ({response.status_code}):\n{response.data}")
             raise
-
-    def _check_nin_verified_ok(
-        self,
-        user: User,
-        proofing_state: NinProofingState,
-        number: str | None = None,
-        created_by: str | None = None,
-    ) -> None:
-        if number is None and (self.test_user is not None and self.test_user.identities.nin):
-            number = self.test_user.identities.nin.number
-
-        created_by_str = created_by or proofing_state.nin.created_by
-
-        assert user.identities.nin is not None
-        assert user.identities.nin.number == number
-        assert user.identities.nin.created_by == created_by_str
-        assert user.identities.nin.verified_by == proofing_state.nin.created_by
-        assert user.identities.nin.is_verified is True
-        assert user.identities.nin.proofing_method is not None
-        assert user.identities.nin.proofing_version is not None
-
-        _log = getattr(self.app, "proofing_log")  # noqa: B009 — not on EduIDBaseApp, varies by app subclass
-        assert isinstance(_log, ProofingLog)
-        assert _log.db_count() == 1
-
-    def _check_nin_not_verified(self, user: User, number: str | None = None, created_by: str | None = None) -> None:
-        if number is None and (self.test_user is not None and self.test_user.identities.nin):
-            number = self.test_user.identities.nin.number
-
-        assert user.identities.nin is not None
-        assert user.identities.nin.number == number
-        if created_by:
-            assert user.identities.nin.created_by == created_by
-        assert user.identities.nin.is_verified is False
-
-        _log = getattr(self.app, "proofing_log")  # noqa: B009 — not on EduIDBaseApp, varies by app subclass
-        assert isinstance(_log, ProofingLog)
-        assert _log.db_count() == 0
 
 
 class CSRFTestClient(FlaskClient):
