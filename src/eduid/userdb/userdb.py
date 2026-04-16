@@ -357,21 +357,6 @@ class AmDB(UserDB[User]):
     def user_from_dict(cls, data: TUserDbDocument) -> User:
         return User.from_dict(data)
 
-    def save(self, user: User) -> UserSaveResult:
-        """
-        Save a User object to the database.
-        """
-        spec: dict[str, Any] = {"_id": user.user_id}
-
-        try:
-            result = self._save(user.to_dict(), spec, is_in_database=user.meta.is_in_database, meta=user.meta)
-        except DocumentOutOfSync as e:
-            raise UserOutOfSync("User out of sync") from e
-
-        user.modified_ts = result.ts
-
-        return UserSaveResult(success=bool(result))
-
     def get_unterminated_users_with_nin(
         self, projection: Mapping[str, Any] | None = None
     ) -> Generator[TUserDbDocument]:

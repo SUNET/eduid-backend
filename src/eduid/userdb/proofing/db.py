@@ -14,7 +14,7 @@ from eduid.userdb.proofing.state import (
     ProofingState,
 )
 from eduid.userdb.proofing.user import ProofingUser
-from eduid.userdb.userdb import AutoExpiringUserDB, UserSaveResult
+from eduid.userdb.userdb import AutoExpiringUserDB
 
 logger = logging.getLogger(__name__)
 
@@ -214,9 +214,6 @@ class ProofingUserDB(AutoExpiringUserDB[ProofingUser]):
         self, db_uri: str, db_name: str, collection: str = "profiles", auto_expire: timedelta | None = None
     ) -> None:
         super().__init__(db_uri, db_name, collection=collection, auto_expire=auto_expire)
-
-    def save(self, user: ProofingUser) -> UserSaveResult:
-        return super().save(user)
 
     @classmethod
     def user_from_dict(cls, data: TUserDbDocument) -> ProofingUser:
