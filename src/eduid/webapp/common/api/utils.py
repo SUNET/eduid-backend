@@ -67,7 +67,7 @@ def update_modified_ts(user: User) -> None:
         user.modified_ts = None
         return None
 
-    _private_userdb = get_from_current_app("private_userdb", UserDB[User])
+    _private_userdb = get_from_current_app("private_userdb", UserDB)
     private_user = _private_userdb.get_user_by_id(user_id)
     if private_user is None:
         logger.debug(f"User {user} not found in {_private_userdb}, setting modified_ts to None")
