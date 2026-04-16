@@ -89,7 +89,10 @@ def authorization_response(user: User) -> WerkzeugResponse:
     if authn_resp.get("error"):  # type: ignore[no-untyped-call]
         current_app.logger.error(
             "AuthorizationError from {}: {} - {} ({})".format(
-                request.host, authn_resp["error"], authn_resp.get("error_message"), authn_resp.get("error_description")  # type: ignore[no-untyped-call]
+                request.host,
+                authn_resp["error"],
+                authn_resp.get("error_message"),  # type: ignore[no-untyped-call]
+                authn_resp.get("error_description"),  # type: ignore[no-untyped-call]
             )
         )
         return redirect_with_msg(redirect_url, OrcidMsg.authz_error)
