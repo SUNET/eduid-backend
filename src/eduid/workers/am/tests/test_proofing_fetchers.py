@@ -1,7 +1,7 @@
 from datetime import UTC, datetime
 
 import bson
-from deepdiff import DeepDiff  # type: ignore[import-untyped]
+from deepdiff import DeepDiff
 
 from eduid.common.testing_base import normalised_data
 from eduid.userdb.db.base import TUserDbDocument
