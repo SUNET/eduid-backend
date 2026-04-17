@@ -7,5 +7,5 @@ ndnkdf
 hsmkey
 uvicorn[standard]
 python-multipart  # needed to parse form data
-deepdiff6
+deepdiff
 apscheduler<4 # Next major version has API breaking changes
