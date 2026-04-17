@@ -57,7 +57,7 @@ def signup_auth(ticket: LoginContext, sso_session: SSOSession | None) -> FluxDat
 
     age = utc_now() - session.signup.user_created_at
     if age > current_app.conf.new_signup_authn_lifetime:
-        current_app.logger.debug(f"New signup too old ({age} > {current_app.conf.new_signup_authn_lifetime})")
+        current_app.logger.info(f"New signup too old ({age} > {current_app.conf.new_signup_authn_lifetime})")
         return error_response(message=IdPMsg.must_authenticate)
 
     if not isinstance(ticket, LoginContextSAML):
