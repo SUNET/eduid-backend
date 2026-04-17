@@ -24,7 +24,7 @@ from eduid.userdb.exceptions import UserDoesNotExist
 from eduid.userdb.identity import IdentityType
 from eduid.userdb.proofing import ProofingUser
 from eduid.userdb.userdb import UserDB
-from eduid.workers.am.ams import AttributeFetcher
+from eduid.workers.am.ams.common import AttributeFetcher
 from eduid.workers.am.common import AmCelerySingleton
 
 logger = logging.getLogger(__name__)

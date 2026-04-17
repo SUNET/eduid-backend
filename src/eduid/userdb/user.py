@@ -12,8 +12,7 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator, model_valida
 
 from eduid.userdb.credentials import CredentialList
 from eduid.userdb.db import BaseDB, TUserDbDocument
-from eduid.userdb.element import UserDBValueError
-from eduid.userdb.exceptions import UserDoesNotExist, UserIsRevoked
+from eduid.userdb.exceptions import UserDBValueError, UserDoesNotExist, UserIsRevoked
 from eduid.userdb.identity import EIDASIdentity, EIDASLoa, IdentityList, IdentityType
 from eduid.userdb.ladok import Ladok
 from eduid.userdb.locked_identity import LockedIdentityList

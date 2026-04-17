@@ -27,7 +27,7 @@ from eduid.webapp.common.authn.webauthn import (
     get_webauthn_server,
     is_authenticator_mfa_approved,
 )
-from eduid.webapp.common.session import EduidSession
+from eduid.webapp.common.session.eduid_session import EduidSession
 from eduid.webapp.common.session.namespaces import WebauthnRegistration, WebauthnState
 from eduid.webapp.security.app import SecurityApp, security_init_app
 

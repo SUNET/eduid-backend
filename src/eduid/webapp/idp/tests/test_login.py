@@ -30,7 +30,7 @@ from eduid.webapp.idp.tests.test_api import (
     PwAuthResult,
     TestUser,
 )
-from eduid.workers.am import AmCelerySingleton
+from eduid.workers.am.common import AmCelerySingleton
 
 logger = logging.getLogger(__name__)
 

@@ -33,7 +33,7 @@ from eduid.webapp.common.api.app import EduIDBaseApp
 from eduid.webapp.common.api.messages import AuthnStatusMsg, TranslatableMsg
 from eduid.webapp.common.api.schemas.authn_status import AuthnActionStatus
 from eduid.webapp.common.authn.acs_enums import AuthnAcsAction
-from eduid.webapp.common.session import EduidSession
+from eduid.webapp.common.session.eduid_session import EduidSession
 from eduid.webapp.common.session.namespaces import SP_AuthnRequest
 from eduid.webapp.common.session.testing import RedisTemporaryInstance
 from eduid.workers.msg.tasks import MessageSender

@@ -6,6 +6,7 @@ from eduid.userdb.scimapi.common import (
     ScimApiName,
     ScimApiPhoneNumber,
     ScimApiProfile,
+    ScimApiResourceBase,
 )
 from eduid.userdb.scimapi.eventdb import (
     EventLevel,
@@ -13,7 +14,6 @@ from eduid.userdb.scimapi.eventdb import (
     ScimApiEvent,
     ScimApiEventDB,
     ScimApiEventResource,
-    ScimApiResourceBase,
 )
 from eduid.userdb.scimapi.groupdb import GroupExtensions, ScimApiGroup, ScimApiGroupDB
 from eduid.userdb.scimapi.userdb import ScimApiUser, ScimApiUserDB

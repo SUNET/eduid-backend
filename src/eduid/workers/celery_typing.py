@@ -1,5 +1,7 @@
 from typing import TYPE_CHECKING
 
+__all__ = ["Task"]
+
 if TYPE_CHECKING:
     from celery import Task
 else:

@@ -2,9 +2,9 @@ import logging
 import pprint
 from logging.config import dictConfig
 
-from eduid.common.config.base import LoggingConfigMixin
+from eduid.common.config.base import LoggingConfigMixin, LoggingFilters
 from eduid.common.config.exceptions import BadConfiguration
-from eduid.common.logging import LocalContext, LoggingFilters, make_dict_config, merge_config
+from eduid.common.logging import LocalContext, make_dict_config, merge_config
 
 __author__ = "lundberg"
 

@@ -23,7 +23,7 @@ from eduid.webapp.common.api.testing import CSRFTestClient
 from eduid.webapp.common.authn.cache import OutstandingQueriesCache
 from eduid.webapp.common.proofing.messages import ProofingMsg
 from eduid.webapp.common.proofing.testing import ProofingTests
-from eduid.webapp.common.session import EduidSession
+from eduid.webapp.common.session.eduid_session import EduidSession
 from eduid.webapp.common.session.namespaces import AuthnRequestRef
 
 __author__ = "lundberg"

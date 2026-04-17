@@ -2,7 +2,7 @@ from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
 
-from eduid.common.config.parsers import BaseConfigParser
+from eduid.common.config.parsers.base import BaseConfigParser
 from eduid.common.config.parsers.decorators import decrypt, interpolate
 
 

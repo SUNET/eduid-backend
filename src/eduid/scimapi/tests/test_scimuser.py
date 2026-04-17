@@ -20,7 +20,8 @@ from eduid.common.utils import make_etag
 from eduid.scimapi.testing import ScimApiTestCase
 from eduid.scimapi.utils import filter_none
 from eduid.userdb.scimapi import EventStatus, ScimApiGroup, ScimApiLinkedAccount, ScimApiName
-from eduid.userdb.scimapi.userdb import ScimApiProfile, ScimApiUser
+from eduid.userdb.scimapi.common import ScimApiProfile
+from eduid.userdb.scimapi.userdb import ScimApiUser
 
 logger = logging.getLogger(__name__)
 

@@ -10,7 +10,7 @@ import pytest
 from neo4j.exceptions import ServiceUnavailable
 
 from eduid.graphdb.db import Neo4jDB
-from eduid.userdb.testing import EduidTemporaryInstance
+from eduid.userdb.testing.temp_instance import EduidTemporaryInstance
 
 __author__ = "lundberg"
 

@@ -10,13 +10,12 @@ from eduid.queue.client import init_queue_item
 from eduid.queue.db.message.payload import EduidGroupInviteCancelEmail, EduidGroupInviteEmail
 from eduid.userdb import User
 from eduid.userdb.exceptions import EduIDDBError
-from eduid.userdb.group_management import GroupInviteState
+from eduid.userdb.group_management import GroupInviteState, GroupRole
 from eduid.userdb.scimapi import ScimApiGroup
 from eduid.userdb.scimapi.userdb import ScimApiUser
 from eduid.webapp.common.api.messages import TranslatableMsg
 from eduid.webapp.common.api.translation import get_user_locale
 from eduid.webapp.group_management.app import current_group_management_app as current_app
-from eduid.webapp.group_management.schemas import GroupRole
 
 __author__ = "lundberg"
 

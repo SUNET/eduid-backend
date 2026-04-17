@@ -7,7 +7,7 @@ from eduid.common.config.base import FrontendAction
 from eduid.common.config.parsers import load_config
 from eduid.common.testing_base import normalised_data
 from eduid.webapp.common.api.testing import EduidAPITestCase
-from eduid.webapp.common.session import EduidSession
+from eduid.webapp.common.session.eduid_session import EduidSession
 from eduid.webapp.common.session.eduid_session import SessionFactory
 from eduid.webapp.common.session.meta import SessionMeta
 from eduid.webapp.common.session.namespaces import AuthnRequestRef, SP_AuthnRequest
