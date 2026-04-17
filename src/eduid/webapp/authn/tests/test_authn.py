@@ -282,6 +282,54 @@ class AuthnAPITestCase(AuthnAPITestBase):
             age = utc_now() - authn.authn_instant
             assert 10 < age.total_seconds() < 15
 
+    def test_login_assertion_consumer_service_multiple_tabs_same_session(self) -> None:
+        with self.session_cookie_anon(self.browser) as browser:
+            with browser.session_transaction() as sess:
+                csrf_token = sess.get_csrf_token()
+
+            outstanding_request_ids: set[str] = set()
+            authn_requests: list[tuple[str, AuthnRequestRef]] = []
+
+            for _ in range(3):
+                response = browser.post(
+                    "/authenticate",
+                    json={"frontend_action": FrontendAction.LOGIN.value, "csrf_token": csrf_token},
+                )
+                self._check_success_response(response=response, type_="POST_AUTHN_AUTHENTICATE_SUCCESS")
+
+                with browser.session_transaction() as sess:
+                    oq_cache = OutstandingQueriesCache(sess.authn.sp.pysaml2_dicts)
+                    outstanding_queries = oq_cache.outstanding_queries()
+                    new_request_ids = set(outstanding_queries) - outstanding_request_ids
+
+                    assert len(new_request_ids) == 1
+                    request_id = new_request_ids.pop()
+                    outstanding_request_ids.add(request_id)
+                    authn_requests.append((request_id, AuthnRequestRef(outstanding_queries[request_id])))
+
+            with browser.session_transaction() as sess:
+                assert len(sess.authn.sp.authns) == 3
+
+            for request_id, authn_ref in authn_requests:
+                saml_response = auth_response(request_id, self.test_user.eppn).encode("utf-8")
+                response = browser.post(
+                    "/saml2-acs",
+                    data={"csrf": csrf_token, "SAMLResponse": base64.b64encode(saml_response).decode()},
+                )
+
+                assert response.status_code == HTTPStatus.FOUND
+                assert response.location == self.app.conf.frontend_action_authn_parameters[FrontendAction.LOGIN].finish_url.format(
+                    app_name="authn", authn_id=authn_ref
+                )
+
+                status_response = browser.post(
+                    "/get-status",
+                    json={"authn_id": authn_ref, "csrf_token": csrf_token},
+                )
+                payload = self.get_response_payload(response=status_response)
+                assert payload["error"] is False
+                assert payload["frontend_action"] == FrontendAction.LOGIN.value
+
     def test_frontend_state(self) -> None:
         eppn = "hubba-bubba"
         self.acs("/authenticate", eppn, FrontendAction.REMOVE_SECURITY_KEY_AUTHN, frontend_state="key_id_to_remove")

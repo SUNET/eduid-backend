@@ -127,9 +127,9 @@ def get_authn_for_action(
     if authn_params is None:
         raise BadConfiguration(f"No authn parameters for frontend action {frontend_action}")
 
-    authn = session.authn.sp.get_authn_for_frontend_action(frontend_action)
+    authn = session.authn.sp.get_authn_for_frontend_action(frontend_action, completed_only=True)
     if not authn and authn_params.allow_login_auth:
-        authn = session.authn.sp.get_authn_for_frontend_action(FrontendAction.LOGIN)
+        authn = session.authn.sp.get_authn_for_frontend_action(FrontendAction.LOGIN, completed_only=True)
     return authn, authn_params
 
 

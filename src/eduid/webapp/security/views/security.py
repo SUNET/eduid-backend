@@ -265,7 +265,7 @@ def get_latest_authn(user: User) -> FluxData:
     Get the latest frontend action authentication status of the user.
     """
 
-    authn = session.authn.sp.get_latest_authn()
+    authn = session.authn.sp.get_latest_authn(completed_only=True)
     if authn is None:
         return error_response(message=SecurityMsg.not_found)
 

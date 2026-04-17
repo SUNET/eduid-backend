@@ -277,19 +277,24 @@ class SPAuthnData(BaseModel):
             authns = dict(items[:MAX_AUTHNS_TO_KEEP])
         return {k: v.model_dump() for k, v in authns.items()}
 
-    def _get_sorted_authns(self) -> list[SP_AuthnRequest]:
+    def _get_sorted_authns(self, completed_only: bool = False) -> list[SP_AuthnRequest]:
+        authns = self.authns.values()
+        if completed_only:
+            authns = [authn for authn in authns if authn.authn_instant is not None]
         # sort authn actions by created_ts, latest first
-        return sorted(self.authns.values(), reverse=True, key=lambda item: item.created_ts)
+        return sorted(authns, reverse=True, key=lambda item: item.created_ts)
 
-    def get_latest_authn(self) -> SP_AuthnRequest | None:
-        for authn in self._get_sorted_authns():
+    def get_latest_authn(self, completed_only: bool = False) -> SP_AuthnRequest | None:
+        for authn in self._get_sorted_authns(completed_only=completed_only):
             # return the first one (latest)
             return authn
         return None
 
-    def get_authn_for_frontend_action(self, action: FrontendAction) -> SP_AuthnRequest | None:
+    def get_authn_for_frontend_action(
+        self, action: FrontendAction, completed_only: bool = False
+    ) -> SP_AuthnRequest | None:
         # return the first one (latest) that matches the action
-        for authn in self._get_sorted_authns():
+        for authn in self._get_sorted_authns(completed_only=completed_only):
             if authn.frontend_action == action:
                 return authn
         return None

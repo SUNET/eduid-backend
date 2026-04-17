@@ -1,10 +1,11 @@
 import logging
 from collections.abc import Mapping
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any
 
 from eduid.common.config.base import FrontendAction
 from eduid.common.config.parsers import load_config
+from eduid.common.misc.timeutil import utc_now
 from eduid.common.testing_base import normalised_data
 from eduid.webapp.common.api.testing import EduidAPITestCase
 from eduid.webapp.common.session import EduidSession
@@ -149,3 +150,30 @@ class TestAuthnNamespace(TestNameSpaceBase):
         sess2.authn.sp.get_latest_authn()
         sess2.persist()
         assert sess1._session._raw_data == sess2._session._raw_data
+
+    def test_get_latest_completed_authn(self) -> None:
+        _meta = SessionMeta.new(app_secret="secret")
+        sess = self.get_session(meta=_meta)
+
+        completed_authn = SP_AuthnRequest(
+            frontend_action=FrontendAction.LOGIN,
+            finish_url="some_url",
+            created_ts=utc_now() - timedelta(minutes=1),
+            authn_instant=utc_now() - timedelta(seconds=30),
+        )
+        pending_authn = SP_AuthnRequest(
+            frontend_action=FrontendAction.LOGIN,
+            finish_url="some_url",
+            created_ts=utc_now(),
+        )
+
+        sess.authn.sp.authns[completed_authn.authn_id] = completed_authn
+        sess.authn.sp.authns[pending_authn.authn_id] = pending_authn
+
+        assert sess.authn.sp.get_latest_authn() == pending_authn
+        assert sess.authn.sp.get_latest_authn(completed_only=True) == completed_authn
+        assert sess.authn.sp.get_authn_for_frontend_action(FrontendAction.LOGIN) == pending_authn
+        assert (
+            sess.authn.sp.get_authn_for_frontend_action(FrontendAction.LOGIN, completed_only=True)
+            == completed_authn
+        )
