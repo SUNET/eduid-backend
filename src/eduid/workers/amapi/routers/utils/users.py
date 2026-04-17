@@ -1,4 +1,4 @@
-from deepdiff import DeepDiff
+from deepdiff import DeepDiff  # type: ignore[import-untyped]
 
 from eduid.common.misc.timeutil import utc_now
 from eduid.common.models.amapi_user import (

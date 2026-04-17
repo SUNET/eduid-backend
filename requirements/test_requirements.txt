@@ -2446,6 +2446,10 @@ statsd==4.0.1 \
     # via
     #   -c main.txt
     #   -r main.in
+statsd-stubs==4.0.1.20240223 \
+    --hash=sha256:7c8a9a3402eb5cd9fbf232e8eec5fad87b3d8a7ef87fb18209c10372d5122cf6 \
+    --hash=sha256:be3897db4865a39ae658ea0ca20c0d13489f13affe6c1e8361b02bc523a227c2
+    # via -r test_requirements.in
 suds-community==1.2.0 \
     --hash=sha256:505b191865bca125f12e8ff9598b24d9c0108b98826671bdd700ed51def44e36 \
     --hash=sha256:ab3b24dc9ba06b5e6598e2a5d34d2a7d06c79e613d81cedc028475bfbd3bb90c

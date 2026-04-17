@@ -35,13 +35,8 @@ def maybe_xml_to_string(message: str | bytes) -> str:
     try:
         from defusedxml import ElementTree as DefusedElementTree
 
-        parser = DefusedElementTree.DefusedXMLParser()
-        xml = DefusedElementTree.XML(message, parser)
-        _xml = DefusedElementTree.tostring(xml)
-        if not isinstance(_xml, bytes):
-            # how odd for a function called tostring to not return a string...
-            raise ValueError("DefusedElementTree.tostring() did not return bytes")
-        return _xml.decode("utf-8")
+        xml = DefusedElementTree.XML(message)
+        return DefusedElementTree.tostring(xml, encoding="unicode")
     except Exception:
         logger.exception(f"Could not parse message of type {type(message)!r} as XML")
         return message

@@ -5,7 +5,7 @@ from typing import cast
 from uuid import uuid4
 
 from bson import ObjectId
-from pwgen import pwgen
+from pwgen import pwgen  # type: ignore[import-untyped]
 
 
 def urlappend(base: str, path: str) -> str:

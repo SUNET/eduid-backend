@@ -1,6 +1,7 @@
 import base64
 import json
 from collections.abc import Mapping
+from datetime import timedelta
 from typing import Any, cast
 
 import pytest
@@ -13,7 +14,6 @@ from fido2.webauthn import (
 from fido_mds import Attestation, FidoMetadataStore
 from fido_mds.models.webauthn import AttestationFormat
 from fido_mds.tests.data import IPHONE_12, MICROSOFT_SURFACE_1796, NEXUS_5, NONE_ATTESTATION, YUBIKEY_4, YUBIKEY_5_NFC
-from future.backports.datetime import timedelta
 from pytest_mock import MockerFixture
 from werkzeug.test import TestResponse
 

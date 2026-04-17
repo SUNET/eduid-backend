@@ -435,18 +435,22 @@ class SSO(Service):
         """
         printed = False
         try:
-            parser = DefusedElementTree.DefusedXMLParser()
-            xml = DefusedElementTree.XML(str(saml_response), parser)
+            xml = DefusedElementTree.XML(str(saml_response))
 
             # For debugging, it is very useful to get the full SAML response pretty-printed in the logfile directly
-            current_app.logger.debug(f"Created AuthNResponse :\n\n{DefusedElementTree.tostring(xml)}\n\n")
+            current_app.logger.debug(
+                f"Created AuthNResponse :\n\n{DefusedElementTree.tostring(xml, encoding='unicode')}\n\n"
+            )
             printed = True
 
             attrs = xml.attrib
             assertion = xml.find("{urn:oasis:names:tc:SAML:2.0:assertion}Assertion")
             current_app.logger.info(
                 "{!s}: id={!s}, in_response_to={!s}, assertion_id={!s}".format(
-                    ticket.request_ref, attrs["ID"], attrs["InResponseTo"], assertion.get("ID")
+                    ticket.request_ref,
+                    attrs["ID"],
+                    attrs["InResponseTo"],
+                    assertion.get("ID") if assertion is not None else None,
                 )
             )
         except Exception as exc:

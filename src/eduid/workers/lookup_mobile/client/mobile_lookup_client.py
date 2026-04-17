@@ -1,8 +1,8 @@
 from logging import Logger
 from typing import Any, cast
 
-from suds.client import Client
-from suds.sudsobject import Object
+from suds.client import Client  # type: ignore[import-untyped]
+from suds.sudsobject import Object  # type: ignore[import-untyped]
 
 from eduid.common.config.base import EduidEnvironment
 from eduid.common.config.workers import MobConfig

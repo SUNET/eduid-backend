@@ -4,7 +4,7 @@ from dataclasses import replace
 from datetime import datetime
 from enum import StrEnum, unique
 
-import proquint
+import proquint  # type: ignore[import-untyped]
 from flask import abort
 
 from eduid.common.config.base import EduidEnvironment

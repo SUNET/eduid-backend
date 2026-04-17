@@ -7,8 +7,8 @@ from binascii import unhexlify
 from hashlib import sha1, sha256
 from typing import Literal, cast
 
-import pkcs11
-import pyhsm
+import pkcs11  # type: ignore[import-untyped]
+import pyhsm  # type: ignore[import-untyped]
 from hsmkey import HSMConfig, SessionPool
 from pkcs11 import KeyType, Mechanism, ObjectClass
 

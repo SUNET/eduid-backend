@@ -4,7 +4,7 @@ from http import HTTPStatus
 from io import BytesIO
 from typing import Any, cast
 
-from hammock import Hammock
+from hammock import Hammock  # type: ignore[import-untyped]
 
 from eduid.common.misc.timeutil import utc_now
 from eduid.webapp.letter_proofing.settings.common import LetterProofingConfig

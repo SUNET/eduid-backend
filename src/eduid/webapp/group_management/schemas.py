@@ -1,5 +1,5 @@
 from marshmallow import fields
-from marshmallow_enum import EnumField
+from marshmallow_enum import EnumField  # type: ignore[import-untyped]
 
 from eduid.userdb.group_management import GroupRole
 from eduid.webapp.common.api.schemas.base import EduidSchema, FluxStandardAction

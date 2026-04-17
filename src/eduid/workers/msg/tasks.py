@@ -6,8 +6,8 @@ from typing import Any, ClassVar, cast
 
 from billiard.einfo import ExceptionInfo
 from celery.utils.log import get_task_logger
-from hammock import Hammock
-from smscom import SMSClient
+from hammock import Hammock  # type: ignore[import-untyped]
+from smscom import SMSClient  # type: ignore[import-untyped]
 
 from eduid.common.config.base import EduidEnvironment
 from eduid.userdb.exceptions import DBConnectionError
