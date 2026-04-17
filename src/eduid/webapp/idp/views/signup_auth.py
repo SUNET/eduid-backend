@@ -61,7 +61,8 @@ def signup_auth(ticket: LoginContext, sso_session: SSOSession | None) -> FluxDat
         return error_response(message=IdPMsg.must_authenticate)
 
     if not isinstance(ticket, LoginContextSAML):
-        return error_response(message=IdPMsg.general_failure)
+        current_app.logger.warning(f"ticket {ticket.request_ref} not a LoginContextSAML instance: {type(ticket)}")
+        return error_response(message=IdPMsg.bad_ref)
 
     if ticket.reauthn_required:
         current_app.logger.info("SP requires ForceAuthn, not accepting new signup as authentication")
