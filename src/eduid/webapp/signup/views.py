@@ -410,19 +410,9 @@ def return_to_auth(ref: str) -> FluxData:
     return success_response(payload={"state": session.signup.to_dict()})
 
 
-@signup_views.route("/create-user", methods=["POST"])
-@UnmarshalWith(CreateUserRequest)
-@MarshalWith(SignupStatusResponse)
-@require_not_logged_in
-def create_user(use_suggested_password: bool, use_webauthn: bool, custom_password: str | None = None) -> FluxData:
-    current_app.logger.info("Creating user")
-
-    use_password = False
-    if use_suggested_password or custom_password is not None:
-        use_password = True
-
+def _validate_create_user(use_password: bool, use_webauthn: bool, custom_password: str | None) -> FluxData | None:
+    """Validate preconditions for user creation. Returns error response or None if valid."""
     if session.common.eppn or session.signup.user_created:
-        # do not try to create a new user if the user already exists
         current_app.logger.error("User already created")
         current_app.logger.debug(f"eppn: {session.common.eppn}")
         current_app.logger.debug(f"user created: {session.signup.user_created}")
@@ -440,16 +430,30 @@ def create_user(use_suggested_password: bool, use_webauthn: bool, custom_passwor
     if use_password and not session.signup.credentials.generated_password:
         current_app.logger.error("No generated_password generated")
         return error_response(message=SignupMsg.password_not_generated)
-    if use_password and custom_password is not None:
-        if not is_valid_custom_password(custom_password):
-            current_app.logger.error("Weak custom password")
-            return error_response(message=SignupMsg.weak_custom_password)
+    if use_password and custom_password is not None and not is_valid_custom_password(custom_password):
+        current_app.logger.error("Weak custom password")
+        return error_response(message=SignupMsg.weak_custom_password)
     if use_webauthn and not session.signup.credentials.webauthn:
         current_app.logger.error("No webauthn registered")
         return error_response(message=SignupMsg.webauthn_registration_failed)
     if not use_password and not use_webauthn:
         current_app.logger.error("Neither generated_password nor webauthn selected")
         return error_response(message=SignupMsg.credential_not_added)
+    return None
+
+
+@signup_views.route("/create-user", methods=["POST"])
+@UnmarshalWith(CreateUserRequest)
+@MarshalWith(SignupStatusResponse)
+@require_not_logged_in
+def create_user(use_suggested_password: bool, use_webauthn: bool, custom_password: str | None = None) -> FluxData:
+    current_app.logger.info("Creating user")
+
+    use_password = use_suggested_password or custom_password is not None
+
+    error = _validate_create_user(use_password, use_webauthn, custom_password)
+    if error is not None:
+        return error
 
     assert session.signup.name.given_name is not None  # please mypy
     assert session.signup.name.surname is not None  # please mypy
