@@ -410,14 +410,16 @@ def return_to_auth(ref: str) -> FluxData:
     return success_response(payload={"state": session.signup.to_dict()})
 
 
-def _validate_create_user(use_password: bool, use_webauthn: bool, custom_password: str | None) -> FluxData | None:
-    """Validate preconditions for user creation. Returns error response or None if valid."""
+def _check_user_not_created() -> FluxData | None:
     if session.common.eppn or session.signup.user_created:
         current_app.logger.error("User already created")
         current_app.logger.debug(f"eppn: {session.common.eppn}")
         current_app.logger.debug(f"user created: {session.signup.user_created}")
         return error_response(message=SignupMsg.user_already_exists)
+    return None
 
+
+def _check_signup_steps_completed() -> FluxData | None:
     if not session.signup.captcha.completed:
         current_app.logger.error("Captcha not completed")
         return error_response(message=SignupMsg.captcha_not_completed)
@@ -427,6 +429,10 @@ def _validate_create_user(use_password: bool, use_webauthn: bool, custom_passwor
     if not session.signup.tou.completed:
         current_app.logger.error("ToU not completed")
         return error_response(message=SignupMsg.tou_not_completed)
+    return None
+
+
+def _check_credentials_selected(use_password: bool, use_webauthn: bool, custom_password: str | None) -> FluxData | None:
     if use_password and not session.signup.credentials.generated_password:
         current_app.logger.error("No generated_password generated")
         return error_response(message=SignupMsg.password_not_generated)
@@ -440,6 +446,15 @@ def _validate_create_user(use_password: bool, use_webauthn: bool, custom_passwor
         current_app.logger.error("Neither generated_password nor webauthn selected")
         return error_response(message=SignupMsg.credential_not_added)
     return None
+
+
+def _validate_create_user(use_password: bool, use_webauthn: bool, custom_password: str | None) -> FluxData | None:
+    """Validate preconditions for user creation. Returns error response or None if valid."""
+    return (
+        _check_user_not_created()
+        or _check_signup_steps_completed()
+        or _check_credentials_selected(use_password, use_webauthn, custom_password)
+    )
 
 
 @signup_views.route("/create-user", methods=["POST"])
