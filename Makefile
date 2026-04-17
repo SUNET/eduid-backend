@@ -19,7 +19,7 @@ lint:
 	ruff check
 
 typecheck:
-	MYPYPATH=$(SRCDIR) mypy --install-types --non-interactive --strict --implicit-reexport -p eduid
+	MYPYPATH=$(SRCDIR) mypy --install-types --non-interactive --strict -p eduid
 
 typecheck_strict: typecheck
 
