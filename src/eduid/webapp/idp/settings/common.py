@@ -93,6 +93,9 @@ class IdPConfig(EduIDBaseAppConfig, TouConfigMixin, Fido2RpConfigMixin, AmConfig
     other_device_logins_ttl: timedelta = Field(default=timedelta(minutes=2))
     other_device_max_code_attempts: int = 3
     other_device_secret_key: str  # secretbox key for protecting the login-with-other-device shared ID
+    allow_new_signup_logins: bool = False
+    # How long after signup the IdP will trust the signup as authentication (skip re-auth)
+    new_signup_authn_lifetime: timedelta = Field(default=timedelta(seconds=300))
     # SPs that are allowed to request a login for a particular user (idpproxy for stepup, dashboard for chpass, ...)
     request_subject_allowed_entity_ids: list[str] = Field(default=[])
     known_devices_secret_key: str  # secretbox key for decrypting the data stored in the browser local storage

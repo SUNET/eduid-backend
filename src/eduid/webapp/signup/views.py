@@ -25,7 +25,12 @@ from eduid.webapp.common.authn.webauthn import (
     verify_webauthn_registration,
 )
 from eduid.webapp.common.session import session
-from eduid.webapp.common.session.namespaces import WebauthnCredential, WebauthnRegistration
+from eduid.webapp.common.session.namespaces import (
+    LoginApplication,
+    RequestRef,
+    WebauthnCredential,
+    WebauthnRegistration,
+)
 from eduid.webapp.signup.app import current_signup_app as current_app
 from eduid.webapp.signup.helpers import (
     EmailAlreadyVerifiedException,
@@ -46,6 +51,7 @@ from eduid.webapp.signup.schemas import (
     InviteCodeRequest,
     InviteDataResponse,
     NameAndEmailSchema,
+    ReturnToAuthRequest,
     SignupStatusResponse,
     VerifyEmailRequest,
     WebauthnRegisterBeginRequest,
@@ -382,24 +388,38 @@ def webauthn_register_complete(
     return success_response(payload={"state": session.signup.to_dict()})
 
 
-@signup_views.route("/create-user", methods=["POST"])
-@UnmarshalWith(CreateUserRequest)
+@signup_views.route("/return-to-auth", methods=["POST"])
+@UnmarshalWith(ReturnToAuthRequest)
 @MarshalWith(SignupStatusResponse)
 @require_not_logged_in
-def create_user(use_suggested_password: bool, use_webauthn: bool, custom_password: str | None = None) -> FluxData:
-    current_app.logger.info("Creating user")
+def return_to_auth(ref: str) -> FluxData:
+    """Store a reference to a pending IdP SAML request for resumption after signup."""
+    current_app.logger.info("Setting IdP request ref for post-signup auth resumption")
 
-    use_password = False
-    if use_suggested_password or custom_password is not None:
-        use_password = True
+    if session.signup.user_created:
+        current_app.logger.info("User already created, too late to set idp_request_ref")
+        return error_response(message=SignupMsg.user_already_exists)
 
+    request_ref = RequestRef(ref)
+    if request_ref not in session.idp.pending_requests:
+        current_app.logger.info(f"Request ref {ref} not found in IdP pending requests")
+        return error_response(message=SignupMsg.idp_request_ref_not_found)
+
+    session.signup.idp_request_ref = request_ref
+    current_app.logger.info(f"Stored idp_request_ref: {request_ref}")
+    return success_response(payload={"state": session.signup.to_dict()})
+
+
+def _check_user_not_created() -> FluxData | None:
     if session.common.eppn or session.signup.user_created:
-        # do not try to create a new user if the user already exists
         current_app.logger.error("User already created")
         current_app.logger.debug(f"eppn: {session.common.eppn}")
         current_app.logger.debug(f"user created: {session.signup.user_created}")
         return error_response(message=SignupMsg.user_already_exists)
+    return None
 
+
+def _check_signup_steps_completed() -> FluxData | None:
     if not session.signup.captcha.completed:
         current_app.logger.error("Captcha not completed")
         return error_response(message=SignupMsg.captcha_not_completed)
@@ -409,19 +429,46 @@ def create_user(use_suggested_password: bool, use_webauthn: bool, custom_passwor
     if not session.signup.tou.completed:
         current_app.logger.error("ToU not completed")
         return error_response(message=SignupMsg.tou_not_completed)
+    return None
+
+
+def _check_credentials_selected(use_password: bool, use_webauthn: bool, custom_password: str | None) -> FluxData | None:
     if use_password and not session.signup.credentials.generated_password:
         current_app.logger.error("No generated_password generated")
         return error_response(message=SignupMsg.password_not_generated)
-    if use_password and custom_password is not None:
-        if not is_valid_custom_password(custom_password):
-            current_app.logger.error("Weak custom password")
-            return error_response(message=SignupMsg.weak_custom_password)
+    if use_password and custom_password is not None and not is_valid_custom_password(custom_password):
+        current_app.logger.error("Weak custom password")
+        return error_response(message=SignupMsg.weak_custom_password)
     if use_webauthn and not session.signup.credentials.webauthn:
         current_app.logger.error("No webauthn registered")
         return error_response(message=SignupMsg.webauthn_registration_failed)
     if not use_password and not use_webauthn:
         current_app.logger.error("Neither generated_password nor webauthn selected")
         return error_response(message=SignupMsg.credential_not_added)
+    return None
+
+
+def _validate_create_user(use_password: bool, use_webauthn: bool, custom_password: str | None) -> FluxData | None:
+    """Validate preconditions for user creation. Returns error response or None if valid."""
+    return (
+        _check_user_not_created()
+        or _check_signup_steps_completed()
+        or _check_credentials_selected(use_password, use_webauthn, custom_password)
+    )
+
+
+@signup_views.route("/create-user", methods=["POST"])
+@UnmarshalWith(CreateUserRequest)
+@MarshalWith(SignupStatusResponse)
+@require_not_logged_in
+def create_user(use_suggested_password: bool, use_webauthn: bool, custom_password: str | None = None) -> FluxData:
+    current_app.logger.info("Creating user")
+
+    use_password = use_suggested_password or custom_password is not None
+
+    error = _validate_create_user(use_password, use_webauthn, custom_password)
+    if error is not None:
+        return error
 
     assert session.signup.name.given_name is not None  # please mypy
     assert session.signup.name.surname is not None  # please mypy
@@ -476,6 +523,7 @@ def create_user(use_suggested_password: bool, use_webauthn: bool, custom_passwor
     session.signup.user_created_at = utc_now()
     session.signup.credentials.completed = True
     session.common.eppn = signup_user.eppn
+    session.common.login_source = LoginApplication.signup
     # create payload before clearing generated password
     state = session.signup.to_dict()
     if custom_password is not None:
@@ -486,7 +534,7 @@ def create_user(use_suggested_password: bool, use_webauthn: bool, custom_passwor
     del custom_password
     session.signup.credentials.generated_password = None
     # clear signup session if the user is done
-    if not session.signup.invite.initiated_signup:
+    if not session.signup.invite.initiated_signup and not session.signup.idp_request_ref:
         del session.signup
     current_app.stats.count(name="signup_complete")
     return success_response(payload={"state": state})
