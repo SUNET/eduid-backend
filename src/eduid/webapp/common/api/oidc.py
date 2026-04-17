@@ -71,7 +71,7 @@ class LazyOidcClient:
     def _create_client(self) -> Client:
         """Create and configure the OIDC client"""
         oidc_client = Client(client_authn_method=CLIENT_AUTHN_METHOD)
-        oidc_client.store_registration_info(RegistrationRequest(**self.client_registration_info))
+        oidc_client.store_registration_info(RegistrationRequest(**self.client_registration_info))  # type: ignore[no-untyped-call]
         provider = self.provider_configuration_info["issuer"]
         oidc_client.provider_config(provider)
         return oidc_client

@@ -207,11 +207,11 @@ class UnmarshalWith:
                 response_data = FluxFailResponse(
                     request,
                     payload={
-                        "error": cast(Any, e.normalized_messages()),
+                        "error": cast(Any, e.normalized_messages()),  # type: ignore[no-untyped-call]
                         "csrf_token": session.get_csrf_token(),
                     },
                 )
-                logger.warning(f"Error un-marshalling request using {self.schema}: {e.normalized_messages()}")
+                logger.warning(f"Error un-marshalling request using {self.schema}: {e.normalized_messages()}")  # type: ignore[no-untyped-call]
                 if "password" in _data_str:
                     logger.debug("Failing request has a password in it, not logging JSON data")
                 else:
