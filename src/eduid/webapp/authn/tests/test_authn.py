@@ -303,7 +303,9 @@ class AuthnAPITestCase(AuthnAPITestBase):
                 return self.app.dispatch_request()
 
 
-class AuthnTestApp(AuthnBaseApp[AuthnConfig]):
+class AuthnTestApp(AuthnBaseApp):
+    conf: AuthnConfig
+
     def __init__(self, config: AuthnConfig, **kwargs: Any) -> None:
         super().__init__(config, **kwargs)
 

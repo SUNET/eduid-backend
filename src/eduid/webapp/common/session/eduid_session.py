@@ -6,7 +6,7 @@ import os
 import pprint
 from collections.abc import Iterator
 from datetime import datetime
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 from flask import Flask, Request, Response
 from flask.sessions import SessionInterface, SessionMixin
@@ -99,7 +99,7 @@ class EduidSession(SessionMixin):
     """
 
     def __init__(
-        self, app: EduIDBaseApp[Any], meta: SessionMeta, base_session: RedisEncryptedSession, new: bool = False
+        self, app: EduIDBaseApp, meta: SessionMeta, base_session: RedisEncryptedSession, new: bool = False
     ) -> None:
         """
         :param app: the flask app

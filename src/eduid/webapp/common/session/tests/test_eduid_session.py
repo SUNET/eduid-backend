@@ -19,7 +19,9 @@ class SessionTestConfig(EduIDBaseAppConfig):
     pass
 
 
-class SessionTestApp(AuthnBaseApp[SessionTestConfig]):
+class SessionTestApp(AuthnBaseApp):
+    conf: SessionTestConfig
+
     def __init__(self, config: SessionTestConfig, **kwargs: Any) -> None:
         super().__init__(config, **kwargs)
 

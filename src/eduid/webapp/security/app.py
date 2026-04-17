@@ -16,7 +16,9 @@ from eduid.webapp.common.authn.middleware import AuthnBaseApp
 from eduid.webapp.security.settings.common import SecurityConfig
 
 
-class SecurityApp(AuthnBaseApp[SecurityConfig]):
+class SecurityApp(AuthnBaseApp):
+    conf: SecurityConfig
+
     def __init__(self, config: SecurityConfig, **kwargs: Any) -> None:
         super().__init__(config, **kwargs)
 

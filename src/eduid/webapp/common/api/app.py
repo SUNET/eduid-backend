@@ -45,16 +45,16 @@ if DEBUG:
     stderr.writelines("----- WARNING! EDUID_APP_DEBUG is enabled -----\n")
 
 
-class EduIDBaseApp[C: EduIDBaseAppConfig](Flask, metaclass=ABCMeta):
+class EduIDBaseApp(Flask, metaclass=ABCMeta):
     """
     Base class for eduID apps, initializing common features and facilities.
     """
 
-    conf: C
+    conf: EduIDBaseAppConfig
 
     def __init__(
         self,
-        config: C,
+        config: EduIDBaseAppConfig,
         init_central_userdb: bool = True,
         handle_exceptions: bool = True,
         **kwargs: Any,
@@ -170,7 +170,7 @@ class EduIDBaseApp[C: EduIDBaseAppConfig](Flask, metaclass=ABCMeta):
         return res
 
 
-def init_status_views(app: EduIDBaseApp[Any], config: EduIDBaseAppConfig) -> None:
+def init_status_views(app: EduIDBaseApp, config: EduIDBaseAppConfig) -> None:
     """
     Register status views for any app, and configure them as public.
     """

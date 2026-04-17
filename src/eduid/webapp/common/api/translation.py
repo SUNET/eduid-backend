@@ -1,10 +1,8 @@
 from importlib.resources import files
-from typing import Any
 
 from flask import current_app, request
 from flask_babel import Babel
 
-from eduid.common.config.base import EduIDBaseAppConfig
 from eduid.webapp.common.api.app import EduIDBaseApp
 from eduid.webapp.common.session import session
 
@@ -28,13 +26,12 @@ def get_user_locale() -> str | None:
     return lang
 
 
-def init_babel(app: EduIDBaseApp[Any]) -> Babel:
+def init_babel(app: EduIDBaseApp) -> Babel:
     """
     :param app: Flask app
     """
 
     _conf = app.conf
-    assert isinstance(_conf, EduIDBaseAppConfig)
     conf_translations_dirs = ";".join(_conf.flask.babel_translation_directories)
     # Add pkg_resource path to translation directory as the default location does not work
     pkg_translations_dir = str(files("eduid.webapp") / "translations")
