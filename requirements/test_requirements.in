@@ -16,4 +16,5 @@ respx
 uv
 celery-types
 motor-types
+statsd-stubs
 ruff
