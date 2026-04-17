@@ -33,9 +33,6 @@ def signup_auth(ticket: LoginContext, sso_session: SSOSession | None) -> FluxDat
     current_app.logger.debug("\n\n")
     current_app.logger.debug(f"--- Signup authentication ({ticket.request_ref}) ---")
 
-    if not current_app.conf.login_bundle_url:
-        return error_response(message=IdPMsg.not_available)
-
     if not current_app.conf.allow_new_signup_logins:
         current_app.logger.info("New signup logins are not enabled")
         return error_response(message=IdPMsg.must_authenticate)
