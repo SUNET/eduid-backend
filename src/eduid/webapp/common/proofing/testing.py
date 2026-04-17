@@ -1,7 +1,10 @@
-from eduid.common.config.base import EduIDBaseAppConfig, FrontendAction
+from typing import Protocol, runtime_checkable
+
+from eduid.common.config.base import FrontendAction
 from eduid.userdb.credentials import FidoCredential
 from eduid.userdb.identity import IdentityElement, IdentityProofingMethod
 from eduid.userdb.logs.db import ProofingLog
+from eduid.userdb.proofing.state import NinProofingState
 from eduid.userdb.user import User
 from eduid.webapp.common.api.app import EduIDBaseApp
 from eduid.webapp.common.api.messages import TranslatableMsg
@@ -10,6 +13,16 @@ from eduid.webapp.common.api.testing import CSRFTestClient, EduidAPITestCase, lo
 __author__ = "lundberg"
 
 
+@runtime_checkable
+class HasProofingLog(Protocol):
+    """Protocol for apps that have a proofing_log attribute."""
+
+    proofing_log: ProofingLog
+
+
+# T is bounded by EduIDBaseApp. HasProofingLog is used as a runtime narrowing check
+# where proofing_log is needed. A Protocol cannot inherit from a non-Protocol class,
+# so intersection type bounds (T: EduIDBaseApp & HasProofingLog) are not expressible.
 class ProofingTests[T: EduIDBaseApp](EduidAPITestCase[T]):
     def _verify_status(
         self,
@@ -34,7 +47,6 @@ class ProofingTests[T: EduIDBaseApp](EduidAPITestCase[T]):
 
         assert isinstance(self.app, EduIDBaseApp)
         _conf = self.app.conf
-        assert isinstance(_conf, EduIDBaseAppConfig)
         assert app_name == _conf.app_name, f"expected app_name {_conf.app_name} but got {app_name}"
 
         logger.debug(f"Verifying status for request {authn_id}")
@@ -81,10 +93,9 @@ class ProofingTests[T: EduIDBaseApp](EduidAPITestCase[T]):
                 f"User token was expected to be verified={token_verified}"
             )
 
-        _log = getattr(self.app, "proofing_log")  # noqa: B009 — not on EduIDBaseApp, varies by app subclass
-        assert isinstance(_log, ProofingLog)
-        assert _log.db_count() == num_proofings, (
-            f"Unexpected number of proofings in db. {_log.db_count()}, expected {num_proofings}"
+        assert isinstance(self.app, HasProofingLog), f"{type(self.app)} does not have proofing_log"
+        assert self.app.proofing_log.db_count() == num_proofings, (
+            f"Unexpected number of proofings in db. {self.app.proofing_log.db_count()}, expected {num_proofings}"
         )
 
         if identity is not None:
@@ -119,3 +130,39 @@ class ProofingTests[T: EduIDBaseApp](EduidAPITestCase[T]):
             assert user_locked_identity.unique_value == locked_identity.unique_value, (
                 f"locked identity {user_locked_identity.unique_value} not matching {locked_identity.unique_value}"
             )
+
+    def _check_nin_verified_ok(
+        self,
+        user: User,
+        proofing_state: NinProofingState,
+        number: str | None = None,
+        created_by: str | None = None,
+    ) -> None:
+        if number is None and (self.test_user is not None and self.test_user.identities.nin):
+            number = self.test_user.identities.nin.number
+
+        created_by_str = created_by or proofing_state.nin.created_by
+
+        assert user.identities.nin is not None
+        assert user.identities.nin.number == number
+        assert user.identities.nin.created_by == created_by_str
+        assert user.identities.nin.verified_by == proofing_state.nin.created_by
+        assert user.identities.nin.is_verified is True
+        assert user.identities.nin.proofing_method is not None
+        assert user.identities.nin.proofing_version is not None
+
+        assert isinstance(self.app, HasProofingLog), f"{type(self.app)} does not have proofing_log"
+        assert self.app.proofing_log.db_count() == 1
+
+    def _check_nin_not_verified(self, user: User, number: str | None = None, created_by: str | None = None) -> None:
+        if number is None and (self.test_user is not None and self.test_user.identities.nin):
+            number = self.test_user.identities.nin.number
+
+        assert user.identities.nin is not None
+        assert user.identities.nin.number == number
+        if created_by:
+            assert user.identities.nin.created_by == created_by
+        assert user.identities.nin.is_verified is False
+
+        assert isinstance(self.app, HasProofingLog), f"{type(self.app)} does not have proofing_log"
+        assert self.app.proofing_log.db_count() == 0
