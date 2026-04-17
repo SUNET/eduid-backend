@@ -7,10 +7,11 @@ from binascii import unhexlify
 from hashlib import sha1, sha256
 from typing import Literal, cast
 
-import pkcs11  # type: ignore[import-untyped]
+import pkcs11
 import pyhsm  # type: ignore[import-untyped]
 from hsmkey import HSMConfig, SessionPool
 from pkcs11 import KeyType, Mechanism, ObjectClass
+from pkcs11.types import SignMixin
 
 from eduid.vccs.server.config import HSMKeyConfig, SoftHasherConfig, YHSMConfig
 
@@ -269,18 +270,17 @@ class VCCSHSMKeyHasher(VCCSHasher):
             raise RuntimeError("No key handle or label provided, and no temp key loaded")
 
         try:
-            # Build search attributes
-            attrs: dict[str, bytes | str | KeyType | ObjectClass] = {
-                "key_type": key_type,
-                "object_class": ObjectClass.SECRET_KEY,
-            }
+            key_id: bytes | None = None
             if key_handle is not None:
                 # Convert integer key handle to bytes for CKA_ID
-                attrs["id"] = key_handle.to_bytes((key_handle.bit_length() + 7) // 8 or 1, byteorder="big")
-            if key_label is not None:
-                attrs["label"] = key_label
+                key_id = key_handle.to_bytes((key_handle.bit_length() + 7) // 8 or 1, byteorder="big")
 
-            return session.get_key(**attrs)
+            return session.get_key(
+                key_type=key_type,
+                object_class=ObjectClass.SECRET_KEY,
+                id=key_id,
+                label=key_label,
+            )
         except pkcs11.NoSuchKey as e:
             raise RuntimeError(f"HMAC key not found: handle={key_handle}, label={key_label}") from e
 
@@ -309,9 +309,9 @@ class VCCSHSMKeyHasher(VCCSHasher):
         :returns: 20-byte HMAC-SHA-1 digest
         """
         with self._pool.session() as session:
-            key = self._get_hmac_key(session, key_handle)
+            key = cast(SignMixin, self._get_hmac_key(session, key_handle))
             # Use the key's sign method with SHA_1_HMAC mechanism
-            return cast(bytes, key.sign(data, mechanism=Mechanism.SHA_1_HMAC))
+            return key.sign(data, mechanism=Mechanism.SHA_1_HMAC)
 
     async def hmac_sha256(self, key_label: str, data: bytes) -> bytes:
         """
@@ -338,9 +338,9 @@ class VCCSHSMKeyHasher(VCCSHasher):
         :returns: 32-byte HMAC-SHA-256 digest
         """
         with self._pool.session() as session:
-            key = self._get_hmac_key(session, key_label=key_label)
+            key = cast(SignMixin, self._get_hmac_key(session, key_label=key_label))
             # Use the key's sign method with SHA256_HMAC mechanism
-            return cast(bytes, key.sign(data, mechanism=Mechanism.SHA256_HMAC))
+            return key.sign(data, mechanism=Mechanism.SHA256_HMAC)
 
     async def safe_random(self, byte_count: int) -> bytes:
         """
