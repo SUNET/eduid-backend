@@ -78,7 +78,7 @@ class NoOpStats(AppStats):
 
 class Statsd(AppStats):
     def __init__(self, host: str, port: int, prefix: str | None = None) -> None:
-        import statsd
+        import statsd  # type: ignore[import-untyped]
 
         self.client = statsd.StatsClient(host, port, prefix=prefix)
 

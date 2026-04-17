@@ -1,6 +1,6 @@
 __author__ = "mathiashedstrom"
 
-from suds.sudsobject import Object
+from suds.sudsobject import Object  # type: ignore[import-untyped]
 
 from eduid.workers.lookup_mobile.development import nin_mobile_db
 

@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, Any, cast
 from urllib.parse import urlparse
 from uuid import uuid4
 
-import bcrypt
+import bcrypt  # type: ignore[import-untyped]
 from flask import current_app as flask_current_app
 from flask.wrappers import Request
 

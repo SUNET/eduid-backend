@@ -1,7 +1,7 @@
 from importlib.resources import files
 
 from flask import current_app, request
-from flask_babel import Babel
+from flask_babel import Babel  # type: ignore[import-untyped]
 
 from eduid.webapp.common.api.app import EduIDBaseApp
 from eduid.webapp.common.session import session

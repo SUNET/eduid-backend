@@ -10,7 +10,7 @@ from abc import ABCMeta
 from sys import stderr
 from typing import TYPE_CHECKING, Any
 
-from cookies_samesite_compat import CookiesSameSiteCompatMiddleware
+from cookies_samesite_compat import CookiesSameSiteCompatMiddleware  # type: ignore[import-untyped]
 from flask import Flask
 from flask_cors import CORS
 from werkzeug.middleware.proxy_fix import ProxyFix

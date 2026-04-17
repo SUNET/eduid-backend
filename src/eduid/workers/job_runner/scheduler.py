@@ -1,4 +1,4 @@
-from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from apscheduler.schedulers.asyncio import AsyncIOScheduler  # type: ignore[import-untyped]
 
 from eduid.common.config.exceptions import BadConfiguration
 from eduid.workers.job_runner.config import EnvironmentOrWorkerName, JobCronConfig, JobName
