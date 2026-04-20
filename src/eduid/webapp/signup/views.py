@@ -380,6 +380,8 @@ def webauthn_register_complete(
     current_app.stats.count(name="webauthn_register_complete")
     if result.mfa_approved:
         current_app.stats.count(name="webauthn_mfa_approved")
+    if result.is_discoverable:
+        current_app.stats.count(name="webauthn_is_discoverable")
 
     return success_response(payload={"state": session.signup.to_dict()})
 
@@ -484,12 +486,14 @@ def create_user(use_suggested_password: bool, use_webauthn: bool, custom_passwor
     session.signup.user_created_at = utc_now()
     session.signup.credentials.completed = True
     session.common.eppn = signup_user.eppn
+    if custom_password is not None:
+        session.signup.credentials.custom_password = True
+        session.signup.credentials.generated_password = None
+        current_app.stats.count(name="custom_password")
+    if session.signup.credentials.generated_password is not None:
+        current_app.stats.count(name="generated_password")
     # create payload before clearing generated password
     state = session.signup.to_dict()
-    if custom_password is not None:
-        state["credentials"]["custom_password"] = True
-        state["credentials"]["generated_password"] = None
-        current_app.stats.count(name="custom_password")
     # clear passwords from session and namespace
     del custom_password
     session.signup.credentials.generated_password = None
