@@ -1103,12 +1103,12 @@ class IdPTestNewSignup(IdPAPITests):
                 return NextResult(payload=self.get_response_payload(response), error=response.json)
         return NextResult(payload=self.get_response_payload(response))
 
-    def _call_next(self, client: CSRFTestClient, ref: str) -> NextResult:
+    def _call_next(self, device: CSRFTestClient, ref: str) -> NextResult:
         """Call /next with the given ref."""
         with self.app.test_request_context():
-            with client.session_transaction() as sess:
+            with device.session_transaction() as sess:
                 data = {"ref": ref, "csrf_token": sess.get_csrf_token()}
-            response = client.post("/next", data=json.dumps(data), content_type=self.content_type_json)
+            response = device.post("/next", data=json.dumps(data), content_type=self.content_type_json)
 
         logger.debug(f"Next endpoint returned:\n{json.dumps(response.json, indent=4)}")
         if response.is_json:
