@@ -252,6 +252,7 @@ class RegistrationResult:
     authenticator: AuthenticatorAttachment
     authenticator_info: AuthenticatorInformation
     mfa_approved: bool
+    # TODO: we should add is_discoverable to the saved credential as soon there is enough browser support
     is_discoverable: bool = False
 
 
