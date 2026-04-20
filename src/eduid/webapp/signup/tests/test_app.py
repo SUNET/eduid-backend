@@ -866,6 +866,7 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
                 "generated_password": None,
                 "webauthn_registered": False,
                 "webauthn_is_discoverable": False,
+                "webauthn_description": None,
             },
             "email": {"address": None, "bad_attempts": 0, "bad_attempts_max": 3, "completed": False, "sent_at": None},
             "invite": {"completed": False, "finish_url": None, "initiated_signup": False},
@@ -887,6 +888,7 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
                 "generated_password": None,
                 "webauthn_registered": False,
                 "webauthn_is_discoverable": False,
+                "webauthn_description": None,
             },
             "email": {"address": None, "bad_attempts": 0, "bad_attempts_max": 3, "completed": False, "sent_at": None},
             "invite": {"completed": False, "finish_url": None, "initiated_signup": False},
@@ -1421,6 +1423,7 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
                 "generated_password": None,
                 "webauthn_registered": False,
                 "webauthn_is_discoverable": False,
+                "webauthn_description": None,
             },
             "email": {
                 "address": "dummy@example.com",
