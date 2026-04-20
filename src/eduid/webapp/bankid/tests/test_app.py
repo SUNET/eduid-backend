@@ -6,6 +6,7 @@ from collections.abc import Mapping
 from datetime import timedelta
 from http import HTTPStatus
 from typing import Any, ClassVar
+from unittest.mock import MagicMock, patch
 
 import pytest
 from pytest_mock import MockerFixture
