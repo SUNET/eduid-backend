@@ -320,9 +320,9 @@ class CaptchaConfigMixin(BaseModel):
     captcha_height: int = 60
     captcha_fonts: list[Path] = Field(
         default=[
-            importlib_resources.files("eduid").joinpath("static/fonts/ProximaNova-Regular.ttf"),
-            importlib_resources.files("eduid").joinpath("static/fonts/ProximaNova-Light.ttf"),
-            importlib_resources.files("eduid").joinpath("static/fonts/ProximaNova-Bold.ttf"),
+            Path(str(importlib_resources.files("eduid").joinpath("static/fonts/ProximaNova-Regular.ttf"))),
+            Path(str(importlib_resources.files("eduid").joinpath("static/fonts/ProximaNova-Light.ttf"))),
+            Path(str(importlib_resources.files("eduid").joinpath("static/fonts/ProximaNova-Bold.ttf"))),
         ]
     )
     captcha_font_size: tuple[int, int, int] = (42, 50, 56)

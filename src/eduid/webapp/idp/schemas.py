@@ -52,6 +52,10 @@ class NextResponseSchema(FluxStandardAction):
     payload = fields.Nested(NextResponsePayload)
 
 
+class SignupAuthRequestSchema(IdPRequest):
+    pass
+
+
 class PwAuthRequestSchema(IdPRequest):
     username = fields.Str(required=False)
     password = fields.Str(required=True)
