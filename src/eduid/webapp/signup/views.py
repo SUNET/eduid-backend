@@ -372,6 +372,7 @@ def webauthn_register_complete(
         user_verified=result.authenticator_info.user_verified,
         user_verification_methods=result.authenticator_info.user_verification_methods,
         key_protection=result.authenticator_info.key_protection,
+        is_discoverable=result.is_discoverable,
     )
     session.signup.credentials.completed = True
 
