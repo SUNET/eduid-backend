@@ -74,6 +74,8 @@ class SignupMsg(TranslatableMsg):
     name_not_set = "signup.name-not-set"
     # user has no credential
     credential_not_added = "signup.credential-not-added"
+    # webauthn credential is not discoverable and no password was set
+    password_required = "signup.password-required"
     # invite not found
     invite_not_found = "signup.invite-not-found"
     # invite already completed

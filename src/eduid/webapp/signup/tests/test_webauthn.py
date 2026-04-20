@@ -181,7 +181,7 @@ class SignupWebauthnTests(EduidAPITestCase[SignupApp]):
             response = client.post("/create-user", json=data)
             return response
 
-    def _set_webauthn_credential_in_session(self) -> None:
+    def _set_webauthn_credential_in_session(self, is_discoverable: bool = True) -> None:
         """Register a webauthn credential using the test fixtures and store the result in the session."""
         server = get_webauthn_server(rp_id=self.app.conf.fido2_rp_id, rp_name=self.app.conf.fido2_rp_name)
         reg_response = {
@@ -204,6 +204,7 @@ class SignupWebauthnTests(EduidAPITestCase[SignupApp]):
                     authenticator=AuthenticatorAttachment.CROSS_PLATFORM,
                     authenticator_id="test-authenticator-id",
                     description="test security key",
+                    is_discoverable=is_discoverable,
                 )
                 sess.signup.credentials.completed = True
 
@@ -308,9 +309,9 @@ class SignupWebauthnTests(EduidAPITestCase[SignupApp]):
         assert resp_data["payload"]["message"] == SignupMsg.webauthn_registration_failed.value
 
     def test_create_user_with_webauthn_only(self) -> None:
-        """Full flow with webauthn, no password."""
+        """Full flow with webauthn passkey (discoverable), no password."""
         self._prepare_for_webauthn()
-        self._set_webauthn_credential_in_session()
+        self._set_webauthn_credential_in_session(is_discoverable=True)
         response = self._create_user_with_webauthn(use_suggested_password=False, use_webauthn=True)
         data = response.json
         assert data is not None
@@ -318,6 +319,7 @@ class SignupWebauthnTests(EduidAPITestCase[SignupApp]):
         assert data["payload"]["state"]["user_created"] is True
         assert data["payload"]["state"]["credentials"]["completed"] is True
         assert data["payload"]["state"]["credentials"]["webauthn_registered"] is True
+        assert data["payload"]["state"]["credentials"]["webauthn_is_discoverable"] is True
 
         # Verify the user was created with a webauthn credential
         with self.session_cookie(self.browser, eppn=None) as client:
@@ -330,6 +332,108 @@ class SignupWebauthnTests(EduidAPITestCase[SignupApp]):
         assert len(webauthn_creds) == 1
         passwords = user.credentials.filter(Password)
         assert len(passwords) == 0
+
+    def test_create_user_with_non_discoverable_webauthn_without_password(self) -> None:
+        """Non-discoverable security key + no password -> error, no user created."""
+        self._prepare_for_webauthn()
+        self._set_webauthn_credential_in_session(is_discoverable=False)
+        response = self._create_user_with_webauthn(use_suggested_password=False, use_webauthn=True)
+        data = response.json
+        assert data is not None
+        assert data["type"] == "POST_SIGNUP_CREATE_USER_FAIL"
+        assert data["payload"]["message"] == SignupMsg.password_required.value
+
+        # No user should have been created
+        with self.session_cookie(self.browser, eppn=None) as client:
+            with client.session_transaction() as sess:
+                assert sess.common.eppn is None
+                assert sess.signup.user_created is False
+
+    def test_create_user_with_non_discoverable_webauthn_and_password(self) -> None:
+        """Non-discoverable security key + generated password -> user created with both credentials."""
+        self._prepare_for_webauthn()
+        self._set_webauthn_credential_in_session(is_discoverable=False)
+        with self.session_cookie(self.browser, eppn=None) as client:
+            with client.session_transaction() as sess:
+                sess.signup.credentials.generated_password = "test_password"
+
+        response = self._create_user_with_webauthn(use_suggested_password=True, use_webauthn=True)
+        data = response.json
+        assert data is not None
+        assert data["type"] == "POST_SIGNUP_CREATE_USER_SUCCESS"
+        assert data["payload"]["state"]["user_created"] is True
+        assert data["payload"]["state"]["credentials"]["webauthn_registered"] is True
+        assert data["payload"]["state"]["credentials"]["webauthn_is_discoverable"] is False
+
+        with self.session_cookie(self.browser, eppn=None) as client:
+            with client.session_transaction() as sess:
+                eppn = sess.common.eppn
+                assert eppn is not None
+        user = self.app.central_userdb.get_user_by_eppn(eppn)
+        assert user is not None
+        webauthn_creds = user.credentials.filter(Webauthn)
+        assert len(webauthn_creds) == 1
+        passwords = user.credentials.filter(Password)
+        assert len(passwords) == 1
+
+    def test_create_user_with_credprops_absent_requires_password(self) -> None:
+        """When credProps is absent from the registration response, credential is treated as non-discoverable."""
+        self._prepare_for_webauthn()
+        # Go through the real register/complete path (no client_extension_results in payload)
+        response = self._complete_register_webauthn()
+        assert response.json is not None
+        assert response.json["type"] == "POST_SIGNUP_WEBAUTHN_REGISTER_COMPLETE_SUCCESS"
+        assert response.json["payload"]["state"]["credentials"]["webauthn_is_discoverable"] is False
+
+        # No password set -> must be rejected
+        create_response = self._create_user_with_webauthn(use_suggested_password=False, use_webauthn=True)
+        create_data = create_response.json
+        assert create_data is not None
+        assert create_data["type"] == "POST_SIGNUP_CREATE_USER_FAIL"
+        assert create_data["payload"]["message"] == SignupMsg.password_required.value
+
+    def test_webauthn_register_complete_with_credprops_rk_true(self) -> None:
+        """credProps.rk=True in clientExtensionResults -> is_discoverable True in session + response."""
+        self._prepare_for_webauthn()
+        self.app.conf.magic_cookie = "magic-cookie"
+        self.app.conf.magic_cookie_name = "magic"
+        self.app.conf.environment = EduidEnvironment("dev")
+
+        webauthn_state = WebauthnState(STATE)
+        with self.session_cookie(self.browser, eppn=None) as client:
+            client.set_cookie(domain=self.test_domain, key="magic", value="magic-cookie")
+            with client.session_transaction() as sess:
+                assert isinstance(sess, EduidSession)
+                sess.signup.credentials.webauthn_registration = WebauthnRegistration(
+                    webauthn_state=webauthn_state, authenticator=AuthenticatorAttachment.CROSS_PLATFORM
+                )
+                csrf_token = sess.get_csrf_token()
+                data = {
+                    "csrf_token": csrf_token,
+                    "response": {
+                        "credentialId": CREDENTIAL_ID,
+                        "rawId": CREDENTIAL_ID,
+                        "response": {
+                            "attestationObject": ATTESTATION_OBJECT.decode(),
+                            "clientDataJSON": CLIENT_DATA_JSON.decode(),
+                            "credentialId": CREDENTIAL_ID,
+                        },
+                    },
+                    "description": "test passkey",
+                    "clientExtensionResults": {"credProps": {"rk": True}},
+                }
+            response = client.post(
+                "/webauthn/register/complete", data=json.dumps(data), content_type=self.content_type_json
+            )
+        resp_data = response.json
+        assert resp_data is not None
+        assert resp_data["type"] == "POST_SIGNUP_WEBAUTHN_REGISTER_COMPLETE_SUCCESS"
+        assert resp_data["payload"]["state"]["credentials"]["webauthn_is_discoverable"] is True
+
+        with self.session_cookie(self.browser, eppn=None) as client:
+            with client.session_transaction() as sess:
+                assert sess.signup.credentials.webauthn is not None
+                assert sess.signup.credentials.webauthn.is_discoverable is True
 
     def test_create_user_with_password_and_webauthn(self) -> None:
         """Full flow with both password and webauthn."""
@@ -398,6 +502,7 @@ class SignupWebauthnTests(EduidAPITestCase[SignupApp]):
                     mfa_approved=True,
                     user_verified=True,
                     description="mfa security key",
+                    is_discoverable=True,
                 )
                 sess.signup.credentials.completed = True
 

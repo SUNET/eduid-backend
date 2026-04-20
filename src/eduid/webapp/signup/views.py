@@ -421,6 +421,12 @@ def create_user(use_suggested_password: bool, use_webauthn: bool, custom_passwor
     if use_webauthn and not session.signup.credentials.webauthn:
         current_app.logger.error("No webauthn registered")
         return error_response(message=SignupMsg.webauthn_registration_failed)
+    if use_webauthn and not use_password:
+        wn = session.signup.credentials.webauthn
+        assert wn is not None  # checked above
+        if not wn.is_discoverable:
+            current_app.logger.error("Non-discoverable webauthn credential without password")
+            return error_response(message=SignupMsg.password_required)
     if not use_password and not use_webauthn:
         current_app.logger.error("Neither generated_password nor webauthn selected")
         return error_response(message=SignupMsg.credential_not_added)
