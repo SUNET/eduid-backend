@@ -19,6 +19,7 @@ from eduid.common.utils import uuid4_str
 from eduid.userdb.credentials import Credential
 from eduid.userdb.credentials.external import TrustFramework
 from eduid.userdb.element import ElementKey
+from eduid.userdb.identity import PridPersistence
 from eduid.webapp.common.authn.acs_enums import AuthnAcsAction, BankIDAcsAction, EidasAcsAction
 from eduid.webapp.freja_eid.callback_enums import FrejaEIDAction
 from eduid.webapp.idp.idp_authn import AuthnData
@@ -262,7 +263,7 @@ class ExternalMfaSignupIdentity(BaseModel):
     # exactly one of these identity discriminators is set; the rest stay None
     nin: str | None = None
     eidas_prid: str | None = None
-    eidas_prid_persistence: str | None = None
+    eidas_prid_persistence: PridPersistence | None = None
     country_code: str | None = None
     # credential metadata
     framework: TrustFramework

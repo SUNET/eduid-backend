@@ -190,3 +190,26 @@ def test_sp_authn_request_external_mfa_roundtrip() -> None:
 def test_rp_authn_request_has_external_mfa_field() -> None:
     # freja_eid uses RP_AuthnRequest (OIDC) — the same optional field must exist
     assert "external_mfa_signup_identity" in RP_AuthnRequest.model_fields
+
+
+def test_sp_authn_request_external_mfa_eidas_roundtrip() -> None:
+    from eduid.userdb.identity import PridPersistence
+
+    identity = ExternalMfaSignupIdentity(
+        given_name="Karla",
+        surname="Müller",
+        date_of_birth=date(1990, 6, 15),
+        eidas_prid="DE:abc123",
+        eidas_prid_persistence=PridPersistence.A,
+        country_code="DE",
+        framework=TrustFramework.EIDAS,
+        loa="eidas_sub",
+    )
+    req = SP_AuthnRequest(
+        frontend_action=FrontendAction.SIGNUP_EXTERNAL_MFA,
+        finish_url="https://eduid.se/profile/ext-return/{app_name}/{authn_id}",
+        external_mfa_signup_identity=identity,
+    )
+    rebuilt = SP_AuthnRequest(**req.model_dump())
+    assert rebuilt.external_mfa_signup_identity == identity
+    assert rebuilt.external_mfa_signup_identity.nin is None
