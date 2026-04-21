@@ -12,15 +12,12 @@ from httpx import Response
 from starlette.testclient import TestClient
 
 from eduid.common.config.base import DataOwnerName
-from eduid.common.config.parsers import load_config
 from eduid.common.models.scim_base import SCIMSchema
 from eduid.common.testing_base import normalised_data
 from eduid.graphdb.groupdb import User as GraphUser
 from eduid.graphdb.testing import Neo4jTemporaryInstance
 from eduid.queue.db.message import MessageDB
 from eduid.scimapi.app import init_api
-from eduid.scimapi.config import ScimApiConfig
-from eduid.scimapi.context import Context
 from eduid.userdb.scimapi import ScimApiEvent, ScimApiGroup, ScimApiLinkedAccount, ScimApiName
 from eduid.userdb.scimapi.invitedb import ScimApiInvite
 from eduid.userdb.scimapi.userdb import ScimApiProfile, ScimApiUser
@@ -97,45 +94,49 @@ class ScimApiTestCase(MongoNeoTestCase):
 
         self.datadir = str(Path(__file__).parent / "tests/data")
         self.test_config = self._get_config()
-        config = load_config(typ=ScimApiConfig, app_name="scimapi", ns="api", test_config=self.test_config)
-        self.context = Context(config=config)
-
-        # TODO: more tests for scoped groups when that is implemented
-        self.data_owner: DataOwnerName = "eduid.se"
-        self.userdb = self.context.get_userdb(self.data_owner)
-        self.groupdb = self.context.get_groupdb(self.data_owner)
-        self.invitedb = self.context.get_invitedb(self.data_owner)
-        self.signup_invitedb = SignupInviteDB(db_uri=config.mongo_uri)
-        self.messagedb = MessageDB(db_uri=config.mongo_uri)
-        self.eventdb = self.context.get_eventdb(self.data_owner)
 
         self.api = init_api(name="test_api", test_config=self.test_config)
+        self.context = self.api.context  # Reuse the app's Context to avoid duplicate Neo4j drivers
         self.client = TestClient(self.api)
         self.headers = {
             "Content-Type": "application/scim+json",
             "Accept": "application/scim+json",
         }
 
+        # TODO: more tests for scoped groups when that is implemented
+        self.data_owner: DataOwnerName = "eduid.se"
+        self.userdb = self.context.get_userdb(self.data_owner)
+        self.groupdb = self.context.get_groupdb(self.data_owner)
+        self.invitedb = self.context.get_invitedb(self.data_owner)
+        self.signup_invitedb = SignupInviteDB(db_uri=self.context.config.mongo_uri)
+        self.messagedb = MessageDB(db_uri=self.context.config.mongo_uri)
+        self.eventdb = self.context.get_eventdb(self.data_owner)
+
         yield
 
+        # Clear test data without dropping collections.  Dropping and recreating
+        # collections forces setup_indexes() to call create_index() on the next
+        # test, and after many iterations this crashes the lightweight test-mongod
+        # container (SIGSEGV).  delete_many preserves indexes so that subsequent
+        # setup_indexes() calls are no-ops.
         if self.userdb:
-            self.userdb._drop_whole_collection()
+            self.userdb._coll.delete_many({})
         if self.eventdb:
-            self.eventdb._drop_whole_collection()
+            self.eventdb._coll.delete_many({})
         if self.invitedb:
-            self.invitedb._drop_whole_collection()
+            self.invitedb._coll.delete_many({})
         if self.signup_invitedb:
-            self.signup_invitedb._drop_whole_collection()
+            self.signup_invitedb._coll.delete_many({})
         if self.messagedb:
-            self.messagedb._drop_whole_collection()
+            self.messagedb._coll.delete_many({})
         if self.groupdb:
-            self.groupdb._drop_whole_collection()
+            self.groupdb._coll.delete_many({})
 
-        # Close all Neo4j driver connections — each data owner has its own driver
-        # with background threads. Without explicit close they outlive the test session
-        # and generate "I/O operation on closed file" noise on stderr.
-        for dbs in self.context._dbs.values():
-            dbs.groupdb.graphdb.db.close()
+        # Close Neo4j drivers to prevent resource exhaustion from accumulated
+        # background threads across tests (each Context creates a new driver).
+        for data_owner_dbs in self.context._dbs.values():
+            self.context._close_data_owner_dbs(data_owner_dbs)
+        self.context._dbs.clear()
 
     def _get_config(self) -> dict[str, Any]:
         config = super()._get_config()
