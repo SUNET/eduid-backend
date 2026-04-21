@@ -3,13 +3,13 @@ from __future__ import annotations
 import logging
 from collections.abc import Sequence
 from os import environ
+from typing import cast
 
 import pytest
 from neo4j.exceptions import ServiceUnavailable
 
 from eduid.graphdb.db import Neo4jDB
-from eduid.userdb.testing import EduidTemporaryInstance
-from eduid.userdb.testing.temp_instance import get_available_port
+from eduid.userdb.testing.temp_instance import EduidTemporaryInstance, get_available_port
 
 __author__ = "lundberg"
 
@@ -93,7 +93,7 @@ class Neo4jTemporaryInstance(EduidTemporaryInstance):
     def conn(self) -> Neo4jDB:
         if self._conn is None:
             raise RuntimeError("Missing temporary Neo4jDB instance")
-        return self._conn
+        return cast(Neo4jDB, self._conn)
 
     @property
     def host(self) -> str:

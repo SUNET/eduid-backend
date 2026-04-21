@@ -1,6 +1,6 @@
 from collections.abc import Callable
 from dataclasses import asdict, dataclass
-from typing import Any
+from typing import Any, cast
 
 from fastapi import Request, Response
 from fastapi.routing import APIRoute
@@ -20,7 +20,7 @@ class ContextRequest(Request):
     @property
     def context(self) -> Context:
         try:
-            return self.state.context
+            return cast(Context, self.state.context)
         except AttributeError:
             # Lazy init of self.state.context
             self.state.context = self.contextClass()
@@ -47,7 +47,7 @@ class ContextRequestRoute(APIRoute, ContextRequestMixin):
     # Override in subclass to change the default context class
     contextClass: type[Context] = Context
 
-    def get_route_handler(self) -> Callable:
+    def get_route_handler(self) -> Callable[..., Any]:
         original_route_handler = super().get_route_handler()
 
         async def context_route_handler(request: Request | ContextRequest) -> Response:

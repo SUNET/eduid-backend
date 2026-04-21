@@ -27,7 +27,7 @@ class MongoClientCache:
     A cache for pymongo.MongoClient instances.
     """
 
-    _clients: ClassVar[dict[str, pymongo.MongoClient]] = {}
+    _clients: ClassVar[dict[str, pymongo.MongoClient[Any]]] = {}
 
     @classmethod
     def close_all(cls) -> None:
@@ -40,7 +40,7 @@ class MongoClientCache:
         topology = getattr(client, "_topology", None)
         return bool(getattr(topology, "_closed", False))
 
-    def get_client(self, db: BaseMongoDB) -> pymongo.MongoClient:
+    def get_client(self, db: BaseMongoDB) -> pymongo.MongoClient[Any]:
         db_args = db.db_args
         connection_uri: str = db_args["host"]
         if connection_uri in self._clients:

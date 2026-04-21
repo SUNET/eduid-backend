@@ -20,10 +20,10 @@ class FakeVCCSClient(VCCSClient):
         self.fake_response = fake_response
         VCCSClient.__init__(self)
 
-    def _execute_request_response(self, service: str, values: dict[str, Any]) -> str:
+    def _execute_request_response(self, service: str, values: dict[str, Any]) -> bytes:
         self.last_service = service
         self.last_values = values
-        return self.fake_response
+        return self.fake_response.encode()
 
 
 class FakeVCCSPasswordFactor(VCCSPasswordFactor):

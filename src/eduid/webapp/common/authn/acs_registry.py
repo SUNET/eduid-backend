@@ -51,7 +51,7 @@ class UnregisteredAction(Exception):
     pass
 
 
-def acs_action(action: Enum) -> Callable:
+def acs_action(action: Enum) -> Callable[..., Any]:
     """
     Decorator to register a new assertion consumer service action.
 

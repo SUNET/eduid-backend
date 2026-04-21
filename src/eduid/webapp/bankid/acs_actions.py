@@ -16,7 +16,7 @@ from eduid.webapp.common.session.namespaces import SP_AuthnRequest
 
 __author__ = "lundberg"
 
-from eduid.webapp.bankid.saml_session_info import BaseSessionInfo
+from eduid.common.models.saml_models import BaseSessionInfo
 
 
 def common_saml_checks(args: ACSArgs) -> ACSResult | None:

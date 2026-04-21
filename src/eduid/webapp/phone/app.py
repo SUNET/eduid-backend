@@ -14,11 +14,11 @@ from eduid.webapp.common.authn.middleware import AuthnBaseApp
 from eduid.webapp.phone.settings.common import PhoneConfig
 
 
-class PhoneApp(AuthnBaseApp[PhoneConfig]):
+class PhoneApp(AuthnBaseApp):
+    conf: PhoneConfig
+
     def __init__(self, config: PhoneConfig, **kwargs: Any) -> None:
         super().__init__(config, **kwargs)
-
-        self.conf = config
 
         # Init celery
         self.am_relay = AmRelay(config)

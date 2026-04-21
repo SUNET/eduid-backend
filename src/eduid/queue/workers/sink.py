@@ -50,7 +50,7 @@ class SinkQueueWorker(QueueWorker):
     async def handle_expired_item(self, queue_item: QueueItem) -> None:
         logger.warning(f"Found expired item: {queue_item}")
 
-    async def collect_periodic_tasks(self) -> set[Task]:
+    async def collect_periodic_tasks(self) -> set[Task[Any]]:
         tasks = await super().collect_periodic_tasks()
         self.add_task(tasks, asyncio.create_task(self.periodic_stats_publishing(), name="periodic_stats_publishing"))
         return tasks

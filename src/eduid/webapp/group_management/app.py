@@ -15,11 +15,11 @@ from eduid.webapp.group_management.settings.common import GroupManagementConfig
 __author__ = "lundberg"
 
 
-class GroupManagementApp(AuthnBaseApp[GroupManagementConfig]):
+class GroupManagementApp(AuthnBaseApp):
+    conf: GroupManagementConfig
+
     def __init__(self, config: GroupManagementConfig, **kwargs: Any) -> None:
         super().__init__(config, **kwargs)
-
-        self.conf = config
 
         # Init dbs
         self.invite_state_db = GroupManagementInviteStateDB(config.mongo_uri)

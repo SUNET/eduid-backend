@@ -2,16 +2,16 @@ import json
 import logging
 from collections import OrderedDict
 from http import HTTPStatus
-from typing import Any, ClassVar
+from typing import Any, ClassVar, cast
 
 from billiard.einfo import ExceptionInfo
-from celery import Task
 from celery.utils.log import get_task_logger
-from hammock import Hammock
-from smscom import SMSClient
+from hammock import Hammock  # type: ignore[import-untyped]
+from smscom import SMSClient  # type: ignore[import-untyped]
 
 from eduid.common.config.base import EduidEnvironment
 from eduid.userdb.exceptions import DBConnectionError
+from eduid.workers.celery_typing import Task
 from eduid.workers.msg.cache import CacheMDB
 from eduid.workers.msg.common import MsgCelerySingleton
 from eduid.workers.msg.decorators import TransactionAudit
@@ -32,7 +32,7 @@ logger: logging.Logger = get_task_logger(__name__)
 app = MsgCelerySingleton.celery
 
 
-class MessageSender(Task):
+class MessageSender(Task[Any, Any]):
     """
     Singleton that stores reusable objects.
     """
@@ -75,7 +75,9 @@ class MessageSender(Task):
         # Remove initiated cache dbs
         cls._cache_store = {}
 
-    def on_failure(self, exc: Exception, task_id: str, args: tuple, kwargs: dict, einfo: ExceptionInfo) -> None:
+    def on_failure(
+        self, exc: Exception, task_id: str, args: tuple[Any, ...], kwargs: dict[str, Any], einfo: ExceptionInfo
+    ) -> None:
         # Try to reload the db on connection failures (mongodb has probably switched master)
         if isinstance(exc, DBConnectionError):
             logger.error("Task failed with db exception ConnectionError. Reloading db.")
@@ -86,7 +88,7 @@ class MessageSender(Task):
         self,
         message_type: str,
         reference: str,
-        message_dict: dict,
+        message_dict: dict[str, Any],
         recipient: str,
         template: str,
         language: str,
@@ -131,7 +133,7 @@ class MessageSender(Task):
             raise NotImplementedError(f"message_type {message_type} is not implemented")
 
         logger.debug(f"send_message result: {status}")
-        return status
+        return cast(str, status)
 
     def get_postal_address(self, identity_number: str) -> OrderedDict[str, Any] | None:
         """
@@ -313,7 +315,7 @@ class MessageSender(Task):
             logger.debug(f"\nType: sms\nReference: {reference}\nRecipient: {recipient}\nMessage:\n{message}")
             return "no_op_number"
 
-        return self.sms.send(message, MsgCelerySingleton.worker_config.sms_sender, recipient, prio=2)
+        return cast(str, self.sms.send(message, MsgCelerySingleton.worker_config.sms_sender, recipient, prio=2))
 
     def pong(self, app_name: str | None) -> str:
         # Leverage cache to test mongo db health
@@ -334,7 +336,7 @@ def sendsms(self: MessageSender, recipient: str, message: str, reference: str) -
     :param reference: Audit reference to help cross reference audit log and events
     """
     try:
-        return self.sendsms(recipient, message, reference)
+        return cast(str, self.sendsms(recipient, message, reference))
     except Exception as e:
         logger.error(f"sendsms task error: {e}", exc_info=True)
         raise self.retry(countdown=1, max_retries=3, exc=e) from e

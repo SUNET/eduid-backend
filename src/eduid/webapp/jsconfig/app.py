@@ -8,14 +8,14 @@ from eduid.webapp.common.api.app import EduIDBaseApp
 from eduid.webapp.jsconfig.settings.common import JSConfigConfig
 
 
-class JSConfigApp(EduIDBaseApp[JSConfigConfig]):
+class JSConfigApp(EduIDBaseApp):
+    conf: JSConfigConfig
+
     def __init__(self, config: JSConfigConfig, **kwargs: Any) -> None:
         kwargs["init_central_userdb"] = False
         kwargs["static_folder"] = None
 
         super().__init__(config, **kwargs)
-
-        self.conf = config
 
 
 current_jsconfig_app: JSConfigApp = cast(JSConfigApp, current_app)

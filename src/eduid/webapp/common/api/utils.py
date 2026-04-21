@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, Any, cast
 from urllib.parse import urlparse
 from uuid import uuid4
 
-import bcrypt
+import bcrypt  # type: ignore[import-untyped]
 from flask import current_app as flask_current_app
 from flask.wrappers import Request
 
@@ -67,7 +67,7 @@ def update_modified_ts(user: User) -> None:
         user.modified_ts = None
         return None
 
-    _private_userdb = get_from_current_app("private_userdb", UserDB[User])
+    _private_userdb = get_from_current_app("private_userdb", UserDB)
     private_user = _private_userdb.get_user_by_id(user_id)
     if private_user is None:
         logger.debug(f"User {user} not found in {_private_userdb}, setting modified_ts to None")
@@ -129,8 +129,8 @@ def has_user_logged_in_with_mfa() -> bool:
     return False
 
 
-def save_and_sync_user(
-    user: User, private_userdb: UserDB[User] | None = None, app_name_override: str | None = None
+def save_and_sync_user[U: User](
+    user: U, private_userdb: UserDB[U] | None = None, app_name_override: str | None = None
 ) -> bool:
     """
     Save (new) user object to the private userdb and propagate the changes to the central user db.

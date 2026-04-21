@@ -8,7 +8,7 @@ from fido2.webauthn import AuthenticationResponse
 from flask import Blueprint, current_app, request
 from pytest_mock import MockerFixture
 
-from eduid.common.config.base import EduIDBaseAppConfig, WebauthnConfigMixin2
+from eduid.common.config.base import EduIDBaseAppConfig, Fido2RpConfigMixin
 from eduid.common.config.parsers import load_config
 from eduid.userdb.fixtures.fido_credentials import u2f_credential, webauthn_credential
 from eduid.webapp.common.api.app import EduIDBaseApp
@@ -17,7 +17,7 @@ from eduid.webapp.common.authn.fido_tokens import VerificationProblem, start_tok
 from eduid.webapp.common.session.namespaces import WebauthnState
 
 
-class MockFidoConfig(EduIDBaseAppConfig, WebauthnConfigMixin2):
+class MockFidoConfig(EduIDBaseAppConfig, Fido2RpConfigMixin):
     mfa_testing: bool = True
     generate_u2f_challenges: bool = True
 
@@ -50,11 +50,11 @@ def start_verification() -> str | dict[str, Any]:
     return result
 
 
-class MockFidoApp(EduIDBaseApp[MockFidoConfig]):
+class MockFidoApp(EduIDBaseApp):
+    conf: MockFidoConfig
+
     def __init__(self, config: MockFidoConfig) -> None:
         super().__init__(config)
-
-        self.conf = config
 
 
 # These values were extracted from a working webauthn login in our development environment.
@@ -95,7 +95,7 @@ SAMPLE_WEBAUTHN_APP_CONFIG = {
 }
 
 
-class FidoTokensTestCase(EduidAPITestCase):
+class FidoTokensTestCase(EduidAPITestCase[MockFidoApp]):
     app: MockFidoApp
 
     @pytest.fixture(autouse=True)

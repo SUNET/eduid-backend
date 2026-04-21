@@ -13,7 +13,7 @@ from eduid.common.stats import init_app_stats
 logger = logging.getLogger(__name__)
 
 
-class RequesterCounter(ResponseMicroService):
+class RequesterCounter(ResponseMicroService):  # type: ignore[misc]
     """
         A class to count the requesting SP.
 

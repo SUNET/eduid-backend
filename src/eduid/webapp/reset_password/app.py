@@ -17,11 +17,11 @@ from eduid.webapp.reset_password.settings.common import ResetPasswordConfig
 __author__ = "eperez"
 
 
-class ResetPasswordApp(EduIDBaseApp[ResetPasswordConfig]):
+class ResetPasswordApp(EduIDBaseApp):
+    conf: ResetPasswordConfig
+
     def __init__(self, config: ResetPasswordConfig, **kwargs: Any) -> None:
         super().__init__(config, **kwargs)
-
-        self.conf = config
 
         # Init celery
         self.msg_relay = MsgRelay(config)

@@ -18,7 +18,7 @@ class Config:
     pairwise_salt: str
 
 
-class GeneratePairwiseId(ResponseMicroService):
+class GeneratePairwiseId(ResponseMicroService):  # type: ignore[misc]
     """
     MicroService go generate pairwise-id based on subject-id
 

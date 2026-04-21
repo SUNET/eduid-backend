@@ -31,7 +31,8 @@ from eduid.userdb.scimapi import (
     ScimApiName,
     ScimApiPhoneNumber,
 )
-from eduid.userdb.scimapi.userdb import ScimApiProfile, ScimApiUser
+from eduid.userdb.scimapi.common import ScimApiProfile
+from eduid.userdb.scimapi.userdb import ScimApiUser
 
 users_router = APIRouter(
     route_class=ScimApiRoute,

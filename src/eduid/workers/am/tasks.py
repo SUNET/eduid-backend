@@ -1,19 +1,21 @@
+from typing import Any
+
 import bson
 from billiard.einfo import ExceptionInfo
-from celery import Task
 from celery.utils.log import get_task_logger
 
 from eduid.userdb import AmDB
 from eduid.userdb.exceptions import DBConnectionError, LockedIdentityViolation, UserDoesNotExist
 from eduid.workers.am.common import AmCelerySingleton
 from eduid.workers.am.consistency_checks import check_locked_identity, unverify_duplicates
+from eduid.workers.celery_typing import Task
 
 logger = get_task_logger(__name__)
 
 app = AmCelerySingleton.celery
 
 
-class AttributeManager(Task):
+class AttributeManager(Task[Any, Any]):
     """Singleton that stores reusable objects like the MongoDB database client"""
 
     abstract = True  # This means Celery won't register this as another task
@@ -31,7 +33,9 @@ class AttributeManager(Task):
             self._userdb = AmDB(AmCelerySingleton.worker_config.mongo_uri, "eduid_am")
         return self._userdb
 
-    def on_failure(self, exc: Exception, task_id: str, args: tuple, kwargs: dict, einfo: ExceptionInfo) -> None:
+    def on_failure(
+        self, exc: Exception, task_id: str, args: tuple[Any, ...], kwargs: dict[str, Any], einfo: ExceptionInfo
+    ) -> None:
         # The most common problem when tasks raise exceptions is that mongodb has switched master,
         # but it is hard to accurately trap the right exception without importing pymongo here so
         # let's just reload all databases (self.userdb here and the plugins databases) when we

@@ -3,8 +3,9 @@ from collections.abc import Mapping
 from datetime import datetime, timedelta
 from io import BytesIO, StringIO
 from pathlib import Path
+from typing import Any
 
-from xhtml2pdf import pisa
+from xhtml2pdf import pisa  # type: ignore[import-untyped]
 
 from eduid.common.proofing_utils import get_marked_given_name
 from eduid.common.rpc.msg_relay import FullPostalAddress
@@ -16,7 +17,7 @@ class AddressFormatException(Exception):
     pass
 
 
-def format_address(recipient: Mapping) -> tuple:
+def format_address(recipient: Mapping[str, Any]) -> tuple[str, ...]:
     """
     :param recipient: official address
     :type recipient: OrderedDict

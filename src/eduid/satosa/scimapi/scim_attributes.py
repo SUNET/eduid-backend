@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 class Config:
     mongo_uri: str
     neo4j_uri: str | None = None
-    neo4j_config: dict = field(default_factory=dict)
+    neo4j_config: dict[str, Any] = field(default_factory=dict)
     only_configure_and_expose_scim: bool = False
     allow_users_not_in_database: Mapping[str, bool] = field(default_factory=lambda: {"default": False})
     fallback_data_owner: str | None = None
@@ -39,7 +39,7 @@ class UserGroups:
     manager: list[ScimApiGroup] = field(default_factory=list)
 
 
-class ScimAttributes(ResponseMicroService):
+class ScimAttributes(ResponseMicroService):  # type: ignore[misc]
     """
     Add attributes from the scim db to the responses.
     """
@@ -146,7 +146,7 @@ class ScimAttributes(ResponseMicroService):
         # TODO: handle multiple profiles beyond just picking the first one
         profiles = user.profiles.keys()
         if profiles:
-            _name = sorted(profiles)[0]
+            _name = min(profiles)
             logger.info(f"Applying attributes from SCIM user {user.scim_id}, profile {_name}")
             profile = user.profiles[_name]
 

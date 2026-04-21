@@ -376,7 +376,7 @@ class EduidSession(SessionMixin):
             self._session.commit()
             self.new = False
             self.modified = False
-            _conf = getattr(self.app, "conf", None)
+            _conf = self.app.conf
             if self.app.debug or (isinstance(_conf, EduIDBaseAppConfig) and _conf.testing):
                 _saved_data = json.dumps(self._session.to_dict(), indent=4, sort_keys=True, cls=EduidJSONEncoder)
                 logger.debug(f"Saved session {self}:\n{_saved_data}")

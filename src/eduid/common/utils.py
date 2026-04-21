@@ -1,10 +1,11 @@
 __author__ = "lundberg"
 
 from datetime import datetime
+from typing import cast
 from uuid import uuid4
 
 from bson import ObjectId
-from pwgen import pwgen
+from pwgen import pwgen  # type: ignore[import-untyped]
 
 
 def urlappend(base: str, path: str) -> str:
@@ -41,7 +42,7 @@ def get_short_hash(entropy: int = 10) -> str:
 
 
 def generate_password(length: int = 12) -> str:
-    return pwgen(int(length), no_capitalize=True, no_symbols=True)
+    return cast(str, pwgen(int(length), no_capitalize=True, no_symbols=True))
 
 
 def serialize_xml_datetime(value: datetime) -> str:

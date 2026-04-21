@@ -1,7 +1,8 @@
 from logging import Logger
+from typing import Any, cast
 
-from suds.client import Client
-from suds.sudsobject import Object
+from suds.client import Client  # type: ignore[import-untyped]
+from suds.sudsobject import Object  # type: ignore[import-untyped]
 
 from eduid.common.config.base import EduidEnvironment
 from eduid.common.config.workers import MobConfig
@@ -58,7 +59,7 @@ class MobileLookupClient:
 
         return format_nin(nin)
 
-    def _search(self, param: Object) -> list | None:
+    def _search(self, param: Object) -> list[Any] | None:
         # Start the search
         # TODO: remove self.conf.devel_mode, use environment instead
         if self.conf.testing or self.conf.environment == EduidEnvironment.dev:
@@ -117,4 +118,4 @@ class MobileLookupClient:
             self.logger.debug(f"Got no search result on mobile number: {mobile_number}")
             return None
 
-        return record[0].SSNo
+        return cast(str, record[0].SSNo)

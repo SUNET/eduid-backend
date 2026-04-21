@@ -12,8 +12,7 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator, model_valida
 
 from eduid.userdb.credentials import CredentialList
 from eduid.userdb.db import BaseDB, TUserDbDocument
-from eduid.userdb.element import UserDBValueError
-from eduid.userdb.exceptions import UserDoesNotExist, UserIsRevoked
+from eduid.userdb.exceptions import UserDBValueError, UserDoesNotExist, UserIsRevoked
 from eduid.userdb.identity import EIDASIdentity, EIDASLoa, IdentityList, IdentityType
 from eduid.userdb.ladok import Ladok
 from eduid.userdb.locked_identity import LockedIdentityList
@@ -66,7 +65,7 @@ class User(BaseModel):
     orcid: Orcid | None = None
     ladok: Ladok | None = None
     profiles: ProfileList = Field(default_factory=ProfileList)
-    letter_proofing_data: list | dict | None = None  # remove dict after a full load-save-users
+    letter_proofing_data: list[Any] | dict[str, Any] | None = None  # remove dict after a full load-save-users
     revoked_ts: datetime | None = None
     preferences: UserPreferences = Field(default_factory=UserPreferences)
     model_config = ConfigDict(
@@ -173,7 +172,7 @@ class User(BaseModel):
                 _nin = nin_list.primary.to_dict()
             else:
                 # else use the nin added first
-                _nin = sorted(nin_list.to_list_of_dicts(), key=itemgetter("created_ts"))[0]
+                _nin = min(nin_list.to_list_of_dicts(), key=itemgetter("created_ts"))
             _identities = data.pop("identities", [])
             existing_nin = [item for item in _identities if item.get("identity_type") == IdentityType.NIN.value]
             if not existing_nin:  # workaround for users that did not get their nins list removed due to a bug in am
@@ -398,6 +397,4 @@ class User(BaseModel):
         Parse the Profile elements.
         """
         profiles = data.pop("profiles", [])
-        if isinstance(profiles, list):
-            return ProfileList.from_list_of_dicts(profiles)
-        return profiles
+        return ProfileList.from_list_of_dicts(profiles)

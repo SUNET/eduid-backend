@@ -14,7 +14,7 @@ from satosa.satosa_config import SATOSAConfig
 logger = logging.getLogger("satosa")
 
 
-class ServeStatic(RequestMicroService):
+class ServeStatic(RequestMicroService):  # type: ignore[misc]
     """
     A class to serve static files from a given directory
 
@@ -38,7 +38,7 @@ class ServeStatic(RequestMicroService):
         super().__init__(*args, **kwargs)
         self.locations = config.get("locations", {})
 
-    def register_endpoints(self) -> list:
+    def register_endpoints(self) -> list[Any]:
         url_map = []
         for endpoint_raw, path in self.locations.items():
             endpoint = endpoint_raw.strip("/")

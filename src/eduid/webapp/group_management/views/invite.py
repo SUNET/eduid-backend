@@ -1,3 +1,4 @@
+from typing import cast
 from uuid import UUID
 
 from flask import Blueprint
@@ -76,7 +77,7 @@ def create_invite(user: User, group_identifier: UUID, email_address: str, role: 
         current_app.logger.info(f"User is inviting self to group {group_identifier} as {role}")
         if role is GroupRole.OWNER:
             current_app.logger.info(f"User already owner of group {group_identifier}, aborting.")
-            return outgoing_invites()
+            return cast(FluxData, outgoing_invites())
         # Try to add self to group as member
         group = current_app.scimapi_groupdb.get_group_by_scim_id(invite_state.group_scim_id)
         if not group:
@@ -86,7 +87,7 @@ def create_invite(user: User, group_identifier: UUID, email_address: str, role: 
             accept_group_invitation(scim_user, group, invite_state)
         except EduIDDBError:
             return error_response(message=CommonMsg.temp_problem)
-        return outgoing_invites()
+        return cast(FluxData, outgoing_invites())
 
     try:
         current_app.invite_state_db.save(invite_state, is_in_database=False)
@@ -98,7 +99,7 @@ def create_invite(user: User, group_identifier: UUID, email_address: str, role: 
     # Always send an e-mail even it the invite already existed
     send_invite_email(invite_state)
     current_app.stats.count(name="invite_created")
-    return outgoing_invites()
+    return cast(FluxData, outgoing_invites())
 
 
 @group_invite_views.route("/delete", methods=["POST"])
@@ -132,7 +133,7 @@ def delete_invite(user: User, group_identifier: UUID, email_address: str, role: 
 
     send_delete_invite_email(invite_state)
 
-    return outgoing_invites()
+    return cast(FluxData, outgoing_invites())
 
 
 @group_invite_views.route("/accept", methods=["POST"])
@@ -170,7 +171,7 @@ def accept_invite(user: User, group_identifier: UUID, email_address: str, role: 
 
     current_app.invite_state_db.remove_state(invite_state)
     current_app.stats.count(name=f"invite_accepted_{invite_state.role.value}")
-    return incoming_invites()
+    return cast(FluxData, incoming_invites())
 
 
 @group_invite_views.route("/decline", methods=["POST"])
@@ -199,4 +200,4 @@ def decline_invite(user: User, group_identifier: UUID, email_address: str, role:
         return error_response(message=CommonMsg.temp_problem)
 
     current_app.stats.count(name=f"invite_declined_{invite_state.role.value}")
-    return incoming_invites()
+    return cast(FluxData, incoming_invites())

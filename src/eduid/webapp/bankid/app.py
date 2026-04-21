@@ -15,11 +15,11 @@ from eduid.webapp.common.authn.utils import get_saml2_config, no_authn_views
 __author__ = "lundberg"
 
 
-class BankIDApp(AuthnBaseApp[BankIDConfig]):
+class BankIDApp(AuthnBaseApp):
+    conf: BankIDConfig
+
     def __init__(self, config: BankIDConfig, **kwargs: Any) -> None:
         super().__init__(config, **kwargs)
-
-        self.conf = config
 
         self.saml2_config = get_saml2_config(config.saml2_settings_module)
 

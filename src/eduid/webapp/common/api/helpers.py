@@ -77,7 +77,7 @@ def add_nin_to_user(user: User, proofing_state: NinProofingState) -> ProofingUse
 def add_nin_to_user[T: User](user: User, proofing_state: NinProofingState, user_type: type[T]) -> T: ...
 
 
-def add_nin_to_user(user, proofing_state, user_type=ProofingUser):
+def add_nin_to_user(user: User, proofing_state: NinProofingState, user_type: type[User] = ProofingUser) -> User:
     private_userdb = cast(UserDB[User], get_from_current_app("private_userdb", UserDB))
     proofing_user = user_type.from_user(user, private_userdb)
     # Add nin to user if not already there

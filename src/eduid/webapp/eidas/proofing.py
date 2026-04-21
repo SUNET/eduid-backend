@@ -1,7 +1,9 @@
 from dataclasses import dataclass
 from datetime import UTC, datetime
+from typing import Any
 
 from eduid.common.config.base import ProofingConfigMixin
+from eduid.common.models.saml_models import BaseSessionInfo
 from eduid.common.rpc.exceptions import AmTaskFailed
 from eduid.userdb import EIDASIdentity, User
 from eduid.userdb.credentials import Credential
@@ -32,7 +34,7 @@ from eduid.webapp.common.proofing.base import (
 from eduid.webapp.common.proofing.methods import ProofingMethod
 from eduid.webapp.eidas.app import current_eidas_app as current_app
 from eduid.webapp.eidas.helpers import EidasMsg
-from eduid.webapp.eidas.saml_session_info import BaseSessionInfo, ForeignEidSessionInfo, NinSessionInfo
+from eduid.webapp.eidas.saml_session_info import ForeignEidSessionInfo, NinSessionInfo
 
 
 @dataclass
@@ -342,7 +344,7 @@ def get_proofing_functions(
     app_name: str,
     config: ProofingConfigMixin,
     backdoor: bool,
-) -> ProofingFunctions:
+) -> ProofingFunctions[Any]:
     if isinstance(session_info, NinSessionInfo):
         return FrejaProofingFunctions(session_info=session_info, app_name=app_name, config=config, backdoor=backdoor)
     elif isinstance(session_info, ForeignEidSessionInfo):

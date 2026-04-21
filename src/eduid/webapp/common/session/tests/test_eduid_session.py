@@ -19,11 +19,11 @@ class SessionTestConfig(EduIDBaseAppConfig):
     pass
 
 
-class SessionTestApp(AuthnBaseApp[SessionTestConfig]):
+class SessionTestApp(AuthnBaseApp):
+    conf: SessionTestConfig
+
     def __init__(self, config: SessionTestConfig, **kwargs: Any) -> None:
         super().__init__(config, **kwargs)
-
-        self.conf = config
 
 
 def session_init_app(name: str, test_config: Mapping[str, Any]) -> SessionTestApp:
@@ -80,7 +80,7 @@ def session_init_app(name: str, test_config: Mapping[str, Any]) -> SessionTestAp
     return app
 
 
-class EduidSessionTests(EduidAPITestCase):
+class EduidSessionTests(EduidAPITestCase[SessionTestApp]):
     app: SessionTestApp
 
     @pytest.fixture(autouse=True)
@@ -197,10 +197,10 @@ class EduidSessionTests(EduidAPITestCase):
             keyvalues = cookie[1].split(";")
             for keyvalue in keyvalues:
                 value = keyvalue.split("=")
-                if value == self.app.conf.flask.session_cookie_name:
-                    assert value == ""
-                elif value == "expires":
-                    assert value == "Thu, 01-Jan-1970 00:00:00 GMT"
+                if value[0].strip() == self.app.conf.flask.session_cookie_name:
+                    assert value[1] == ""
+                elif value[0].strip() == "expires":
+                    assert value[1] == "Thu, 01 Jan 1970 00:00:00 GMT"
 
     def _test_bad_session_cookie(self, bad_cookie_value: str) -> None:
         with self.browser as browser:

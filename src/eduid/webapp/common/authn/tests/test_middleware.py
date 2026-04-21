@@ -10,7 +10,7 @@ from eduid.webapp.common.api.testing import EduidAPITestCase
 from eduid.webapp.common.authn.middleware import AuthnBaseApp
 
 
-class AuthnTestApp(AuthnBaseApp[EduIDBaseAppConfig]):
+class AuthnTestApp(AuthnBaseApp):
     def __init__(self, name: str, test_config: Mapping[str, Any], **kwargs: Any) -> None:
         # This should be an AuthnConfig instance, but an EduIDBaseAppConfig instance suffices for these
         # tests and we don't want eduid.webapp.common to depend on eduid.webapp.
@@ -18,7 +18,7 @@ class AuthnTestApp(AuthnBaseApp[EduIDBaseAppConfig]):
         super().__init__(self.conf, **kwargs)
 
 
-class AuthnTests(EduidAPITestCase):
+class AuthnTests(EduidAPITestCase[AuthnTestApp]):
     def load_app(self, config: dict[str, Any]) -> AuthnTestApp:
         """
         Called from the parent class, so we can provide the appropriate flask
@@ -49,7 +49,7 @@ class AuthnTests(EduidAPITestCase):
                 client.get("/some/path")
 
 
-class UnAuthnTests(EduidAPITestCase):
+class UnAuthnTests(EduidAPITestCase[AuthnTestApp]):
     def load_app(self, config: dict[str, Any]) -> AuthnTestApp:
         """
         Called from the parent class, so we can provide the appropriate flask

@@ -105,16 +105,13 @@ def values_view() -> Response:
     return _make_response(safe_param)
 
 
-class InputsTestApp(EduIDBaseApp[EduIDBaseAppConfig]):
+class InputsTestApp(EduIDBaseApp):
     def __init__(self, config: EduIDBaseAppConfig) -> None:
         super().__init__(config)
-
-        self.conf = config
-
         self.session_interface = SessionFactory(config)
 
 
-class InputsTests(EduidAPITestCase):
+class InputsTests(EduidAPITestCase[InputsTestApp]):
     def load_app(self, config: Mapping[str, Any]) -> InputsTestApp:
         """
         Called from the parent class, so we can provide the appropriate flask
@@ -129,24 +126,28 @@ class InputsTests(EduidAPITestCase):
         url = "/test-get-param?test-param=test-param"
         with self.app.test_request_context(url, method="GET"):
             response = self.app.dispatch_request()
+            assert isinstance(response, Response)
             assert b"test-param" in response.data
 
     def test_get_param_script(self) -> None:
         url = '/test-get-param?test-param=<script>alert("ho")</script>'
         with self.app.test_request_context(url, method="GET"):
             response = self.app.dispatch_request()
+            assert isinstance(response, Response)
             assert b"<script>" not in response.data
 
     def test_get_param_script_percent_encoded(self) -> None:
         url = "/test-get-param?test-param=%3Cscript%3Ealert%28%22ho%22%29%3C%2Fscript%3E"
         with self.app.test_request_context(url, method="GET"):
             response = self.app.dispatch_request()
+            assert isinstance(response, Response)
             assert b"<script>" not in response.data
 
     def test_get_param_script_percent_encoded_twice(self) -> None:
         url = "/test-get-param?test-param=%253Cscript%253Ealert%2528%2522ho%2522%2529%253C%252Fscript%253E"
         with self.app.test_request_context(url, method="GET"):
             response = self.app.dispatch_request()
+            assert isinstance(response, Response)
             unquoted_response = unquote(response.data.decode("utf8"))
             assert b"<script>" not in response.data
             assert "<script>" not in unquoted_response
@@ -155,6 +156,7 @@ class InputsTests(EduidAPITestCase):
         url = "/test-get-param?test-param=åäöхэжこんにちわ"
         with self.app.test_request_context(url, method="GET"):
             response = self.app.dispatch_request()
+            assert isinstance(response, Response)
             assert "åäöхэжこんにちわ" in response.data.decode("utf8")
 
     def test_get_param_unicode_percent_encoded(self) -> None:
@@ -164,12 +166,14 @@ class InputsTests(EduidAPITestCase):
         )
         with self.app.test_request_context(url, method="GET"):
             response = self.app.dispatch_request()
+            assert isinstance(response, Response)
             assert "åäöхэжこんにちわ" in response.data.decode("utf8")
 
     def test_post_param_script(self) -> None:
         url = "/test-post-param"
         with self.app.test_request_context(url, method="POST", data={"test-param": '<script>alert("ho")</script>'}):
             response = self.app.dispatch_request()
+            assert isinstance(response, Response)
             assert b"<script>" not in response.data
 
     def test_post_param_script_percent_encoded(self) -> None:
@@ -178,6 +182,7 @@ class InputsTests(EduidAPITestCase):
             url, method="POST", data={"test-param": "%3Cscript%3Ealert%28%22ho%22%29%3C%2Fscript%3E"}
         ):
             response = self.app.dispatch_request()
+            assert isinstance(response, Response)
             assert b"<script>" not in response.data
 
     def test_post_param_script_percent_encoded_twice(self) -> None:
@@ -186,6 +191,7 @@ class InputsTests(EduidAPITestCase):
             url, method="POST", data={"test-param": b"%253Cscript%253Ealert%2528%2522ho%2522%2529%253C%252Fscript%253E"}
         ):
             response = self.app.dispatch_request()
+            assert isinstance(response, Response)
             unquoted_response = unquote(response.data.decode("ascii"))
             assert b"<script>" not in response.data
             assert "<script>" not in unquoted_response
@@ -216,6 +222,7 @@ class InputsTests(EduidAPITestCase):
         cookie = dump_cookie("test-cookie", '<script>alert("ho")</script>')
         with self.app.test_request_context(url, method="GET", headers={"Cookie": cookie}):
             response = self.app.dispatch_request()
+            assert isinstance(response, Response)
             assert b"<script>" not in response.data
 
     def test_header_script(self) -> None:
@@ -223,18 +230,21 @@ class InputsTests(EduidAPITestCase):
         script = '<script>alert("ho")</script>'
         with self.app.test_request_context(url, method="GET", headers={"X-TEST": script}):
             response = self.app.dispatch_request()
+            assert isinstance(response, Response)
             assert b"<script>" not in response.data
 
     def test_get_values_script(self) -> None:
         url = "/test-values?test-param=test-param"
         with self.app.test_request_context(url, method="GET"):
             response = self.app.dispatch_request()
+            assert isinstance(response, Response)
             assert b"<script>" not in response.data
 
     def test_post_values_script(self) -> None:
         url = "/test-values"
         with self.app.test_request_context(url, method="POST", data={"test-param": '<script>alert("ho")</script>'}):
             response = self.app.dispatch_request()
+            assert isinstance(response, Response)
             assert b"<script>" not in response.data
 
     def test_get_using_empty_session(self) -> None:
@@ -247,6 +257,7 @@ class InputsTests(EduidAPITestCase):
             # This state should be treated in the same way as no session
             # instead of crashing.
             response = self.app.dispatch_request()
+            assert isinstance(response, Response)
             assert response.data == b"<html><body></body></html>"
 
     @staticmethod

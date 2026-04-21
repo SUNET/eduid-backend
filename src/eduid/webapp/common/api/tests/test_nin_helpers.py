@@ -32,7 +32,7 @@ from eduid.webapp.common.api.helpers import (
     set_user_names_from_nin_proofing,
     verify_nin_for_user,
 )
-from eduid.webapp.common.api.testing import EduidAPITestCase
+from eduid.webapp.common.proofing.testing import ProofingTests
 from eduid.webapp.common.session.eduid_session import SessionFactory
 
 __author__ = "lundberg"
@@ -42,7 +42,9 @@ class HelpersTestConfig(EduIDBaseAppConfig, MsgConfigMixin):
     pass
 
 
-class HelpersTestApp(EduIDBaseApp[HelpersTestConfig]):
+class HelpersTestApp(EduIDBaseApp):
+    conf: HelpersTestConfig
+
     def __init__(self, name: str, test_config: Mapping[str, Any], **kwargs: Any) -> None:
         self.conf = load_config(typ=HelpersTestConfig, app_name=name, ns="webapp", test_config=test_config)
         super().__init__(self.conf, **kwargs)
@@ -56,7 +58,7 @@ class HelpersTestApp(EduIDBaseApp[HelpersTestConfig]):
         self.msg_relay = MsgRelay(self.conf)
 
 
-class NinHelpersTest(EduidAPITestCase[HelpersTestApp]):
+class NinHelpersTest(ProofingTests[HelpersTestApp]):
     def load_app(self, config: Mapping[str, Any]) -> HelpersTestApp:
         """
         Called from the parent class, so we can provide the appropriate flask

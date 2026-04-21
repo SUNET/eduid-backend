@@ -17,11 +17,12 @@ from eduid.webapp.freja_eid.settings.common import FrejaEIDConfig
 __author__ = "lundberg"
 
 
-class FrejaEIDApp(AuthnBaseApp[FrejaEIDConfig]):
+class FrejaEIDApp(AuthnBaseApp):
+    conf: FrejaEIDConfig
+
     def __init__(self, config: FrejaEIDConfig, **kwargs: Any) -> None:
         super().__init__(config, **kwargs)
 
-        self.conf = config
         # Init dbs
         self.private_userdb = FrejaEIDProofingUserDB(self.conf.mongo_uri, auto_expire=config.private_userdb_auto_expire)
         self.proofing_log = ProofingLog(config.mongo_uri)
@@ -30,7 +31,7 @@ class FrejaEIDApp(AuthnBaseApp[FrejaEIDConfig]):
         self.msg_relay = MsgRelay(config)
 
         # Initialize the oidc_client
-        self.oidc_client = OAuth(self, cache=SessionOAuthCache())
+        self.oidc_client = OAuth(self, cache=SessionOAuthCache())  # type: ignore[no-untyped-call]
         client_kwargs = {}
         if self.conf.freja_eid_client.scopes:
             client_kwargs["scope"] = " ".join(self.conf.freja_eid_client.scopes)
@@ -39,7 +40,7 @@ class FrejaEIDApp(AuthnBaseApp[FrejaEIDConfig]):
         authorize_params = {}
         if self.conf.freja_eid_client.acr_values:
             authorize_params["acr_values"] = " ".join(self.conf.freja_eid_client.acr_values)
-        self.oidc_client.register(
+        self.oidc_client.register(  # type: ignore[no-untyped-call]
             name="freja_eid",
             client_id=self.conf.freja_eid_client.client_id,
             client_secret=self.conf.freja_eid_client.client_secret,

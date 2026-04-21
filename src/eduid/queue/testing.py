@@ -18,7 +18,8 @@ from eduid.queue.db import Payload, QueueDB, QueueItem, SenderInfo
 from eduid.queue.db.worker import AsyncQueueDB
 from eduid.queue.workers.base import QueueWorker
 from eduid.userdb.db import TUserDbDocument
-from eduid.userdb.testing import EduidTemporaryInstance, MongoTemporaryInstance
+from eduid.userdb.testing import MongoTemporaryInstance
+from eduid.userdb.testing.temp_instance import EduidTemporaryInstance
 
 __author__ = "lundberg"
 
@@ -139,7 +140,7 @@ class QueueAsyncioTest(EduidQueueTestCase):
 
     @pytest_asyncio.fixture(autouse=True)
     async def setup_asyncio_queue(self, setup_queue: None, isolated_async_client_cache: None) -> AsyncIterator[None]:
-        self.tasks: list[Task] = []
+        self.tasks: list[Task[Any]] = []
         await self._init_async_db()
         yield
         for task in self.tasks:

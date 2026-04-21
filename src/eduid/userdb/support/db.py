@@ -3,14 +3,14 @@ from typing import Any
 
 from bson import ObjectId
 
-from eduid.userdb.db import TUserDbDocument
+from eduid.userdb.db import BaseDB, TUserDbDocument
 from eduid.userdb.exceptions import UserDoesNotExist
 from eduid.userdb.proofing import LetterProofingState
 from eduid.userdb.signup import SignupUserDB
 from eduid.userdb.support import models
 from eduid.userdb.support.models import GenericFilterDict
 from eduid.userdb.support.user import SupportUser
-from eduid.userdb.userdb import BaseDB, UserDB
+from eduid.userdb.userdb import UserDB
 
 __author__ = "lundberg"
 

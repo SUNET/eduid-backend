@@ -25,7 +25,8 @@ from eduid.webapp.common.authn.cache import OutstandingQueriesCache
 from eduid.webapp.common.authn.middleware import AuthnBaseApp
 from eduid.webapp.common.authn.tests.responses import auth_response, logout_request, logout_response
 from eduid.webapp.common.authn.utils import no_authn_views
-from eduid.webapp.common.session import EduidSession, session
+from eduid.webapp.common.session import session
+from eduid.webapp.common.session.eduid_session import EduidSession
 from eduid.webapp.common.session.namespaces import AuthnRequestRef
 
 logger = logging.getLogger(__name__)
@@ -39,7 +40,7 @@ class AcsResult:
     authn_ref: AuthnRequestRef
 
 
-class AuthnAPITestBase(EduidAPITestCase):
+class AuthnAPITestBase(EduidAPITestCase[AuthnApp]):
     """Test cases for the real eduid-authn app"""
 
     app: AuthnApp
@@ -303,13 +304,14 @@ class AuthnAPITestCase(AuthnAPITestBase):
                 return self.app.dispatch_request()
 
 
-class AuthnTestApp(AuthnBaseApp[AuthnConfig]):
+class AuthnTestApp(AuthnBaseApp):
+    conf: AuthnConfig
+
     def __init__(self, config: AuthnConfig, **kwargs: Any) -> None:
         super().__init__(config, **kwargs)
-        self.conf = config
 
 
-class UnAuthnAPITestCase(EduidAPITestCase):
+class UnAuthnAPITestCase(EduidAPITestCase[AuthnTestApp]):
     """Tests for a fictitious app based on AuthnBaseApp"""
 
     app: AuthnTestApp
@@ -350,7 +352,7 @@ class UnAuthnAPITestCase(EduidAPITestCase):
                 c.get("/")
 
 
-class NoAuthnAPITestCase(EduidAPITestCase):
+class NoAuthnAPITestCase(EduidAPITestCase[AuthnTestApp]):
     """Tests for a fictitious app based on AuthnBaseApp"""
 
     app: AuthnTestApp

@@ -3,11 +3,10 @@ from dataclasses import replace
 from typing import Any
 
 from eduid.common.misc.timeutil import utc_now
-from eduid.userdb.db import SaveResult
+from eduid.userdb.db import BaseDB, SaveResult
 from eduid.userdb.exceptions import MultipleDocumentsReturned
 from eduid.userdb.signup import Invite, SCIMReference
 from eduid.userdb.signup.invite import InviteReference
-from eduid.userdb.userdb import BaseDB
 
 __author__ = "lundberg"
 

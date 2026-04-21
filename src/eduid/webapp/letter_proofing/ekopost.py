@@ -2,8 +2,9 @@ import base64
 import json
 from http import HTTPStatus
 from io import BytesIO
+from typing import Any, cast
 
-from hammock import Hammock
+from hammock import Hammock  # type: ignore[import-untyped]
 
 from eduid.common.misc.timeutil import utc_now
 from eduid.webapp.letter_proofing.settings.common import LetterProofingConfig
@@ -63,9 +64,9 @@ class Ekopost:
         self._close_envelope(campaign["id"], envelope["id"])
         closed_campaign = self._close_campaign(campaign["id"])
 
-        return closed_campaign["id"]
+        return cast(str, closed_campaign["id"])
 
-    def _create_campaign(self, name: str, output_date: str, cost_center: str) -> dict:
+    def _create_campaign(self, name: str, output_date: str, cost_center: str) -> dict[str, Any]:
         """
         Create a new campaign
 
@@ -79,13 +80,13 @@ class Ekopost:
         response = self.ekopost_api.campaigns.POST(data=campaign_data, headers={"Content-Type": "application/json"})
 
         if response.status_code == HTTPStatus.OK:
-            return response.json()
+            return cast(dict[str, Any], response.json())
 
         raise EkopostException(f"Ekopost exception: {response.status_code!s} {response.text!s}")
 
     def _create_envelope(
         self, campaign_id: str, name: str, postage: str = "priority", plex: str = "simplex", color: str = "false"
-    ) -> dict:
+    ) -> dict[str, Any]:
         """
         Create an envelope for a specified campaign
 
@@ -105,7 +106,7 @@ class Ekopost:
         )
 
         if response.status_code == HTTPStatus.OK:
-            return response.json()
+            return cast(dict[str, Any], response.json())
 
         raise EkopostException(f"Ekopost exception: {response.status_code!s} {response.text!s}")
 
@@ -116,7 +117,7 @@ class Ekopost:
         data: bytes,
         mime: str = "application/pdf",
         content_type: str = "document",
-    ) -> dict:
+    ) -> dict[str, Any]:
         """
         Create the content that should be linked to an envelope
 
@@ -144,11 +145,11 @@ class Ekopost:
         )
 
         if response.status_code == HTTPStatus.OK:
-            return response.json()
+            return cast(dict[str, Any], response.json())
 
         raise EkopostException(f"Ekopost exception: {response.status_code!s} {response.text!s}")
 
-    def _close_envelope(self, campaign_id: str, envelope_id: str) -> dict:
+    def _close_envelope(self, campaign_id: str, envelope_id: str) -> dict[str, Any]:
         """
         Change an envelope state to closed and mark it as ready for print & distribution.
         :param campaign_id: Unique id of a campaign within which the envelope exists
@@ -161,11 +162,11 @@ class Ekopost:
         )
 
         if response.status_code == HTTPStatus.OK:
-            return response.json()
+            return cast(dict[str, Any], response.json())
 
         raise EkopostException(f"Ekopost exception: {response.status_code!s} {response.text!s}")
 
-    def _close_campaign(self, campaign_id: str) -> dict:
+    def _close_campaign(self, campaign_id: str) -> dict[str, Any]:
         """
         Change a campains state to closed and mark it and all its
         envelopes as ready for print & distribution.
@@ -175,6 +176,6 @@ class Ekopost:
         response = self.ekopost_api.campaigns(campaign_id).close.POST(headers={"Content-Type": "application/json"})
 
         if response.status_code == HTTPStatus.OK:
-            return response.json()
+            return cast(dict[str, Any], response.json())
 
         raise EkopostException(f"Ekopost exception: {response.status_code!s} {response.text!s}")

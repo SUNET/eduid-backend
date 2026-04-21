@@ -10,13 +10,12 @@ from eduid.queue.client import init_queue_item
 from eduid.queue.db.message.payload import EduidGroupInviteCancelEmail, EduidGroupInviteEmail
 from eduid.userdb import User
 from eduid.userdb.exceptions import EduIDDBError
-from eduid.userdb.group_management import GroupInviteState
+from eduid.userdb.group_management import GroupInviteState, GroupRole
 from eduid.userdb.scimapi import ScimApiGroup
 from eduid.userdb.scimapi.userdb import ScimApiUser
 from eduid.webapp.common.api.messages import TranslatableMsg
 from eduid.webapp.common.api.translation import get_user_locale
 from eduid.webapp.group_management.app import current_group_management_app as current_app
-from eduid.webapp.group_management.schemas import GroupRole
 
 __author__ = "lundberg"
 
@@ -95,7 +94,7 @@ def merge_group_lists(owner_groups: list[ScimApiGroup], member_groups: list[Scim
     return list(combined_groups.values())
 
 
-def list_of_group_data(group_list: list[UserGroup]) -> list[dict]:
+def list_of_group_data(group_list: list[UserGroup]) -> list[dict[str, Any]]:
     ret = []
     for group in group_list:
         members = [{"identifier": member.identifier, "display_name": member.display_name} for member in group.members]

@@ -68,11 +68,11 @@ from dataclasses import dataclass
 from http import HTTPStatus
 from typing import Any, Self
 
-import user_agents
+import user_agents  # type: ignore[import-untyped]
 from bleach import clean
 from flask import make_response, redirect, request
 from saml2 import BINDING_HTTP_REDIRECT
-from user_agents.parsers import UserAgent
+from user_agents.parsers import UserAgent  # type: ignore[import-untyped]
 from werkzeug.exceptions import InternalServerError
 from werkzeug.wrappers import Response as WerkzeugResponse
 

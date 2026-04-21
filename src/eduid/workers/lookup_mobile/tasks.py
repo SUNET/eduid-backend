@@ -1,7 +1,9 @@
-from celery import Task
+from typing import Any, cast
+
 from celery.utils.log import get_task_logger
 
 from eduid.common.decorators import deprecated
+from eduid.workers.celery_typing import Task
 from eduid.workers.lookup_mobile.client.mobile_lookup_client import MobileLookupClient
 from eduid.workers.lookup_mobile.common import MobCelerySingleton
 
@@ -10,7 +12,7 @@ logger = get_task_logger(__name__)
 app = MobCelerySingleton.celery
 
 
-class MobWorker(Task):
+class MobWorker(Task[Any, Any]):
     """Singleton that stores reusable objects like the MobileLookupClient"""
 
     abstract = True  # This means Celery won't register this as another task
@@ -33,7 +35,7 @@ def find_mobiles_by_nin(self: MobWorker, national_identity_number: str, number_r
     :param national_identity_number:
     :return: a list of formatted mobile numbers. Empty list if no numbers was registered to the nin
     """
-    return self.lookup_client.find_mobiles_by_nin(national_identity_number, number_region)
+    return cast(list[str], self.lookup_client.find_mobiles_by_nin(national_identity_number, number_region))
 
 
 @app.task(bind=True, base=MobWorker, name="eduid_lookup_mobile.tasks.find_NIN_by_mobile")
@@ -42,7 +44,7 @@ def find_nin_by_mobile(self: MobWorker, mobile_number: str) -> str | None:
     Searches nin with the registered mobile number
     :return: the nin with the registered mobile number
     """
-    return self.lookup_client.find_nin_by_mobile(mobile_number)
+    return cast(str | None, self.lookup_client.find_nin_by_mobile(mobile_number))
 
 
 @app.task(bind=True, base=MobWorker, name="eduid_lookup_mobile.tasks.pong")

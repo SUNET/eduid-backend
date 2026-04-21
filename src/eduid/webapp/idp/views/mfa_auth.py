@@ -94,7 +94,10 @@ def mfa_auth(
         # If no external MFA was used, and no webauthn credential either, we respond with a not-finished
         # response containing a webauthn challenge if applicable.
         payload: dict[str, Any] = _create_challenge(user, ticket)
-
+        current_app.logger.debug("No MFA submitted. Sending not-finished response.")
+        current_app.logger.debug(
+            f"Will accept external MFA for login ref: {session.mfa_action.login_ref} and eppn: {session.mfa_action.eppn}"
+        )
         return success_response(payload=payload)
 
     if not result.authn_data or not result.credential:
@@ -240,9 +243,4 @@ def _create_challenge(user: User | None, ticket: LoginContext) -> dict[str, Any]
         user_verification=user_verification,
     )
     payload.update(options)
-
-    current_app.logger.debug("No MFA submitted. Sending not-finished response.")
-    current_app.logger.debug(
-        f"Will accept external MFA for login ref: {session.mfa_action.login_ref} and eppn: {session.mfa_action.eppn}"
-    )
     return payload

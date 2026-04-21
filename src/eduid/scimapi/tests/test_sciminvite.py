@@ -5,7 +5,7 @@ from copy import copy
 from dataclasses import asdict
 from datetime import datetime, timedelta
 from http import HTTPStatus
-from typing import Any
+from typing import Any, cast
 
 import pytest
 from bson import ObjectId
@@ -245,7 +245,7 @@ class TestInviteResource(ScimApiTestCase):
         return db_invite
 
     def _assertUpdateSuccess(
-        self, req: Mapping, response: Response, invite: ScimApiInvite, signup_invite: SignupInvite
+        self, req: Mapping[str, Any], response: Response, invite: ScimApiInvite, signup_invite: SignupInvite
     ) -> None:
         """Function to validate successful responses to SCIM calls that update an invite according to a request."""
         if response.json().get("schemas") == [SCIMSchema.ERROR.value]:
@@ -293,7 +293,7 @@ class TestInviteResource(ScimApiTestCase):
         expected_invite: ScimApiInvite | None = None,
         expected_num_resources: int | None = None,
         expected_total_results: int | None = None,
-    ) -> dict:
+    ) -> dict[str, Any]:
         logger.info(f"Searching for group(s) using filter {search_filter!r}")
         req = {
             "schemas": [SCIMSchema.API_MESSAGES_20_SEARCH_REQUEST.value],
@@ -304,7 +304,7 @@ class TestInviteResource(ScimApiTestCase):
         response = self.client.post(url="/Invites/.search", json=req, headers=self.headers)
         logger.info(f"Search parsed_response:\n{response.json()}")
         if return_json:
-            return response.json()
+            return cast(dict[str, Any], response.json())
         expected_schemas = [SCIMSchema.API_MESSAGES_20_LIST_RESPONSE.value]
         response_schemas = response.json().get("schemas")
         assert isinstance(response_schemas, list), "Response schemas not present, or not a list"
@@ -336,7 +336,7 @@ class TestInviteResource(ScimApiTestCase):
 
         assert [SCIMSchema.API_MESSAGES_20_LIST_RESPONSE.value] == response.json().get("schemas")
         resources = response.json().get("Resources")
-        return resources
+        return cast(dict[str, Any], resources)
 
     def test_create_invite(self) -> None:
         req = {

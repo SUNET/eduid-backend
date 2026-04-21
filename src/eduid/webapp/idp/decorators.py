@@ -1,7 +1,7 @@
 import logging
 from collections.abc import Callable
 from functools import wraps
-from typing import Any
+from typing import Any, cast
 
 from flask import Response, jsonify, request
 from werkzeug.wrappers import Response as WerkzeugResponse
@@ -19,7 +19,7 @@ from eduid.webapp.idp.sso_session import get_sso_session
 logger = logging.getLogger(__name__)
 
 
-def require_ticket(f: Callable) -> Callable:
+def require_ticket(f: Callable[..., Any]) -> Callable[..., Any]:
     @wraps(f)
     def require_ticket_decorator(*args: Any, **kwargs: Any) -> Response | WerkzeugResponse:
         """Decorator to turn the 'ref' parameter sent by the frontend into a ticket (LoginContext)"""
@@ -52,18 +52,18 @@ def require_ticket(f: Callable) -> Callable:
                 logger.debug(f"Extra debug: Known device: {this_device}")
 
         kwargs["ticket"] = ticket
-        return f(*args, **kwargs)
+        return cast(Response | WerkzeugResponse, f(*args, **kwargs))
 
     return require_ticket_decorator
 
 
-def uses_sso_session(f: Callable) -> Callable:
+def uses_sso_session(f: Callable[..., Any]) -> Callable[..., Any]:
     @wraps(f)
     def uses_sso_session_decorator(*args: Any, **kwargs: Any) -> FluxData | WerkzeugResponse:
         """Decorator to supply the current SSO session, if one is found and still valid"""
 
         kwargs["sso_session"] = get_sso_session()
-        return f(*args, **kwargs)
+        return cast(FluxData | WerkzeugResponse, f(*args, **kwargs))
 
     return uses_sso_session_decorator
 

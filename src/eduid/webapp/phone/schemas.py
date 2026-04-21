@@ -20,7 +20,7 @@ class PhoneSchema(EduidSchema, CSRFRequestMixin):
     primary = fields.Boolean(attribute="primary")
 
     @pre_load
-    def normalize_phone_number(self, in_data: dict, **kwargs: Any) -> dict:
+    def normalize_phone_number(self, in_data: dict[str, Any], **kwargs: Any) -> dict[str, Any]:
         if in_data.get("number"):
             in_data["number"] = normalize_to_e_164(in_data["number"])
         return in_data

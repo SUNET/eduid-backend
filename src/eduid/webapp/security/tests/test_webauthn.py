@@ -1,7 +1,8 @@
 import base64
 import json
 from collections.abc import Mapping
-from typing import Any
+from datetime import timedelta
+from typing import Any, cast
 
 import pytest
 from fido2.utils import websafe_decode
@@ -10,32 +11,47 @@ from fido2.webauthn import (
     RegistrationResponse,
     UserVerificationRequirement,
 )
-from fido_mds import FidoMetadataStore
-from future.backports.datetime import timedelta
+from fido_mds import Attestation, FidoMetadataStore
+from fido_mds.models.webauthn import AttestationFormat
+from fido_mds.tests.data import IPHONE_12, MICROSOFT_SURFACE_1796, NEXUS_5, NONE_ATTESTATION, YUBIKEY_4, YUBIKEY_5_NFC
 from pytest_mock import MockerFixture
-from werkzeug.http import dump_cookie
 from werkzeug.test import TestResponse
 
-from eduid.common.config.base import EduidEnvironment, FrontendAction
+from eduid.common.config.base import FrontendAction
 from eduid.common.misc.timeutil import utc_now
 from eduid.userdb.credentials import U2F, FidoCredential, Webauthn
 from eduid.webapp.common.api.schemas.authn_status import AuthnActionStatus
 from eduid.webapp.common.api.testing import CSRFTestClient, EduidAPITestCase
-from eduid.webapp.common.session import EduidSession
+from eduid.webapp.common.authn.webauthn import (
+    get_authenticator_information,
+    get_webauthn_server,
+    is_authenticator_mfa_approved,
+)
+from eduid.webapp.common.session.eduid_session import EduidSession
 from eduid.webapp.common.session.namespaces import WebauthnRegistration, WebauthnState
 from eduid.webapp.security.app import SecurityApp, security_init_app
-from eduid.webapp.security.views.webauthn import get_webauthn_server
-from eduid.webapp.security.webauthn_proofing import get_authenticator_information, is_authenticator_mfa_approved
 
 __author__ = "eperez"
 
 
 # CTAP1 test data
 
-# result of calling Fido2Server.register_begin
-from fido_mds import Attestation
-from fido_mds.models.webauthn import AttestationFormat
-from fido_mds.tests.data import IPHONE_12, MICROSOFT_SURFACE_1796, NEXUS_5, NONE_ATTESTATION, YUBIKEY_4, YUBIKEY_5_NFC
+
+def _apple_special_verify_attestation(self: FidoMetadataStore, attestation: Attestation, client_data: bytes) -> bool:
+    if attestation.fmt is AttestationFormat.PACKED:
+        return self.verify_packed_attestation(attestation=attestation, client_data=client_data)
+    if attestation.fmt is AttestationFormat.APPLE:
+        # apple attestation cert in fido_mds test data is only valid for three days
+        return True
+    if attestation.fmt is AttestationFormat.TPM:
+        return self.verify_tpm_attestation(attestation=attestation, client_data=client_data)
+    if attestation.fmt is AttestationFormat.ANDROID_SAFETYNET:
+        # android attestation cert in fido_mds test data is only valid for three months
+        return True
+    if attestation.fmt is AttestationFormat.FIDO_U2F:
+        return self.verify_fido_u2f_attestation(attestation=attestation, client_data=client_data)
+    raise NotImplementedError(f"verification of {attestation.fmt.value} not implemented")
+
 
 # CTAP1 security key
 STATE = {"challenge": "u3zHzb7krB4c4wj0Uxuhsz2lCXqLnwV9ZxMhvL2lcfo", "user_verification": "discouraged"}
@@ -98,7 +114,7 @@ CREDENTIAL_ID_2 = (
 )
 
 
-class SecurityWebauthnTests(EduidAPITestCase):
+class SecurityWebauthnTests(EduidAPITestCase[SecurityApp]):
     app: SecurityApp
 
     @pytest.fixture(autouse=True)
@@ -183,7 +199,7 @@ class SecurityWebauthnTests(EduidAPITestCase):
         data = response.json
         assert data is not None, "No json data returned"
         assert isinstance(data, dict) is True, "returned json is not a dict"
-        return data
+        return cast(dict[Any, Any], data)
 
     def _check_session_state(self, client: CSRFTestClient) -> None:
         with client.session_transaction() as sess:
@@ -193,17 +209,17 @@ class SecurityWebauthnTests(EduidAPITestCase):
         assert webauthn_state["user_verification"] == UserVerificationRequirement.PREFERRED.value
         assert "challenge" in webauthn_state
 
-    def _check_registration_begun(self, data: dict) -> None:
+    def _check_registration_begun(self, data: dict[str, Any]) -> None:
         assert data["type"] == "POST_WEBAUTHN_WEBAUTHN_REGISTER_BEGIN_SUCCESS"
         assert "registration_data" in data["payload"]
         assert "csrf_token" in data["payload"]
 
-    def _check_registration_complete(self, data: dict) -> None:
+    def _check_registration_complete(self, data: dict[str, Any]) -> None:
         assert data["type"] == "POST_WEBAUTHN_WEBAUTHN_REGISTER_COMPLETE_SUCCESS"
         assert len(data["payload"]["credentials"]) > 0
         assert data["payload"]["message"] == "security.webauthn_register_success"
 
-    def _check_removal(self, data: dict, user_token: Webauthn) -> None:
+    def _check_removal(self, data: dict[str, Any], user_token: Webauthn) -> None:
         assert data["type"] == "POST_WEBAUTHN_WEBAUTHN_REMOVE_SUCCESS"
         assert data["payload"]["credentials"] is not None
         for credential in data["payload"]["credentials"]:
@@ -271,7 +287,7 @@ class SecurityWebauthnTests(EduidAPITestCase):
         self,
         client_data: bytes,
         attestation: bytes,
-        state: dict,
+        state: dict[str, Any],
         cred_id: str,
         existing_legacy_token: bool = False,
         csrf: str | None = None,
@@ -339,10 +355,10 @@ class SecurityWebauthnTests(EduidAPITestCase):
         self,
         client_data: bytes,
         attestation: bytes,
-        state: dict,
+        state: dict[str, Any],
         client_data_2: bytes,
         attestation_2: bytes,
-        state_2: dict,
+        state_2: dict[str, Any],
         existing_legacy_token: bool = False,
         csrf: str | None = None,
     ) -> tuple[Webauthn, TestResponse]:
@@ -380,23 +396,6 @@ class SecurityWebauthnTests(EduidAPITestCase):
             }
             response2 = client.post("/webauthn/remove", json=data)
             return user_token, response2
-
-    def _apple_special_verify_attestation(
-        self: FidoMetadataStore, attestation: Attestation, client_data: bytes
-    ) -> bool:
-        if attestation.fmt is AttestationFormat.PACKED:
-            return self.verify_packed_attestation(attestation=attestation, client_data=client_data)
-        if attestation.fmt is AttestationFormat.APPLE:
-            # apple attestation cert in fido_mds test data is only valid for three days
-            return True
-        if attestation.fmt is AttestationFormat.TPM:
-            return self.verify_tpm_attestation(attestation=attestation, client_data=client_data)
-        if attestation.fmt is AttestationFormat.ANDROID_SAFETYNET:
-            # android attestation cert in fido_mds test data is only valid for three months
-            return True
-        if attestation.fmt is AttestationFormat.FIDO_U2F:
-            return self.verify_fido_u2f_attestation(attestation=attestation, client_data=client_data)
-        raise NotImplementedError(f"verification of {attestation.fmt.value} not implemented")
 
     # actual tests
 
@@ -633,31 +632,34 @@ class SecurityWebauthnTests(EduidAPITestCase):
         assert data["payload"]["error"]["csrf_token"] == ["CSRF failed to validate"]
 
     def test_authenticator_information(self, mocker: MockerFixture) -> None:
-        mocker.patch(
-            "fido_mds.FidoMetadataStore.verify_attestation", SecurityWebauthnTests._apple_special_verify_attestation
-        )
+        mocker.patch("fido_mds.FidoMetadataStore.verify_attestation", _apple_special_verify_attestation)
         authenticators = [YUBIKEY_4, YUBIKEY_5_NFC, MICROSOFT_SURFACE_1796, NEXUS_5, IPHONE_12, NONE_ATTESTATION]
         for authenticator in authenticators:
             self.app.logger.debug(f"Testing authenticator: {authenticator}")
-            with self.app.test_request_context():
-                authenticator_info = get_authenticator_information(
-                    attestation=Attestation.from_base64(authenticator[0]).attestation_obj,
-                    client_data=websafe_decode(authenticator[1]),
-                )
+            authenticator_info = get_authenticator_information(
+                attestation=Attestation.from_base64(authenticator[0]).attestation_obj,
+                client_data=websafe_decode(authenticator[1]),
+                fido_mds=self.app.fido_mds,
+                fido_metadata_log=self.app.fido_metadata_log,
+                app_name="testing",
+                is_backdoor=False,
+            )
             assert authenticator_info is not None
             assert authenticator_info.authenticator_id is not None
             assert authenticator_info.attestation_format is not None
             assert authenticator_info.user_present is not None
             assert authenticator_info.user_verified is not None
 
-            with self.app.test_request_context():
-                res = is_authenticator_mfa_approved(authenticator_info=authenticator_info)
-                if authenticator in [YUBIKEY_4, YUBIKEY_5_NFC]:
-                    # Yubikey 4 does not support any user verification we accept
-                    # The test data for Yubikey 5 do not include user verification
-                    assert res is False
-                else:
-                    assert res is True
+            res = is_authenticator_mfa_approved(
+                authenticator_info=authenticator_info,
+                disallowed_status=self.app.conf.webauthn_disallowed_status,
+            )
+            if authenticator in [YUBIKEY_4, YUBIKEY_5_NFC]:
+                # Yubikey 4 does not support any user verification we accept
+                # The test data for Yubikey 5 do not include user verification
+                assert res is False
+            else:
+                assert res is True
 
             if authenticator not in [IPHONE_12, NONE_ATTESTATION]:
                 # No metadata for Apple devices or none attestation
@@ -671,12 +673,6 @@ class SecurityWebauthnTests(EduidAPITestCase):
                 )
 
     def test_authenticator_information_backdoor(self) -> None:
-        # setup magic cookie backdoor
-        self.app.conf.magic_cookie_name = "magic-cookie"
-        self.app.conf.magic_cookie = "magic"
-        self.app.conf.environment = EduidEnvironment.dev
-        cookie = dump_cookie(self.app.conf.magic_cookie_name, self.app.conf.magic_cookie)
-
         attestation_object = (
             "o2NmbXRmcGFja2VkZ2F0dFN0bXSjY2FsZyZjc2lnWEYwRAIgYveunFJbAigRE3KZ0jq8Av_fVO82NPR6"
             "YLxr-PTBeb8CICzfv9hjw8Y4uln8JlROLeCt64v7HggN_I_GcQItOTGrY3g1Y4FZAd8wggHbMIIBfaAD"
@@ -697,15 +693,20 @@ class SecurityWebauthnTests(EduidAPITestCase):
             "N09EUzVXdzAtNUg0QnQweVR0dzNSYyIsIm9yaWdpbiI6Imh0dHBzOi8vZGFzaGJvYXJkLmRldi5lZHVp"
             "ZC5zZSIsImNyb3NzT3JpZ2luIjpmYWxzZX0"
         )
-        with self.app.test_request_context(headers={"Cookie": cookie}):
-            authenticator_info = get_authenticator_information(
-                attestation=Attestation.from_base64(attestation_object).attestation_obj,
-                client_data=websafe_decode(client_data),
-            )
+        authenticator_info = get_authenticator_information(
+            attestation=Attestation.from_base64(attestation_object).attestation_obj,
+            client_data=websafe_decode(client_data),
+            fido_mds=self.app.fido_mds,
+            fido_metadata_log=self.app.fido_metadata_log,
+            app_name="testing",
+            is_backdoor=True,
+        )
         assert authenticator_info is not None
 
-        with self.app.test_request_context():
-            res = is_authenticator_mfa_approved(authenticator_info=authenticator_info)
+        res = is_authenticator_mfa_approved(
+            authenticator_info=authenticator_info,
+            disallowed_status=self.app.conf.webauthn_disallowed_status,
+        )
         assert res is True
 
     def test_approved_security_keys(self) -> None:

@@ -5,6 +5,8 @@ This module provides a factory/dispatcher to select the appropriate proofing
 functions based on the authentication method (freja, bankid, or eidas).
 """
 
+from typing import Any
+
 from eduid.common.config.base import ProofingConfigMixin
 from eduid.common.models.saml_models import BaseSessionInfo
 from eduid.webapp.bankid.proofing import BankIDProofingFunctions
@@ -25,7 +27,7 @@ def get_proofing_functions(
     app_name: str,
     config: ProofingConfigMixin,
     backdoor: bool,
-) -> ProofingFunctions:
+) -> ProofingFunctions[Any]:
     """
     Get the appropriate proofing functions based on session info type.
 

@@ -16,11 +16,11 @@ from eduid.webapp.letter_proofing.settings.common import LetterProofingConfig
 __author__ = "lundberg"
 
 
-class LetterProofingApp(AuthnBaseApp[LetterProofingConfig]):
+class LetterProofingApp(AuthnBaseApp):
+    conf: LetterProofingConfig
+
     def __init__(self, config: LetterProofingConfig, **kwargs: Any) -> None:
         super().__init__(config, **kwargs)
-
-        self.conf = config
 
         # Init dbs
         self.private_userdb = LetterProofingUserDB(config.mongo_uri, auto_expire=config.private_userdb_auto_expire)

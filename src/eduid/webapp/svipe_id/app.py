@@ -15,11 +15,12 @@ from eduid.webapp.svipe_id.settings.common import SvipeIdConfig
 __author__ = "lundberg"
 
 
-class SvipeIdApp(AuthnBaseApp[SvipeIdConfig]):
+class SvipeIdApp(AuthnBaseApp):
+    conf: SvipeIdConfig
+
     def __init__(self, config: SvipeIdConfig, **kwargs: Any) -> None:
         super().__init__(config, **kwargs)
 
-        self.conf = config
         # Init dbs
         self.private_userdb = SvideIDProofingUserDB(self.conf.mongo_uri, auto_expire=config.private_userdb_auto_expire)
         self.proofing_log = ProofingLog(config.mongo_uri)
@@ -27,7 +28,7 @@ class SvipeIdApp(AuthnBaseApp[SvipeIdConfig]):
         self.am_relay = AmRelay(config)
 
         # Initialize the oidc_client
-        self.oidc_client = OAuth(self, cache=SessionOAuthCache())
+        self.oidc_client = OAuth(self, cache=SessionOAuthCache())  # type: ignore[no-untyped-call]
         client_kwargs = {}
         if self.conf.svipe_client.scopes:
             client_kwargs["scope"] = " ".join(self.conf.svipe_client.scopes)
@@ -36,7 +37,7 @@ class SvipeIdApp(AuthnBaseApp[SvipeIdConfig]):
         authorize_params = {}
         if self.conf.svipe_client.acr_values:
             authorize_params["acr_values"] = " ".join(self.conf.svipe_client.acr_values)
-        self.oidc_client.register(
+        self.oidc_client.register(  # type: ignore[no-untyped-call]
             name="svipe",
             client_id=self.conf.svipe_client.client_id,
             client_secret=self.conf.svipe_client.client_secret,

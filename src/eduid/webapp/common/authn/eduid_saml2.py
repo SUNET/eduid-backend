@@ -9,6 +9,7 @@ from dateutil.parser import parse as dt_parse
 from flask import abort, make_response, redirect, request
 from saml2 import BINDING_HTTP_POST, BINDING_HTTP_REDIRECT
 from saml2.client import Saml2Client
+from saml2.config import SPConfig
 from saml2.ident import decode
 from saml2.response import AuthnResponse, LogoutResponse, StatusError, UnsolicitedResponse
 from saml2.saml import Subject
@@ -25,8 +26,9 @@ from eduid.webapp.common.api.errors import EduidErrorsContext, goto_errors_respo
 from eduid.webapp.common.api.utils import sanitise_redirect_url, sanitize_for_log
 from eduid.webapp.common.authn.cache import IdentityCache, OutstandingQueriesCache, StateCache
 from eduid.webapp.common.authn.session_info import SessionInfo
-from eduid.webapp.common.authn.utils import SPConfig, get_saml_attribute
-from eduid.webapp.common.session import EduidSession, session
+from eduid.webapp.common.authn.utils import get_saml_attribute
+from eduid.webapp.common.session import session
+from eduid.webapp.common.session.eduid_session import EduidSession
 from eduid.webapp.common.session.namespaces import AuthnRequestRef, SP_AuthnRequest, SPAuthnData
 
 logger = logging.getLogger(__name__)
@@ -70,7 +72,7 @@ def get_authn_request(
     authn_id: AuthnRequestRef,
     selected_idp: str | None,
     force_authn: bool = False,
-    req_authn_ctx: list | None = None,
+    req_authn_ctx: list[Any] | None = None,
     sign_alg: str | None = None,
     digest_alg: str | None = None,
     subject: Subject | None = None,
@@ -168,7 +170,7 @@ def get_authn_response(
     return response, authn_reqref
 
 
-def authenticate(session_info: SessionInfo, strip_suffix: str | None, userdb: UserDB) -> User | None:
+def authenticate(session_info: SessionInfo, strip_suffix: str | None, userdb: UserDB[User]) -> User | None:
     """
     Locate a user using the identity found in the SAML assertion.
 

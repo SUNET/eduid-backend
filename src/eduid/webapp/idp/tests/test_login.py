@@ -1,3 +1,4 @@
+import json
 import logging
 import os
 from datetime import datetime, timedelta
@@ -18,10 +19,18 @@ from eduid.userdb.mail import MailAddressList
 from eduid.vccs.client import VCCSClient
 from eduid.webapp.common.api.testing import CSRFTestClient
 from eduid.webapp.common.authn.utils import get_saml2_config
+from eduid.webapp.common.session.namespaces import LoginApplication, RequestRef
 from eduid.webapp.idp.helpers import IdPAction, IdPMsg
 from eduid.webapp.idp.other_device.data import OtherDeviceState
-from eduid.webapp.idp.tests.test_api import FinishedResultAPI, IdPAPITests, PwAuthResult, TestUser
-from eduid.workers.am import AmCelerySingleton
+from eduid.webapp.idp.tests.test_api import (
+    FinishedResultAPI,
+    IdPAPITests,
+    LoginResultAPI,
+    NextResult,
+    PwAuthResult,
+    TestUser,
+)
+from eduid.workers.am.common import AmCelerySingleton
 
 logger = logging.getLogger(__name__)
 
@@ -1028,3 +1037,143 @@ class IdPTestLoginAPIManagedAccounts(IdPAPITests):
         assert "login request could not be processed" in response_text, (
             f"Expected error message in response: {response_text}"
         )
+
+
+class IdPTestNewSignup(IdPAPITests):
+    """Tests for the /signup_auth endpoint and its integration with /next."""
+
+    @pytest.fixture(scope="class")
+    def update_config(self) -> dict[str, Any]:
+        config = self._get_base_config()
+        config["allow_new_signup_logins"] = True
+        return config
+
+    def _get_ref(
+        self,
+        force_authn: bool = False,
+        authn_context: dict[str, Any] | None = None,
+    ) -> str:
+        """Create a SAML AuthnRequest and return the login ref."""
+        _ref_result = self._get_login_ref(
+            device=self.browser,
+            saml2_client=self.saml2_client,
+            authn_context=authn_context,
+            force_authn=force_authn,
+            assertion_consumer_service_url=None,
+        )
+        assert not isinstance(_ref_result, LoginResultAPI), f"Failed to get login ref: {_ref_result}"
+        ref, _resp = _ref_result
+        return ref
+
+    def _setup_signup_session(
+        self,
+        client: CSRFTestClient,
+        ref: str,
+        eppn: str,
+        user_created_at: datetime | None = None,
+        idp_request_ref: str | None = None,
+        login_source: LoginApplication | None = LoginApplication.signup,
+    ) -> None:
+        """Set signup session state on the client session."""
+        if user_created_at is None:
+            user_created_at = utc_now()
+        if idp_request_ref is None:
+            idp_request_ref = ref
+
+        with client.session_transaction() as sess:
+            sess.signup.user_created = True
+            sess.signup.user_created_at = user_created_at
+            if idp_request_ref is not None:
+                sess.signup.idp_request_ref = RequestRef(idp_request_ref)
+            sess.common.eppn = eppn
+            if login_source is not None:
+                sess.common.login_source = login_source
+
+    def _call_signup_auth(self, client: CSRFTestClient, ref: str) -> NextResult:
+        """Call /signup_auth with the given ref."""
+        with self.app.test_request_context():
+            with client.session_transaction() as sess:
+                data = {"ref": ref, "csrf_token": sess.get_csrf_token()}
+            response = client.post("/signup_auth", data=json.dumps(data), content_type=self.content_type_json)
+
+        logger.debug(f"signup_auth returned:\n{json.dumps(response.json, indent=4)}")
+        if response.is_json:
+            assert response.json is not None
+            if response.json.get("error"):
+                return NextResult(payload=self.get_response_payload(response), error=response.json)
+        return NextResult(payload=self.get_response_payload(response))
+
+    def _call_next(self, device: CSRFTestClient, ref: str) -> NextResult:
+        """Call /next with the given ref."""
+        with self.app.test_request_context():
+            with device.session_transaction() as sess:
+                data = {"ref": ref, "csrf_token": sess.get_csrf_token()}
+            response = device.post("/next", data=json.dumps(data), content_type=self.content_type_json)
+
+        logger.debug(f"Next endpoint returned:\n{json.dumps(response.json, indent=4)}")
+        if response.is_json:
+            assert response.json is not None
+            if response.json.get("error"):
+                return NextResult(payload=self.get_response_payload(response), error=response.json)
+        return NextResult(payload=self.get_response_payload(response))
+
+    def test_new_signup_accepted(self) -> None:
+        """signup_auth creates SSO session, then /next returns SAML response."""
+        self.add_test_user_tou()
+        ref = self._get_ref()
+
+        with self.session_cookie_anon(self.browser) as client:
+            self._setup_signup_session(client, ref=ref, eppn=self.test_user.eppn)
+
+            # Step 1: /signup_auth creates SSO session + sets cookie
+            auth_result = self._call_signup_auth(client, ref)
+            assert auth_result.error is None, f"signup_auth error: {auth_result.error}"
+            assert auth_result.payload.get("finished") is True
+
+            # Step 2: /next finds SSO session and returns SAML response
+            next_result = self._call_next(client, ref)
+            assert next_result.error is None, f"next error: {next_result.error}"
+            assert next_result.payload.get("action") == IdPAction.FINISHED.value
+            assert "SAMLResponse" in next_result.payload.get("parameters", {})
+
+    def test_new_signup_expired(self) -> None:
+        """Signup that is too old should be rejected by /signup_auth."""
+        self.add_test_user_tou()
+        ref = self._get_ref()
+
+        with self.session_cookie_anon(self.browser) as client:
+            self._setup_signup_session(
+                client, ref=ref, eppn=self.test_user.eppn, user_created_at=utc_now() - timedelta(minutes=10)
+            )
+            auth_result = self._call_signup_auth(client, ref)
+            assert auth_result.error is not None
+
+    def test_new_signup_force_authn(self) -> None:
+        """ForceAuthn should cause /signup_auth to reject."""
+        self.add_test_user_tou()
+        ref = self._get_ref(force_authn=True)
+
+        with self.session_cookie_anon(self.browser) as client:
+            self._setup_signup_session(client, ref=ref, eppn=self.test_user.eppn)
+            auth_result = self._call_signup_auth(client, ref)
+            assert auth_result.error is not None
+
+    def test_new_signup_wrong_ref(self) -> None:
+        """Mismatched idp_request_ref should cause /signup_auth to reject."""
+        self.add_test_user_tou()
+        ref = self._get_ref()
+
+        with self.session_cookie_anon(self.browser) as client:
+            self._setup_signup_session(client, ref=ref, eppn=self.test_user.eppn, idp_request_ref="wrong-ref")
+            auth_result = self._call_signup_auth(client, ref)
+            assert auth_result.error is not None
+
+    def test_new_signup_no_login_source(self) -> None:
+        """Without login_source=signup, /signup_auth should reject."""
+        self.add_test_user_tou()
+        ref = self._get_ref()
+
+        with self.session_cookie_anon(self.browser) as client:
+            self._setup_signup_session(client, ref=ref, eppn=self.test_user.eppn, login_source=None)
+            auth_result = self._call_signup_auth(client, ref)
+            assert auth_result.error is not None

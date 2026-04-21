@@ -19,11 +19,11 @@ class DecoratorTestConfig(EduIDBaseAppConfig):
     pass
 
 
-class DecoratorTestApp(EduIDBaseApp[DecoratorTestConfig]):
+class DecoratorTestApp(EduIDBaseApp):
+    conf: DecoratorTestConfig
+
     def __init__(self, config: DecoratorTestConfig) -> None:
         super().__init__(config)
-
-        self.conf = config
 
 
 test_views = flask.Blueprint("test", __name__, url_prefix="/test")
@@ -36,7 +36,7 @@ def flask_view(ret: FluxData) -> FluxData:
     return ret
 
 
-class MarshalDecoratorTests(EduidAPITestCase):
+class MarshalDecoratorTests(EduidAPITestCase[DecoratorTestApp]):
     app: DecoratorTestApp
 
     def load_app(self, config: Mapping[str, Any]) -> DecoratorTestApp:

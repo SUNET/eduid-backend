@@ -1,6 +1,7 @@
 from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import datetime
+from typing import Any
 
 from eduid.queue.db import Payload
 
@@ -12,7 +13,7 @@ class EduidTestPayload(Payload):
     counter: int
 
     @classmethod
-    def from_dict(cls, data: Mapping) -> "EduidTestPayload":
+    def from_dict(cls, data: Mapping[str, Any]) -> "EduidTestPayload":
         return cls(**data)
 
 
@@ -27,7 +28,7 @@ class EduidTestResultPayload(Payload):
     per_second: int
 
     @classmethod
-    def from_dict(cls, data: Mapping) -> "EduidTestResultPayload":
+    def from_dict(cls, data: Mapping[str, Any]) -> "EduidTestResultPayload":
         return cls(**data)
 
 
@@ -38,7 +39,7 @@ class EduidSCIMAPINotification(Payload):
     message: str
 
     @classmethod
-    def from_dict(cls, data: Mapping) -> "EduidSCIMAPINotification":
+    def from_dict(cls, data: Mapping[str, Any]) -> "EduidSCIMAPINotification":
         data = dict(data)  # Do not change caller data
         return cls(**data)
 
@@ -50,7 +51,7 @@ class EmailPayload(Payload):
     language: str
 
     @classmethod
-    def from_dict(cls, data: Mapping) -> "EmailPayload":
+    def from_dict(cls, data: Mapping[str, Any]) -> "EmailPayload":
         data = dict(data)  # Do not change caller data
         return cls(**data)
 

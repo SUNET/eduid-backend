@@ -49,7 +49,7 @@ import json
 import logging
 import typing
 from collections.abc import Iterator, Mapping
-from typing import Any
+from typing import Any, cast
 
 import nacl.encoding
 import nacl.secret
@@ -136,8 +136,8 @@ def get_redis_pool(cfg: RedisConfig) -> sentinel.SentinelConnectionPool | redis.
     logger.debug(f"Redis configuration: {cfg}")
     if cfg.sentinel_hosts and cfg.sentinel_service_name:
         host_port = [(x, cfg.port) for x in cfg.sentinel_hosts]
-        manager = sentinel.Sentinel(host_port, socket_timeout=0.1)
-        return sentinel.SentinelConnectionPool(cfg.sentinel_service_name, manager)
+        manager = sentinel.Sentinel(host_port, socket_timeout=0.1)  # type: ignore[no-untyped-call]
+        return sentinel.SentinelConnectionPool(cfg.sentinel_service_name, manager)  # type: ignore[no-untyped-call]
     else:
         if not cfg.host:
             logger.error("Redis configuration without sentinel parameters does not have host")
@@ -305,7 +305,7 @@ class RedisEncryptedSession(typing.MutableMapping[str, Any]):
         if "v2" in versioned:
             _data = self.secret_box.decrypt(versioned["v2"], encoder=nacl.encoding.Base64Encoder)
             decrypted = json.loads(_data)
-            return decrypted
+            return cast(dict[str, Any], decrypted)
 
         logger.error(f"Unknown data retrieved from Redis[{self.short_id}]: {data_str!r}")
         raise ValueError("Unknown data retrieved from Redis")

@@ -3,7 +3,7 @@ import sys
 import warnings
 from collections.abc import Callable, Iterable
 from dataclasses import asdict
-from typing import Any
+from typing import Any, cast
 from urllib import parse
 from wsgiref.types import StartResponse, WSGIEnvironment
 
@@ -24,7 +24,7 @@ class LoggingMiddleware:
             pprint.pprint(("RESPONSE", status, headers), stream=errorlog)
             return start_response(status, headers, *args)
 
-        return self._app(environ, log_response)
+        return cast(Iterable[bytes], self._app(environ, log_response))
 
 
 def log_endpoints(app: Flask) -> None:

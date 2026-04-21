@@ -15,11 +15,11 @@ from eduid.webapp.common.api.exceptions import ApiException
 from eduid.webapp.support.settings.common import SupportConfig
 
 
-class SupportApp(EduIDBaseApp[SupportConfig]):
+class SupportApp(EduIDBaseApp):
+    conf: SupportConfig
+
     def __init__(self, config: SupportConfig, **kwargs: Any) -> None:
         super().__init__(config, **kwargs)
-
-        self.conf = config
 
         self.support_user_db = db.SupportUserDB(config.mongo_uri)
         self.support_authn_db = db.SupportAuthnInfoDB(config.mongo_uri)
@@ -46,7 +46,7 @@ def register_template_funcs(app: SupportApp) -> None:
         return value.strftime(fmt)
 
     @app.template_filter("multisort")
-    def sort_multi(items: list, *operators: str, **kwargs: Any) -> list:
+    def sort_multi(items: list[Any], *operators: str, **kwargs: Any) -> list[Any]:
         # Don't try to sort on missing keys
         keys = list(operators)  # operators are immutable
         for key in operators:

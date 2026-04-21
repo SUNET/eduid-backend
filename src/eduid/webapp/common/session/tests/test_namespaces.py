@@ -7,8 +7,7 @@ from eduid.common.config.base import FrontendAction
 from eduid.common.config.parsers import load_config
 from eduid.common.testing_base import normalised_data
 from eduid.webapp.common.api.testing import EduidAPITestCase
-from eduid.webapp.common.session import EduidSession
-from eduid.webapp.common.session.eduid_session import SessionFactory
+from eduid.webapp.common.session.eduid_session import EduidSession, SessionFactory
 from eduid.webapp.common.session.meta import SessionMeta
 from eduid.webapp.common.session.namespaces import AuthnRequestRef, SP_AuthnRequest
 from eduid.webapp.common.session.tests.test_eduid_session import SessionTestApp, SessionTestConfig
@@ -17,7 +16,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
 
-class TestNameSpaceBase(EduidAPITestCase):
+class TestNameSpaceBase(EduidAPITestCase[SessionTestApp]):
     app: SessionTestApp
 
     def load_app(self, config: Mapping[str, Any]) -> SessionTestApp:
@@ -59,7 +58,7 @@ class TestNamespace(TestNameSpaceBase):
                 "name": {},
                 "tou": {"completed": False},
                 "captcha": {"bad_attempts": 0, "completed": False},
-                "credentials": {"completed": False},
+                "credentials": {"completed": False, "custom_password": False},
             },
             "idp": {"sso_cookie_val": "abc", "pending_requests": {}},
         }, f"Actual result: {normalised_out}"

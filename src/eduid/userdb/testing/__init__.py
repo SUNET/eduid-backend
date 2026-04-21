@@ -8,7 +8,7 @@ import logging
 import logging.config
 from collections.abc import Iterator, Sequence
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, cast
 
 import pymongo
 import pymongo.errors
@@ -57,7 +57,7 @@ class MongoTemporaryInstance(EduidTemporaryInstance):
     def conn(self) -> pymongo.MongoClient[TUserDbDocument]:
         if self._conn is None:
             raise RuntimeError("Missing temporary MongoDB instance")
-        return self._conn
+        return cast(pymongo.MongoClient[TUserDbDocument], self._conn)
 
     @property
     def uri(self) -> str:

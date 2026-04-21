@@ -14,11 +14,11 @@ from eduid.webapp.ladok.settings.common import LadokConfig
 __author__ = "lundberg"
 
 
-class LadokApp(AuthnBaseApp[LadokConfig]):
+class LadokApp(AuthnBaseApp):
+    conf: LadokConfig
+
     def __init__(self, config: LadokConfig, **kwargs: Any) -> None:
         super().__init__(config, **kwargs)
-
-        self.conf = config
 
         # Init dbs
         self.private_userdb = LadokProofingUserDB(config.mongo_uri, auto_expire=config.private_userdb_auto_expire)

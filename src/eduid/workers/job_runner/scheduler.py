@@ -1,4 +1,4 @@
-from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from apscheduler.schedulers.asyncio import AsyncIOScheduler  # type: ignore[import-untyped]
 
 from eduid.common.config.exceptions import BadConfiguration
 from eduid.workers.job_runner.config import EnvironmentOrWorkerName, JobCronConfig, JobName
@@ -6,7 +6,7 @@ from eduid.workers.job_runner.context import Context
 from eduid.workers.job_runner.jobs.skv import check_skv_users, gather_skv_users
 
 
-class JobScheduler(AsyncIOScheduler):
+class JobScheduler(AsyncIOScheduler):  # type: ignore[misc]
     def schedule_jobs(self, context: Context) -> None:
         """
         Schedule all jobs configured for host or environment

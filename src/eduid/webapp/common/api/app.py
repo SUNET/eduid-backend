@@ -10,7 +10,7 @@ from abc import ABCMeta
 from sys import stderr
 from typing import TYPE_CHECKING, Any
 
-from cookies_samesite_compat import CookiesSameSiteCompatMiddleware
+from cookies_samesite_compat import CookiesSameSiteCompatMiddleware  # type: ignore[import-untyped]
 from flask import Flask
 from flask_cors import CORS
 from werkzeug.middleware.proxy_fix import ProxyFix
@@ -45,16 +45,16 @@ if DEBUG:
     stderr.writelines("----- WARNING! EDUID_APP_DEBUG is enabled -----\n")
 
 
-class EduIDBaseApp[C: EduIDBaseAppConfig](Flask, metaclass=ABCMeta):
+class EduIDBaseApp(Flask, metaclass=ABCMeta):
     """
     Base class for eduID apps, initializing common features and facilities.
     """
 
-    conf: C
+    conf: EduIDBaseAppConfig
 
     def __init__(
         self,
-        config: C,
+        config: EduIDBaseAppConfig,
         init_central_userdb: bool = True,
         handle_exceptions: bool = True,
         **kwargs: Any,
@@ -65,6 +65,7 @@ class EduIDBaseApp[C: EduIDBaseAppConfig](Flask, metaclass=ABCMeta):
         :param handle_exceptions: Whether to install exception handler or not.
         """
         super().__init__(config.app_name, **kwargs)
+        self.conf = config
         _flask_config = {x.upper(): v for x, v in config.flask.to_mapping().items()}
         self.config.from_mapping(_flask_config)
 

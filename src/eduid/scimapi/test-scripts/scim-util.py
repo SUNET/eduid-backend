@@ -40,10 +40,10 @@ def parse_args() -> Args:
 
 
 def scim_request(
-    func: Callable,
+    func: Callable[..., Any],
     url: str,
-    data: dict | None = None,
-    headers: dict | None = None,
+    data: dict[str, Any] | None = None,
+    headers: dict[str, Any] | None = None,
     token: str | None = None,
     verify: bool = True,
 ) -> dict[str, Any] | None:
@@ -58,16 +58,16 @@ def scim_request(
     if not r:
         return None
 
-    response = r.json()
+    response = cast(dict[str, Any], r.json())
     logger.debug(f"Response:\n{pformat(response, width=120)}")
     return response
 
 
 def _make_request(
-    func: Callable,
+    func: Callable[..., Any],
     url: str,
-    data: dict | None = None,
-    headers: dict | None = None,
+    data: dict[str, Any] | None = None,
+    headers: dict[str, Any] | None = None,
     verify: bool = True,
 ) -> requests.Response | None:
     r = func(url, json=data, headers=headers, verify=verify)
@@ -82,7 +82,7 @@ def _make_request(
         except Exception:
             logger.error(f"Error {r} received from server: {r.text}")
         return None
-    return r
+    return cast(requests.Response, r)
 
 
 def search_user(api: Api, search_filter: str) -> dict[str, Any] | None:

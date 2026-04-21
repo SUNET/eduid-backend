@@ -1,5 +1,4 @@
 import json
-from collections.abc import Mapping
 from http import HTTPStatus
 from typing import Any
 
@@ -24,9 +23,9 @@ class TestMAccApi(MAccApiTestCase):
             "requested_access": [{"type": "maccapi", "scope": "eduid.se"}],
         }
 
-    def _make_bearer_token(self, claims: Mapping[str, Any]) -> str:
+    def _make_bearer_token(self, claims: dict[str, Any]) -> str:
         token = jwt.JWT(header={"alg": "ES256"}, claims=claims)
-        jwk = next(iter(self.context.jwks))
+        jwk = next(iter(self.context.jwks["keys"]))
         token.make_signed_token(jwk)
         return token.serialize()
 

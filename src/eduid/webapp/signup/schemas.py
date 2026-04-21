@@ -48,7 +48,9 @@ class SignupStatusResponse(FluxStandardAction):
                 completed = fields.Boolean(required=True)
                 generated_password = fields.String(required=True, dump_default=None)
                 custom_password = fields.Boolean(required=True, dump_default=False)
-                # TODO: implement webauthn signup
+                webauthn_registered = fields.Boolean(required=True, dump_default=False)
+                webauthn_is_discoverable = fields.Boolean(required=True, dump_default=False)
+                webauthn_description = fields.String(required=True, dump_default=None)
 
             already_signed_up = fields.Boolean(required=True)
             name = fields.Nested(Name, required=True)
@@ -58,25 +60,26 @@ class SignupStatusResponse(FluxStandardAction):
             captcha = fields.Nested(Captcha, required=True)
             credentials = fields.Nested(Credentials, required=True)
             user_created = fields.Boolean(required=True)
+            idp_request_ref = fields.String(required=False, load_default=None)
 
         state = fields.Nested(State, required=True)
 
     payload = fields.Nested(StatusSchema)
 
     @pre_dump
-    def set_already_signed_up(self, data: dict, **kwargs: Any) -> dict:
+    def set_already_signed_up(self, data: dict[str, Any], **kwargs: Any) -> dict[str, Any]:
         if data["payload"].get("state"):
             data["payload"]["state"]["already_signed_up"] = bool(session.common.eppn)
         return data
 
     @pre_dump
-    def set_tou_version(self, data: dict, **kwargs: Any) -> dict:
+    def set_tou_version(self, data: dict[str, Any], **kwargs: Any) -> dict[str, Any]:
         if data["payload"].get("state", {}).get("tou") and data["payload"]["state"]["tou"].get("version") is None:
             data["payload"]["state"]["tou"]["version"] = current_app.conf.tou_version
         return data
 
     @pre_dump
-    def throttle_delta_to_seconds(self, out_data: dict, **kwargs: Any) -> dict:
+    def throttle_delta_to_seconds(self, out_data: dict[str, Any], **kwargs: Any) -> dict[str, Any]:
         if out_data["payload"].get("state", {}).get("email", {}).get("sent_at"):
             sent_at = out_data["payload"]["state"]["email"]["sent_at"]
             throttle_time_left = time_left(sent_at, current_app.conf.throttle_resend).total_seconds()
@@ -88,7 +91,7 @@ class SignupStatusResponse(FluxStandardAction):
         return out_data
 
     @pre_dump
-    def email_verification_timeout_delta_to_seconds(self, out_data: dict, **kwargs: Any) -> dict:
+    def email_verification_timeout_delta_to_seconds(self, out_data: dict[str, Any], **kwargs: Any) -> dict[str, Any]:
         if out_data["payload"].get("state", {}).get("email", {}).get("sent_at"):
             sent_at = out_data["payload"]["state"]["email"]["sent_at"]
             verification_time_left = time_left(sent_at, current_app.conf.email_verification_timeout).total_seconds()
@@ -100,11 +103,21 @@ class SignupStatusResponse(FluxStandardAction):
         return out_data
 
     @pre_dump
-    def bad_attempts_max(self, out_data: dict, **kwargs: Any) -> dict:
+    def bad_attempts_max(self, out_data: dict[str, Any], **kwargs: Any) -> dict[str, Any]:
         if out_data["payload"].get("state", {}).get("email"):
             out_data["payload"]["state"]["email"]["bad_attempts_max"] = (
                 current_app.conf.email_verification_max_bad_attempts
             )
+        return out_data
+
+    @pre_dump
+    def set_webauthn_registered(self, out_data: dict[str, Any], **kwargs: Any) -> dict[str, Any]:
+        if out_data["payload"].get("state", {}).get("credentials"):
+            credentials = out_data["payload"]["state"]["credentials"]
+            webauthn = credentials.get("webauthn")
+            credentials["webauthn_registered"] = bool(webauthn)
+            credentials["webauthn_is_discoverable"] = bool(webauthn and webauthn.get("is_discoverable"))
+            credentials["webauthn_description"] = webauthn.get("description") if webauthn else None
         return out_data
 
 
@@ -159,3 +172,17 @@ class InviteCompletedResponse(FluxStandardAction):
         finish_url = fields.String(required=False)
 
     payload = fields.Nested(InviteCompletedSchema)
+
+
+class WebauthnRegisterBeginRequest(EduidSchema, CSRFRequestMixin):
+    authenticator = fields.String(required=True)
+
+
+class WebauthnRegisterCompleteRequest(EduidSchema, CSRFRequestMixin):
+    response = fields.Dict(required=True)
+    description = fields.String(required=True)
+    client_extension_results = fields.Dict(required=False, data_key="clientExtensionResults")
+
+
+class ReturnToAuthRequest(EduidSchema, CSRFRequestMixin):
+    ref = fields.String(required=True)

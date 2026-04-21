@@ -9,7 +9,7 @@ from collections.abc import Generator, Iterable, Iterator, Mapping
 from contextlib import contextmanager
 from copy import deepcopy
 from datetime import datetime, timedelta
-from typing import Any, ClassVar, cast
+from typing import Any, ClassVar, Protocol, cast, runtime_checkable
 
 import pytest
 from flask.testing import FlaskClient
@@ -27,20 +27,26 @@ from eduid.userdb.element import ElementKey
 from eduid.userdb.fixtures.fido_credentials import u2f_credential, webauthn_credential
 from eduid.userdb.fixtures.users import UserFixtures
 from eduid.userdb.identity import IdentityType
-from eduid.userdb.logs.db import ProofingLog
-from eduid.userdb.proofing.state import NinProofingState
 from eduid.userdb.testing import MongoTemporaryInstance
 from eduid.userdb.userdb import UserDB
 from eduid.webapp.common.api.app import EduIDBaseApp
 from eduid.webapp.common.api.messages import AuthnStatusMsg, TranslatableMsg
 from eduid.webapp.common.api.schemas.authn_status import AuthnActionStatus
 from eduid.webapp.common.authn.acs_enums import AuthnAcsAction
-from eduid.webapp.common.session import EduidSession
+from eduid.webapp.common.session.eduid_session import EduidSession
 from eduid.webapp.common.session.namespaces import SP_AuthnRequest
 from eduid.webapp.common.session.testing import RedisTemporaryInstance
 from eduid.workers.msg.tasks import MessageSender
 
 logger = logging.getLogger(__name__)
+
+
+@runtime_checkable
+class HasPrivateUserDB(Protocol):
+    """Protocol for apps that have a private_userdb attribute."""
+
+    private_userdb: UserDB[Any]
+
 
 TEST_CONFIG = {
     "debug": True,
@@ -134,8 +140,7 @@ class EduidAPITestCase[T: EduIDBaseApp](CommonTestCase):
         self.test_domain = "test.localhost"
 
         # Save app conf so mutations by individual tests don't leak to subsequent tests.
-        # Use getattr so mypy doesn't complain about T not having "conf".
-        _saved_conf = deepcopy(getattr(self.app, "conf", None))
+        _saved_conf = deepcopy(self.app.conf)
 
         _users = UserFixtures()
         _standard_test_users = {
@@ -156,8 +161,8 @@ class EduidAPITestCase[T: EduIDBaseApp](CommonTestCase):
 
         if self.copy_user_to_private:
             data = self.test_user.to_dict()
-            _private_userdb = getattr(self.app, "private_userdb")
-            assert isinstance(_private_userdb, UserDB)
+            assert isinstance(self.app, HasPrivateUserDB), f"{type(self.app)} does not have private_userdb"
+            _private_userdb = self.app.private_userdb
             logging.info(f"Copying test-user {self.test_user} to private_userdb {_private_userdb}")
             _private_userdb.save(_private_userdb.user_from_dict(data=data))
 
@@ -222,7 +227,7 @@ class EduidAPITestCase[T: EduIDBaseApp](CommonTestCase):
                 sess.common.eppn = eppn
                 sess.common.is_logged_in = logged_in
             assert isinstance(self.app, EduIDBaseApp)
-            _conf = getattr(self.app, "conf")
+            _conf = self.app.conf
             assert isinstance(_conf, EduIDBaseAppConfig)
             client.set_cookie(domain=domain, key=_conf.flask.session_cookie_name, value=sess.meta.cookie_val)
         yield client
@@ -246,7 +251,7 @@ class EduidAPITestCase[T: EduIDBaseApp](CommonTestCase):
         if domain is None:
             domain = self.test_domain
         assert isinstance(self.app, EduIDBaseApp)
-        _conf = getattr(self.app, "conf")
+        _conf = self.app.conf
         assert isinstance(_conf, MagicCookieMixin)
         if magic_cookie_name is None:
             assert _conf.magic_cookie_name is not None
@@ -566,44 +571,6 @@ class EduidAPITestCase[T: EduIDBaseApp](CommonTestCase):
                 logger.info(f"Test case got unexpected response ({response.status_code}):\n{response.data}")
             raise
 
-    def _check_nin_verified_ok(
-        self,
-        user: User,
-        proofing_state: NinProofingState,
-        number: str | None = None,
-        created_by: str | None = None,
-    ) -> None:
-        if number is None and (self.test_user is not None and self.test_user.identities.nin):
-            number = self.test_user.identities.nin.number
-
-        created_by_str = created_by or proofing_state.nin.created_by
-
-        assert user.identities.nin is not None
-        assert user.identities.nin.number == number
-        assert user.identities.nin.created_by == created_by_str
-        assert user.identities.nin.verified_by == proofing_state.nin.created_by
-        assert user.identities.nin.is_verified is True
-        assert user.identities.nin.proofing_method is not None
-        assert user.identities.nin.proofing_version is not None
-
-        _log = getattr(self.app, "proofing_log")
-        assert isinstance(_log, ProofingLog)
-        assert _log.db_count() == 1
-
-    def _check_nin_not_verified(self, user: User, number: str | None = None, created_by: str | None = None) -> None:
-        if number is None and (self.test_user is not None and self.test_user.identities.nin):
-            number = self.test_user.identities.nin.number
-
-        assert user.identities.nin is not None
-        assert user.identities.nin.number == number
-        if created_by:
-            assert user.identities.nin.created_by == created_by
-        assert user.identities.nin.is_verified is False
-
-        _log = getattr(self.app, "proofing_log")
-        assert isinstance(_log, ProofingLog)
-        assert _log.db_count() == 0
-
 
 class CSRFTestClient(FlaskClient):
     # Add the custom csrf headers to every call to post
@@ -615,7 +582,7 @@ class CSRFTestClient(FlaskClient):
         that makes it harder to override per call to post.
         """
         assert isinstance(self.application, EduIDBaseApp)
-        _conf = getattr(self.application, "conf")
+        _conf = self.application.conf
         assert isinstance(_conf, EduIDBaseAppConfig)
 
         test_host = f"{_conf.flask.preferred_url_scheme}://{_conf.flask.server_name}"

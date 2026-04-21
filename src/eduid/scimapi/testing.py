@@ -22,8 +22,9 @@ from eduid.scimapi.app import init_api
 from eduid.scimapi.config import ScimApiConfig
 from eduid.scimapi.context import Context
 from eduid.userdb.scimapi import ScimApiEvent, ScimApiGroup, ScimApiLinkedAccount, ScimApiName
+from eduid.userdb.scimapi.common import ScimApiProfile
 from eduid.userdb.scimapi.invitedb import ScimApiInvite
-from eduid.userdb.scimapi.userdb import ScimApiProfile, ScimApiUser
+from eduid.userdb.scimapi.userdb import ScimApiUser
 from eduid.userdb.signup import SignupInviteDB
 from eduid.userdb.testing import MongoTemporaryInstance
 
@@ -67,7 +68,7 @@ class MongoNeoTestCase(BaseDBTestCase):
     neo4j_instance: Neo4jTemporaryInstance
     neo4j_uri: str
 
-    def _get_config(self) -> dict:
+    def _get_config(self) -> dict[str, Any]:
         config = super()._get_config()
         config.update(
             {
@@ -137,7 +138,7 @@ class ScimApiTestCase(MongoNeoTestCase):
         for dbs in self.context._dbs.values():
             dbs.groupdb.graphdb.db.close()
 
-    def _get_config(self) -> dict:
+    def _get_config(self) -> dict[str, Any]:
         config = super()._get_config()
         config["keystore_path"] = f"{self.datadir}/testing_jwks.json"
         config["signing_key_id"] = "testing-scimapi-2106210000"

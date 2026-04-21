@@ -1,7 +1,7 @@
 import json
 from collections.abc import Mapping
 from datetime import timedelta
-from typing import Any
+from typing import Any, cast
 from urllib.parse import quote_plus
 
 import pytest
@@ -44,7 +44,7 @@ class PhoneTests(EduidAPITestCase[PhoneApp]):
 
     # parameterized test methods
 
-    def _get_all_phone(self, eppn: str | None = None) -> dict:
+    def _get_all_phone(self, eppn: str | None = None) -> dict[str, Any]:
         """
         GET all phone data for some user
 
@@ -57,7 +57,7 @@ class PhoneTests(EduidAPITestCase[PhoneApp]):
         with self.session_cookie(self.browser, eppn) as client:
             response2 = client.get("/all")
 
-            return json.loads(response2.data)
+            return cast(dict[str, Any], json.loads(response2.data))
 
     def _post_phone(
         self,

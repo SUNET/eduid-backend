@@ -183,7 +183,7 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
 
     def _post_choose_extra_sec(
         self,
-        sendsms_side_effect: Callable | Exception | Iterable | None = None,
+        sendsms_side_effect: Callable[..., Any] | Exception | Iterable[Any] | None = None,
         data1: dict[str, Any] | None = None,
         data2: dict[str, Any] | None = None,
         data3: dict[str, Any] | None = None,
@@ -438,7 +438,7 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
 
     def _get_phone_code_backdoor(
         self,
-        sendsms_side_effect: Callable | Exception | Iterable | None = None,
+        sendsms_side_effect: Callable[..., Any] | Exception | Iterable[Any] | None = None,
         magic_cookie_name: str | None = None,
     ) -> TestResponse:
         """

@@ -2,13 +2,14 @@ __author__ = "lundberg"
 
 import json
 from http import HTTPStatus
+from typing import Any
 from uuid import uuid4
 
 from eduid.scimapi.testing import ScimApiTestCase
 
 
 class TestLoginResource(ScimApiTestCase):
-    def _get_config(self) -> dict:
+    def _get_config(self) -> dict[str, Any]:
         config = super()._get_config()
         config["login_enabled"] = True
         return config

@@ -1,7 +1,7 @@
 import json
 from collections.abc import Mapping
 from datetime import timedelta
-from typing import Any
+from typing import Any, cast
 
 import pytest
 from pytest_mock import MockerFixture
@@ -66,7 +66,7 @@ class EmailTests(EduidAPITestCase[EmailApp]):
 
     # Parameterized test methods
 
-    def _get_all_emails(self) -> dict:
+    def _get_all_emails(self) -> dict[str, Any]:
         """
         GET a list with all the email addresses of the test user
         """
@@ -77,7 +77,7 @@ class EmailTests(EduidAPITestCase[EmailApp]):
         with self.session_cookie(self.browser, eppn) as client:
             response2 = client.get("/all")
 
-            return json.loads(response2.data)
+            return cast(dict[str, Any], json.loads(response2.data))
 
     def _post_email(
         self,

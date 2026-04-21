@@ -68,7 +68,7 @@ def tou(
         try:
             res = save_and_sync_user(
                 tou_user,
-                private_userdb=current_app.tou_db,  # type: ignore[arg-type]
+                private_userdb=current_app.tou_db,
                 app_name_override="eduid_tou",
             )
         except UserOutOfSync:

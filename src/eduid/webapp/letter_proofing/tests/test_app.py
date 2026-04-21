@@ -1,7 +1,7 @@
 import json
 from collections.abc import Mapping
 from datetime import datetime, timedelta
-from typing import Any, ClassVar
+from typing import Any, ClassVar, cast
 
 import pytest
 from pytest_mock import MockerFixture
@@ -11,7 +11,7 @@ from eduid.common.config.base import EduidEnvironment
 from eduid.userdb import NinIdentity
 from eduid.userdb.element import ElementKey
 from eduid.userdb.identity import IdentityType
-from eduid.webapp.common.api.testing import EduidAPITestCase
+from eduid.webapp.common.proofing.testing import ProofingTests
 from eduid.webapp.letter_proofing.app import LetterProofingApp, init_letter_proofing_app
 from eduid.webapp.letter_proofing.helpers import LetterMsg
 
@@ -43,7 +43,7 @@ class MockResponse:
         return self._json_data
 
 
-class LetterProofingTests(EduidAPITestCase[LetterProofingApp]):
+class LetterProofingTests(ProofingTests[LetterProofingApp]):
     """Base TestCase for those tests that need a full environment setup"""
 
     api_users: ClassVar[list[str]] = ["hubba-baar"]
@@ -82,7 +82,7 @@ class LetterProofingTests(EduidAPITestCase[LetterProofingApp]):
         with self.session_cookie(self.browser, self.test_user_eppn) as client:
             response = client.get("/proofing")
         assert response.status_code == 200
-        return json.loads(response.data)
+        return cast(dict[str, Any], json.loads(response.data))
 
     def send_letter(self, nin: str, csrf_token: str | None = None, validate_response: bool = True) -> TestResponse:
         """

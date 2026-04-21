@@ -16,7 +16,7 @@ from eduid.common.misc.timeutil import utc_now
 @dataclass
 class SimpleCacheItem:
     expire_time: datetime
-    data: Mapping
+    data: Mapping[str, Any]
 
 
 @dataclass
@@ -82,7 +82,7 @@ def get_cached_response(req: ContextRequest, resp: Response, key: str) -> Mappin
     return None
 
 
-def set_cached_response(req: ContextRequest, resp: Response, key: str, data: Mapping) -> None:
+def set_cached_response(req: ContextRequest, resp: Response, key: str, data: Mapping[str, Any]) -> None:
     cache_for_seconds = req.app.context.config.status_cache_seconds
     now = utc_now()
     expires = now + timedelta(seconds=cache_for_seconds)

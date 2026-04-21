@@ -4,7 +4,7 @@ import logging
 from collections.abc import Mapping
 from dataclasses import asdict, dataclass
 from datetime import datetime, timedelta
-from typing import Any
+from typing import Any, cast
 from uuid import UUID, uuid4
 
 import bson
@@ -20,7 +20,8 @@ from eduid.common.utils import make_etag
 from eduid.scimapi.testing import ScimApiTestCase
 from eduid.scimapi.utils import filter_none
 from eduid.userdb.scimapi import EventStatus, ScimApiGroup, ScimApiLinkedAccount, ScimApiName
-from eduid.userdb.scimapi.userdb import ScimApiProfile, ScimApiUser
+from eduid.userdb.scimapi.common import ScimApiProfile
+from eduid.userdb.scimapi.userdb import ScimApiUser
 
 logger = logging.getLogger(__name__)
 
@@ -189,7 +190,7 @@ class ScimApiTestUserResourceBase(ScimApiTestCase):
             attributes={"displayName": "Test User 2"}, data={"another_test_key": "another_test_value"}
         )
 
-    def _assertUserUpdateSuccess(self, req: Mapping, response: Response, user: ScimApiUser) -> None:
+    def _assertUserUpdateSuccess(self, req: Mapping[str, Any], response: Response, user: ScimApiUser) -> None:
         """Function to validate successful responses to SCIM calls that update a user according to a request."""
 
         if response.json().get("schemas") == [SCIMSchema.ERROR.value]:
@@ -814,7 +815,7 @@ class TestUserResource(ScimApiTestUserResourceBase):
         expected_user: ScimApiUser | None = None,
         expected_num_resources: int | None = None,
         expected_total_results: int | None = None,
-    ) -> dict:
+    ) -> list[dict[str, Any]]:
         logger.info(f"Searching for user(s) using filter {search_filter!r}")
         req = {
             "schemas": [SCIMSchema.API_MESSAGES_20_SEARCH_REQUEST.value],
@@ -827,7 +828,7 @@ class TestUserResource(ScimApiTestUserResourceBase):
         response = self.client.post(url="/Users/.search", json=req, headers=self.headers)
         logger.info(f"Search parsed_response:\n{response.json()}")
         if return_json:
-            return response.json()
+            return cast(list[dict[str, Any]], response.json())
         self._assertResponse(response)
         expected_schemas = [SCIMSchema.API_MESSAGES_20_LIST_RESPONSE.value]
         response_schemas = response.json().get("schemas")
@@ -860,7 +861,7 @@ class TestUserResource(ScimApiTestUserResourceBase):
 
         assert [SCIMSchema.API_MESSAGES_20_LIST_RESPONSE.value] == response.json().get("schemas")
         resources = response.json().get("Resources")
-        return resources
+        return cast(list[dict[str, Any]], resources)
 
 
 class TestAsyncUserResource(ScimApiTestCase):

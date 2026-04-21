@@ -142,7 +142,7 @@ class MarshalWith:
     def __init__(self, schema: type[Schema]) -> None:
         self.schema = schema
 
-    def __call__(self, f: EduidRouteCallable) -> Callable:
+    def __call__(self, f: EduidRouteCallable) -> Callable[..., Any]:
         @wraps(f)
         def marshal_decorator(*args: Any, **kwargs: Any) -> Response:
             # Call the Flask view, which is expected to return a FluxData instance,
@@ -187,7 +187,7 @@ class UnmarshalWith:
     def __init__(self, schema: type[Schema]) -> None:
         self.schema = schema
 
-    def __call__(self, f: EduidRouteCallable) -> Callable:
+    def __call__(self, f: EduidRouteCallable) -> Callable[..., Any]:
         @wraps(f)
         def unmarshal_decorator(*args: Any, **kwargs: Any) -> ResponseReturnValue:
             flux_logger.debug("")
@@ -207,11 +207,11 @@ class UnmarshalWith:
                 response_data = FluxFailResponse(
                     request,
                     payload={
-                        "error": cast(Any, e.normalized_messages()),
+                        "error": cast(Any, e.normalized_messages()),  # type: ignore[no-untyped-call]
                         "csrf_token": session.get_csrf_token(),
                     },
                 )
-                logger.warning(f"Error un-marshalling request using {self.schema}: {e.normalized_messages()}")
+                logger.warning(f"Error un-marshalling request using {self.schema}: {e.normalized_messages()}")  # type: ignore[no-untyped-call]
                 if "password" in _data_str:
                     logger.debug("Failing request has a password in it, not logging JSON data")
                 else:

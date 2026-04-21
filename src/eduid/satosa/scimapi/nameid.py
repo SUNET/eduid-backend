@@ -27,7 +27,7 @@ ALLOWED_NAMEIDS = (
 logger = logging.getLogger(__name__)
 
 
-class request(RequestMicroService):
+class request(RequestMicroService):  # type: ignore[misc]
     def __init__(
         self,
         config: Mapping[str, Any],
@@ -56,7 +56,7 @@ class request(RequestMicroService):
         return super().process(context, data)
 
 
-class response(ResponseMicroService):
+class response(ResponseMicroService):  # type: ignore[misc]
     def __init__(
         self,
         config: Mapping[str, Any],

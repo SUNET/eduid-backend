@@ -1,12 +1,6 @@
 TOPDIR:=	$(abspath .)
 SRCDIR=		$(TOPDIR)/src
 SOURCE=		$(SRCDIR)/eduid
-MYPY_ARGS=	--install-types --non-interactive --pretty --ignore-missing-imports \
-			--warn-unused-ignores \
-			# --disallow-untyped-decorators
-MYPY_STRICT= --strict \
-			 --implicit-reexport \
-			 --allow-untyped-calls
 
 PYTEST_WORKERS ?= 2  # override with e.g. make test PYTEST_WORKERS=4; use 1 for serial fallback; avoid 'auto' (OOMs on large machines)
 # --dist=loadgroup: tests with xdist_group("neo4j") all go to one worker; ungrouped tests are load-balanced.
@@ -25,11 +19,9 @@ lint:
 	ruff check
 
 typecheck:
-	MYPYPATH=$(SRCDIR) mypy $(MYPY_ARGS) --namespace-packages -p eduid --check-untyped-defs
+	MYPYPATH=$(SRCDIR) mypy --install-types --non-interactive --strict -p eduid
 
-typecheck_strict:
-	$(info Running mypy in semi-strict mode (not enforced in the build pipeline yet))
-	MYPYPATH=$(SRCDIR) mypy $(MYPY_ARGS) $(MYPY_STRICT) --namespace-packages -p eduid --check-untyped-defs
+typecheck_strict: typecheck
 
 update_webapp_translations:
 	pybabel extract -k _ -k gettext -k ngettext --mapping=babel.cfg --width=120 --output=$(SOURCE)/webapp/translations/messages.pot $(SOURCE)/webapp/

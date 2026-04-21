@@ -52,6 +52,10 @@ class NextResponseSchema(FluxStandardAction):
     payload = fields.Nested(NextResponsePayload)
 
 
+class SignupAuthRequestSchema(IdPRequest):
+    pass
+
+
 class PwAuthRequestSchema(IdPRequest):
     username = fields.Str(required=False)
     password = fields.Str(required=True)
@@ -76,7 +80,7 @@ class MfaAuthResponseSchema(FluxStandardAction):
     payload = fields.Nested(MfaAuthResponsePayload)
 
 
-class ToUVersions(fields.Field):
+class ToUVersions(fields.Field[Any]):
     """Handle list of ToU versions available in the frontend both as comma-separated string (bug) and as list"""
 
     def _deserialize(self, value: object, attr: str | None, data: object, **kwargs: Any) -> list[str] | None:

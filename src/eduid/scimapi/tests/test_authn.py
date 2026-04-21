@@ -1,6 +1,5 @@
 import logging
 import os
-from collections.abc import Mapping
 from dataclasses import asdict
 from pathlib import PurePath
 from typing import Any
@@ -403,7 +402,7 @@ class TestAuthnUserResource(ScimApiTestUserResourceBase):
     def setup(self) -> None:
         self.test_profile = ScimApiProfile(attributes={"displayName": "Test User 1"}, data={"test_key": "test_value"})
 
-    def _get_config(self) -> dict:
+    def _get_config(self) -> dict[str, Any]:
         config = super()._get_config()
         config["keystore_path"] = f"{self.datadir}/testing_jwks.json"
         config["signing_key_id"] = "testing-scimapi-2106210000"
@@ -417,9 +416,9 @@ class TestAuthnUserResource(ScimApiTestUserResourceBase):
 
         return self.client.get(url=f"/Users/{user.scim_id}", headers=headers)
 
-    def _make_bearer_token(self, claims: Mapping[str, Any]) -> str:
+    def _make_bearer_token(self, claims: dict[str, Any]) -> str:
         token = jwt.JWT(header={"alg": "ES256"}, claims=claims)
-        jwk = next(iter(self.context.jwks))
+        jwk = next(iter(self.context.jwks["keys"]))
         token.make_signed_token(jwk)
         return token.serialize()
 

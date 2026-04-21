@@ -12,11 +12,11 @@ from eduid.webapp.common.authn.middleware import AuthnBaseApp
 from eduid.webapp.email.settings.common import EmailConfig
 
 
-class EmailApp(AuthnBaseApp[EmailConfig]):
+class EmailApp(AuthnBaseApp):
+    conf: EmailConfig
+
     def __init__(self, config: EmailConfig, **kwargs: Any) -> None:
         super().__init__(config, **kwargs)
-
-        self.conf = config
 
         # Init celery
         self.am_relay = AmRelay(config)

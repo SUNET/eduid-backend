@@ -32,7 +32,7 @@ class ResetPasswordStatusResponse(FluxStandardAction):
     payload = fields.Nested(StatusSchema)
 
     @pre_dump
-    def throttle_delta_to_seconds(self, out_data: dict, **kwargs: Any) -> dict:
+    def throttle_delta_to_seconds(self, out_data: dict[str, Any], **kwargs: Any) -> dict[str, Any]:
         if out_data["payload"].get("state", {}).get("email", {}).get("sent_at"):
             sent_at = out_data["payload"]["state"]["email"]["sent_at"]
             throttle_time_left = time_left(sent_at, current_app.conf.throttle_resend).total_seconds()
@@ -44,7 +44,7 @@ class ResetPasswordStatusResponse(FluxStandardAction):
         return out_data
 
     @pre_dump
-    def email_verification_timeout_delta_to_seconds(self, out_data: dict, **kwargs: Any) -> dict:
+    def email_verification_timeout_delta_to_seconds(self, out_data: dict[str, Any], **kwargs: Any) -> dict[str, Any]:
         if out_data["payload"].get("state", {}).get("email", {}).get("sent_at"):
             sent_at = out_data["payload"]["state"]["email"]["sent_at"]
             verification_time_left = time_left(sent_at, current_app.conf.email_code_timeout).total_seconds()
