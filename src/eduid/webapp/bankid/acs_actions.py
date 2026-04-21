@@ -1,8 +1,11 @@
+from datetime import date
+
 from eduid.userdb import User
 from eduid.userdb.credentials.fido import FidoCredential
 from eduid.webapp.bankid.app import current_bankid_app as current_app
 from eduid.webapp.bankid.helpers import BankIDMsg
 from eduid.webapp.bankid.proofing import get_proofing_functions
+from eduid.webapp.bankid.saml_session_info import BankIDSessionInfo
 from eduid.webapp.common.api.decorators import require_user
 from eduid.webapp.common.api.messages import AuthnStatusMsg
 from eduid.webapp.common.authn.acs_enums import BankIDAcsAction
@@ -12,7 +15,7 @@ from eduid.webapp.common.proofing.messages import ProofingMsg
 from eduid.webapp.common.proofing.methods import ProofingMethodSAML
 from eduid.webapp.common.proofing.saml_helpers import is_required_loa, is_valid_authn_instant
 from eduid.webapp.common.session import session
-from eduid.webapp.common.session.namespaces import SP_AuthnRequest
+from eduid.webapp.common.session.namespaces import ExternalMfaSignupIdentity, SP_AuthnRequest
 
 __author__ = "lundberg"
 
@@ -211,4 +214,49 @@ def mfa_authenticate_action(args: ACSArgs) -> ACSResult:
     current_app.stats.count(name="mfa_auth_success")
     current_app.stats.count(name=f"mfa_auth_{args.proofing_method.method}_success")
     current_app.stats.count(name=f"mfa_auth_{parsed.info.issuer}_success")
+    return ACSResult(success=True, message=BankIDMsg.mfa_authn_success)
+
+
+@acs_action(BankIDAcsAction.mfa_register)
+def mfa_register_action(args: ACSArgs) -> ACSResult:
+    """Parse the external MFA assertion for a signup-flow authn and persist
+    identity + LoA on the SP_AuthnRequest.
+
+    No user exists yet, no DB write, no proofing log.
+    """
+    if not args.proofing_method:
+        return ACSResult(message=BankIDMsg.method_not_available)
+
+    if ret := common_saml_checks(args=args):
+        return ret
+
+    parsed = args.proofing_method.parse_session_info(args.session_info, backdoor=args.backdoor)
+    if parsed.error:
+        return ACSResult(message=parsed.error)
+
+    match parsed.info:
+        case BankIDSessionInfo():
+            proofing = get_proofing_functions(
+                session_info=parsed.info,
+                app_name=current_app.conf.app_name,
+                config=current_app.conf,
+                backdoor=args.backdoor,
+            )
+            current_loa = proofing.get_current_loa()
+            if current_loa.error is not None:
+                return ACSResult(message=current_loa.error)
+
+            nin = parsed.info.attributes.nin
+            args.authn_req.external_mfa_signup_identity = ExternalMfaSignupIdentity(
+                given_name=parsed.info.attributes.given_name,
+                surname=parsed.info.attributes.surname,
+                date_of_birth=date(int(nin[:4]), int(nin[4:6]), int(nin[6:8])),
+                nin=nin,
+                framework=args.proofing_method.framework,
+                loa=current_loa.result or "",
+            )
+        case _:
+            current_app.logger.error(f"Unsupported session info type: {type(parsed.info)}")
+            return ACSResult(message=BankIDMsg.method_not_available)
+
     return ACSResult(success=True, message=BankIDMsg.mfa_authn_success)
