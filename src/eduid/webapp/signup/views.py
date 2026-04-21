@@ -318,6 +318,7 @@ def webauthn_register_begin(authenticator: str) -> FluxData:
         user_verification=current_app.conf.webauthn_user_verification,
         resident_key_requirement=current_app.conf.webauthn_resident_key_requirement,
         authenticator_attachment=_auth_enum,
+        extensions={"credProps": True},
     )
     session.signup.credentials.webauthn_registration = WebauthnRegistration(
         webauthn_state=state, authenticator=_auth_enum
@@ -377,6 +378,7 @@ def webauthn_register_complete(
         user_verified=result.authenticator_info.user_verified,
         user_verification_methods=result.authenticator_info.user_verification_methods,
         key_protection=result.authenticator_info.key_protection,
+        is_discoverable=result.is_discoverable,
     )
     session.signup.credentials.completed = True
 
@@ -384,6 +386,8 @@ def webauthn_register_complete(
     current_app.stats.count(name="webauthn_register_complete")
     if result.mfa_approved:
         current_app.stats.count(name="webauthn_mfa_approved")
+    if result.is_discoverable:
+        current_app.stats.count(name="webauthn_is_discoverable")
 
     return success_response(payload={"state": session.signup.to_dict()})
 
@@ -442,6 +446,14 @@ def _check_credentials_selected(use_password: bool, use_webauthn: bool, custom_p
     if use_webauthn and not session.signup.credentials.webauthn:
         current_app.logger.error("No webauthn registered")
         return error_response(message=SignupMsg.webauthn_registration_failed)
+    if use_webauthn:
+        wn = session.signup.credentials.webauthn
+        if wn is None:
+            current_app.logger.error("No webauthn registered")
+            return error_response(message=SignupMsg.webauthn_registration_failed)
+        if not use_password and not wn.is_discoverable:
+            current_app.logger.error("Non-discoverable webauthn credential without password")
+            return error_response(message=SignupMsg.password_required)
     if not use_password and not use_webauthn:
         current_app.logger.error("Neither generated_password nor webauthn selected")
         return error_response(message=SignupMsg.credential_not_added)
@@ -524,12 +536,14 @@ def create_user(use_suggested_password: bool, use_webauthn: bool, custom_passwor
     session.signup.credentials.completed = True
     session.common.eppn = signup_user.eppn
     session.common.login_source = LoginApplication.signup
+    if custom_password is not None:
+        session.signup.credentials.custom_password = True
+        session.signup.credentials.generated_password = None
+        current_app.stats.count(name="custom_password")
+    if session.signup.credentials.generated_password is not None:
+        current_app.stats.count(name="generated_password")
     # create payload before clearing generated password
     state = session.signup.to_dict()
-    if custom_password is not None:
-        state["credentials"]["custom_password"] = True
-        state["credentials"]["generated_password"] = None
-        current_app.stats.count(name="custom_password")
     # clear passwords from session and namespace
     del custom_password
     session.signup.credentials.generated_password = None

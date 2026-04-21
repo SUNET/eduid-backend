@@ -169,11 +169,14 @@ class WebauthnCredential(BaseModel):
     user_verified: bool = False
     user_verification_methods: list[str] = Field(default_factory=list)
     key_protection: list[str] = Field(default_factory=list)
+    # credProps.rk from the registration response
+    is_discoverable: bool = False
 
 
 class Credentials(SessionNSBase):
     completed: bool = False
     generated_password: str | None = None
+    custom_password: bool = False
     webauthn_registration: WebauthnRegistration | None = None
     webauthn: WebauthnCredential | None = None
 

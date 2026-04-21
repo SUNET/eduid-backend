@@ -253,6 +253,8 @@ class RegistrationResult:
     authenticator: AuthenticatorAttachment
     authenticator_info: AuthenticatorInformation
     mfa_approved: bool
+    # TODO: we should add is_discoverable to the saved credential as soon there is enough browser support
+    is_discoverable: bool = False
 
 
 class RegistrationError(Exception):
@@ -286,6 +288,14 @@ def verify_webauthn_registration(
     if client_extension_results:
         response["client_extension_results"] = client_extension_results
     registration = RegistrationResponse.from_dict(response)
+
+    is_discoverable = False
+    if client_extension_results:
+        cred_props = client_extension_results.get("credProps")
+        if isinstance(cred_props, dict):
+            rk = cred_props.get("rk")
+            if isinstance(rk, bool):
+                is_discoverable = rk
 
     try:
         authenticator_info = get_authenticator_information(
@@ -322,4 +332,5 @@ def verify_webauthn_registration(
         authenticator=authenticator,
         authenticator_info=authenticator_info,
         mfa_approved=mfa_approved,
+        is_discoverable=is_discoverable,
     )

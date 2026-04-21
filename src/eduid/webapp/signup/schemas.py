@@ -49,6 +49,8 @@ class SignupStatusResponse(FluxStandardAction):
                 generated_password = fields.String(required=True, dump_default=None)
                 custom_password = fields.Boolean(required=True, dump_default=False)
                 webauthn_registered = fields.Boolean(required=True, dump_default=False)
+                webauthn_is_discoverable = fields.Boolean(required=True, dump_default=False)
+                webauthn_description = fields.String(required=True, dump_default=None)
 
             already_signed_up = fields.Boolean(required=True)
             name = fields.Nested(Name, required=True)
@@ -111,9 +113,11 @@ class SignupStatusResponse(FluxStandardAction):
     @pre_dump
     def set_webauthn_registered(self, out_data: dict[str, Any], **kwargs: Any) -> dict[str, Any]:
         if out_data["payload"].get("state", {}).get("credentials"):
-            out_data["payload"]["state"]["credentials"]["webauthn_registered"] = bool(
-                out_data["payload"]["state"]["credentials"].get("webauthn")
-            )
+            credentials = out_data["payload"]["state"]["credentials"]
+            webauthn = credentials.get("webauthn")
+            credentials["webauthn_registered"] = bool(webauthn)
+            credentials["webauthn_is_discoverable"] = bool(webauthn and webauthn.get("is_discoverable"))
+            credentials["webauthn_description"] = webauthn.get("description") if webauthn else None
         return out_data
 
 
