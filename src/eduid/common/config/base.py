@@ -441,6 +441,7 @@ class FrontendActionMixin(BaseModel):
             FrontendAction.SIGNUP_EXTERNAL_MFA: AuthnParameters(
                 force_authn=True,
                 force_mfa=True,
+                same_user=False,
                 allow_signup_auth=True,
                 allow_login_auth=False,
                 finish_url="https://eduid.se/profile/ext-return/{app_name}/{authn_id}",
