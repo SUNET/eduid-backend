@@ -64,6 +64,7 @@ class QueueItem:
             version=data["version"],
             expires_at=data["expires_at"],
             discard_at=data["discard_at"],
+            created_ts=data["created_ts"],
             sender_info=sender_info,
             payload=payload,
             processed_by=processed_by,
