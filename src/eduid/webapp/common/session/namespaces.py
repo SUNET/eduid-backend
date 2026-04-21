@@ -176,7 +176,7 @@ class WebauthnCredential(BaseModel):
 class Credentials(SessionNSBase):
     completed: bool = False
     generated_password: str | None = None
-    custom_password: bool | None = None
+    custom_password: bool = False
     webauthn_registration: WebauthnRegistration | None = None
     webauthn: WebauthnCredential | None = None
 

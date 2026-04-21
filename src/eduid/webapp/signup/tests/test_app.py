@@ -862,7 +862,7 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
             "captcha": {"completed": False},
             "credentials": {
                 "completed": False,
-                "custom_password": None,
+                "custom_password": False,
                 "generated_password": None,
                 "webauthn_registered": False,
                 "webauthn_is_discoverable": False,
@@ -885,7 +885,7 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
             "captcha": {"completed": False},
             "credentials": {
                 "completed": False,
-                "custom_password": None,
+                "custom_password": False,
                 "generated_password": None,
                 "webauthn_registered": False,
                 "webauthn_is_discoverable": False,
@@ -1461,7 +1461,7 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
             "captcha": {"completed": False},
             "credentials": {
                 "completed": False,
-                "custom_password": None,
+                "custom_password": False,
                 "generated_password": None,
                 "webauthn_registered": False,
                 "webauthn_is_discoverable": False,
