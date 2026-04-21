@@ -238,29 +238,47 @@ def mfa_register_action(args: ACSArgs) -> ACSResult:
     if parsed.error:
         return ACSResult(message=parsed.error)
 
-    if not isinstance(parsed.info, NinSessionInfo | ForeignEidSessionInfo):
-        current_app.logger.error(f"Unexpected session info type for mfa_register: {type(parsed.info)}")
-        return ACSResult(message=EidasMsg.method_not_available)
+    match parsed.info:
+        case NinSessionInfo():
+            proofing = get_proofing_functions(
+                session_info=parsed.info,
+                app_name=current_app.conf.app_name,
+                config=current_app.conf,
+                backdoor=args.backdoor,
+            )
+            current_loa = proofing.get_current_loa()
+            if current_loa.error is not None:
+                return ACSResult(message=current_loa.error)
+            args.authn_req.external_mfa_signup_identity = ExternalMfaSignupIdentity(
+                given_name=parsed.info.attributes.given_name,
+                surname=parsed.info.attributes.surname,
+                date_of_birth=parsed.info.attributes.date_of_birth,
+                nin=parsed.info.attributes.nin,
+                framework=args.proofing_method.framework,
+                loa=current_loa.result or "",
+            )
+        case ForeignEidSessionInfo():
+            proofing = get_proofing_functions(
+                session_info=parsed.info,
+                app_name=current_app.conf.app_name,
+                config=current_app.conf,
+                backdoor=args.backdoor,
+            )
+            current_loa = proofing.get_current_loa()
+            if current_loa.error is not None:
+                return ACSResult(message=current_loa.error)
+            args.authn_req.external_mfa_signup_identity = ExternalMfaSignupIdentity(
+                given_name=parsed.info.attributes.given_name,
+                surname=parsed.info.attributes.surname,
+                date_of_birth=parsed.info.attributes.date_of_birth,
+                eidas_prid=parsed.info.attributes.prid,
+                eidas_prid_persistence=parsed.info.attributes.prid_persistence,
+                country_code=parsed.info.attributes.country_code,
+                framework=args.proofing_method.framework,
+                loa=current_loa.result or "",
+            )
+        case _:
+            current_app.logger.error(f"Unsupported session info type: {type(parsed.info)}")
+            return ACSResult(message=EidasMsg.method_not_available)
 
-    proofing = get_proofing_functions(
-        session_info=parsed.info,
-        app_name=current_app.conf.app_name,
-        config=current_app.conf,
-        backdoor=args.backdoor,
-    )
-    current_loa = proofing.get_current_loa()
-    if current_loa.error is not None:
-        return ACSResult(message=current_loa.error)
-
-    args.authn_req.external_mfa_signup_identity = ExternalMfaSignupIdentity(
-        given_name=parsed.info.attributes.given_name,
-        surname=parsed.info.attributes.surname,
-        date_of_birth=parsed.info.attributes.date_of_birth,
-        nin=getattr(parsed.info.attributes, "nin", None),
-        eidas_prid=getattr(parsed.info.attributes, "prid", None),
-        eidas_prid_persistence=getattr(parsed.info.attributes, "prid_persistence", None),
-        country_code=getattr(parsed.info.attributes, "country_code", None),
-        framework=args.proofing_method.framework,
-        loa=current_loa.result or "",
-    )
-    return ACSResult(success=True, message=EidasMsg.identity_verify_success)
+    return ACSResult(success=True, message=EidasMsg.mfa_authn_success)
