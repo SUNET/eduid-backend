@@ -243,6 +243,13 @@ class EidasTests(ProofingTests[EidasApp]):
                         "allow_signup_auth": True,
                         "finish_url": "http://test.localhost/testing-verify-credential/{app_name}/{authn_id}",
                     },
+                    FrontendAction.SIGNUP_EXTERNAL_MFA.value: {
+                        "force_authn": True,
+                        "force_mfa": True,
+                        "same_user": False,
+                        "allow_signup_auth": True,
+                        "finish_url": "http://test.localhost/testing-mfa-register/{app_name}/{authn_id}",
+                    },
                 },
             }
         )
@@ -1531,6 +1538,63 @@ class EidasTests(ProofingTests[EidasApp]):
         self._verify_user_parameters(
             eppn, num_mfa_tokens=0, locked_identity=identity, identity=identity, identity_verified=True, num_proofings=1
         )
+
+    # --- mfa-register tests ---
+
+    def test_mfa_register_init_ok(self) -> None:
+        """POST /mfa-register with correct frontend_action returns a redirect URL."""
+        with self.session_cookie_anon(self.browser) as browser:
+            with browser.session_transaction() as sess:
+                csrf_token = sess.get_csrf_token()
+            response = browser.post(
+                "/mfa-register",
+                json={
+                    "method": "freja",
+                    "frontend_action": FrontendAction.SIGNUP_EXTERNAL_MFA.value,
+                    "csrf_token": csrf_token,
+                },
+            )
+        self._check_success_response(response, type_=None, payload={"csrf_token": csrf_token})
+        loc = self.get_response_payload(response).get("location")
+        assert loc is not None
+        assert loc.startswith("http")
+
+    def test_mfa_register_init_rejects_wrong_action(self) -> None:
+        """POST /mfa-register with the wrong frontend_action is rejected."""
+        with self.session_cookie_anon(self.browser) as browser:
+            with browser.session_transaction() as sess:
+                csrf_token = sess.get_csrf_token()
+            response = browser.post(
+                "/mfa-register",
+                json={
+                    "method": "freja",
+                    "frontend_action": FrontendAction.LOGIN_MFA_AUTHN.value,
+                    "csrf_token": csrf_token,
+                },
+            )
+        body = response.get_json()
+        assert body["payload"]["message"] == EidasMsg.frontend_action_not_supported.value
+
+    def test_mfa_register_acs_populates_identity(self) -> None:
+        """ACS handler for mfa_register populates external_mfa_signup_identity on the SP_AuthnRequest."""
+        self.reauthn(
+            "/mfa-register",
+            frontend_action=FrontendAction.SIGNUP_EXTERNAL_MFA,
+            expect_msg=EidasMsg.identity_verify_success,
+            eppn=self.test_user_eppn,
+            logged_in=False,
+        )
+
+        with self.session_cookie_anon(self.browser) as browser:
+            with browser.session_transaction() as sess:
+                latest = sess.eidas.sp.get_authn_for_frontend_action(FrontendAction.SIGNUP_EXTERNAL_MFA)
+                assert latest is not None
+                ident = latest.external_mfa_signup_identity
+                assert ident is not None
+                assert ident.given_name
+                assert ident.surname
+                assert ident.nin or ident.eidas_prid
+                assert ident.loa
 
 
 class RedirectWithMsgTests:

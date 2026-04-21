@@ -9,11 +9,11 @@ from eduid.webapp.common.proofing.messages import ProofingMsg
 from eduid.webapp.common.proofing.methods import ProofingMethodSAML
 from eduid.webapp.common.proofing.saml_helpers import is_required_loa, is_valid_authn_instant
 from eduid.webapp.common.session import session
-from eduid.webapp.common.session.namespaces import SP_AuthnRequest
+from eduid.webapp.common.session.namespaces import ExternalMfaSignupIdentity, SP_AuthnRequest
 from eduid.webapp.eidas.app import current_eidas_app as current_app
 from eduid.webapp.eidas.helpers import EidasMsg
 from eduid.webapp.eidas.proofing import get_proofing_functions
-from eduid.webapp.eidas.saml_session_info import BaseSessionInfo
+from eduid.webapp.eidas.saml_session_info import BaseSessionInfo, ForeignEidSessionInfo, NinSessionInfo
 
 __author__ = "lundberg"
 
@@ -218,3 +218,49 @@ def mfa_authenticate_action(args: ACSArgs) -> ACSResult:
     current_app.stats.count(name=f"mfa_auth_{args.proofing_method.method}_success")
     current_app.stats.count(name=f"mfa_auth_{parsed.info.issuer}_success")
     return ACSResult(success=True, message=EidasMsg.mfa_authn_success)
+
+
+@acs_action(EidasAcsAction.mfa_register)
+def mfa_register_action(args: ACSArgs) -> ACSResult:
+    """Parse the external MFA assertion for a signup-flow authn and persist
+    identity + LoA on the SP_AuthnRequest.
+
+    No user exists yet, no DB write, no proofing log. The signup backend
+    reads ``args.authn_req.external_mfa_signup_identity`` later.
+    """
+    if not args.proofing_method:
+        return ACSResult(message=EidasMsg.method_not_available)
+
+    if ret := common_saml_checks(args=args):
+        return ret
+
+    parsed = args.proofing_method.parse_session_info(args.session_info, backdoor=args.backdoor)
+    if parsed.error:
+        return ACSResult(message=parsed.error)
+
+    if not isinstance(parsed.info, NinSessionInfo | ForeignEidSessionInfo):
+        current_app.logger.error(f"Unexpected session info type for mfa_register: {type(parsed.info)}")
+        return ACSResult(message=EidasMsg.method_not_available)
+
+    proofing = get_proofing_functions(
+        session_info=parsed.info,
+        app_name=current_app.conf.app_name,
+        config=current_app.conf,
+        backdoor=args.backdoor,
+    )
+    current_loa = proofing.get_current_loa()
+    if current_loa.error is not None:
+        return ACSResult(message=current_loa.error)
+
+    args.authn_req.external_mfa_signup_identity = ExternalMfaSignupIdentity(
+        given_name=parsed.info.attributes.given_name,
+        surname=parsed.info.attributes.surname,
+        date_of_birth=parsed.info.attributes.date_of_birth,
+        nin=getattr(parsed.info.attributes, "nin", None),
+        eidas_prid=getattr(parsed.info.attributes, "prid", None),
+        eidas_prid_persistence=getattr(parsed.info.attributes, "prid_persistence", None),
+        country_code=getattr(parsed.info.attributes, "country_code", None),
+        framework=args.proofing_method.framework,
+        loa=current_loa.result or "",
+    )
+    return ACSResult(success=True, message=EidasMsg.identity_verify_success)
