@@ -8,7 +8,7 @@ See the file LICENSE.txt for full license statement.
 from collections.abc import Iterable
 
 import eduid.workers.am.ams
-from eduid.workers.am.ams import AttributeFetcher
+from eduid.workers.am.ams.common import AttributeFetcher
 
 
 class AFRegistry:

@@ -4,7 +4,7 @@ from typing import cast
 
 import redis
 
-from eduid.userdb.testing import EduidTemporaryInstance
+from eduid.userdb.testing.temp_instance import EduidTemporaryInstance
 
 logger = logging.getLogger(__name__)
 

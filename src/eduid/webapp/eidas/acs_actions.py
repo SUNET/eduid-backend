@@ -1,3 +1,4 @@
+from eduid.common.models.saml_models import BaseSessionInfo
 from eduid.userdb import User
 from eduid.userdb.credentials.fido import FidoCredential
 from eduid.webapp.common.api.decorators import require_user
@@ -13,7 +14,6 @@ from eduid.webapp.common.session.namespaces import SP_AuthnRequest
 from eduid.webapp.eidas.app import current_eidas_app as current_app
 from eduid.webapp.eidas.helpers import EidasMsg
 from eduid.webapp.eidas.proofing import get_proofing_functions
-from eduid.webapp.eidas.saml_session_info import BaseSessionInfo
 
 __author__ = "lundberg"
 

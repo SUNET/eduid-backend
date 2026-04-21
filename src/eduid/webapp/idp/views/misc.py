@@ -6,12 +6,13 @@ from werkzeug.wrappers import Response as WerkzeugResponse
 from eduid.webapp.common.api.decorators import MarshalWith, UnmarshalWith
 from eduid.webapp.common.api.messages import FluxData, success_response
 from eduid.webapp.common.api.schemas.models import FluxSuccessResponse
+from eduid.webapp.common.session import session
 from eduid.webapp.common.session.namespaces import IdP_SAMLPendingRequest
 from eduid.webapp.idp.app import current_idp_app as current_app
 from eduid.webapp.idp.decorators import require_ticket, uses_sso_session
 from eduid.webapp.idp.login import get_ticket
 from eduid.webapp.idp.login_context import LoginContext, LoginContextSAML
-from eduid.webapp.idp.sso_session import SSOSession, session
+from eduid.webapp.idp.sso_session import SSOSession
 
 __author__ = "ft"
 

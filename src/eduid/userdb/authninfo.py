@@ -6,8 +6,8 @@ from enum import StrEnum
 
 from eduid.userdb import User
 from eduid.userdb.credentials import U2F, Password, Webauthn
+from eduid.userdb.db import BaseDB
 from eduid.userdb.element import ElementKey
-from eduid.userdb.userdb import BaseDB
 
 logger = logging.getLogger(__name__)
 
