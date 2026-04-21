@@ -1,16 +1,22 @@
 import logging
 from collections.abc import Mapping
-from datetime import datetime
+from datetime import date, datetime
 from typing import Any
 
 from eduid.common.config.base import FrontendAction
 from eduid.common.config.parsers import load_config
 from eduid.common.testing_base import normalised_data
+from eduid.userdb.credentials.external import TrustFramework
 from eduid.webapp.common.api.testing import EduidAPITestCase
 from eduid.webapp.common.session import EduidSession
 from eduid.webapp.common.session.eduid_session import SessionFactory
 from eduid.webapp.common.session.meta import SessionMeta
-from eduid.webapp.common.session.namespaces import AuthnRequestRef, SP_AuthnRequest
+from eduid.webapp.common.session.namespaces import (
+    AuthnRequestRef,
+    ExternalMfaSignupIdentity,
+    RP_AuthnRequest,
+    SP_AuthnRequest,
+)
 from eduid.webapp.common.session.tests.test_eduid_session import SessionTestApp, SessionTestConfig
 
 logger = logging.getLogger(__name__)
@@ -149,3 +155,38 @@ class TestAuthnNamespace(TestNameSpaceBase):
         sess2.authn.sp.get_latest_authn()
         sess2.persist()
         assert sess1._session._raw_data == sess2._session._raw_data
+
+
+# --- Standalone tests for ExternalMfaSignupIdentity and the new optional field ---
+
+
+def test_sp_authn_request_external_mfa_default_none() -> None:
+    req = SP_AuthnRequest(
+        frontend_action=FrontendAction.SIGNUP_EXTERNAL_MFA,
+        finish_url="https://eduid.se/profile/ext-return/{app_name}/{authn_id}",
+    )
+    assert req.external_mfa_signup_identity is None
+
+
+def test_sp_authn_request_external_mfa_roundtrip() -> None:
+    identity = ExternalMfaSignupIdentity(
+        given_name="Anna",
+        surname="Andersson",
+        date_of_birth=date(1980, 1, 1),
+        nin="198001011234",
+        framework=TrustFramework.BANKID,
+        loa="loa3",
+    )
+    req = SP_AuthnRequest(
+        frontend_action=FrontendAction.SIGNUP_EXTERNAL_MFA,
+        finish_url="https://eduid.se/profile/ext-return/{app_name}/{authn_id}",
+        external_mfa_signup_identity=identity,
+    )
+    dumped = req.model_dump()
+    rebuilt = SP_AuthnRequest(**dumped)
+    assert rebuilt.external_mfa_signup_identity == identity
+
+
+def test_rp_authn_request_has_external_mfa_field() -> None:
+    # freja_eid uses RP_AuthnRequest (OIDC) — the same optional field must exist
+    assert "external_mfa_signup_identity" in RP_AuthnRequest.model_fields

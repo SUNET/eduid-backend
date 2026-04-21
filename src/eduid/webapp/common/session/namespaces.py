@@ -4,7 +4,7 @@ import logging
 from abc import ABC
 from collections.abc import Mapping
 from copy import deepcopy
-from datetime import datetime
+from datetime import date, datetime
 from enum import StrEnum, unique
 from typing import Any, NewType, Self, cast
 
@@ -249,6 +249,26 @@ class BaseAuthnRequest(BaseModel, ABC):
     consumed: bool = False  # an operation that requires a new authentication has used this one already
 
 
+class ExternalMfaSignupIdentity(BaseModel):
+    """Identity + LoA parsed from a signup-flow external MFA authn.
+
+    Populated by the ``mfa_register`` ACS action in each external MFA webapp and read
+    by the signup backend at /external-mfa-register time.
+    """
+
+    given_name: str
+    surname: str
+    date_of_birth: date
+    # exactly one of these identity discriminators is set; the rest stay None
+    nin: str | None = None
+    eidas_prid: str | None = None
+    eidas_prid_persistence: str | None = None
+    country_code: str | None = None
+    # credential metadata
+    framework: TrustFramework
+    loa: str
+
+
 class SP_AuthnRequest(BaseAuthnRequest):
     authn_id: AuthnRequestRef = Field(default_factory=lambda: AuthnRequestRef(uuid4_str()))
     credentials_used: list[ElementKey] = Field(default_factory=list)
@@ -256,6 +276,7 @@ class SP_AuthnRequest(BaseAuthnRequest):
     req_authn_ctx: list[str] = Field(default_factory=list)
     # the authentication contexts asserted for this authentication
     asserted_authn_ctx: EduidAuthnContextClass | None = None
+    external_mfa_signup_identity: ExternalMfaSignupIdentity | None = None
 
     def formatted_finish_url(self, app_name: str) -> str:
         return self.finish_url.format(app_name=app_name, authn_id=self.authn_id)
@@ -311,6 +332,7 @@ class AuthnNamespace(SessionNSBase):
 
 class RP_AuthnRequest(BaseAuthnRequest):
     authn_id: OIDCState
+    external_mfa_signup_identity: ExternalMfaSignupIdentity | None = None
 
     def formatted_finish_url(self, app_name: str) -> str:
         return self.finish_url.format(app_name=app_name, authn_id=self.authn_id)
