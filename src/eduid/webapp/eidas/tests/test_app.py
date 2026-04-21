@@ -3,7 +3,7 @@ import datetime
 import logging
 import os
 from collections.abc import Mapping
-from datetime import timedelta
+from datetime import date, timedelta
 from http import HTTPStatus
 from typing import Any, ClassVar
 
@@ -1626,6 +1626,7 @@ class EidasTests(ProofingTests[EidasApp]):
                 assert ident.given_name == "Ûlla"
                 assert ident.surname == "Älm"
                 assert ident.nin == self.test_user_nin.number
+                assert ident.date_of_birth == date(1978, 1, 1)
                 assert ident.framework == TrustFramework.SWECONN
                 assert ident.loa == "loa3"
 
