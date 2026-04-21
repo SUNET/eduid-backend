@@ -116,7 +116,7 @@ class EduidQueueTestCase:
         self.mongo_collection = "test"
         self._init_db()
         yield
-        self.client_db._drop_whole_collection()
+        self.client_db._coll.delete_many({})
 
     def _init_db(self) -> None:
         db_init_try = 0
