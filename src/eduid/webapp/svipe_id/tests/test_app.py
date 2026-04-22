@@ -316,9 +316,7 @@ class SvipeIdTests(ProofingTests[SvipeIdApp]):
 
     def test_verify_nin_identity(self, mocker: MockerFixture) -> None:
         mocker.patch("eduid.webapp.common.api.helpers.get_reference_nin_from_navet_data", return_value=None)
-        mock_get_all_navet_data = mocker.patch("eduid.common.rpc.msg_relay.MsgRelay.get_all_navet_data")
         mock_request_user_sync = mocker.patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-        mock_get_all_navet_data.return_value = self._get_all_navet_data()
         mock_request_user_sync.side_effect = self.request_user_sync
 
         eppn = self.unverified_test_user.eppn
