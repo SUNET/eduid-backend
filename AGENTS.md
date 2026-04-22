@@ -41,6 +41,7 @@ PYTHONPATH=src pytest -vvv -k "test_verify" src/eduid/webapp/freja_eid/tests/
 ```
 
 Tests require Docker services (MongoDB, Redis, Neo4j, SMTP). Tests auto-start containers as needed.
+If stale test containers need to be cleaned up before rerunning tests, use `make kill_tests`.
 
 ### Linting and Formatting
 
