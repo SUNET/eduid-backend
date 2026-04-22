@@ -45,9 +45,11 @@ def create_signup_invite(
         for number in create_request.nutid_invite_v1.phone_numbers
     ]
 
-    # please mypy (schema validation makes sure they are not None)
-    assert create_request.nutid_invite_v1.inviter_name is not None
-    assert create_request.nutid_invite_v1.send_email is not None
+    # schema validation makes sure they are not None — belt-and-braces check
+    if create_request.nutid_invite_v1.inviter_name is None:
+        raise BadRequest(detail="inviter_name is required")
+    if create_request.nutid_invite_v1.send_email is None:
+        raise BadRequest(detail="send_email is required")
 
     signup_invite = SignupInvite(
         invite_code=invite_code,

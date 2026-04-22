@@ -83,7 +83,8 @@ def _apply_core_updates(db_user: ScimApiUser, update_request: UserUpdateRequest)
 def _apply_nutid_updates(
     db_user: ScimApiUser, update_request: UserUpdateRequest, logger: logging.Logger
 ) -> tuple[ScimApiUser, bool]:
-    assert update_request.nutid_user_v1 is not None
+    if update_request.nutid_user_v1 is None:
+        raise BadRequest(detail="nutid_user_v1 extension is required")
     changed = False
 
     profile_changed = False

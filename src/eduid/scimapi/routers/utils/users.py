@@ -37,7 +37,8 @@ def remove_user_from_all_groups(req: ContextRequest[ScimApiContext], db_user: Sc
     for member_group in req.context.require_groupdb().get_groups_for_user_identifer(db_user.scim_id):
         # we need to get the full group object to get all the members
         group = req.context.require_groupdb().get_group_by_scim_id(str(member_group.scim_id))
-        assert group is not None
+        if group is None:
+            raise RuntimeError(f"Group {member_group.scim_id} missing from db while member list iterated")
         for member in group.graph.members.copy():
             if member.identifier == str(db_user.scim_id):
                 req.app.context.logger.debug(

@@ -101,7 +101,8 @@ def add_api_event(
         data={"v": 1, "status": status.value, "message": message},
     )
     event_db = context.get_eventdb(data_owner=data_owner)
-    assert event_db  # please mypy
+    if event_db is None:
+        raise RuntimeError(f"No eventdb for data_owner {data_owner}")
     event_db.save(_event)
 
     # Send notification

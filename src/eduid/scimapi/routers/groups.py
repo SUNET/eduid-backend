@@ -159,7 +159,8 @@ async def on_put(
     # Load the group from the database to ensure results are consistent with subsequent GETs.
     # For example, timestamps have higher resolution in updated_group than after a load.
     db_group = req.context.require_groupdb().get_group_by_scim_id(str(updated_group.scim_id))
-    assert db_group  # please mypy
+    if db_group is None:
+        raise RuntimeError(f"Group {updated_group.scim_id} missing after update")
     if changed:
         add_api_event(
             context=req.app.context,
@@ -211,7 +212,8 @@ async def on_post(req: ContextRequest[ScimApiContext], resp: Response, create_re
     # Load the group from the database to ensure results are consistent with subsequent GETs.
     # For example, timestamps have higher resolution in created_group than after a load.
     db_group = req.context.require_groupdb().get_group_by_scim_id(str(created_group.scim_id))
-    assert db_group  # please mypy
+    if db_group is None:
+        raise RuntimeError(f"Group {created_group.scim_id} missing after create")
     add_api_event(
         context=req.app.context,
         data_owner=req.context.require_data_owner(),

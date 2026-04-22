@@ -61,8 +61,8 @@ def db_group_to_response(req: ContextRequest[ScimApiContext], resp: Response, db
 def filter_display_name(
     req: ContextRequest[ScimApiContext],
     search_filter: SearchFilter,
-    skip: int | None = None,
-    limit: int | None = None,
+    skip: int,
+    limit: int,
 ) -> tuple[list[ScimApiGroup], int]:
     if search_filter.op != "eq":
         raise BadRequest(scim_type="invalidFilter", detail="Unsupported operator")
@@ -70,8 +70,6 @@ def filter_display_name(
         raise BadRequest(scim_type="invalidFilter", detail="Invalid displayName")
 
     req.app.context.logger.debug(f"Searching for group with display name {search_filter.val!r}")
-    assert skip is not None  # please mypy
-    assert limit is not None  # please mypy
     groups, count = req.context.require_groupdb().get_groups_by_property(
         key="display_name", value=search_filter.val, skip=skip, limit=limit
     )
@@ -101,8 +99,8 @@ def filter_lastmodified(
 def filter_extensions_data(
     req: ContextRequest[ScimApiContext],
     search_filter: SearchFilter,
-    skip: int | None = None,
-    limit: int | None = None,
+    skip: int,
+    limit: int,
 ) -> tuple[list[ScimApiGroup], int]:
     if search_filter.op != "eq":
         raise BadRequest(scim_type="invalidFilter", detail="Unsupported operator")
@@ -114,8 +112,6 @@ def filter_extensions_data(
     req.app.context.logger.debug(
         f"Searching for groups with {search_filter.attr} {search_filter.op} {search_filter.val!r}"
     )
-    assert skip is not None  # please mypy
-    assert limit is not None  # please mypy
     groups, count = req.context.require_groupdb().get_groups_by_property(
         key=search_filter.attr, value=search_filter.val, skip=skip, limit=limit
     )
