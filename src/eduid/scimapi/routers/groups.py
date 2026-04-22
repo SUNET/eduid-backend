@@ -29,8 +29,7 @@ groups_router = APIRouter(
 
 @groups_router.get("/")
 async def on_get_all(req: ContextRequest[ScimApiContext]) -> ListResponse:
-    assert req.context.groupdb is not None  # please mypy
-    db_groups = req.context.groupdb.get_groups()
+    db_groups = req.context.require_groupdb().get_groups()
     resources = [{"id": str(db_group.scim_id), "displayName": db_group.graph.display_name} for db_group in db_groups]
     return ListResponse(total_results=len(db_groups), resources=resources)
 
@@ -67,8 +66,7 @@ async def on_get_one(req: ContextRequest[ScimApiContext], resp: Response, scim_i
     }
     """
     req.app.context.logger.info(f"Fetching group {scim_id}")
-    assert req.context.groupdb is not None  # please mypy
-    db_group = req.context.groupdb.get_group_by_scim_id(scim_id)
+    db_group = req.context.require_groupdb().get_group_by_scim_id(scim_id)
     req.app.context.logger.debug(f"Found group: {db_group}")
     if not db_group:
         raise NotFound(detail="Group not found")
@@ -136,8 +134,7 @@ async def on_put(
         raise BadRequest(detail="Id mismatch")
 
     req.app.context.logger.info(f"Fetching group {scim_id}")
-    assert req.context.groupdb is not None  # please mypy
-    db_group = req.context.groupdb.get_group_by_scim_id(str(update_request.id))
+    db_group = req.context.require_groupdb().get_group_by_scim_id(str(update_request.id))
     req.app.context.logger.debug(f"Found group: {db_group}")
     if not db_group:
         raise NotFound(detail="Group not found")
@@ -147,29 +144,26 @@ async def on_put(
         raise BadRequest(detail="Version mismatch")
 
     # Check that members exists in their respective db
-    assert req.context.userdb is not None  # please mypy
     req.app.context.logger.info("Checking if group and user members exists")
     for member in update_request.members:
         if member.is_group:
-            if not req.context.groupdb.group_exists(str(member.value)):
+            if not req.context.require_groupdb().group_exists(str(member.value)):
                 req.app.context.logger.error(f"Group {member.value} not found")
                 raise BadRequest(detail=f"Group {member.value} not found")
         if member.is_user:
-            if not req.context.userdb.user_exists(scim_id=str(member.value)):
+            if not req.context.require_userdb().user_exists(scim_id=str(member.value)):
                 req.app.context.logger.error(f"User {member.value} not found")
                 raise BadRequest(detail=f"User {member.value} not found")
 
-    updated_group, changed = req.context.groupdb.update_group(update_request=update_request, db_group=db_group)
+    updated_group, changed = req.context.require_groupdb().update_group(update_request=update_request, db_group=db_group)
     # Load the group from the database to ensure results are consistent with subsequent GETs.
     # For example, timestamps have higher resolution in updated_group than after a load.
-    db_group = req.context.groupdb.get_group_by_scim_id(str(updated_group.scim_id))
+    db_group = req.context.require_groupdb().get_group_by_scim_id(str(updated_group.scim_id))
     assert db_group  # please mypy
-
-    assert req.context.data_owner is not None  # please mypy
     if changed:
         add_api_event(
             context=req.app.context,
-            data_owner=req.context.data_owner,
+            data_owner=req.context.require_data_owner(),
             db_obj=db_group,
             resource_type=SCIMResourceType.GROUP,
             level=EventLevel.INFO,
@@ -213,17 +207,14 @@ async def on_post(req: ContextRequest[ScimApiContext], resp: Response, create_re
     """
     req.app.context.logger.info("Creating group")
     req.app.context.logger.debug(create_request)
-    assert req.context.groupdb is not None  # please mypy
-    created_group = req.context.groupdb.create_group(create_request=create_request)
+    created_group = req.context.require_groupdb().create_group(create_request=create_request)
     # Load the group from the database to ensure results are consistent with subsequent GETs.
     # For example, timestamps have higher resolution in created_group than after a load.
-    db_group = req.context.groupdb.get_group_by_scim_id(str(created_group.scim_id))
+    db_group = req.context.require_groupdb().get_group_by_scim_id(str(created_group.scim_id))
     assert db_group  # please mypy
-
-    assert req.context.data_owner is not None  # please mypy
     add_api_event(
         context=req.app.context,
-        data_owner=req.context.data_owner,
+        data_owner=req.context.require_data_owner(),
         db_obj=db_group,
         resource_type=SCIMResourceType.GROUP,
         level=EventLevel.INFO,
@@ -243,8 +234,7 @@ async def on_post(req: ContextRequest[ScimApiContext], resp: Response, create_re
 )
 async def on_delete(req: ContextRequest[ScimApiContext], scim_id: str) -> None:
     req.app.context.logger.info(f"Deleting group {scim_id}")
-    assert req.context.groupdb is not None  # please mypy
-    db_group = req.context.groupdb.get_group_by_scim_id(scim_id=scim_id)
+    db_group = req.context.require_groupdb().get_group_by_scim_id(scim_id=scim_id)
     req.app.context.logger.debug(f"Found group: {db_group}")
     if not db_group:
         raise NotFound(detail="Group not found")
@@ -253,12 +243,10 @@ async def on_delete(req: ContextRequest[ScimApiContext], scim_id: str) -> None:
     if not req.app.context.check_version(req, db_group):
         raise BadRequest(detail="Version mismatch")
 
-    res = req.context.groupdb.remove_group(db_group)
-
-    assert req.context.data_owner is not None  # please mypy
+    res = req.context.require_groupdb().remove_group(db_group)
     add_api_event(
         context=req.app.context,
-        data_owner=req.context.data_owner,
+        data_owner=req.context.require_data_owner(),
         db_obj=db_group,
         resource_type=SCIMResourceType.GROUP,
         level=EventLevel.INFO,

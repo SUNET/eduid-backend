@@ -29,8 +29,7 @@ __author__ = "lundberg"
 def create_signup_invite(
     req: ContextRequest[ScimApiContext], create_request: InviteCreateRequest, db_invite: ScimApiInvite
 ) -> SignupInvite:
-    assert req.context.data_owner is not None  # please mypy
-    invite_reference = SCIMReference(data_owner=req.context.data_owner, scim_id=db_invite.scim_id)
+    invite_reference = SCIMReference(data_owner=req.context.require_data_owner(), scim_id=db_invite.scim_id)
 
     if create_request.nutid_invite_v1.send_email is False:
         # Generate a shorter code if the code will reach the invitee on paper or other analog media
@@ -118,8 +117,7 @@ def db_invite_to_response(
 
 
 def create_signup_ref(req: ContextRequest[ScimApiContext], db_invite: ScimApiInvite) -> SCIMReference:
-    assert req.context.data_owner is not None  # please mypy
-    return SCIMReference(data_owner=req.context.data_owner, scim_id=db_invite.scim_id)
+    return SCIMReference(data_owner=req.context.require_data_owner(), scim_id=db_invite.scim_id)
 
 
 def send_invite_mail(req: ContextRequest[ScimApiContext], signup_invite: SignupInvite) -> bool:
@@ -169,8 +167,7 @@ def save_invite(
     signup_invite_is_in_database: bool,
 ) -> None:
     try:
-        assert req.context.invitedb is not None  # please mypy
-        req.context.invitedb.save(db_invite)
+        req.context.require_invitedb().save(db_invite)
     except DuplicateKeyError as e:
         if e.details is None:
             raise
@@ -195,7 +192,6 @@ def filter_lastmodified(
         raise BadRequest(scim_type="invalidFilter", detail="Unsupported operator")
     if not isinstance(search_filter.val, str):
         raise BadRequest(scim_type="invalidFilter", detail="Invalid datetime")
-    assert req.context.invitedb is not None  # please mypy
-    return req.context.invitedb.get_invites_by_last_modified(
+    return req.context.require_invitedb().get_invites_by_last_modified(
         operator=search_filter.op, value=datetime.fromisoformat(search_filter.val), skip=skip, limit=limit
     )

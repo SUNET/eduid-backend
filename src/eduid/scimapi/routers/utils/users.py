@@ -22,8 +22,7 @@ from eduid.userdb.scimapi.userdb import ScimApiUser
 
 def get_user_groups(req: ContextRequest[ScimApiContext], db_user: ScimApiUser) -> list[Group]:
     """Return the groups for a user formatted as SCIM search sub-resources"""
-    assert req.context.groupdb is not None  # please mypy
-    user_groups = req.context.groupdb.get_groups_for_user_identifer(db_user.scim_id)
+    user_groups = req.context.require_groupdb().get_groups_for_user_identifer(db_user.scim_id)
     groups = []
     for group in user_groups:
         ref = req.app.context.url_for("Groups", group.scim_id)
@@ -35,11 +34,9 @@ def get_user_groups(req: ContextRequest[ScimApiContext], db_user: ScimApiUser) -
 def remove_user_from_all_groups(req: ContextRequest[ScimApiContext], db_user: ScimApiUser) -> None:
     """Remove a user from all groups"""
     # Remove user from groups
-    assert req.context.groupdb is not None  # please mypy
-    assert req.context.data_owner is not None  # please mypy
-    for member_group in req.context.groupdb.get_groups_for_user_identifer(db_user.scim_id):
+    for member_group in req.context.require_groupdb().get_groups_for_user_identifer(db_user.scim_id):
         # we need to get the full group object to get all the members
-        group = req.context.groupdb.get_group_by_scim_id(str(member_group.scim_id))
+        group = req.context.require_groupdb().get_group_by_scim_id(str(member_group.scim_id))
         assert group is not None
         for member in group.graph.members.copy():
             if member.identifier == str(db_user.scim_id):
@@ -47,10 +44,10 @@ def remove_user_from_all_groups(req: ContextRequest[ScimApiContext], db_user: Sc
                     f"Removing member {db_user.scim_id} from group {group.scim_id} ({group.display_name}"
                 )
                 group.graph.members.remove(member)
-                req.context.groupdb.save(group)
+                req.context.require_groupdb().save(group)
                 add_api_event(
                     context=req.app.context,
-                    data_owner=req.context.data_owner,
+                    data_owner=req.context.require_data_owner(),
                     db_obj=group,
                     resource_type=SCIMResourceType.GROUP,
                     level=EventLevel.INFO,
@@ -59,17 +56,17 @@ def remove_user_from_all_groups(req: ContextRequest[ScimApiContext], db_user: Sc
                 )
                 break
 
-    for owner_group in req.context.groupdb.get_groups_owned_by_user_identifier(db_user.scim_id):
+    for owner_group in req.context.require_groupdb().get_groups_owned_by_user_identifier(db_user.scim_id):
         for owner in owner_group.graph.owners.copy():
             if owner.identifier == str(db_user.scim_id):
                 req.app.context.logger.debug(
                     f"Removing member {db_user.scim_id} from group {owner_group.scim_id} ({owner_group.display_name}"
                 )
                 owner_group.graph.owners.remove(owner)
-                req.context.groupdb.save(owner_group)
+                req.context.require_groupdb().save(owner_group)
                 add_api_event(
                     context=req.app.context,
-                    data_owner=req.context.data_owner,
+                    data_owner=req.context.require_data_owner(),
                     db_obj=owner_group,
                     resource_type=SCIMResourceType.GROUP,
                     level=EventLevel.INFO,
@@ -124,8 +121,7 @@ def db_user_to_response(req: ContextRequest[ScimApiContext], resp: Response, db_
 
 def save_user(req: ContextRequest[ScimApiContext], db_user: ScimApiUser) -> None:
     try:
-        assert req.context.userdb is not None  # please mypy
-        req.context.userdb.save(db_user)
+        req.context.require_userdb().save(db_user)
     except DuplicateKeyError as e:
         if e.details is None:
             raise
@@ -179,8 +175,7 @@ def filter_externalid(req: ContextRequest[ScimApiContext], search_filter: Search
         raise BadRequest(scim_type="invalidFilter", detail="Unsupported operator")
     if not isinstance(search_filter.val, str):
         raise BadRequest(scim_type="invalidFilter", detail="Invalid externalId")
-    assert req.context.userdb is not None  # please mypy
-    user = req.context.userdb.get_user_by_external_id(search_filter.val)
+    user = req.context.require_userdb().get_user_by_external_id(search_filter.val)
 
     if not user:
         return []
@@ -195,8 +190,7 @@ def filter_lastmodified(
         raise BadRequest(scim_type="invalidFilter", detail="Unsupported operator")
     if not isinstance(search_filter.val, str):
         raise BadRequest(scim_type="invalidFilter", detail="Invalid datetime")
-    assert req.context.userdb is not None  # please mypy
-    return req.context.userdb.get_users_by_last_modified(
+    return req.context.require_userdb().get_users_by_last_modified(
         operator=search_filter.op, value=datetime.fromisoformat(search_filter.val), skip=skip, limit=limit
     )
 
@@ -215,8 +209,7 @@ def filter_profile_data(
     req.app.context.logger.debug(
         f"Searching for users with {search_filter.attr} {search_filter.op} {search_filter.val!r}"
     )
-    assert req.context.userdb is not None
-    users, count = req.context.userdb.get_user_by_profile_data(
+    users, count = req.context.require_userdb().get_user_by_profile_data(
         profile=profile, operator=search_filter.op, key=key, value=search_filter.val, skip=skip, limit=limit
     )
     return users, count

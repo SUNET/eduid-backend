@@ -62,15 +62,12 @@ def db_event_to_response(req: ContextRequest[ScimApiContext], resp: Response, db
 
 
 def get_scim_referenced(req: ContextRequest[ScimApiContext], resource: NutidEventResource) -> ScimApiResourceBase | None:
-    assert req.context.userdb is not None  # please mypy
-    assert req.context.groupdb is not None  # please mypy
-    assert req.context.invitedb is not None  # please mypy
     if resource.resource_type == SCIMResourceType.USER:
-        return req.context.userdb.get_user_by_scim_id(str(resource.scim_id))
+        return req.context.require_userdb().get_user_by_scim_id(str(resource.scim_id))
     elif resource.resource_type == SCIMResourceType.GROUP:
-        return req.context.groupdb.get_group_by_scim_id(str(resource.scim_id))
+        return req.context.require_groupdb().get_group_by_scim_id(str(resource.scim_id))
     elif resource.resource_type == SCIMResourceType.INVITE:
-        return req.context.invitedb.get_invite_by_scim_id(str(resource.scim_id))
+        return req.context.require_invitedb().get_invite_by_scim_id(str(resource.scim_id))
     elif resource.resource_type == SCIMResourceType.EVENT:
         raise BadRequest(detail="Events can not refer to other events")
     raise BadRequest(detail=f"Events for resource {resource.resource_type.value} not implemented")

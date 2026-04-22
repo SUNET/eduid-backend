@@ -50,8 +50,7 @@ async def on_get(req: ContextRequest[ScimApiContext], resp: Response, scim_id: s
     if scim_id is None:
         raise BadRequest(detail="Not implemented")
     req.app.context.logger.info(f"Fetching user {scim_id}")
-    assert req.context.userdb is not None
-    db_user = req.context.userdb.get_user_by_scim_id(scim_id)
+    db_user = req.context.require_userdb().get_user_by_scim_id(scim_id)
     if not db_user:
         raise NotFound(detail="User not found")
 
@@ -126,8 +125,7 @@ async def on_put(req: ContextRequest[ScimApiContext], resp: Response, update_req
         req.app.context.logger.error("Id mismatch")
         req.app.context.logger.debug(f"{scim_id} != {update_request.id}")
         raise BadRequest(detail="Id mismatch")
-    assert req.context.userdb is not None  # please mypy
-    db_user = req.context.userdb.get_user_by_scim_id(scim_id)
+    db_user = req.context.require_userdb().get_user_by_scim_id(scim_id)
     if not db_user:
         raise NotFound(detail="User not found")
 
@@ -151,11 +149,10 @@ async def on_put(req: ContextRequest[ScimApiContext], resp: Response, update_req
 
     req.app.context.logger.debug(f"Core changed: {core_changed}, nutid_changed: {nutid_changed}")
     if core_changed or nutid_changed:
-        assert req.context.data_owner is not None  # please mypy
         save_user(req, db_user)
         add_api_event(
             context=req.app.context,
-            data_owner=req.context.data_owner,
+            data_owner=req.context.require_data_owner(),
             db_obj=db_user,
             resource_type=SCIMResourceType.USER,
             level=EventLevel.INFO,
@@ -247,10 +244,9 @@ async def on_post(req: ContextRequest[ScimApiContext], resp: Response, create_re
     )
 
     save_user(req, db_user)
-    assert req.context.data_owner is not None  # please mypy
     add_api_event(
         context=req.app.context,
-        data_owner=req.context.data_owner,
+        data_owner=req.context.require_data_owner(),
         db_obj=db_user,
         resource_type=SCIMResourceType.USER,
         level=EventLevel.INFO,
@@ -270,8 +266,7 @@ async def on_post(req: ContextRequest[ScimApiContext], resp: Response, create_re
 )
 async def on_delete(req: ContextRequest[ScimApiContext], scim_id: str) -> None:
     req.app.context.logger.info(f"Deleting user {scim_id}")
-    assert req.context.userdb is not None  # please mypy
-    db_user = req.context.userdb.get_user_by_scim_id(scim_id=scim_id)
+    db_user = req.context.require_userdb().get_user_by_scim_id(scim_id=scim_id)
     req.app.context.logger.debug(f"Found user: {db_user}")
     if not db_user:
         raise NotFound(detail="User not found")
@@ -288,12 +283,10 @@ async def on_delete(req: ContextRequest[ScimApiContext], scim_id: str) -> None:
         req.app.context.logger.exception("Max retries reached when removing user from groups")
         raise Conflict(detail="Database object out of sync, please retry") from e
 
-    res = req.context.userdb.remove(db_user)
-
-    assert req.context.data_owner is not None  # please mypy
+    res = req.context.require_userdb().remove(db_user)
     add_api_event(
         context=req.app.context,
-        data_owner=req.context.data_owner,
+        data_owner=req.context.require_data_owner(),
         db_obj=db_user,
         resource_type=SCIMResourceType.USER,
         level=EventLevel.INFO,

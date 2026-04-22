@@ -34,8 +34,7 @@ async def get_users(request: ContextRequest[MaccAPIContext]) -> UserListResponse
     """
     return all users that the calling user has access to in current context
     """
-    assert request.context.data_owner is not None  # please mypy
-    managed_accounts = list_users(context=request.app.context, data_owner=request.context.data_owner)
+    managed_accounts = list_users(context=request.app.context, data_owner=request.context.require_data_owner())
 
     users = [ApiUser(eppn=user.eppn, given_name=user.given_name, surname=user.surname) for user in managed_accounts]
 
@@ -55,11 +54,9 @@ async def add_user(
 
     password = generate_password()
     presentable_password = make_presentable_password(password)
-    assert request.context.data_owner is not None  # please mypy
-    assert request.context.manager_eppn is not None  # please mypy
     managed_account: ManagedAccount = create_and_sync_user(
         context=request.app.context,
-        data_owner=request.context.data_owner,
+        data_owner=request.context.require_data_owner(),
         given_name=create_request.given_name,
         surname=create_request.surname,
         password=password,
@@ -71,8 +68,8 @@ async def add_user(
         context=request.app.context,
         eppn=managed_account.eppn,
         action="created user",
-        action_by=request.context.manager_eppn,
-        data_owner=request.context.data_owner,
+        action_by=request.context.require_manager_eppn(),
+        data_owner=request.context.require_data_owner(),
     )
 
     add_user_response = UserCreatedResponse(
@@ -102,18 +99,16 @@ async def remove_user(
     request.app.context.logger.debug(f"remove_user: {remove_request}")
 
     try:
-        assert request.context.data_owner is not None  # please mypy
-        assert request.context.manager_eppn is not None  # please mypy
         managed_account: ManagedAccount = deactivate_user(
-            context=request.app.context, eppn=remove_request.eppn, data_owner=request.context.data_owner
+            context=request.app.context, eppn=remove_request.eppn, data_owner=request.context.require_data_owner()
         )
 
         add_api_event(
             context=request.app.context,
             eppn=remove_request.eppn,
             action="deactivated user",
-            action_by=request.context.manager_eppn,
-            data_owner=request.context.data_owner,
+            action_by=request.context.require_manager_eppn(),
+            data_owner=request.context.require_data_owner(),
         )
 
         api_user = ApiUser(
@@ -147,17 +142,15 @@ async def reset_password(
     new_password = generate_password()
     presentable_password = make_presentable_password(new_password)
     try:
-        assert request.context.data_owner is not None  # please mypy
-        assert request.context.manager_eppn is not None  # please mypy
-        managed_account = get_user(context=request.app.context, eppn=eppn, data_owner=request.context.data_owner)
+        managed_account = get_user(context=request.app.context, eppn=eppn, data_owner=request.context.require_data_owner())
         replace_password(context=request.app.context, eppn=eppn, new_password=new_password)
 
         add_api_event(
             context=request.app.context,
             eppn=reset_request.eppn,
             action="reset password for user",
-            action_by=request.context.manager_eppn,
-            data_owner=request.context.data_owner,
+            action_by=request.context.require_manager_eppn(),
+            data_owner=request.context.require_data_owner(),
         )
 
         api_user = ApiUser(

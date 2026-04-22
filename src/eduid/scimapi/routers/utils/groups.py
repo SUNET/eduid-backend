@@ -70,10 +70,9 @@ def filter_display_name(
         raise BadRequest(scim_type="invalidFilter", detail="Invalid displayName")
 
     req.app.context.logger.debug(f"Searching for group with display name {search_filter.val!r}")
-    assert req.context.groupdb is not None  # please mypy
     assert skip is not None  # please mypy
     assert limit is not None  # please mypy
-    groups, count = req.context.groupdb.get_groups_by_property(
+    groups, count = req.context.require_groupdb().get_groups_by_property(
         key="display_name", value=search_filter.val, skip=skip, limit=limit
     )
 
@@ -94,8 +93,7 @@ def filter_lastmodified(
         _parsed = datetime.fromisoformat(search_filter.val)
     except Exception as e:
         raise BadRequest(scim_type="invalidFilter", detail="Invalid datetime") from e
-    assert req.context.groupdb is not None  # please mypy
-    return req.context.groupdb.get_groups_by_last_modified(
+    return req.context.require_groupdb().get_groups_by_last_modified(
         operator=search_filter.op, value=_parsed, skip=skip, limit=limit
     )
 
@@ -116,10 +114,9 @@ def filter_extensions_data(
     req.app.context.logger.debug(
         f"Searching for groups with {search_filter.attr} {search_filter.op} {search_filter.val!r}"
     )
-    assert req.context.groupdb is not None  # please mypy
     assert skip is not None  # please mypy
     assert limit is not None  # please mypy
-    groups, count = req.context.groupdb.get_groups_by_property(
+    groups, count = req.context.require_groupdb().get_groups_by_property(
         key=search_filter.attr, value=search_filter.val, skip=skip, limit=limit
     )
     return groups, count

@@ -31,8 +31,7 @@ async def on_get(req: ContextRequest[ScimApiContext], resp: Response, scim_id: s
     if scim_id is None:
         raise BadRequest(detail="Not implemented")
     req.app.context.logger.info(f"Fetching event {scim_id}")
-    assert req.context.eventdb is not None  # please mypy
-    db_event = req.context.eventdb.get_event_by_scim_id(scim_id)
+    db_event = req.context.require_eventdb().get_event_by_scim_id(scim_id)
     if not db_event:
         raise NotFound(detail="Event not found")
     return db_event_to_response(req, resp, db_event)
@@ -94,9 +93,7 @@ async def on_post(
         _timestamp = create_request.nutid_event_v1.timestamp
     _expires_at = utc_now() + timedelta(days=1)
 
-    assert req.context.data_owner is not None  # please mypy
-    assert req.context.eventdb is not None  # please mypy
-
+    data_owner = req.context.require_data_owner()
     event = ScimApiEvent(
         resource=ScimApiEventResource(
             resource_type=create_request.nutid_event_v1.resource.resource_type,
@@ -106,12 +103,12 @@ async def on_post(
             external_id=referenced.external_id,
         ),
         level=create_request.nutid_event_v1.level,
-        source=req.context.data_owner,
+        source=data_owner,
         data=create_request.nutid_event_v1.data,
         expires_at=_expires_at,
         timestamp=_timestamp,
     )
-    req.context.eventdb.save(event)
+    req.context.require_eventdb().save(event)
 
     # Send notification
     message = req.app.context.notification_relay.format_message(
@@ -119,7 +116,7 @@ async def on_post(
     )
 
     req.app.context.notification_relay.notify(
-        data_owner=req.context.data_owner, message=message, context=req.app.context
+        data_owner=data_owner, message=message, context=req.app.context
     )
 
     return db_event_to_response(req, resp, event)
