@@ -171,7 +171,7 @@ class BaseDB:
         :return:
         """
         logger.warning(f"{self!s} Dropping collection {self._coll_name!r}")
-        return self._coll.drop()
+        self._coll.delete_many({})
 
     def _get_all_docs(self) -> pymongo.cursor.Cursor[TUserDbDocument]:
         """
