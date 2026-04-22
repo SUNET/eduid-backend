@@ -1,8 +1,7 @@
 from fastapi import APIRouter, Response, status
 
-from eduid.common.fastapi.context_request import ContextRequest
 from eduid.common.utils import generate_password
-from eduid.maccapi.context_request import MaccAPIContext, MaccAPIRoute
+from eduid.maccapi.context_request import MaccAPIRequest, MaccAPIRoute
 from eduid.maccapi.helpers import (
     UnableToAddPassword,
     add_api_event,
@@ -30,7 +29,7 @@ users_router = APIRouter(route_class=MaccAPIRoute, prefix="/Users")
 
 
 @users_router.get("/", response_model_exclude_none=True)
-async def get_users(request: ContextRequest[MaccAPIContext]) -> UserListResponse:
+async def get_users(request: MaccAPIRequest) -> UserListResponse:
     """
     return all users that the calling user has access to in current context
     """
@@ -45,7 +44,7 @@ async def get_users(request: ContextRequest[MaccAPIContext]) -> UserListResponse
 
 @users_router.post("/create", response_model_exclude_none=True)
 async def add_user(
-    request: ContextRequest[MaccAPIContext], create_request: UserCreateRequest, response: Response
+    request: MaccAPIRequest, create_request: UserCreateRequest, response: Response
 ) -> UserCreatedResponse:
     """
     add a new user to the current context
@@ -90,7 +89,7 @@ async def add_user(
 
 @users_router.post("/remove", response_model_exclude_none=True)
 async def remove_user(
-    request: ContextRequest[MaccAPIContext], remove_request: UserRemoveRequest, response: Response
+    request: MaccAPIRequest, remove_request: UserRemoveRequest, response: Response
 ) -> UserRemovedResponse:
     """
     remove a user from the current context
@@ -131,7 +130,7 @@ async def remove_user(
 
 @users_router.post("/reset_password")
 async def reset_password(
-    request: ContextRequest[MaccAPIContext], reset_request: UserResetPasswordRequest, response: Response
+    request: MaccAPIRequest, reset_request: UserResetPasswordRequest, response: Response
 ) -> UserResetPasswordResponse:
     """
     reset a user's password

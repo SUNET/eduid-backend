@@ -2,11 +2,10 @@ from datetime import timedelta
 
 from fastapi import Response
 
-from eduid.common.fastapi.context_request import ContextRequest
 from eduid.common.misc.timeutil import utc_now
 from eduid.common.models.scim_base import SCIMResourceType
 from eduid.scimapi.api_router import APIRouter
-from eduid.scimapi.context_request import ScimApiContext, ScimApiRoute
+from eduid.scimapi.context_request import ScimApiRequest, ScimApiRoute
 from eduid.scimapi.exceptions import BadRequest, ErrorDetail, NotFound
 from eduid.scimapi.models.event import EventCreateRequest, EventResponse
 from eduid.scimapi.routers.utils.events import db_event_to_response, get_scim_referenced
@@ -27,7 +26,7 @@ events_router = APIRouter(
 
 
 @events_router.get("/{scim_id}", response_model_exclude_none=True)
-async def on_get(req: ContextRequest[ScimApiContext], resp: Response, scim_id: str | None = None) -> EventResponse:
+async def on_get(req: ScimApiRequest, resp: Response, scim_id: str | None = None) -> EventResponse:
     if scim_id is None:
         raise BadRequest(detail="Not implemented")
     req.app.context.logger.info(f"Fetching event {scim_id}")
@@ -39,7 +38,7 @@ async def on_get(req: ContextRequest[ScimApiContext], resp: Response, scim_id: s
 
 @events_router.post("/", response_model_exclude_none=True)
 async def on_post(
-    req: ContextRequest[ScimApiContext], resp: Response, create_request: EventCreateRequest
+    req: ScimApiRequest, resp: Response, create_request: EventCreateRequest
 ) -> EventResponse:
     """
     POST /Events  HTTP/1.1

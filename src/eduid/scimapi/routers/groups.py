@@ -1,9 +1,8 @@
 from fastapi import Response
 
-from eduid.common.fastapi.context_request import ContextRequest
 from eduid.common.models.scim_base import ListResponse, SCIMResourceType, SearchRequest
 from eduid.scimapi.api_router import APIRouter
-from eduid.scimapi.context_request import ScimApiContext, ScimApiRoute
+from eduid.scimapi.context_request import ScimApiRequest, ScimApiRoute
 from eduid.scimapi.exceptions import BadRequest, ErrorDetail, NotFound
 from eduid.scimapi.models.group import GroupCreateRequest, GroupResponse, GroupUpdateRequest
 from eduid.scimapi.routers.utils.events import add_api_event
@@ -28,14 +27,14 @@ groups_router = APIRouter(
 
 
 @groups_router.get("/")
-async def on_get_all(req: ContextRequest[ScimApiContext]) -> ListResponse:
+async def on_get_all(req: ScimApiRequest) -> ListResponse:
     db_groups = req.context.require_groupdb().get_groups()
     resources = [{"id": str(db_group.scim_id), "displayName": db_group.graph.display_name} for db_group in db_groups]
     return ListResponse(total_results=len(db_groups), resources=resources)
 
 
 @groups_router.get("/{scim_id}", response_model_exclude_none=True)
-async def on_get_one(req: ContextRequest[ScimApiContext], resp: Response, scim_id: str) -> GroupResponse:
+async def on_get_one(req: ScimApiRequest, resp: Response, scim_id: str) -> GroupResponse:
     """
     GET /Groups/c3819cbe-c893-4070-824c-fe3d0db8f955  HTTP/1.1
     Host: example.com
@@ -75,7 +74,7 @@ async def on_get_one(req: ContextRequest[ScimApiContext], resp: Response, scim_i
 
 @groups_router.put("/{scim_id}", response_model_exclude_none=True)
 async def on_put(
-    req: ContextRequest[ScimApiContext], resp: Response, scim_id: str, update_request: GroupUpdateRequest
+    req: ScimApiRequest, resp: Response, scim_id: str, update_request: GroupUpdateRequest
 ) -> GroupResponse:
     """
     PUT /Groups/c3819cbe-c893-4070-824c-fe3d0db8f955  HTTP/1.1
@@ -176,7 +175,7 @@ async def on_put(
 
 
 @groups_router.post("/", response_model_exclude_none=True)
-async def on_post(req: ContextRequest[ScimApiContext], resp: Response, create_request: GroupCreateRequest) -> GroupResponse:
+async def on_post(req: ScimApiRequest, resp: Response, create_request: GroupCreateRequest) -> GroupResponse:
     """
     POST /Groups  HTTP/1.1
     Host: example.com
@@ -234,7 +233,7 @@ async def on_post(req: ContextRequest[ScimApiContext], resp: Response, create_re
     status_code=204,
     responses={204: {"description": "No Content"}},
 )
-async def on_delete(req: ContextRequest[ScimApiContext], scim_id: str) -> None:
+async def on_delete(req: ScimApiRequest, scim_id: str) -> None:
     req.app.context.logger.info(f"Deleting group {scim_id}")
     db_group = req.context.require_groupdb().get_group_by_scim_id(scim_id=scim_id)
     req.app.context.logger.debug(f"Found group: {db_group}")
@@ -260,7 +259,7 @@ async def on_delete(req: ContextRequest[ScimApiContext], scim_id: str) -> None:
 
 
 @groups_router.post("/.search", response_model_exclude_none=True)
-async def search(req: ContextRequest[ScimApiContext], query: SearchRequest) -> ListResponse:
+async def search(req: ScimApiRequest, query: SearchRequest) -> ListResponse:
     """
     POST /Groups/.search
     Host: scim.eduid.se

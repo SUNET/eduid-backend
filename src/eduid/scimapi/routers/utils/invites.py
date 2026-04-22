@@ -7,7 +7,6 @@ from typing import Any
 from fastapi import Request, Response
 from pymongo.errors import DuplicateKeyError
 
-from eduid.common.fastapi.context_request import ContextRequest
 from eduid.common.misc.timeutil import utc_now
 from eduid.common.models.scim_base import Email, Meta, Name, PhoneNumber, SCIMResourceType, SCIMSchema, SearchRequest
 from eduid.common.models.scim_invite import InviteCreateRequest, InviteResponse, NutidInviteExtensionV1
@@ -15,7 +14,7 @@ from eduid.common.models.scim_user import NutidUserExtensionV1, Profile
 from eduid.common.utils import get_short_hash, make_etag
 from eduid.queue.db import QueueItem, SenderInfo
 from eduid.queue.db.message import EduidInviteEmail
-from eduid.scimapi.context_request import ScimApiContext
+from eduid.scimapi.context_request import ScimApiRequest
 from eduid.scimapi.exceptions import BadRequest
 from eduid.scimapi.search import SearchFilter
 from eduid.scimapi.utils import get_unique_hash
@@ -27,7 +26,7 @@ __author__ = "lundberg"
 
 
 def create_signup_invite(
-    req: ContextRequest[ScimApiContext], create_request: InviteCreateRequest, db_invite: ScimApiInvite
+    req: ScimApiRequest, create_request: InviteCreateRequest, db_invite: ScimApiInvite
 ) -> SignupInvite:
     invite_reference = SCIMReference(data_owner=req.context.require_data_owner(), scim_id=db_invite.scim_id)
 
@@ -118,11 +117,11 @@ def db_invite_to_response(
     return scim_invite
 
 
-def create_signup_ref(req: ContextRequest[ScimApiContext], db_invite: ScimApiInvite) -> SCIMReference:
+def create_signup_ref(req: ScimApiRequest, db_invite: ScimApiInvite) -> SCIMReference:
     return SCIMReference(data_owner=req.context.require_data_owner(), scim_id=db_invite.scim_id)
 
 
-def send_invite_mail(req: ContextRequest[ScimApiContext], signup_invite: SignupInvite) -> bool:
+def send_invite_mail(req: ScimApiRequest, signup_invite: SignupInvite) -> bool:
     try:
         email = next(email.email for email in signup_invite.mail_addresses if email.primary)
     except StopIteration:
@@ -163,7 +162,7 @@ def invites_to_resources_dicts(query: SearchRequest, invites: Sequence[ScimApiIn
 
 
 def save_invite(
-    req: ContextRequest[ScimApiContext],
+    req: ScimApiRequest,
     db_invite: ScimApiInvite,
     signup_invite: SignupInvite,
     signup_invite_is_in_database: bool,
@@ -188,7 +187,7 @@ def save_invite(
 
 
 def filter_lastmodified(
-    req: ContextRequest[ScimApiContext], search_filter: SearchFilter, skip: int | None = None, limit: int | None = None
+    req: ScimApiRequest, search_filter: SearchFilter, skip: int | None = None, limit: int | None = None
 ) -> tuple[list[ScimApiInvite], int]:
     if search_filter.op not in ["gt", "ge"]:
         raise BadRequest(scim_type="invalidFilter", detail="Unsupported operator")

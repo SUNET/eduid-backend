@@ -5,10 +5,9 @@ from uuid import uuid4
 from fastapi import Response
 
 from eduid.common.config.base import DataOwnerName
-from eduid.common.fastapi.context_request import ContextRequest
 from eduid.common.models.scim_base import Meta, SCIMResourceType, SCIMSchema
 from eduid.common.utils import make_etag, urlappend
-from eduid.scimapi.context_request import ScimApiContext
+from eduid.scimapi.context_request import ScimApiRequest
 from eduid.scimapi.exceptions import BadRequest
 from eduid.scimapi.models.event import EventResponse, NutidEventExtensionV1, NutidEventResource
 from eduid.userdb.scimapi import EventLevel, EventStatus, ScimApiEvent, ScimApiEventResource, ScimApiResourceBase
@@ -21,7 +20,7 @@ from eduid.common.misc.timeutil import utc_now
 __author__ = "lundberg"
 
 
-def db_event_to_response(req: ContextRequest[ScimApiContext], resp: Response, db_event: ScimApiEvent) -> EventResponse:
+def db_event_to_response(req: ScimApiRequest, resp: Response, db_event: ScimApiEvent) -> EventResponse:
     location = req.app.context.resource_url(SCIMResourceType.EVENT, db_event.scim_id)
     meta = Meta(
         location=location,
@@ -61,7 +60,7 @@ def db_event_to_response(req: ContextRequest[ScimApiContext], resp: Response, db
     return event_response
 
 
-def get_scim_referenced(req: ContextRequest[ScimApiContext], resource: NutidEventResource) -> ScimApiResourceBase | None:
+def get_scim_referenced(req: ScimApiRequest, resource: NutidEventResource) -> ScimApiResourceBase | None:
     if resource.resource_type == SCIMResourceType.USER:
         return req.context.require_userdb().get_user_by_scim_id(str(resource.scim_id))
     elif resource.resource_type == SCIMResourceType.GROUP:

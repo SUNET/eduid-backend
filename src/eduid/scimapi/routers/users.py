@@ -5,11 +5,10 @@ from dataclasses import replace
 
 from fastapi import Response
 
-from eduid.common.fastapi.context_request import ContextRequest
 from eduid.common.models.scim_base import ListResponse, SCIMResourceType, SCIMSchema, SearchRequest
 from eduid.common.models.scim_user import UserCreateRequest, UserResponse, UserUpdateRequest
 from eduid.scimapi.api_router import APIRouter
-from eduid.scimapi.context_request import ScimApiContext, ScimApiRoute
+from eduid.scimapi.context_request import ScimApiRequest, ScimApiRoute
 from eduid.scimapi.exceptions import BadRequest, Conflict, ErrorDetail, MaxRetriesReached, NotFound
 from eduid.scimapi.routers.utils.events import add_api_event
 from eduid.scimapi.routers.utils.users import (
@@ -46,7 +45,7 @@ users_router = APIRouter(
 
 
 @users_router.get("/{scim_id}", response_model_exclude_none=True)
-async def on_get(req: ContextRequest[ScimApiContext], resp: Response, scim_id: str | None = None) -> UserResponse:
+async def on_get(req: ScimApiRequest, resp: Response, scim_id: str | None = None) -> UserResponse:
     if scim_id is None:
         raise BadRequest(detail="Not implemented")
     req.app.context.logger.info(f"Fetching user {scim_id}")
@@ -119,7 +118,7 @@ def _apply_nutid_updates(
 
 
 @users_router.put("/{scim_id}", response_model_exclude_none=True)
-async def on_put(req: ContextRequest[ScimApiContext], resp: Response, update_request: UserUpdateRequest, scim_id: str) -> UserResponse:
+async def on_put(req: ScimApiRequest, resp: Response, update_request: UserUpdateRequest, scim_id: str) -> UserResponse:
     req.app.context.logger.info(f"Updating user {scim_id}")
     req.app.context.logger.debug(update_request)
     if scim_id != str(update_request.id):
@@ -167,7 +166,7 @@ async def on_put(req: ContextRequest[ScimApiContext], resp: Response, update_req
 
 
 @users_router.post("/", response_model_exclude_none=True)
-async def on_post(req: ContextRequest[ScimApiContext], resp: Response, create_request: UserCreateRequest) -> UserResponse:
+async def on_post(req: ScimApiRequest, resp: Response, create_request: UserCreateRequest) -> UserResponse:
     """
     POST /Users  HTTP/1.1
     Host: example.com
@@ -265,7 +264,7 @@ async def on_post(req: ContextRequest[ScimApiContext], resp: Response, create_re
     status_code=204,
     responses={204: {"description": "No Content"}},
 )
-async def on_delete(req: ContextRequest[ScimApiContext], scim_id: str) -> None:
+async def on_delete(req: ScimApiRequest, scim_id: str) -> None:
     req.app.context.logger.info(f"Deleting user {scim_id}")
     db_user = req.context.require_userdb().get_user_by_scim_id(scim_id=scim_id)
     req.app.context.logger.debug(f"Found user: {db_user}")
@@ -299,7 +298,7 @@ async def on_delete(req: ContextRequest[ScimApiContext], scim_id: str) -> None:
 
 
 @users_router.post("/.search", response_model_exclude_none=True)
-async def search(req: ContextRequest[ScimApiContext], query: SearchRequest) -> ListResponse:
+async def search(req: ScimApiRequest, query: SearchRequest) -> ListResponse:
     """
     POST /Users/.search
     Host: scim.eduid.se

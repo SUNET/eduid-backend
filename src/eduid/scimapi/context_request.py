@@ -2,7 +2,7 @@ __author__ = "lundberg"
 
 
 from eduid.common.config.base import DataOwnerName
-from eduid.common.fastapi.context_request import Context, ContextRequestRoute
+from eduid.common.fastapi.context_request import Context, ContextRequest, ContextRequestRoute
 from eduid.userdb.scimapi import ScimApiEventDB, ScimApiGroupDB
 from eduid.userdb.scimapi.invitedb import ScimApiInviteDB
 from eduid.userdb.scimapi.userdb import ScimApiUserDB
@@ -39,6 +39,10 @@ class ScimApiContext(Context):
         if self.eventdb is None:
             raise RuntimeError("eventdb not initialised")
         return self.eventdb
+
+
+class ScimApiRequest(ContextRequest[ScimApiContext]):
+    """Concrete subclass so FastAPI's param inspector sees a plain Request subclass."""
 
 
 class ScimApiRoute(ContextRequestRoute):

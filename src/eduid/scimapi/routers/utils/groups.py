@@ -4,10 +4,9 @@ from uuid import UUID
 
 from fastapi import Request, Response
 
-from eduid.common.fastapi.context_request import ContextRequest
 from eduid.common.models.scim_base import Meta, SCIMResourceType, SCIMSchema
 from eduid.common.utils import make_etag
-from eduid.scimapi.context_request import ScimApiContext
+from eduid.scimapi.context_request import ScimApiRequest
 from eduid.scimapi.exceptions import BadRequest
 from eduid.scimapi.models.group import GroupMember, GroupResponse, NutidGroupExtensionV1
 from eduid.scimapi.search import SearchFilter
@@ -27,7 +26,7 @@ def get_group_members(req: Request, db_group: ScimApiGroup) -> list[GroupMember]
     return members
 
 
-def db_group_to_response(req: ContextRequest[ScimApiContext], resp: Response, db_group: ScimApiGroup) -> GroupResponse:
+def db_group_to_response(req: ScimApiRequest, resp: Response, db_group: ScimApiGroup) -> GroupResponse:
     members = get_group_members(req, db_group)
     location = req.app.context.url_for("Groups", str(db_group.scim_id))
     meta = Meta(
@@ -59,7 +58,7 @@ def db_group_to_response(req: ContextRequest[ScimApiContext], resp: Response, db
 
 
 def filter_display_name(
-    req: ContextRequest[ScimApiContext],
+    req: ScimApiRequest,
     search_filter: SearchFilter,
     skip: int,
     limit: int,
@@ -81,7 +80,7 @@ def filter_display_name(
 
 
 def filter_lastmodified(
-    req: ContextRequest[ScimApiContext], search_filter: SearchFilter, skip: int | None = None, limit: int | None = None
+    req: ScimApiRequest, search_filter: SearchFilter, skip: int | None = None, limit: int | None = None
 ) -> tuple[list[ScimApiGroup], int]:
     if search_filter.op not in ["gt", "ge"]:
         raise BadRequest(scim_type="invalidFilter", detail="Unsupported operator")
@@ -97,7 +96,7 @@ def filter_lastmodified(
 
 
 def filter_extensions_data(
-    req: ContextRequest[ScimApiContext],
+    req: ScimApiRequest,
     search_filter: SearchFilter,
     skip: int,
     limit: int,

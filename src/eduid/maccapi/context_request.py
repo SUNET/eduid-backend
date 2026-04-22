@@ -1,4 +1,4 @@
-from eduid.common.fastapi.context_request import Context, ContextRequestRoute
+from eduid.common.fastapi.context_request import Context, ContextRequest, ContextRequestRoute
 
 
 class MaccAPIContext(Context):
@@ -14,6 +14,10 @@ class MaccAPIContext(Context):
         if self.manager_eppn is None:
             raise RuntimeError("manager_eppn not initialised")
         return self.manager_eppn
+
+
+class MaccAPIRequest(ContextRequest[MaccAPIContext]):
+    """Concrete subclass so FastAPI's param inspector sees a plain Request subclass."""
 
 
 class MaccAPIRoute(ContextRequestRoute):
