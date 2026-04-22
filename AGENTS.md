@@ -2,6 +2,13 @@
 
 This document provides guidelines for AI coding agents working in the eduID Backend repository.
 
+Rule language in this document:
+- **Must**: required for changes that are ready for review
+- **Should**: the default approach unless there is a clear reason to do otherwise
+- **May**: optional guidance
+
+Unless noted otherwise, code snippets in this document are illustrative and may omit surrounding imports or setup.
+
 ## Project Overview
 
 eduID Backend is a Python 3.13 monorepo for Swedish federated identity management:
@@ -44,7 +51,7 @@ make reformat   # Fix imports + format code + extended checks
 
 ### Type Checking
 
-**Run both type checkers before submitting changes:**
+**Must run both type checkers before submitting changes:**
 
 ```bash
 # mypy (required)
@@ -84,7 +91,7 @@ from eduid.webapp.common.api.messages import TranslatableMsg
 
 ### Type Annotations
 
-Use modern Python 3.10+ type syntax:
+Must use modern Python 3.10+ type syntax:
 
 ```python
 def get_user(identifier: str) -> User | None:            # Union with |
@@ -114,7 +121,7 @@ class UserConfig(BaseModel):
 
 ### Error Handling
 
-Use hierarchical custom exceptions:
+Should use hierarchical custom exceptions:
 ```python
 class EduIDDBError(Exception):
     def __init__(self, reason: object) -> None:
@@ -183,7 +190,7 @@ src/eduid/webapp/freja_eid/
 
 ### Base Test Classes
 
-Each webapp has a specific test base class. For the IdP, use `IdPAPITests`:
+Each webapp has a specific test base class. IdP tests should use `IdPAPITests`:
 
 ```python
 from eduid.webapp.idp.tests.test_api import IdPAPITests
@@ -197,7 +204,7 @@ class TestMyFeature(IdPAPITests):
         # ... test logic
 ```
 
-For other webapps, use `EduidAPITestCase[AppType]`:
+Other webapp tests should use `EduidAPITestCase[AppType]`:
 
 ```python
 class MyAppTests(EduidAPITestCase[MyApp]):
@@ -243,8 +250,8 @@ user = self.app.userdb.lookup_user(self.test_user.eppn)
 
 ### Mocking Patterns
 
-Use `pytest-mock` fixtures instead of direct `unittest.mock` imports in tests. Use `mocker: MockerFixture` in function-scoped
-tests and `class_mocker` for class-scoped setup in `EduidAPITestCase` subclasses. Reach for
+Tests must use `pytest-mock` fixtures instead of direct `unittest.mock` imports. Function-scoped tests should use `mocker: MockerFixture`,
+and class-scoped setup in `EduidAPITestCase` subclasses should use `class_mocker`. Tests should use
 `mocker.patch`, `mocker.patch.object`, `mocker.MagicMock`, and `mocker.AsyncMock` instead of importing
 `patch`, `MagicMock`, or `AsyncMock` directly.
 
@@ -278,10 +285,10 @@ def _make_ticket(
     return cast(LoginContext, ticket)
 ```
 
-Use real objects instead of mocks when feasible:
+Should use real objects instead of mocks when feasible.
 
 ```python
-# Prefer real AuthnData over MagicMock
+# Use real AuthnData rather than MagicMock when feasible
 from eduid.webapp.idp.idp_authn import AuthnData
 from eduid.common.misc.timeutil import utc_now
 
@@ -290,7 +297,7 @@ authn_data = AuthnData(cred_id=credential.key, timestamp=utc_now())
 
 ### Post-Edit Checklist
 
-After completing test changes, always run:
+Must run these commands after completing test changes:
 
 ```bash
 make reformat   # Fix imports and formatting
@@ -300,7 +307,7 @@ make typecheck  # Verify type correctness
 
 ## Commit Message Convention
 
-Use [Conventional Commits](https://www.conventionalcommits.org/):
+Should use [Conventional Commits](https://www.conventionalcommits.org/) for commit messages:
 ```
 feat(webapp): add new identity verification flow
 fix(userdb): handle missing email gracefully
