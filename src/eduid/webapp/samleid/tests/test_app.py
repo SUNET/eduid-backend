@@ -967,9 +967,7 @@ class NINMethodTests(SamlEidTests):
         mc: MethodConfig,
     ) -> None:
         mocker.patch("eduid.webapp.common.api.helpers.get_reference_nin_from_navet_data", return_value=None)
-        mock_get_all_navet_data = mocker.patch("eduid.common.rpc.msg_relay.MsgRelay.get_all_navet_data")
         mock_request_user_sync = mocker.patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-        mock_get_all_navet_data.return_value = self._get_all_navet_data()
         mock_request_user_sync.side_effect = self.request_user_sync
 
         eppn = self.test_unverified_user_eppn
@@ -1002,9 +1000,7 @@ class NINMethodTests(SamlEidTests):
         mc: MethodConfig,
     ) -> None:
         mocker.patch("eduid.webapp.common.api.helpers.get_reference_nin_from_navet_data", return_value=None)
-        mock_get_all_navet_data = mocker.patch("eduid.common.rpc.msg_relay.MsgRelay.get_all_navet_data")
         mock_request_user_sync = mocker.patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-        mock_get_all_navet_data.return_value = self._get_all_navet_data()
         mock_request_user_sync.side_effect = self.request_user_sync
 
         eppn = self.test_unverified_user_eppn
@@ -1119,9 +1115,7 @@ class NINMethodTests(SamlEidTests):
         mc: MethodConfig,
     ) -> None:
         mocker.patch("eduid.webapp.common.api.helpers.get_reference_nin_from_navet_data", return_value=None)
-        mock_get_all_navet_data = mocker.patch("eduid.common.rpc.msg_relay.MsgRelay.get_all_navet_data")
         mock_request_user_sync = mocker.patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-        mock_get_all_navet_data.return_value = self._get_all_navet_data()
         mock_request_user_sync.side_effect = self.request_user_sync
         eppn = self.test_unverified_user_eppn
 
@@ -1215,9 +1209,7 @@ class NINMethodTests(SamlEidTests):
         mc: MethodConfig,
     ) -> None:
         mocker.patch("eduid.webapp.common.api.helpers.get_reference_nin_from_navet_data", return_value=None)
-        mock_get_all_navet_data = mocker.patch("eduid.common.rpc.msg_relay.MsgRelay.get_all_navet_data")
         mock_request_user_sync = mocker.patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-        mock_get_all_navet_data.return_value = self._get_all_navet_data()
         mock_request_user_sync.side_effect = self.request_user_sync
 
         eppn = self.test_unverified_user_eppn
@@ -1252,9 +1244,7 @@ class NINMethodTests(SamlEidTests):
         mc: MethodConfig,
     ) -> None:
         mocker.patch("eduid.webapp.common.api.helpers.get_reference_nin_from_navet_data", return_value=None)
-        mock_get_all_navet_data = mocker.patch("eduid.common.rpc.msg_relay.MsgRelay.get_all_navet_data")
         mock_request_user_sync = mocker.patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-        mock_get_all_navet_data.return_value = self._get_all_navet_data()
         mock_request_user_sync.side_effect = self.request_user_sync
 
         eppn = self.test_unverified_user_eppn
@@ -1369,9 +1359,7 @@ class NINMethodTests(SamlEidTests):
         mc: MethodConfig,
     ) -> None:
         mocker.patch("eduid.webapp.common.api.helpers.get_reference_nin_from_navet_data", return_value=None)
-        mock_get_all_navet_data = mocker.patch("eduid.common.rpc.msg_relay.MsgRelay.get_all_navet_data")
         mock_request_user_sync = mocker.patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-        mock_get_all_navet_data.return_value = self._get_all_navet_data()
         mock_request_user_sync.side_effect = self.request_user_sync
 
         eppn = self.test_unverified_user_eppn
@@ -1443,10 +1431,8 @@ class NINMethodTests(SamlEidTests):
         mc: MethodConfig,
     ) -> None:
         mocker.patch("eduid.webapp.common.api.helpers.get_reference_nin_from_navet_data", return_value=None)
-        mock_get_all_navet_data = mocker.patch("eduid.common.rpc.msg_relay.MsgRelay.get_all_navet_data")
         mock_request_user_sync = mocker.patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
         """Test that identity verification fails when the SAML response has a wrong LOA (loa1 instead of loa3)"""
-        mock_get_all_navet_data.return_value = self._get_all_navet_data()
         mock_request_user_sync.side_effect = self.request_user_sync
 
         eppn = self.test_unverified_user_eppn
