@@ -5,8 +5,9 @@ from eduid.webapp.common.api.messages import AuthnStatusMsg
 from eduid.webapp.common.authn.acs_registry import ACSArgs, ACSResult, acs_action
 from eduid.webapp.common.authn.utils import check_reauthn
 from eduid.webapp.common.proofing.messages import ProofingMsg
+from eduid.webapp.common.proofing.mfa_signup import parse_mfa_register_args
 from eduid.webapp.common.session import session
-from eduid.webapp.common.session.namespaces import RP_AuthnRequest
+from eduid.webapp.common.session.namespaces import ExternalMfaSignupIdentity, RP_AuthnRequest
 from eduid.webapp.freja_eid.app import current_freja_eid_app as current_app
 from eduid.webapp.freja_eid.callback_enums import FrejaEIDAction
 from eduid.webapp.freja_eid.helpers import FrejaEIDDocumentUserInfo, FrejaEIDMsg
@@ -172,4 +173,40 @@ def mfa_authenticate_action(args: ACSArgs) -> ACSResult:
     current_app.stats.count(name="mfa_auth_success")
     current_app.stats.count(name=f"mfa_auth_{args.proofing_method.method}_success")
     current_app.stats.count(name="mfa_auth_freja_eid_success")
+    return ACSResult(success=True, message=FrejaEIDMsg.mfa_authn_success)
+
+
+@acs_action(FrejaEIDAction.mfa_register)
+def mfa_register_action(args: ACSArgs) -> ACSResult:
+    """Parse a signup-flow external MFA Freja eID userinfo and persist identity
+    + LoA on the RP_AuthnRequest. No user yet, no DB write, no proofing log.
+    """
+    parsed = parse_mfa_register_args(
+        args,
+        common_saml_checks=None,  # OIDC — no SAML-level checks
+        get_proofing_functions=get_proofing_functions,
+        method_not_available_msg=FrejaEIDMsg.method_not_available,
+        app_name=current_app.conf.app_name,
+        config=current_app.conf,
+    )
+    if isinstance(parsed, ACSResult):
+        return parsed
+
+    match parsed.session_info:
+        case FrejaEIDDocumentUserInfo():
+            if parsed.session_info.personal_identity_number is None:
+                current_app.logger.error("Freja eID userinfo has no personal_identity_number")
+                return ACSResult(message=FrejaEIDMsg.method_not_available)
+            args.authn_req.external_mfa_signup_identity = ExternalMfaSignupIdentity(
+                given_name=parsed.session_info.given_name,
+                surname=parsed.session_info.family_name,
+                date_of_birth=parsed.session_info.date_of_birth,
+                nin=parsed.session_info.personal_identity_number,
+                framework=parsed.framework,
+                loa=parsed.loa,
+            )
+        case _:
+            current_app.logger.error(f"Unsupported session info type: {type(parsed.session_info)}")
+            return ACSResult(message=FrejaEIDMsg.method_not_available)
+
     return ACSResult(success=True, message=FrejaEIDMsg.mfa_authn_success)

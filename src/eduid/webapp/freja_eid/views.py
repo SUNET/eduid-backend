@@ -118,6 +118,28 @@ def verify_credential(
     return success_response(payload={"location": result.url})
 
 
+@freja_eid_views.route("/mfa-register", methods=["POST"])
+@UnmarshalWith(FrejaEIDCommonRequestSchema)
+@MarshalWith(FrejaEIDCommonResponseSchema)
+def mfa_register(method: str, frontend_action: str, frontend_state: str | None = None) -> FluxData:
+    """Start an external MFA authn as the first step of a signup flow."""
+    current_app.logger.debug("mfa-register called")
+
+    if frontend_action != FrontendAction.SIGNUP_EXTERNAL_MFA.value:
+        current_app.logger.error(f"Invalid frontend_action for mfa-register: {frontend_action}")
+        return error_response(message=FrejaEIDMsg.frontend_action_not_supported)
+
+    result = _authn(
+        FrejaEIDAction.mfa_register,
+        method,
+        frontend_action,
+        frontend_state,
+    )
+    if result.error:
+        return error_response(message=result.error)
+    return success_response(payload={"location": result.url})
+
+
 @freja_eid_views.route("/mfa-authenticate", methods=["POST"])
 @UnmarshalWith(FrejaEIDCommonRequestSchema)
 @MarshalWith(FrejaEIDCommonResponseSchema)

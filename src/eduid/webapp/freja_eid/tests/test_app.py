@@ -12,6 +12,7 @@ from werkzeug.test import TestResponse
 
 from eduid.common.config.base import FrontendAction
 from eduid.common.misc.timeutil import utc_now
+from eduid.userdb.credentials.external import TrustFramework
 from eduid.userdb.element import ElementKey
 from eduid.userdb.identity import (
     FrejaIdentity,
@@ -143,6 +144,10 @@ class FrejaEIDTests(ProofingTests[FrejaEIDApp]):
                         "finish_url": "https://dashboard.example.com/profile/ext-return/{app_name}/{authn_id}",
                     },
                     FrontendAction.VERIFY_CREDENTIAL.value: {
+                        "force_authn": True,
+                        "finish_url": "https://dashboard.example.com/profile/ext-return/{app_name}/{authn_id}",
+                    },
+                    FrontendAction.SIGNUP_EXTERNAL_MFA.value: {
                         "force_authn": True,
                         "finish_url": "https://dashboard.example.com/profile/ext-return/{app_name}/{authn_id}",
                     },
@@ -1239,3 +1244,231 @@ class FrejaEIDTests(ProofingTests[FrejaEIDApp]):
         self._verify_user_parameters(
             eppn, num_mfa_tokens=0, identity_verified=True, num_proofings=1, locked_identity=user.identities.freja
         )
+
+    def test_mfa_register_init_ok(self) -> None:
+        """POST /mfa-register with correct frontend_action returns a redirect URL (anonymous session)."""
+        mock_metadata = self.mocker.patch("authlib.integrations.base_client.sync_app.OAuth2Mixin.load_server_metadata")
+        mock_metadata.return_value = self.oidc_provider_config
+
+        with self.session_cookie_anon(self.browser) as browser:
+            with browser.session_transaction() as sess:
+                csrf_token = sess.get_csrf_token()
+            response = browser.post(
+                "/mfa-register",
+                json={
+                    "method": "freja_eid",
+                    "frontend_action": FrontendAction.SIGNUP_EXTERNAL_MFA.value,
+                    "csrf_token": csrf_token,
+                },
+            )
+        self._check_success_response(response, type_=None, payload={"csrf_token": csrf_token})
+        loc = self.get_response_payload(response).get("location")
+        assert loc is not None
+        assert loc.startswith("https://example.com/op/oidc/authorize")
+
+    def test_mfa_register_init_rejects_wrong_action(self) -> None:
+        """POST /mfa-register with the wrong frontend_action is rejected."""
+        mock_metadata = self.mocker.patch("authlib.integrations.base_client.sync_app.OAuth2Mixin.load_server_metadata")
+        mock_metadata.return_value = self.oidc_provider_config
+
+        with self.session_cookie_anon(self.browser) as browser:
+            with browser.session_transaction() as sess:
+                csrf_token = sess.get_csrf_token()
+            response = browser.post(
+                "/mfa-register",
+                json={
+                    "method": "freja_eid",
+                    "frontend_action": FrontendAction.LOGIN_MFA_AUTHN.value,
+                    "csrf_token": csrf_token,
+                },
+            )
+        body = response.get_json()
+        assert body["payload"]["message"] == FrejaEIDMsg.frontend_action_not_supported.value
+
+    def test_mfa_register_acs_populates_identity(self) -> None:
+        """ACS handler for mfa_register populates external_mfa_signup_identity in a genuine signup session (no eppn)."""
+        mock_metadata = self.mocker.patch("authlib.integrations.base_client.sync_app.OAuth2Mixin.load_server_metadata")
+        mock_metadata.return_value = self.oidc_provider_config
+
+        country = countries.get("Sweden")
+
+        with self.session_cookie_anon(self.browser) as browser:
+            with browser.session_transaction() as sess:
+                csrf_token = sess.get_csrf_token()
+                assert sess.common.eppn is None
+
+            response = browser.post(
+                "/mfa-register",
+                json={
+                    "method": "freja_eid",
+                    "frontend_action": FrontendAction.SIGNUP_EXTERNAL_MFA.value,
+                    "csrf_token": csrf_token,
+                },
+            )
+            self._check_success_response(response, type_=None, payload={"csrf_token": csrf_token})
+            loc = self.get_response_payload(response).get("location")
+            assert loc is not None
+            state, nonce = self._get_state_and_nonce(loc)
+
+            with browser.session_transaction() as sess:
+                # Confirm still no eppn — genuine signup session
+                assert sess.common.eppn is None
+
+            userinfo = self.get_mock_userinfo(
+                issuing_country=country,
+                personal_identity_number="197801011234",
+                given_name="Test",
+                family_name="Testsson",
+                birthdate=date(1978, 1, 1),
+                registration_level=FrejaRegistrationLevel.PLUS,
+                loa_level=FrejaLoaLevel.LOA3_NR,
+            )
+
+            # Invoke the OIDC callback in the same browser context (same session)
+            mock_end_session = self.mocker.patch(
+                "authlib.integrations.requests_client.oauth2_session.OAuth2Session.request"
+            )
+            mock_parse_id_token = self.mocker.patch(
+                "authlib.integrations.base_client.sync_openid.OpenIDMixin.parse_id_token"
+            )
+            mock_userinfo_ep = self.mocker.patch(
+                "authlib.integrations.base_client.sync_openid.OpenIDMixin.userinfo"
+            )
+            mock_fetch_access_token = self.mocker.patch(
+                "authlib.integrations.base_client.sync_app.OAuth2Mixin.fetch_access_token"
+            )
+            mock_end_session.return_value = True
+            id_token = json.dumps(
+                {
+                    "nonce": nonce,
+                    "sub": "sub",
+                    "iss": "iss",
+                    "aud": ["aud"],
+                    "exp": userinfo.exp,
+                    "iat": userinfo.iat,
+                    "auth_time": userinfo.iat,
+                    "acr": "acr",
+                    "amr": ["amr"],
+                    "azp": "azp",
+                }
+            )
+            mock_fetch_access_token.return_value = {
+                "access_token": "access_token",
+                "token_type": "token_type",
+                "expires_in": timedelta(minutes=5).total_seconds(),
+                "expires_at": userinfo.exp,
+                "refresh_token": "refresh_token",
+                "id_token": id_token,
+            }
+            mock_parse_id_token.return_value = userinfo.model_dump()
+            mock_userinfo_ep.return_value = userinfo.model_dump()
+
+            with self.app.test_request_context():
+                callback_endpoint = url_for("freja_eid.authn_callback")
+
+            callback_resp = browser.get(f"{callback_endpoint}?id_token=id_token&state={state}&code=mock_code")
+            assert callback_resp.status_code == HTTPStatus.FOUND
+
+            with browser.session_transaction() as sess:
+                # eppn must still be absent — the ACS handler must not set it
+                assert sess.common.eppn is None
+                # Find the RP_AuthnRequest by the state/authn_id
+                from eduid.webapp.common.session.namespaces import OIDCState
+
+                authn = sess.freja_eid.rp.authns.get(OIDCState(state))
+                assert authn is not None
+                ident = authn.external_mfa_signup_identity
+                assert ident is not None
+                assert ident.given_name == "Test"
+                assert ident.surname == "Testsson"
+                assert ident.nin == "197801011234"
+                assert ident.date_of_birth == date(1978, 1, 1)
+                assert ident.framework == TrustFramework.FREJA
+                assert ident.loa == "freja-loa3_nr"
+
+    def test_mfa_register_acs_rejects_missing_nin(self) -> None:
+        """mfa_register ACS handler rejects a Freja userinfo with no personal_identity_number."""
+        mock_metadata = self.mocker.patch("authlib.integrations.base_client.sync_app.OAuth2Mixin.load_server_metadata")
+        mock_metadata.return_value = self.oidc_provider_config
+
+        country = countries.get("Denmark")
+
+        with self.session_cookie_anon(self.browser) as browser:
+            with browser.session_transaction() as sess:
+                csrf_token = sess.get_csrf_token()
+
+            response = browser.post(
+                "/mfa-register",
+                json={
+                    "method": "freja_eid",
+                    "frontend_action": FrontendAction.SIGNUP_EXTERNAL_MFA.value,
+                    "csrf_token": csrf_token,
+                },
+            )
+            self._check_success_response(response, type_=None, payload={"csrf_token": csrf_token})
+            loc = self.get_response_payload(response).get("location")
+            assert loc is not None
+            state, nonce = self._get_state_and_nonce(loc)
+
+            # Userinfo without personal_identity_number
+            userinfo = self.get_mock_userinfo(
+                issuing_country=country,
+                personal_identity_number=None,
+                registration_level=FrejaRegistrationLevel.PLUS,
+                loa_level=FrejaLoaLevel.LOA3_NR,
+            )
+
+            mock_end_session = self.mocker.patch(
+                "authlib.integrations.requests_client.oauth2_session.OAuth2Session.request"
+            )
+            mock_parse_id_token = self.mocker.patch(
+                "authlib.integrations.base_client.sync_openid.OpenIDMixin.parse_id_token"
+            )
+            mock_userinfo_ep = self.mocker.patch(
+                "authlib.integrations.base_client.sync_openid.OpenIDMixin.userinfo"
+            )
+            mock_fetch_access_token = self.mocker.patch(
+                "authlib.integrations.base_client.sync_app.OAuth2Mixin.fetch_access_token"
+            )
+            mock_end_session.return_value = True
+            id_token = json.dumps(
+                {
+                    "nonce": nonce,
+                    "sub": "sub",
+                    "iss": "iss",
+                    "aud": ["aud"],
+                    "exp": userinfo.exp,
+                    "iat": userinfo.iat,
+                    "auth_time": userinfo.iat,
+                    "acr": "acr",
+                    "amr": ["amr"],
+                    "azp": "azp",
+                }
+            )
+            mock_fetch_access_token.return_value = {
+                "access_token": "access_token",
+                "token_type": "token_type",
+                "expires_in": timedelta(minutes=5).total_seconds(),
+                "expires_at": userinfo.exp,
+                "refresh_token": "refresh_token",
+                "id_token": id_token,
+            }
+            mock_parse_id_token.return_value = userinfo.model_dump()
+            mock_userinfo_ep.return_value = userinfo.model_dump()
+
+            with self.app.test_request_context():
+                callback_endpoint = url_for("freja_eid.authn_callback")
+
+            callback_resp = browser.get(f"{callback_endpoint}?id_token=id_token&state={state}&code=mock_code")
+            assert callback_resp.status_code == HTTPStatus.FOUND
+
+            with browser.session_transaction() as sess:
+                from eduid.webapp.common.session.namespaces import OIDCState
+
+                authn = sess.freja_eid.rp.authns.get(OIDCState(state))
+                assert authn is not None
+                # The ACS handler should have set error=True because no NIN
+                assert authn.error is True
+                assert authn.status == FrejaEIDMsg.method_not_available.value
+                # No identity should be populated
+                assert authn.external_mfa_signup_identity is None
