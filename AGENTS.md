@@ -243,17 +243,37 @@ user = self.app.userdb.lookup_user(self.test_user.eppn)
 
 ### Mocking Patterns
 
-When mocking complex objects, use `cast()` for proper typing:
+Use `pytest-mock` fixtures instead of direct `unittest.mock` imports in tests. Use `mocker: MockerFixture` in function-scoped
+tests and `class_mocker` for class-scoped setup in `EduidAPITestCase` subclasses. Reach for
+`mocker.patch`, `mocker.patch.object`, `mocker.MagicMock`, and `mocker.AsyncMock` instead of importing
+`patch`, `MagicMock`, or `AsyncMock` directly.
+
+```python
+from pytest_mock import MockerFixture
+
+def test_get_all_navet_data(self, mocker: MockerFixture) -> None:
+    mock_get_all_navet_data = mocker.patch("eduid.workers.msg.tasks.get_all_navet_data.apply_async")
+
+    self.msg_relay.get_all_navet_data("190000000000")
+
+    mock_get_all_navet_data.assert_called_once_with(kwargs={"nin": "190000000000"})
+```
+
+If you need a typed test double for a complex object, create it through `mocker` and use `cast()` only at the
+boundary:
 
 ```python
 from typing import cast
-from unittest.mock import MagicMock
 
-def _make_ticket(self, credentials_used: Mapping[ElementKey, AuthnData] | None = None) -> LoginContext:
+from pytest_mock import MockerFixture
+
+def _make_ticket(
+    mocker: MockerFixture, credentials_used: Mapping[ElementKey, AuthnData] | None = None
+) -> LoginContext:
     if credentials_used is None:
         credentials_used = {}
-    ticket = MagicMock(spec=LoginContext)
-    ticket.pending_request = MagicMock()
+    ticket = cast(LoginContext, mocker.MagicMock(spec=LoginContext))
+    ticket.pending_request = mocker.MagicMock()
     ticket.pending_request.credentials_used = credentials_used
     return cast(LoginContext, ticket)
 ```
