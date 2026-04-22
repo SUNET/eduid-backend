@@ -596,9 +596,8 @@ class EidasTests(ProofingTests[EidasApp]):
         self._verify_user_parameters(eppn, token_verified=True, num_proofings=2, num_mfa_tokens=2)
 
     def test_webauthn_token_verify(self, mocker: MockerFixture) -> None:
-        mock_get_all_navet_data = mocker.patch("eduid.common.rpc.msg_relay.MsgRelay.get_all_navet_data")
+        mocker.patch("eduid.webapp.common.api.helpers.get_reference_nin_from_navet_data", return_value=None)
         mock_request_user_sync = mocker.patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-        mock_get_all_navet_data.return_value = self._get_all_navet_data()
         mock_request_user_sync.side_effect = self.request_user_sync
 
         eppn = self.test_user.eppn
