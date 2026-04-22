@@ -13,6 +13,7 @@ from eduid.common.models.scim_base import SCIMResourceType
 from eduid.common.utils import make_etag, urlappend
 from eduid.queue.db.message import MessageDB
 from eduid.scimapi.config import ScimApiConfig
+from eduid.scimapi.context_request import ScimApiContext
 from eduid.scimapi.notifications import NotificationRelay
 from eduid.scimapi.utils import load_jwks
 from eduid.userdb.scimapi import ScimApiEventDB, ScimApiGroup, ScimApiGroupDB
@@ -116,7 +117,9 @@ class Context:
     def resource_url(self, resource_type: SCIMResourceType, scim_id: UUID) -> str:
         return self.url_for(resource_type.value + "s", str(scim_id))
 
-    def check_version(self, req: ContextRequest, db_obj: ScimApiGroup | ScimApiUser | ScimApiInvite) -> bool:
+    def check_version(
+        self, req: ContextRequest[ScimApiContext], db_obj: ScimApiGroup | ScimApiUser | ScimApiInvite
+    ) -> bool:
         if req.headers.get("IF-MATCH") == make_etag(db_obj.version):
             return True
         self.logger.error("Version mismatch")

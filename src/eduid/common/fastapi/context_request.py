@@ -12,7 +12,7 @@ class Context:
         return asdict(self)
 
 
-class ContextRequest[C: Context](Request):
+class ContextRequest[C: Context = Context](Request):
     def __init__(self, context_class: type[C], *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
         self.contextClass: type[C] = context_class
@@ -33,12 +33,10 @@ class ContextRequest[C: Context](Request):
 
 class ContextRequestMixin:
     @staticmethod
-    def make_context_request[C: Context](
-        request: Request | ContextRequest[C], context_class: type[C]
-    ) -> ContextRequest[C]:
-        if not isinstance(request, ContextRequest):
-            request = ContextRequest(context_class=context_class, scope=request.scope, receive=request.receive)
-        return request
+    def make_context_request[C: Context](request: Request, context_class: type[C]) -> ContextRequest[C]:
+        if isinstance(request, ContextRequest):
+            return cast(ContextRequest[C], request)
+        return ContextRequest(context_class=context_class, scope=request.scope, receive=request.receive)
 
 
 class ContextRequestRoute(APIRoute, ContextRequestMixin):

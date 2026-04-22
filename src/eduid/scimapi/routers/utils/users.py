@@ -20,9 +20,8 @@ from eduid.userdb.scimapi import EventLevel, EventStatus
 from eduid.userdb.scimapi.userdb import ScimApiUser
 
 
-def get_user_groups(req: ContextRequest, db_user: ScimApiUser) -> list[Group]:
+def get_user_groups(req: ContextRequest[ScimApiContext], db_user: ScimApiUser) -> list[Group]:
     """Return the groups for a user formatted as SCIM search sub-resources"""
-    assert isinstance(req.context, ScimApiContext)  # please mypy
     assert req.context.groupdb is not None  # please mypy
     user_groups = req.context.groupdb.get_groups_for_user_identifer(db_user.scim_id)
     groups = []
@@ -33,10 +32,9 @@ def get_user_groups(req: ContextRequest, db_user: ScimApiUser) -> list[Group]:
 
 
 @retryable_db_write
-def remove_user_from_all_groups(req: ContextRequest, db_user: ScimApiUser) -> None:
+def remove_user_from_all_groups(req: ContextRequest[ScimApiContext], db_user: ScimApiUser) -> None:
     """Remove a user from all groups"""
     # Remove user from groups
-    assert isinstance(req.context, ScimApiContext)  # please mypy
     assert req.context.groupdb is not None  # please mypy
     assert req.context.data_owner is not None  # please mypy
     for member_group in req.context.groupdb.get_groups_for_user_identifer(db_user.scim_id):
@@ -81,7 +79,7 @@ def remove_user_from_all_groups(req: ContextRequest, db_user: ScimApiUser) -> No
                 break
 
 
-def db_user_to_response(req: ContextRequest, resp: Response, db_user: ScimApiUser) -> UserResponse:
+def db_user_to_response(req: ContextRequest[ScimApiContext], resp: Response, db_user: ScimApiUser) -> UserResponse:
     location = req.app.context.url_for("Users", db_user.scim_id)
     meta = Meta(
         location=location,
@@ -124,9 +122,8 @@ def db_user_to_response(req: ContextRequest, resp: Response, db_user: ScimApiUse
     return user
 
 
-def save_user(req: ContextRequest, db_user: ScimApiUser) -> None:
+def save_user(req: ContextRequest[ScimApiContext], db_user: ScimApiUser) -> None:
     try:
-        assert isinstance(req.context, ScimApiContext)  # please mypy
         assert req.context.userdb is not None  # please mypy
         req.context.userdb.save(db_user)
     except DuplicateKeyError as e:
@@ -177,13 +174,11 @@ def users_to_resources_dicts(query: SearchRequest, users: Sequence[ScimApiUser])
     return resources
 
 
-def filter_externalid(req: ContextRequest, search_filter: SearchFilter) -> list[ScimApiUser]:
+def filter_externalid(req: ContextRequest[ScimApiContext], search_filter: SearchFilter) -> list[ScimApiUser]:
     if search_filter.op != "eq":
         raise BadRequest(scim_type="invalidFilter", detail="Unsupported operator")
     if not isinstance(search_filter.val, str):
         raise BadRequest(scim_type="invalidFilter", detail="Invalid externalId")
-
-    assert isinstance(req.context, ScimApiContext)  # please mypy
     assert req.context.userdb is not None  # please mypy
     user = req.context.userdb.get_user_by_external_id(search_filter.val)
 
@@ -194,13 +189,12 @@ def filter_externalid(req: ContextRequest, search_filter: SearchFilter) -> list[
 
 
 def filter_lastmodified(
-    req: ContextRequest, search_filter: SearchFilter, skip: int | None = None, limit: int | None = None
+    req: ContextRequest[ScimApiContext], search_filter: SearchFilter, skip: int | None = None, limit: int | None = None
 ) -> tuple[list[ScimApiUser], int]:
     if search_filter.op not in ["gt", "ge"]:
         raise BadRequest(scim_type="invalidFilter", detail="Unsupported operator")
     if not isinstance(search_filter.val, str):
         raise BadRequest(scim_type="invalidFilter", detail="Invalid datetime")
-    assert isinstance(req.context, ScimApiContext)  # please mypy
     assert req.context.userdb is not None  # please mypy
     return req.context.userdb.get_users_by_last_modified(
         operator=search_filter.op, value=datetime.fromisoformat(search_filter.val), skip=skip, limit=limit
@@ -208,7 +202,7 @@ def filter_lastmodified(
 
 
 def filter_profile_data(
-    req: ContextRequest,
+    req: ContextRequest[ScimApiContext],
     search_filter: SearchFilter,
     profile: str,
     key: str,
@@ -221,7 +215,6 @@ def filter_profile_data(
     req.app.context.logger.debug(
         f"Searching for users with {search_filter.attr} {search_filter.op} {search_filter.val!r}"
     )
-    assert isinstance(req.context, ScimApiContext)
     assert req.context.userdb is not None
     users, count = req.context.userdb.get_user_by_profile_data(
         profile=profile, operator=search_filter.op, key=key, value=search_filter.val, skip=skip, limit=limit

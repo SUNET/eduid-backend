@@ -28,8 +28,7 @@ groups_router = APIRouter(
 
 
 @groups_router.get("/")
-async def on_get_all(req: ContextRequest) -> ListResponse:
-    assert isinstance(req.context, ScimApiContext)  # please mypy
+async def on_get_all(req: ContextRequest[ScimApiContext]) -> ListResponse:
     assert req.context.groupdb is not None  # please mypy
     db_groups = req.context.groupdb.get_groups()
     resources = [{"id": str(db_group.scim_id), "displayName": db_group.graph.display_name} for db_group in db_groups]
@@ -37,7 +36,7 @@ async def on_get_all(req: ContextRequest) -> ListResponse:
 
 
 @groups_router.get("/{scim_id}", response_model_exclude_none=True)
-async def on_get_one(req: ContextRequest, resp: Response, scim_id: str) -> GroupResponse:
+async def on_get_one(req: ContextRequest[ScimApiContext], resp: Response, scim_id: str) -> GroupResponse:
     """
     GET /Groups/c3819cbe-c893-4070-824c-fe3d0db8f955  HTTP/1.1
     Host: example.com
@@ -68,8 +67,6 @@ async def on_get_one(req: ContextRequest, resp: Response, scim_id: str) -> Group
     }
     """
     req.app.context.logger.info(f"Fetching group {scim_id}")
-
-    assert isinstance(req.context, ScimApiContext)  # please mypy
     assert req.context.groupdb is not None  # please mypy
     db_group = req.context.groupdb.get_group_by_scim_id(scim_id)
     req.app.context.logger.debug(f"Found group: {db_group}")
@@ -80,7 +77,7 @@ async def on_get_one(req: ContextRequest, resp: Response, scim_id: str) -> Group
 
 @groups_router.put("/{scim_id}", response_model_exclude_none=True)
 async def on_put(
-    req: ContextRequest, resp: Response, scim_id: str, update_request: GroupUpdateRequest
+    req: ContextRequest[ScimApiContext], resp: Response, scim_id: str, update_request: GroupUpdateRequest
 ) -> GroupResponse:
     """
     PUT /Groups/c3819cbe-c893-4070-824c-fe3d0db8f955  HTTP/1.1
@@ -139,7 +136,6 @@ async def on_put(
         raise BadRequest(detail="Id mismatch")
 
     req.app.context.logger.info(f"Fetching group {scim_id}")
-    assert isinstance(req.context, ScimApiContext)  # please mypy
     assert req.context.groupdb is not None  # please mypy
     db_group = req.context.groupdb.get_group_by_scim_id(str(update_request.id))
     req.app.context.logger.debug(f"Found group: {db_group}")
@@ -185,7 +181,7 @@ async def on_put(
 
 
 @groups_router.post("/", response_model_exclude_none=True)
-async def on_post(req: ContextRequest, resp: Response, create_request: GroupCreateRequest) -> GroupResponse:
+async def on_post(req: ContextRequest[ScimApiContext], resp: Response, create_request: GroupCreateRequest) -> GroupResponse:
     """
     POST /Groups  HTTP/1.1
     Host: example.com
@@ -217,7 +213,6 @@ async def on_post(req: ContextRequest, resp: Response, create_request: GroupCrea
     """
     req.app.context.logger.info("Creating group")
     req.app.context.logger.debug(create_request)
-    assert isinstance(req.context, ScimApiContext)  # please mypy
     assert req.context.groupdb is not None  # please mypy
     created_group = req.context.groupdb.create_group(create_request=create_request)
     # Load the group from the database to ensure results are consistent with subsequent GETs.
@@ -246,9 +241,8 @@ async def on_post(req: ContextRequest, resp: Response, create_request: GroupCrea
     status_code=204,
     responses={204: {"description": "No Content"}},
 )
-async def on_delete(req: ContextRequest, scim_id: str) -> None:
+async def on_delete(req: ContextRequest[ScimApiContext], scim_id: str) -> None:
     req.app.context.logger.info(f"Deleting group {scim_id}")
-    assert isinstance(req.context, ScimApiContext)  # please mypy
     assert req.context.groupdb is not None  # please mypy
     db_group = req.context.groupdb.get_group_by_scim_id(scim_id=scim_id)
     req.app.context.logger.debug(f"Found group: {db_group}")
@@ -276,7 +270,7 @@ async def on_delete(req: ContextRequest, scim_id: str) -> None:
 
 
 @groups_router.post("/.search", response_model_exclude_none=True)
-async def search(req: ContextRequest, query: SearchRequest) -> ListResponse:
+async def search(req: ContextRequest[ScimApiContext], query: SearchRequest) -> ListResponse:
     """
     POST /Groups/.search
     Host: scim.eduid.se

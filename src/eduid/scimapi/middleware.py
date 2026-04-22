@@ -79,8 +79,6 @@ class AuthenticationMiddleware(BaseMiddleware):
     async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
         req = self.make_context_request(request=request, context_class=ScimApiContext)
 
-        assert isinstance(req.context, ScimApiContext)  # please mypy
-
         if self._is_no_auth_path(req.url):
             return await call_next(req)
 

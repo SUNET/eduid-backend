@@ -27,7 +27,7 @@ def get_group_members(req: Request, db_group: ScimApiGroup) -> list[GroupMember]
     return members
 
 
-def db_group_to_response(req: ContextRequest, resp: Response, db_group: ScimApiGroup) -> GroupResponse:
+def db_group_to_response(req: ContextRequest[ScimApiContext], resp: Response, db_group: ScimApiGroup) -> GroupResponse:
     members = get_group_members(req, db_group)
     location = req.app.context.url_for("Groups", str(db_group.scim_id))
     meta = Meta(
@@ -59,7 +59,7 @@ def db_group_to_response(req: ContextRequest, resp: Response, db_group: ScimApiG
 
 
 def filter_display_name(
-    req: ContextRequest,
+    req: ContextRequest[ScimApiContext],
     search_filter: SearchFilter,
     skip: int | None = None,
     limit: int | None = None,
@@ -70,7 +70,6 @@ def filter_display_name(
         raise BadRequest(scim_type="invalidFilter", detail="Invalid displayName")
 
     req.app.context.logger.debug(f"Searching for group with display name {search_filter.val!r}")
-    assert isinstance(req.context, ScimApiContext)  # please mypy
     assert req.context.groupdb is not None  # please mypy
     assert skip is not None  # please mypy
     assert limit is not None  # please mypy
@@ -85,7 +84,7 @@ def filter_display_name(
 
 
 def filter_lastmodified(
-    req: ContextRequest, search_filter: SearchFilter, skip: int | None = None, limit: int | None = None
+    req: ContextRequest[ScimApiContext], search_filter: SearchFilter, skip: int | None = None, limit: int | None = None
 ) -> tuple[list[ScimApiGroup], int]:
     if search_filter.op not in ["gt", "ge"]:
         raise BadRequest(scim_type="invalidFilter", detail="Unsupported operator")
@@ -95,7 +94,6 @@ def filter_lastmodified(
         _parsed = datetime.fromisoformat(search_filter.val)
     except Exception as e:
         raise BadRequest(scim_type="invalidFilter", detail="Invalid datetime") from e
-    assert isinstance(req.context, ScimApiContext)  # please mypy
     assert req.context.groupdb is not None  # please mypy
     return req.context.groupdb.get_groups_by_last_modified(
         operator=search_filter.op, value=_parsed, skip=skip, limit=limit
@@ -103,7 +101,7 @@ def filter_lastmodified(
 
 
 def filter_extensions_data(
-    req: ContextRequest,
+    req: ContextRequest[ScimApiContext],
     search_filter: SearchFilter,
     skip: int | None = None,
     limit: int | None = None,
@@ -118,7 +116,6 @@ def filter_extensions_data(
     req.app.context.logger.debug(
         f"Searching for groups with {search_filter.attr} {search_filter.op} {search_filter.val!r}"
     )
-    assert isinstance(req.context, ScimApiContext)  # please mypy
     assert req.context.groupdb is not None  # please mypy
     assert skip is not None  # please mypy
     assert limit is not None  # please mypy

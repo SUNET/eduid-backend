@@ -46,11 +46,10 @@ users_router = APIRouter(
 
 
 @users_router.get("/{scim_id}", response_model_exclude_none=True)
-async def on_get(req: ContextRequest, resp: Response, scim_id: str | None = None) -> UserResponse:
+async def on_get(req: ContextRequest[ScimApiContext], resp: Response, scim_id: str | None = None) -> UserResponse:
     if scim_id is None:
         raise BadRequest(detail="Not implemented")
     req.app.context.logger.info(f"Fetching user {scim_id}")
-    assert isinstance(req.context, ScimApiContext)
     assert req.context.userdb is not None
     db_user = req.context.userdb.get_user_by_scim_id(scim_id)
     if not db_user:
@@ -120,15 +119,13 @@ def _apply_nutid_updates(
 
 
 @users_router.put("/{scim_id}", response_model_exclude_none=True)
-async def on_put(req: ContextRequest, resp: Response, update_request: UserUpdateRequest, scim_id: str) -> UserResponse:
+async def on_put(req: ContextRequest[ScimApiContext], resp: Response, update_request: UserUpdateRequest, scim_id: str) -> UserResponse:
     req.app.context.logger.info(f"Updating user {scim_id}")
     req.app.context.logger.debug(update_request)
     if scim_id != str(update_request.id):
         req.app.context.logger.error("Id mismatch")
         req.app.context.logger.debug(f"{scim_id} != {update_request.id}")
         raise BadRequest(detail="Id mismatch")
-
-    assert isinstance(req.context, ScimApiContext)  # please mypy
     assert req.context.userdb is not None  # please mypy
     db_user = req.context.userdb.get_user_by_scim_id(scim_id)
     if not db_user:
@@ -172,7 +169,7 @@ async def on_put(req: ContextRequest, resp: Response, update_request: UserUpdate
 
 
 @users_router.post("/", response_model_exclude_none=True)
-async def on_post(req: ContextRequest, resp: Response, create_request: UserCreateRequest) -> UserResponse:
+async def on_post(req: ContextRequest[ScimApiContext], resp: Response, create_request: UserCreateRequest) -> UserResponse:
     """
     POST /Users  HTTP/1.1
     Host: example.com
@@ -250,7 +247,6 @@ async def on_post(req: ContextRequest, resp: Response, create_request: UserCreat
     )
 
     save_user(req, db_user)
-    assert isinstance(req.context, ScimApiContext)  # please mypy
     assert req.context.data_owner is not None  # please mypy
     add_api_event(
         context=req.app.context,
@@ -272,8 +268,7 @@ async def on_post(req: ContextRequest, resp: Response, create_request: UserCreat
     status_code=204,
     responses={204: {"description": "No Content"}},
 )
-async def on_delete(req: ContextRequest, scim_id: str) -> None:
-    assert isinstance(req.context, ScimApiContext)  # please mypy
+async def on_delete(req: ContextRequest[ScimApiContext], scim_id: str) -> None:
     req.app.context.logger.info(f"Deleting user {scim_id}")
     assert req.context.userdb is not None  # please mypy
     db_user = req.context.userdb.get_user_by_scim_id(scim_id=scim_id)
@@ -310,7 +305,7 @@ async def on_delete(req: ContextRequest, scim_id: str) -> None:
 
 
 @users_router.post("/.search", response_model_exclude_none=True)
-async def search(req: ContextRequest, query: SearchRequest) -> ListResponse:
+async def search(req: ContextRequest[ScimApiContext], query: SearchRequest) -> ListResponse:
     """
     POST /Users/.search
     Host: scim.eduid.se

@@ -21,7 +21,7 @@ from eduid.common.misc.timeutil import utc_now
 __author__ = "lundberg"
 
 
-def db_event_to_response(req: ContextRequest, resp: Response, db_event: ScimApiEvent) -> EventResponse:
+def db_event_to_response(req: ContextRequest[ScimApiContext], resp: Response, db_event: ScimApiEvent) -> EventResponse:
     location = req.app.context.resource_url(SCIMResourceType.EVENT, db_event.scim_id)
     meta = Meta(
         location=location,
@@ -61,8 +61,7 @@ def db_event_to_response(req: ContextRequest, resp: Response, db_event: ScimApiE
     return event_response
 
 
-def get_scim_referenced(req: ContextRequest, resource: NutidEventResource) -> ScimApiResourceBase | None:
-    assert isinstance(req.context, ScimApiContext)  # please mypy
+def get_scim_referenced(req: ContextRequest[ScimApiContext], resource: NutidEventResource) -> ScimApiResourceBase | None:
     assert req.context.userdb is not None  # please mypy
     assert req.context.groupdb is not None  # please mypy
     assert req.context.invitedb is not None  # please mypy

@@ -27,9 +27,8 @@ __author__ = "lundberg"
 
 
 def create_signup_invite(
-    req: ContextRequest, create_request: InviteCreateRequest, db_invite: ScimApiInvite
+    req: ContextRequest[ScimApiContext], create_request: InviteCreateRequest, db_invite: ScimApiInvite
 ) -> SignupInvite:
-    assert isinstance(req.context, ScimApiContext)  # please mypy
     assert req.context.data_owner is not None  # please mypy
     invite_reference = SCIMReference(data_owner=req.context.data_owner, scim_id=db_invite.scim_id)
 
@@ -118,13 +117,12 @@ def db_invite_to_response(
     return scim_invite
 
 
-def create_signup_ref(req: ContextRequest, db_invite: ScimApiInvite) -> SCIMReference:
-    assert isinstance(req.context, ScimApiContext)  # please mypy
+def create_signup_ref(req: ContextRequest[ScimApiContext], db_invite: ScimApiInvite) -> SCIMReference:
     assert req.context.data_owner is not None  # please mypy
     return SCIMReference(data_owner=req.context.data_owner, scim_id=db_invite.scim_id)
 
 
-def send_invite_mail(req: ContextRequest, signup_invite: SignupInvite) -> bool:
+def send_invite_mail(req: ContextRequest[ScimApiContext], signup_invite: SignupInvite) -> bool:
     try:
         email = next(email.email for email in signup_invite.mail_addresses if email.primary)
     except StopIteration:
@@ -165,13 +163,12 @@ def invites_to_resources_dicts(query: SearchRequest, invites: Sequence[ScimApiIn
 
 
 def save_invite(
-    req: ContextRequest,
+    req: ContextRequest[ScimApiContext],
     db_invite: ScimApiInvite,
     signup_invite: SignupInvite,
     signup_invite_is_in_database: bool,
 ) -> None:
     try:
-        assert isinstance(req.context, ScimApiContext)  # please mypy
         assert req.context.invitedb is not None  # please mypy
         req.context.invitedb.save(db_invite)
     except DuplicateKeyError as e:
@@ -192,13 +189,12 @@ def save_invite(
 
 
 def filter_lastmodified(
-    req: ContextRequest, search_filter: SearchFilter, skip: int | None = None, limit: int | None = None
+    req: ContextRequest[ScimApiContext], search_filter: SearchFilter, skip: int | None = None, limit: int | None = None
 ) -> tuple[list[ScimApiInvite], int]:
     if search_filter.op not in ["gt", "ge"]:
         raise BadRequest(scim_type="invalidFilter", detail="Unsupported operator")
     if not isinstance(search_filter.val, str):
         raise BadRequest(scim_type="invalidFilter", detail="Invalid datetime")
-    assert isinstance(req.context, ScimApiContext)  # please mypy
     assert req.context.invitedb is not None  # please mypy
     return req.context.invitedb.get_invites_by_last_modified(
         operator=search_filter.op, value=datetime.fromisoformat(search_filter.val), skip=skip, limit=limit
