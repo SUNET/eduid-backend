@@ -672,8 +672,8 @@ class BankIDTests(ProofingTests[BankIDApp]):
 
         self._verify_user_parameters(eppn)
 
-    @pytest.mark.skip(reason="No support for magic cookie yet")
     def test_webauthn_token_verify_backdoor(self, mocker: MockerFixture) -> None:
+        mocker.patch("eduid.webapp.common.api.helpers.get_reference_nin_from_navet_data", return_value=None)
         mock_request_user_sync = mocker.patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
         mock_request_user_sync.side_effect = self.request_user_sync
 
@@ -823,7 +823,6 @@ class BankIDTests(ProofingTests[BankIDApp]):
             eppn, num_mfa_tokens=0, identity_verified=True, num_proofings=1, locked_identity=user.identities.nin
         )
 
-    @pytest.mark.skip(reason="No support for magic cookie yet")
     def test_mfa_login_backdoor(self, mocker: MockerFixture) -> None:
         mock_request_user_sync = mocker.patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
         mock_request_user_sync.side_effect = self.request_user_sync
@@ -851,8 +850,8 @@ class BankIDTests(ProofingTests[BankIDApp]):
 
         self._verify_user_parameters(eppn, num_mfa_tokens=0, identity_verified=True, num_proofings=0)
 
-    @pytest.mark.skip(reason="No support for magic cookie yet")
     def test_nin_verify_backdoor(self, mocker: MockerFixture) -> None:
+        mocker.patch("eduid.webapp.common.api.helpers.get_reference_nin_from_navet_data", return_value=None)
         mock_request_user_sync = mocker.patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
         mock_request_user_sync.side_effect = self.request_user_sync
 
@@ -874,8 +873,8 @@ class BankIDTests(ProofingTests[BankIDApp]):
 
         self._verify_user_parameters(eppn, num_mfa_tokens=0, identity=nin, identity_verified=True, num_proofings=1)
 
-    @pytest.mark.skip(reason="No support for magic cookie yet")
     def test_nin_verify_no_backdoor_in_pro(self, mocker: MockerFixture) -> None:
+        mocker.patch("eduid.webapp.common.api.helpers.get_reference_nin_from_navet_data", return_value=None)
         mock_request_user_sync = mocker.patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
         mock_request_user_sync.side_effect = self.request_user_sync
 
@@ -902,8 +901,8 @@ class BankIDTests(ProofingTests[BankIDApp]):
             eppn, identity=self.test_user_nin, num_mfa_tokens=0, num_proofings=1, identity_verified=True
         )
 
-    @pytest.mark.skip(reason="No support for magic cookie yet")
     def test_nin_verify_no_backdoor_misconfigured(self, mocker: MockerFixture) -> None:
+        mocker.patch("eduid.webapp.common.api.helpers.get_reference_nin_from_navet_data", return_value=None)
         mock_request_user_sync = mocker.patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
         mock_request_user_sync.side_effect = self.request_user_sync
 
