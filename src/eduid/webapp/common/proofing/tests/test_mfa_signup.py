@@ -111,3 +111,30 @@ def test_happy_path_returns_parsed() -> None:
     assert result.session_info is fake_session_info
     assert result.framework == TrustFramework.EIDAS
     assert result.loa == "loa3"
+
+
+def test_common_saml_checks_none_skips_saml_checks() -> None:
+    """Passing common_saml_checks=None skips SAML checks (OIDC webapps have no SAML-level checks)."""
+    fake_session_info = MagicMock(spec=BaseSessionInfo)
+    pm = _make_proofing_method(framework=TrustFramework.FREJA)
+    pm.parse_session_info.return_value = MagicMock(error=None, info=fake_session_info)
+
+    fake_proofing = MagicMock()
+    fake_proofing.get_current_loa.return_value = GenericResult(result="freja-loa3", error=None)
+    get_proofing_functions = MagicMock(return_value=fake_proofing)
+
+    args = _make_args(proofing_method=pm)
+
+    result = parse_mfa_register_args(
+        args,
+        common_saml_checks=None,  # OIDC — no SAML-level checks
+        get_proofing_functions=get_proofing_functions,
+        method_not_available_msg=ProofingMsg.malformed_identity,
+        app_name="freja_eid",
+        config=object(),
+    )
+
+    assert isinstance(result, MfaRegisterParsed)
+    assert result.session_info is fake_session_info
+    assert result.framework == TrustFramework.FREJA
+    assert result.loa == "freja-loa3"

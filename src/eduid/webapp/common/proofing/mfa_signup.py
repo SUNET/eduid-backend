@@ -10,7 +10,8 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any
 
-from eduid.common.models.saml_models import BaseSessionInfo
+from pydantic import BaseModel
+
 from eduid.userdb.credentials.external import TrustFramework
 from eduid.webapp.common.api.messages import TranslatableMsg
 from eduid.webapp.common.authn.acs_registry import ACSArgs, ACSResult
@@ -19,7 +20,9 @@ from eduid.webapp.common.proofing.base import ProofingFunctions
 
 @dataclass
 class MfaRegisterParsed:
-    session_info: BaseSessionInfo  # actually one of the webapp-specific BaseSessionInfo subclasses
+    # Concrete type is one of: NinSessionInfo, ForeignEidSessionInfo, BankIDSessionInfo (SAML-based),
+    # or FrejaEIDDocumentUserInfo, SvipeDocumentUserInfo (OIDC-based). All are Pydantic BaseModel subclasses.
+    session_info: BaseModel
     framework: TrustFramework
     loa: str
 
@@ -27,7 +30,7 @@ class MfaRegisterParsed:
 def parse_mfa_register_args(
     args: ACSArgs,
     *,
-    common_saml_checks: Callable[[ACSArgs], ACSResult | None],
+    common_saml_checks: Callable[[ACSArgs], ACSResult | None] | None,
     get_proofing_functions: Callable[..., ProofingFunctions[Any]],
     method_not_available_msg: TranslatableMsg,
     app_name: str,
@@ -40,21 +43,24 @@ def parse_mfa_register_args(
 
     On failure returns an :class:`ACSResult` with the appropriate error message;
     the caller should propagate it unchanged.
+
+    Pass ``None`` for ``common_saml_checks`` when the webapp is OIDC-based
+    (no SAML-level checks to run).
     """
     if not args.proofing_method:
         return ACSResult(message=method_not_available_msg)
 
-    if ret := common_saml_checks(args):
-        return ret
+    if common_saml_checks is not None:
+        if ret := common_saml_checks(args):
+            return ret
 
     parsed = args.proofing_method.parse_session_info(args.session_info, backdoor=args.backdoor)
     if parsed.error:
         return ACSResult(message=parsed.error)
 
-    # After error check, parsed.info is a concrete session-info instance (BaseSessionInfo subclass).
-    # The SessionInfoParseResult union includes non-BaseSessionInfo types from other proofing methods,
-    # so we narrow here to satisfy mypy.
-    assert isinstance(parsed.info, BaseSessionInfo)
+    # After error check, parsed.info is a concrete session-info instance (a Pydantic BaseModel subclass).
+    # The SessionInfoParseResult union is wide (includes None), so we narrow here to satisfy mypy.
+    assert isinstance(parsed.info, BaseModel)
 
     proofing = get_proofing_functions(
         session_info=parsed.info,
