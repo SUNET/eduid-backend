@@ -182,6 +182,20 @@ class Credentials(SessionNSBase):
     webauthn: WebauthnCredential | None = None
 
 
+class SignupExternalMfa(BaseModel):
+    app_name: str  # "eidas" | "bankid" | "freja_eid" | "samleid"
+    authn_id: str  # AuthnRequestRef | OIDCState — both are str NewTypes
+    framework: TrustFramework
+    loa: str
+    given_name: str
+    surname: str
+    date_of_birth: date
+    nin: str | None = None
+    eidas_prid: str | None = None
+    eidas_prid_persistence: PridPersistence | None = None
+    country_code: str | None = None
+
+
 class Signup(TimestampedNS):
     user_created: bool = False
     user_created_at: datetime | None = None
@@ -193,6 +207,7 @@ class Signup(TimestampedNS):
     captcha: Captcha = Field(default_factory=Captcha)
     credentials: Credentials = Field(default_factory=Credentials)
     idp_request_ref: RequestRef | None = None
+    external_mfa: SignupExternalMfa | None = None
 
 
 class Phone(SessionNSBase):

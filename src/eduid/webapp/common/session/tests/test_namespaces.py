@@ -213,3 +213,54 @@ def test_sp_authn_request_external_mfa_eidas_roundtrip() -> None:
     rebuilt = SP_AuthnRequest(**req.model_dump())
     assert rebuilt.external_mfa_signup_identity == identity
     assert rebuilt.external_mfa_signup_identity.nin is None
+
+
+# --- Standalone tests for SignupExternalMfa and the external_mfa field on Signup ---
+
+
+def test_signup_external_mfa_default_none() -> None:
+    from eduid.webapp.common.session.namespaces import Signup
+
+    sns = Signup()
+    assert sns.external_mfa is None
+
+
+def test_signup_external_mfa_bankid_roundtrip() -> None:
+    from eduid.userdb.credentials.external import TrustFramework
+    from eduid.webapp.common.session.namespaces import Signup, SignupExternalMfa
+
+    ext = SignupExternalMfa(
+        app_name="bankid",
+        authn_id="abc-123",
+        framework=TrustFramework.BANKID,
+        loa="loa3",
+        given_name="Anna",
+        surname="Andersson",
+        date_of_birth=date(1980, 1, 1),
+        nin="198001011234",
+    )
+    sns = Signup(external_mfa=ext)
+    rebuilt = Signup(**sns.model_dump())
+    assert rebuilt.external_mfa == ext
+
+
+def test_signup_external_mfa_eidas_roundtrip() -> None:
+    from eduid.userdb.credentials.external import TrustFramework
+    from eduid.userdb.identity import PridPersistence
+    from eduid.webapp.common.session.namespaces import Signup, SignupExternalMfa
+
+    ext = SignupExternalMfa(
+        app_name="eidas",
+        authn_id="oidc-state",
+        framework=TrustFramework.EIDAS,
+        loa="eidas_sub",
+        given_name="Karla",
+        surname="Müller",
+        date_of_birth=date(1990, 6, 15),
+        eidas_prid="DE:abc",
+        eidas_prid_persistence=PridPersistence.A,
+        country_code="DE",
+    )
+    sns = Signup(external_mfa=ext)
+    rebuilt = Signup(**sns.model_dump())
+    assert rebuilt.external_mfa == ext
