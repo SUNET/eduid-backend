@@ -534,6 +534,22 @@ def _existing_user_for_identity(ident: ExternalMfaSignupIdentity) -> User | None
     return None
 
 
+@signup_views.route("/external-mfa-clear", methods=["POST"])
+@UnmarshalWith(EmptyRequest)
+@MarshalWith(SignupStatusResponse)
+@require_not_logged_in
+def external_mfa_clear() -> FluxData:
+    """Clear any previously stored external-MFA state on the signup session.
+
+    Called by the frontend when the user switches from the external-MFA
+    signup branch back to the email + password branch.
+    """
+    if session.signup.user_created:
+        return error_response(message=SignupMsg.user_already_exists)
+    session.signup.external_mfa = None
+    return success_response(payload={"state": session.signup.to_dict()})
+
+
 def _check_user_not_created() -> FluxData | None:
     if session.common.eppn or session.signup.user_created:
         current_app.logger.error("User already created")

@@ -347,3 +347,49 @@ class ExternalMfaSignupTests(SignupTests):
             loa="loa3",
         )
         assert _existing_user_for_identity(empty_ident) is None
+
+    # ------------------------------------------------------------------
+    # Clear external MFA state
+    # ------------------------------------------------------------------
+
+    def _call_external_mfa_clear(self) -> TestResponse:
+        with self.session_cookie_anon(self.browser) as client:
+            with client.session_transaction() as sess:
+                csrf_token = sess.get_csrf_token()
+            data = {"csrf_token": csrf_token}
+            return client.post(
+                "/external-mfa-clear",
+                data=json.dumps(data),
+                content_type=self.content_type_json,
+            )
+
+    def test_external_mfa_clear_ok(self) -> None:
+        self._seed_bankid_authn()
+        # Seed the state first
+        resp = self._call_external_mfa_register("bankid", "authn-1")
+        assert resp.status_code == 200
+        # Now clear it
+        resp = self._call_external_mfa_clear()
+        assert resp.status_code == 200
+        state = self.get_response_payload(resp)["state"]
+        assert state["external_mfa"]["completed"] is False
+        with self.session_cookie_anon(self.browser) as client:
+            with client.session_transaction() as sess:
+                assert sess.signup.external_mfa is None
+
+    def test_external_mfa_clear_is_idempotent(self) -> None:
+        # Clearing when nothing is stored should still succeed
+        resp = self._call_external_mfa_clear()
+        assert resp.status_code == 200
+        state = self.get_response_payload(resp)["state"]
+        assert state["external_mfa"]["completed"] is False
+
+    def test_external_mfa_clear_rejected_after_user_created(self) -> None:
+        self._seed_bankid_authn()
+        self._call_external_mfa_register("bankid", "authn-1")
+        with self.session_cookie_anon(self.browser) as client:
+            with client.session_transaction() as sess:
+                sess.signup.user_created = True
+        resp = self._call_external_mfa_clear()
+        payload = self.get_response_payload(resp)
+        assert payload["message"] == SignupMsg.user_already_exists.value
