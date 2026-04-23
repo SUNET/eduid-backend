@@ -1,7 +1,6 @@
 import json
 from collections.abc import Mapping
 from typing import Any
-from unittest.mock import patch
 
 import pytest
 from pytest_mock import MockerFixture
@@ -14,6 +13,12 @@ from eduid.webapp.common.api.testing import EduidAPITestCase
 from eduid.webapp.orcid.app import OrcidApp, init_orcid_app
 
 __author__ = "lundberg"
+
+
+class MockResponse:
+    def __init__(self, status_code: int, text: str) -> None:
+        self.status_code = status_code
+        self.text = text
 
 
 class OrcidTests(EduidAPITestCase[OrcidApp]):
@@ -51,6 +56,10 @@ class OrcidTests(EduidAPITestCase[OrcidApp]):
         Called from the parent class, so we can provide the appropriate flask
         app for this test case.
         """
+        return init_orcid_app("testing", config)
+
+    @pytest.fixture(scope="class")
+    def update_config(self, class_mocker: MockerFixture) -> dict[str, Any]:
         oidc_provider_config = {
             "token_endpoint_auth_signing_alg_values_supported": ["RS256"],
             "id_token_signing_alg_values_supported": ["RS256"],
@@ -66,18 +75,10 @@ class OrcidTests(EduidAPITestCase[OrcidApp]):
             "token_endpoint_auth_methods_supported": ["client_secret_basic"],
             "issuer": "https://example.com/op/",
         }
-
-        class MockResponse:
-            def __init__(self, status_code: int, text: str) -> None:
-                self.status_code = status_code
-                self.text = text
-
-        with patch("oic.oic.Client.http_request") as mock_response:
-            mock_response.return_value = MockResponse(200, json.dumps(oidc_provider_config))
-            return init_orcid_app("testing", config)
-
-    @pytest.fixture(scope="class")
-    def update_config(self) -> dict[str, Any]:
+        class_mocker.patch(
+            "oic.oic.Client.http_request",
+            return_value=MockResponse(200, json.dumps(oidc_provider_config)),
+        )
         config = self._get_base_config()
         config.update(
             {
