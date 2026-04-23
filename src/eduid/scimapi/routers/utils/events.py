@@ -5,10 +5,9 @@ from uuid import uuid4
 from fastapi import Response
 
 from eduid.common.config.base import DataOwnerName
-from eduid.common.fastapi.context_request import ContextRequest
 from eduid.common.models.scim_base import Meta, SCIMResourceType, SCIMSchema
 from eduid.common.utils import make_etag, urlappend
-from eduid.scimapi.context_request import ScimApiContext
+from eduid.scimapi.context_request import ScimApiRequest
 from eduid.scimapi.exceptions import BadRequest
 from eduid.scimapi.models.event import EventResponse, NutidEventExtensionV1, NutidEventResource
 from eduid.userdb.scimapi import EventLevel, EventStatus, ScimApiEvent, ScimApiEventResource, ScimApiResourceBase
@@ -21,7 +20,7 @@ from eduid.common.misc.timeutil import utc_now
 __author__ = "lundberg"
 
 
-def db_event_to_response(req: ContextRequest, resp: Response, db_event: ScimApiEvent) -> EventResponse:
+def db_event_to_response(req: ScimApiRequest, resp: Response, db_event: ScimApiEvent) -> EventResponse:
     location = req.app.context.resource_url(SCIMResourceType.EVENT, db_event.scim_id)
     meta = Meta(
         location=location,
@@ -61,17 +60,13 @@ def db_event_to_response(req: ContextRequest, resp: Response, db_event: ScimApiE
     return event_response
 
 
-def get_scim_referenced(req: ContextRequest, resource: NutidEventResource) -> ScimApiResourceBase | None:
-    assert isinstance(req.context, ScimApiContext)  # please mypy
-    assert req.context.userdb is not None  # please mypy
-    assert req.context.groupdb is not None  # please mypy
-    assert req.context.invitedb is not None  # please mypy
+def get_scim_referenced(req: ScimApiRequest, resource: NutidEventResource) -> ScimApiResourceBase | None:
     if resource.resource_type == SCIMResourceType.USER:
-        return req.context.userdb.get_user_by_scim_id(str(resource.scim_id))
+        return req.context.require_userdb().get_user_by_scim_id(str(resource.scim_id))
     elif resource.resource_type == SCIMResourceType.GROUP:
-        return req.context.groupdb.get_group_by_scim_id(str(resource.scim_id))
+        return req.context.require_groupdb().get_group_by_scim_id(str(resource.scim_id))
     elif resource.resource_type == SCIMResourceType.INVITE:
-        return req.context.invitedb.get_invite_by_scim_id(str(resource.scim_id))
+        return req.context.require_invitedb().get_invite_by_scim_id(str(resource.scim_id))
     elif resource.resource_type == SCIMResourceType.EVENT:
         raise BadRequest(detail="Events can not refer to other events")
     raise BadRequest(detail=f"Events for resource {resource.resource_type.value} not implemented")
@@ -105,7 +100,8 @@ def add_api_event(
         data={"v": 1, "status": status.value, "message": message},
     )
     event_db = context.get_eventdb(data_owner=data_owner)
-    assert event_db  # please mypy
+    if event_db is None:
+        raise RuntimeError(f"No eventdb for data_owner {data_owner}")
     event_db.save(_event)
 
     # Send notification

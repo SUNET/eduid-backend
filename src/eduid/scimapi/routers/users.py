@@ -5,11 +5,10 @@ from dataclasses import replace
 
 from fastapi import Response
 
-from eduid.common.fastapi.context_request import ContextRequest
 from eduid.common.models.scim_base import ListResponse, SCIMResourceType, SCIMSchema, SearchRequest
 from eduid.common.models.scim_user import UserCreateRequest, UserResponse, UserUpdateRequest
 from eduid.scimapi.api_router import APIRouter
-from eduid.scimapi.context_request import ScimApiContext, ScimApiRoute
+from eduid.scimapi.context_request import ScimApiRequest, ScimApiRoute
 from eduid.scimapi.exceptions import BadRequest, Conflict, ErrorDetail, MaxRetriesReached, NotFound
 from eduid.scimapi.routers.utils.events import add_api_event
 from eduid.scimapi.routers.utils.users import (
@@ -46,13 +45,11 @@ users_router = APIRouter(
 
 
 @users_router.get("/{scim_id}", response_model_exclude_none=True)
-async def on_get(req: ContextRequest, resp: Response, scim_id: str | None = None) -> UserResponse:
+async def on_get(req: ScimApiRequest, resp: Response, scim_id: str | None = None) -> UserResponse:
     if scim_id is None:
         raise BadRequest(detail="Not implemented")
     req.app.context.logger.info(f"Fetching user {scim_id}")
-    assert isinstance(req.context, ScimApiContext)
-    assert req.context.userdb is not None
-    db_user = req.context.userdb.get_user_by_scim_id(scim_id)
+    db_user = req.context.require_userdb().get_user_by_scim_id(scim_id)
     if not db_user:
         raise NotFound(detail="User not found")
 
@@ -85,7 +82,8 @@ def _apply_core_updates(db_user: ScimApiUser, update_request: UserUpdateRequest)
 def _apply_nutid_updates(
     db_user: ScimApiUser, update_request: UserUpdateRequest, logger: logging.Logger
 ) -> tuple[ScimApiUser, bool]:
-    assert update_request.nutid_user_v1 is not None
+    if update_request.nutid_user_v1 is None:
+        raise BadRequest(detail="nutid_user_v1 extension is required")
     changed = False
 
     profile_changed = False
@@ -120,17 +118,14 @@ def _apply_nutid_updates(
 
 
 @users_router.put("/{scim_id}", response_model_exclude_none=True)
-async def on_put(req: ContextRequest, resp: Response, update_request: UserUpdateRequest, scim_id: str) -> UserResponse:
+async def on_put(req: ScimApiRequest, resp: Response, update_request: UserUpdateRequest, scim_id: str) -> UserResponse:
     req.app.context.logger.info(f"Updating user {scim_id}")
     req.app.context.logger.debug(update_request)
     if scim_id != str(update_request.id):
         req.app.context.logger.error("Id mismatch")
         req.app.context.logger.debug(f"{scim_id} != {update_request.id}")
         raise BadRequest(detail="Id mismatch")
-
-    assert isinstance(req.context, ScimApiContext)  # please mypy
-    assert req.context.userdb is not None  # please mypy
-    db_user = req.context.userdb.get_user_by_scim_id(scim_id)
+    db_user = req.context.require_userdb().get_user_by_scim_id(scim_id)
     if not db_user:
         raise NotFound(detail="User not found")
 
@@ -154,11 +149,10 @@ async def on_put(req: ContextRequest, resp: Response, update_request: UserUpdate
 
     req.app.context.logger.debug(f"Core changed: {core_changed}, nutid_changed: {nutid_changed}")
     if core_changed or nutid_changed:
-        assert req.context.data_owner is not None  # please mypy
         save_user(req, db_user)
         add_api_event(
             context=req.app.context,
-            data_owner=req.context.data_owner,
+            data_owner=req.context.require_data_owner(),
             db_obj=db_user,
             resource_type=SCIMResourceType.USER,
             level=EventLevel.INFO,
@@ -172,7 +166,7 @@ async def on_put(req: ContextRequest, resp: Response, update_request: UserUpdate
 
 
 @users_router.post("/", response_model_exclude_none=True)
-async def on_post(req: ContextRequest, resp: Response, create_request: UserCreateRequest) -> UserResponse:
+async def on_post(req: ScimApiRequest, resp: Response, create_request: UserCreateRequest) -> UserResponse:
     """
     POST /Users  HTTP/1.1
     Host: example.com
@@ -250,11 +244,9 @@ async def on_post(req: ContextRequest, resp: Response, create_request: UserCreat
     )
 
     save_user(req, db_user)
-    assert isinstance(req.context, ScimApiContext)  # please mypy
-    assert req.context.data_owner is not None  # please mypy
     add_api_event(
         context=req.app.context,
-        data_owner=req.context.data_owner,
+        data_owner=req.context.require_data_owner(),
         db_obj=db_user,
         resource_type=SCIMResourceType.USER,
         level=EventLevel.INFO,
@@ -272,11 +264,9 @@ async def on_post(req: ContextRequest, resp: Response, create_request: UserCreat
     status_code=204,
     responses={204: {"description": "No Content"}},
 )
-async def on_delete(req: ContextRequest, scim_id: str) -> None:
-    assert isinstance(req.context, ScimApiContext)  # please mypy
+async def on_delete(req: ScimApiRequest, scim_id: str) -> None:
     req.app.context.logger.info(f"Deleting user {scim_id}")
-    assert req.context.userdb is not None  # please mypy
-    db_user = req.context.userdb.get_user_by_scim_id(scim_id=scim_id)
+    db_user = req.context.require_userdb().get_user_by_scim_id(scim_id=scim_id)
     req.app.context.logger.debug(f"Found user: {db_user}")
     if not db_user:
         raise NotFound(detail="User not found")
@@ -293,12 +283,10 @@ async def on_delete(req: ContextRequest, scim_id: str) -> None:
         req.app.context.logger.exception("Max retries reached when removing user from groups")
         raise Conflict(detail="Database object out of sync, please retry") from e
 
-    res = req.context.userdb.remove(db_user)
-
-    assert req.context.data_owner is not None  # please mypy
+    res = req.context.require_userdb().remove(db_user)
     add_api_event(
         context=req.app.context,
-        data_owner=req.context.data_owner,
+        data_owner=req.context.require_data_owner(),
         db_obj=db_user,
         resource_type=SCIMResourceType.USER,
         level=EventLevel.INFO,
@@ -310,7 +298,7 @@ async def on_delete(req: ContextRequest, scim_id: str) -> None:
 
 
 @users_router.post("/.search", response_model_exclude_none=True)
-async def search(req: ContextRequest, query: SearchRequest) -> ListResponse:
+async def search(req: ScimApiRequest, query: SearchRequest) -> ListResponse:
     """
     POST /Users/.search
     Host: scim.eduid.se

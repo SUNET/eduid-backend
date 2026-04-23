@@ -2,11 +2,10 @@ from datetime import timedelta
 
 from fastapi import Response
 
-from eduid.common.fastapi.context_request import ContextRequest
 from eduid.common.misc.timeutil import utc_now
 from eduid.common.models.scim_base import SCIMResourceType
 from eduid.scimapi.api_router import APIRouter
-from eduid.scimapi.context_request import ScimApiContext, ScimApiRoute
+from eduid.scimapi.context_request import ScimApiRequest, ScimApiRoute
 from eduid.scimapi.exceptions import BadRequest, ErrorDetail, NotFound
 from eduid.scimapi.models.event import EventCreateRequest, EventResponse
 from eduid.scimapi.routers.utils.events import db_event_to_response, get_scim_referenced
@@ -27,20 +26,20 @@ events_router = APIRouter(
 
 
 @events_router.get("/{scim_id}", response_model_exclude_none=True)
-async def on_get(req: ContextRequest, resp: Response, scim_id: str | None = None) -> EventResponse:
+async def on_get(req: ScimApiRequest, resp: Response, scim_id: str | None = None) -> EventResponse:
     if scim_id is None:
         raise BadRequest(detail="Not implemented")
     req.app.context.logger.info(f"Fetching event {scim_id}")
-    assert isinstance(req.context, ScimApiContext)  # please mypy
-    assert req.context.eventdb is not None  # please mypy
-    db_event = req.context.eventdb.get_event_by_scim_id(scim_id)
+    db_event = req.context.require_eventdb().get_event_by_scim_id(scim_id)
     if not db_event:
         raise NotFound(detail="Event not found")
     return db_event_to_response(req, resp, db_event)
 
 
 @events_router.post("/", response_model_exclude_none=True)
-async def on_post(req: ContextRequest, resp: Response, create_request: EventCreateRequest) -> EventResponse:
+async def on_post(
+    req: ScimApiRequest, resp: Response, create_request: EventCreateRequest
+) -> EventResponse:
     """
     POST /Events  HTTP/1.1
     Host: example.com
@@ -93,10 +92,7 @@ async def on_post(req: ContextRequest, resp: Response, create_request: EventCrea
         _timestamp = create_request.nutid_event_v1.timestamp
     _expires_at = utc_now() + timedelta(days=1)
 
-    assert isinstance(req.context, ScimApiContext)  # please mypy
-    assert req.context.data_owner is not None  # please mypy
-    assert req.context.eventdb is not None  # please mypy
-
+    data_owner = req.context.require_data_owner()
     event = ScimApiEvent(
         resource=ScimApiEventResource(
             resource_type=create_request.nutid_event_v1.resource.resource_type,
@@ -106,12 +102,12 @@ async def on_post(req: ContextRequest, resp: Response, create_request: EventCrea
             external_id=referenced.external_id,
         ),
         level=create_request.nutid_event_v1.level,
-        source=req.context.data_owner,
+        source=data_owner,
         data=create_request.nutid_event_v1.data,
         expires_at=_expires_at,
         timestamp=_timestamp,
     )
-    req.context.eventdb.save(event)
+    req.context.require_eventdb().save(event)
 
     # Send notification
     message = req.app.context.notification_relay.format_message(
@@ -119,7 +115,7 @@ async def on_post(req: ContextRequest, resp: Response, create_request: EventCrea
     )
 
     req.app.context.notification_relay.notify(
-        data_owner=req.context.data_owner, message=message, context=req.app.context
+        data_owner=data_owner, message=message, context=req.app.context
     )
 
     return db_event_to_response(req, resp, event)

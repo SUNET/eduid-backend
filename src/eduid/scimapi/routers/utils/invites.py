@@ -7,7 +7,6 @@ from typing import Any
 from fastapi import Request, Response
 from pymongo.errors import DuplicateKeyError
 
-from eduid.common.fastapi.context_request import ContextRequest
 from eduid.common.misc.timeutil import utc_now
 from eduid.common.models.scim_base import Email, Meta, Name, PhoneNumber, SCIMResourceType, SCIMSchema, SearchRequest
 from eduid.common.models.scim_invite import InviteCreateRequest, InviteResponse, NutidInviteExtensionV1
@@ -15,7 +14,7 @@ from eduid.common.models.scim_user import NutidUserExtensionV1, Profile
 from eduid.common.utils import get_short_hash, make_etag
 from eduid.queue.db import QueueItem, SenderInfo
 from eduid.queue.db.message import EduidInviteEmail
-from eduid.scimapi.context_request import ScimApiContext
+from eduid.scimapi.context_request import ScimApiRequest
 from eduid.scimapi.exceptions import BadRequest
 from eduid.scimapi.search import SearchFilter
 from eduid.scimapi.utils import get_unique_hash
@@ -27,11 +26,9 @@ __author__ = "lundberg"
 
 
 def create_signup_invite(
-    req: ContextRequest, create_request: InviteCreateRequest, db_invite: ScimApiInvite
+    req: ScimApiRequest, create_request: InviteCreateRequest, db_invite: ScimApiInvite
 ) -> SignupInvite:
-    assert isinstance(req.context, ScimApiContext)  # please mypy
-    assert req.context.data_owner is not None  # please mypy
-    invite_reference = SCIMReference(data_owner=req.context.data_owner, scim_id=db_invite.scim_id)
+    invite_reference = SCIMReference(data_owner=req.context.require_data_owner(), scim_id=db_invite.scim_id)
 
     if create_request.nutid_invite_v1.send_email is False:
         # Generate a shorter code if the code will reach the invitee on paper or other analog media
@@ -47,9 +44,11 @@ def create_signup_invite(
         for number in create_request.nutid_invite_v1.phone_numbers
     ]
 
-    # please mypy (schema validation makes sure they are not None)
-    assert create_request.nutid_invite_v1.inviter_name is not None
-    assert create_request.nutid_invite_v1.send_email is not None
+    # schema validation makes sure they are not None — belt-and-braces check
+    if create_request.nutid_invite_v1.inviter_name is None:
+        raise BadRequest(detail="inviter_name is required")
+    if create_request.nutid_invite_v1.send_email is None:
+        raise BadRequest(detail="send_email is required")
 
     signup_invite = SignupInvite(
         invite_code=invite_code,
@@ -118,13 +117,11 @@ def db_invite_to_response(
     return scim_invite
 
 
-def create_signup_ref(req: ContextRequest, db_invite: ScimApiInvite) -> SCIMReference:
-    assert isinstance(req.context, ScimApiContext)  # please mypy
-    assert req.context.data_owner is not None  # please mypy
-    return SCIMReference(data_owner=req.context.data_owner, scim_id=db_invite.scim_id)
+def create_signup_ref(req: ScimApiRequest, db_invite: ScimApiInvite) -> SCIMReference:
+    return SCIMReference(data_owner=req.context.require_data_owner(), scim_id=db_invite.scim_id)
 
 
-def send_invite_mail(req: ContextRequest, signup_invite: SignupInvite) -> bool:
+def send_invite_mail(req: ScimApiRequest, signup_invite: SignupInvite) -> bool:
     try:
         email = next(email.email for email in signup_invite.mail_addresses if email.primary)
     except StopIteration:
@@ -165,15 +162,13 @@ def invites_to_resources_dicts(query: SearchRequest, invites: Sequence[ScimApiIn
 
 
 def save_invite(
-    req: ContextRequest,
+    req: ScimApiRequest,
     db_invite: ScimApiInvite,
     signup_invite: SignupInvite,
     signup_invite_is_in_database: bool,
 ) -> None:
     try:
-        assert isinstance(req.context, ScimApiContext)  # please mypy
-        assert req.context.invitedb is not None  # please mypy
-        req.context.invitedb.save(db_invite)
+        req.context.require_invitedb().save(db_invite)
     except DuplicateKeyError as e:
         if e.details is None:
             raise
@@ -192,14 +187,12 @@ def save_invite(
 
 
 def filter_lastmodified(
-    req: ContextRequest, search_filter: SearchFilter, skip: int | None = None, limit: int | None = None
+    req: ScimApiRequest, search_filter: SearchFilter, skip: int | None = None, limit: int | None = None
 ) -> tuple[list[ScimApiInvite], int]:
     if search_filter.op not in ["gt", "ge"]:
         raise BadRequest(scim_type="invalidFilter", detail="Unsupported operator")
     if not isinstance(search_filter.val, str):
         raise BadRequest(scim_type="invalidFilter", detail="Invalid datetime")
-    assert isinstance(req.context, ScimApiContext)  # please mypy
-    assert req.context.invitedb is not None  # please mypy
-    return req.context.invitedb.get_invites_by_last_modified(
+    return req.context.require_invitedb().get_invites_by_last_modified(
         operator=search_filter.op, value=datetime.fromisoformat(search_filter.val), skip=skip, limit=limit
     )
