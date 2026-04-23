@@ -1,6 +1,7 @@
 import json
 import logging
 from datetime import date, timedelta
+from typing import Any
 
 import pytest
 from pytest_mock import MockerFixture
@@ -8,7 +9,13 @@ from werkzeug.test import TestResponse
 
 from eduid.common.config.base import FrontendAction
 from eduid.common.misc.timeutil import utc_now
-from eduid.userdb.credentials.external import TrustFramework
+from eduid.userdb.credentials.external import (
+    BankIDCredential,
+    EidasCredential,
+    FrejaCredential,
+    SwedenConnectCredential,
+    TrustFramework,
+)
 from eduid.webapp.common.session.namespaces import (
     AuthnRequestRef,
     ExternalMfaSignupIdentity,
@@ -243,6 +250,42 @@ class ExternalMfaSignupTests(SignupTests):
             message=SignupMsg.external_mfa_not_verified,
         )
 
+    def _seed_samleid_authn(
+        self,
+        authn_id: str = "authn-samleid-1",
+        nin: str = "198001011234",
+        framework: TrustFramework = TrustFramework.BANKID,
+        minutes_ago: int = 0,
+        consumed: bool = False,
+        frontend_action: FrontendAction = FrontendAction.SIGNUP_EXTERNAL_MFA,
+        has_identity: bool = True,
+        error: bool = False,
+        set_authn_instant: bool = True,
+    ) -> None:
+        ident: ExternalMfaSignupIdentity | None = None
+        if has_identity:
+            ident = ExternalMfaSignupIdentity(
+                given_name="Signe",
+                surname="Svensson",
+                date_of_birth=date(1980, 1, 1),
+                nin=nin,
+                framework=framework,
+                loa="loa3",
+            )
+        authn_instant = utc_now() - timedelta(minutes=minutes_ago) if set_authn_instant else None
+        req = SP_AuthnRequest(
+            authn_id=AuthnRequestRef(authn_id),
+            frontend_action=frontend_action,
+            finish_url=_FINISH_URL,
+            consumed=consumed,
+            authn_instant=authn_instant,
+            error=error,
+            external_mfa_signup_identity=ident,
+        )
+        with self.session_cookie_anon(self.browser) as client:
+            with client.session_transaction() as sess:
+                sess.samleid.sp.authns[AuthnRequestRef(authn_id)] = req
+
     def _seed_eidas_foreign_authn(
         self,
         authn_id: str = "authn-eidas-1",
@@ -400,8 +443,6 @@ class ExternalMfaSignupTests(SignupTests):
 
     def test_create_user_with_external_mfa_bankid(self) -> None:
         """A new user created via the BankID external-MFA flow gets a verified NIN and BankIDCredential."""
-        from eduid.userdb.credentials.external import BankIDCredential
-
         self._seed_bankid_authn(nin="198001011234", authn_id="authn-1")
         self._call_external_mfa_register("bankid", "authn-1")
 
@@ -442,8 +483,6 @@ class ExternalMfaSignupTests(SignupTests):
 
     def test_create_user_with_external_mfa_eidas_prid(self) -> None:
         """A new user created via the eIDAS external-MFA flow gets a verified EIDASIdentity and EidasCredential."""
-        from eduid.userdb.credentials.external import EidasCredential
-
         self._seed_eidas_foreign_authn(
             prid="DE:abc123",
             country_code="DE",
@@ -485,3 +524,75 @@ class ExternalMfaSignupTests(SignupTests):
         external_mfa_entries = [e for e in log_entries if e.get("proofing_method") == "eidas"]
         assert len(external_mfa_entries) == 1
         assert external_mfa_entries[0]["country_code"] == "DE"
+
+    # ------------------------------------------------------------------
+    # Parametrized NIN-based create-user variants
+    # ------------------------------------------------------------------
+
+    @pytest.mark.parametrize(
+        ("app_name", "framework", "credential_class", "proofing_version_attr"),
+        [
+            # bankid SP — TrustFramework.BANKID → BankIDCredential
+            ("bankid", TrustFramework.BANKID, BankIDCredential, "bankid_proofing_version"),
+            # samleid SP with bankid-style NIN — same credential type as bankid
+            ("samleid", TrustFramework.BANKID, BankIDCredential, "bankid_proofing_version"),
+            # samleid SP with Swedish Freja (SwedenConnect) NIN
+            ("samleid", TrustFramework.SWECONN, SwedenConnectCredential, "freja_proofing_version"),
+            # freja_eid RP — TrustFramework.FREJA → FrejaCredential
+            ("freja_eid", TrustFramework.FREJA, FrejaCredential, "freja_eid_proofing_version"),
+        ],
+    )
+    def test_create_user_with_external_mfa_nin(
+        self,
+        app_name: str,
+        framework: TrustFramework,
+        credential_class: type[BankIDCredential | SwedenConnectCredential | FrejaCredential | EidasCredential],
+        proofing_version_attr: str,
+    ) -> None:
+        """Parametrized NIN-based create-user test covering bankid, samleid (BANKID + SWECONN), and freja_eid."""
+        nin = "198001011234"
+        authn_id = f"authn-{app_name}-1"
+        email = f"test.{app_name}.{framework.value}@example.com"
+
+        # Seed the appropriate authn into the correct session namespace
+        if app_name == "bankid":
+            self._seed_bankid_authn(nin=nin, authn_id=authn_id)
+        elif app_name == "samleid":
+            self._seed_samleid_authn(nin=nin, authn_id=authn_id, framework=framework)
+        elif app_name == "freja_eid":
+            self._seed_freja_eid_authn(nin=nin, authn_id=authn_id)
+        else:
+            raise ValueError(f"Unexpected app_name: {app_name}")
+
+        self._call_external_mfa_register(app_name, authn_id)
+        self._prepare_for_create_user(given_name="Test", surname="Testsson", email=email)
+
+        result = self._create_user()
+        assert result.response.status_code == 200
+
+        # Retrieve eppn from session
+        with self.session_cookie_anon(self.browser) as client:
+            with client.session_transaction() as sess:
+                eppn = sess.common.eppn
+        assert eppn is not None
+
+        user = self.app.central_userdb.get_user_by_eppn(eppn)
+        assert user is not None
+
+        # Verified NIN must be present
+        assert user.identities.nin is not None
+        assert user.identities.nin.number == nin
+        assert user.identities.nin.is_verified is True
+
+        # Exactly one credential of the expected subclass at loa3
+        matching_creds = [c for c in user.credentials.to_list() if isinstance(c, credential_class)]
+        assert len(matching_creds) == 1
+        assert matching_creds[0].level == "loa3"
+
+        # Proofing log entry with correct proofing_method and proofing_version
+        expected_version: Any = getattr(self.app.conf, proofing_version_attr)
+        log_entries = list(self.app.proofing_log._coll.find({"eduPersonPrincipalName": eppn}))
+        external_mfa_entries = [e for e in log_entries if e.get("proofing_method") == app_name]
+        assert len(external_mfa_entries) == 1
+        assert external_mfa_entries[0]["nin"] == nin
+        assert external_mfa_entries[0]["proofing_version"] == expected_version
