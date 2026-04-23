@@ -26,14 +26,11 @@ from eduid.userdb.credentials.external import (
     TrustFramework,
 )
 from eduid.userdb.exceptions import UserDoesNotExist, UserOutOfSync
-from eduid.userdb.identity import EIDASIdentity, PridPersistence
+from eduid.userdb.identity import EIDASIdentity, EIDASLoa, PridPersistence
 from eduid.userdb.logs import MailAddressProofing
 from eduid.userdb.logs.element import (
-    BankIDProofing,
-    FrejaEIDForeignProofing,
-    FrejaEIDNINProofing,
-    SwedenConnectEIDASProofing,
-    SwedenConnectProofing,
+    ForeignIdProofingLogElement,
+    NinEIDProofingLogElement,
 )
 from eduid.userdb.signup import Invite, InviteType, SCIMReference, SignupUser
 from eduid.userdb.tou import ToUEvent
@@ -308,7 +305,7 @@ def create_and_sync_user(
                 EIDASIdentity(
                     prid=external_mfa.eidas_prid,
                     prid_persistence=external_mfa.eidas_prid_persistence or PridPersistence.A,
-                    loa=external_mfa.loa,
+                    loa=EIDASLoa(external_mfa.loa),
                     date_of_birth=datetime.combine(external_mfa.date_of_birth, datetime.min.time()),
                     country_code=external_mfa.country_code or "",
                     created_by=current_app.conf.app_name,
@@ -561,92 +558,58 @@ def build_external_credential(framework: TrustFramework, loa: str, created_by: s
     return cred
 
 
-def _write_external_mfa_proofing_log(signup_user: SignupUser, external_mfa: SignupExternalMfa) -> None:
-    """Write a proofing log entry for an identity verified via external MFA during signup."""
-    app_name = current_app.conf.app_name
-    authn_id = external_mfa.authn_id
+def _proofing_version_for_framework(framework: TrustFramework) -> str:
+    """Return the configured proofing version string for the given TrustFramework."""
+    match framework:
+        case TrustFramework.SWECONN:
+            return current_app.conf.freja_proofing_version
+        case TrustFramework.EIDAS:
+            return current_app.conf.foreign_eid_proofing_version
+        case TrustFramework.BANKID:
+            return current_app.conf.bankid_proofing_version
+        case TrustFramework.FREJA:
+            return current_app.conf.freja_eid_proofing_version
+        case _:
+            raise ValueError(f"Unsupported TrustFramework: {framework}")
 
-    entry: BankIDProofing | SwedenConnectProofing | SwedenConnectEIDASProofing | FrejaEIDNINProofing | FrejaEIDForeignProofing
+
+def _write_external_mfa_proofing_log(signup_user: SignupUser, external_mfa: SignupExternalMfa) -> None:
+    """Write a proofing log entry for an identity verified via external MFA during signup.
+
+    Uses the generic NinEIDProofingLogElement / ForeignIdProofingLogElement classes,
+    since the signup backend only has what `SignupExternalMfa` carries — no SAML
+    transaction_id, no Freja document info, etc. Those live in the original
+    SP_AuthnRequest / RP_AuthnRequest written by the MFA webapp at ACS time and are
+    not propagated into session.signup.external_mfa by design.
+    """
+    app_name = current_app.conf.app_name
+    # Record the source MFA webapp as proofing_method, version mapped from TrustFramework
+    method = external_mfa.app_name
+    version = _proofing_version_for_framework(external_mfa.framework)
+
+    entry: NinEIDProofingLogElement | ForeignIdProofingLogElement
 
     if external_mfa.nin:
-        match external_mfa.framework:
-            case TrustFramework.BANKID:
-                entry = BankIDProofing(
-                    eppn=signup_user.eppn,
-                    created_by=app_name,
-                    proofing_version=current_app.conf.bankid_proofing_version,
-                    nin=external_mfa.nin,
-                    given_name=external_mfa.given_name,
-                    surname=external_mfa.surname,
-                    transaction_id=authn_id,
-                )
-            case TrustFramework.FREJA:
-                entry = FrejaEIDNINProofing(
-                    eppn=signup_user.eppn,
-                    created_by=app_name,
-                    proofing_version=current_app.conf.freja_eid_proofing_version,
-                    nin=external_mfa.nin,
-                    given_name=external_mfa.given_name,
-                    surname=external_mfa.surname,
-                    user_id=authn_id,
-                    transaction_id=authn_id,
-                    document_type="",
-                    document_number="",
-                )
-            case TrustFramework.SWECONN:
-                entry = SwedenConnectProofing(
-                    eppn=signup_user.eppn,
-                    created_by=app_name,
-                    proofing_version=current_app.conf.freja_proofing_version,
-                    nin=external_mfa.nin,
-                    given_name=external_mfa.given_name,
-                    surname=external_mfa.surname,
-                    issuer=external_mfa.app_name,
-                    authn_context_class=external_mfa.loa,
-                )
-            case _:
-                current_app.logger.error(
-                    f"Unsupported framework {external_mfa.framework} with NIN — no proofing log written"
-                )
-                return
+        entry = NinEIDProofingLogElement(
+            eppn=signup_user.eppn,
+            created_by=app_name,
+            proofing_method=method,
+            proofing_version=version,
+            nin=external_mfa.nin,
+            given_name=external_mfa.given_name,
+            surname=external_mfa.surname,
+        )
     elif external_mfa.eidas_prid:
-        match external_mfa.framework:
-            case TrustFramework.EIDAS | TrustFramework.SWECONN:
-                entry = SwedenConnectEIDASProofing(
-                    eppn=signup_user.eppn,
-                    created_by=app_name,
-                    proofing_version=current_app.conf.foreign_eid_proofing_version,
-                    given_name=external_mfa.given_name,
-                    surname=external_mfa.surname,
-                    date_of_birth=external_mfa.date_of_birth.isoformat(),
-                    country_code=external_mfa.country_code or "",
-                    issuer=external_mfa.app_name,
-                    authn_context_class=external_mfa.loa,
-                    prid=external_mfa.eidas_prid,
-                    prid_persistence=str(external_mfa.eidas_prid_persistence or PridPersistence.A),
-                    eidas_person_identifier=external_mfa.eidas_prid,
-                    transaction_identifier=authn_id,
-                )
-            case TrustFramework.FREJA:
-                entry = FrejaEIDForeignProofing(
-                    eppn=signup_user.eppn,
-                    created_by=app_name,
-                    proofing_version=current_app.conf.freja_eid_proofing_version,
-                    given_name=external_mfa.given_name,
-                    surname=external_mfa.surname,
-                    date_of_birth=external_mfa.date_of_birth.isoformat(),
-                    country_code=external_mfa.country_code or "",
-                    user_id=authn_id,
-                    transaction_id=authn_id,
-                    document_type="",
-                    document_number="",
-                    issuing_country=external_mfa.country_code or "",
-                )
-            case _:
-                current_app.logger.error(
-                    f"Unsupported framework {external_mfa.framework} with eidas_prid — no proofing log written"
-                )
-                return
+        entry = ForeignIdProofingLogElement(
+            eppn=signup_user.eppn,
+            created_by=app_name,
+            proofing_method=method,
+            proofing_version=version,
+            given_name=external_mfa.given_name,
+            surname=external_mfa.surname,
+            date_of_birth=external_mfa.date_of_birth.isoformat(),
+            country_code=external_mfa.country_code or "",
+        )
     else:
         current_app.logger.error("SignupExternalMfa has neither nin nor eidas_prid — no proofing log written")
         return

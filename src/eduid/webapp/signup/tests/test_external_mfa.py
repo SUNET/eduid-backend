@@ -480,8 +480,8 @@ class ExternalMfaSignupTests(SignupTests):
         assert len(eidas_creds) == 1
         assert eidas_creds[0].level == "eidas-nf-sub"
 
-        # Proofing log must have an entry for this eppn (eIDAS uses SwedenConnectEIDASProofing → "swedenconnect")
+        # Proofing log must have an entry for this eppn
         log_entries = list(self.app.proofing_log._coll.find({"eduPersonPrincipalName": eppn}))
-        external_mfa_entries = [e for e in log_entries if e.get("proofing_method") == "swedenconnect"]
+        external_mfa_entries = [e for e in log_entries if e.get("proofing_method") == "eidas"]
         assert len(external_mfa_entries) == 1
         assert external_mfa_entries[0]["country_code"] == "DE"
