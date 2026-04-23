@@ -393,3 +393,95 @@ class ExternalMfaSignupTests(SignupTests):
         resp = self._call_external_mfa_clear()
         payload = self.get_response_payload(resp)
         assert payload["message"] == SignupMsg.user_already_exists.value
+
+    # ------------------------------------------------------------------
+    # create-user with external MFA — happy path tests
+    # ------------------------------------------------------------------
+
+    def test_create_user_with_external_mfa_bankid(self) -> None:
+        """A new user created via the BankID external-MFA flow gets a verified NIN and BankIDCredential."""
+        from eduid.userdb.credentials.external import BankIDCredential
+
+        self._seed_bankid_authn(nin="198001011234", authn_id="authn-1")
+        self._call_external_mfa_register("bankid", "authn-1")
+
+        # Complete the remaining signup prerequisites via the session shortcut
+        self._prepare_for_create_user(
+            given_name="Anna",
+            surname="Andersson",
+            email="anna.andersson@example.com",
+        )
+
+        result = self._create_user()
+        assert result.response.status_code == 200
+
+        # Retrieve the eppn from the session after user creation
+        with self.session_cookie_anon(self.browser) as client:
+            with client.session_transaction() as sess:
+                eppn = sess.common.eppn
+        assert eppn is not None
+
+        user = self.app.central_userdb.get_user_by_eppn(eppn)
+        assert user is not None
+
+        # Verified NIN must be present
+        assert user.identities.nin is not None
+        assert user.identities.nin.number == "198001011234"
+        assert user.identities.nin.is_verified is True
+
+        # Exactly one BankIDCredential
+        bankid_creds = [c for c in user.credentials.to_list() if isinstance(c, BankIDCredential)]
+        assert len(bankid_creds) == 1
+        assert bankid_creds[0].level == "loa3"
+
+        # Proofing log must have an entry for this eppn
+        log_entries = list(self.app.proofing_log._coll.find({"eduPersonPrincipalName": eppn}))
+        external_mfa_entries = [e for e in log_entries if e.get("proofing_method") == "bankid"]
+        assert len(external_mfa_entries) == 1
+        assert external_mfa_entries[0]["nin"] == "198001011234"
+
+    def test_create_user_with_external_mfa_eidas_prid(self) -> None:
+        """A new user created via the eIDAS external-MFA flow gets a verified EIDASIdentity and EidasCredential."""
+        from eduid.userdb.credentials.external import EidasCredential
+
+        self._seed_eidas_foreign_authn(
+            prid="DE:abc123",
+            country_code="DE",
+            authn_id="authn-eidas-1",
+        )
+        self._call_external_mfa_register("eidas", "authn-eidas-1")
+
+        self._prepare_for_create_user(
+            given_name="Diana",
+            surname="Diaz",
+            email="diana.diaz@example.com",
+        )
+
+        result = self._create_user()
+        assert result.response.status_code == 200
+
+        # Retrieve the eppn from the session after user creation
+        with self.session_cookie_anon(self.browser) as client:
+            with client.session_transaction() as sess:
+                eppn = sess.common.eppn
+        assert eppn is not None
+
+        user = self.app.central_userdb.get_user_by_eppn(eppn)
+        assert user is not None
+
+        # Verified EIDASIdentity must be present
+        assert user.identities.eidas is not None
+        assert user.identities.eidas.prid == "DE:abc123"
+        assert user.identities.eidas.country_code == "DE"
+        assert user.identities.eidas.is_verified is True
+
+        # Exactly one EidasCredential
+        eidas_creds = [c for c in user.credentials.to_list() if isinstance(c, EidasCredential)]
+        assert len(eidas_creds) == 1
+        assert eidas_creds[0].level == "eidas-nf-sub"
+
+        # Proofing log must have an entry for this eppn (eIDAS uses SwedenConnectEIDASProofing → "swedenconnect")
+        log_entries = list(self.app.proofing_log._coll.find({"eduPersonPrincipalName": eppn}))
+        external_mfa_entries = [e for e in log_entries if e.get("proofing_method") == "swedenconnect"]
+        assert len(external_mfa_entries) == 1
+        assert external_mfa_entries[0]["country_code"] == "DE"

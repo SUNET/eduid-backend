@@ -657,6 +657,7 @@ def create_user(use_suggested_password: bool, use_webauthn: bool, custom_passwor
             tou_version=session.signup.tou.version,
             webauthn=webauthn_credential,
             webauthn_authenticator_info=webauthn_authenticator_info,
+            external_mfa=session.signup.external_mfa,
         )
     except EmailAlreadyVerifiedException:
         return error_response(message=SignupMsg.email_used)
@@ -670,6 +671,10 @@ def create_user(use_suggested_password: bool, use_webauthn: bool, custom_passwor
     session.signup.credentials.completed = True
     session.common.eppn = signup_user.eppn
     session.common.login_source = LoginApplication.signup
+    if session.signup.external_mfa is not None:
+        current_app.stats.count(
+            name=f"signup_external_mfa_completed_{session.signup.external_mfa.app_name}"
+        )
     if custom_password is not None:
         session.signup.credentials.custom_password = True
         session.signup.credentials.generated_password = None
