@@ -152,11 +152,7 @@ class AuthnResult:
 
 
 def _authn(sp_authn: SP_AuthnRequest, idp: str, authn_params: AuthnParameters) -> AuthnResult:
-    # Filter out any previous authns with the same frontend_action because we need to use the frontend_action value to
-    # find the authn data for a specific action.
-    session.authn.sp.authns = {
-        k: v for k, v in session.authn.sp.authns.items() if v.frontend_action != sp_authn.frontend_action
-    }
+    # Keep earlier authns so overlapping login flows in the same browser session can complete independently.
     session.authn.sp.authns[sp_authn.authn_id] = sp_authn
 
     subject = None
