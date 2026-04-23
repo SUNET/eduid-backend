@@ -72,7 +72,7 @@ class MAccApiTestCase(BaseDBTestCase):
         yield
 
         if self.db:
-            self.db._drop_whole_collection()
+            self.db._coll.delete_many({})
 
     def _get_config(self) -> dict[str, Any]:
         config = super()._get_config()

@@ -52,6 +52,22 @@ class Context:
         # Setup keystore
         self.jwks = load_jwks(config)
 
+    def _close_data_owner_dbs(self, data_owner_dbs: DataOwnerDatabases) -> None:
+        data_owner_dbs.groupdb.graphdb.db.close()
+
+    def _evict_data_owner_dbs(self, keep_data_owner: DataOwnerName) -> None:
+        max_loaded = self.config.max_loaded_data_owner_dbs
+        if max_loaded < 1:
+            return
+        while len(self._dbs) > max_loaded:
+            evict_candidates = {name: dbs for name, dbs in self._dbs.items() if name != keep_data_owner}
+            if not evict_candidates:
+                return
+            evicted_data_owner = min(evict_candidates, key=lambda name: evict_candidates[name].last_accessed)
+            self.logger.info(f"Evicting databases for {evicted_data_owner}")
+            self._close_data_owner_dbs(self._dbs[evicted_data_owner])
+            del self._dbs[evicted_data_owner]
+
     @property
     def base_url(self) -> str:
         base_url = f"{self.config.protocol}://{self.config.server_name}"
@@ -93,6 +109,7 @@ class Context:
         data_owner_dbs = self._dbs[data_owner]
         # update last accessed to help keep the cache from growing too large
         data_owner_dbs.last_accessed = utc_now()
+        self._evict_data_owner_dbs(keep_data_owner=data_owner)
         return data_owner_dbs
 
     def get_userdb(self, data_owner: DataOwnerName) -> ScimApiUserDB | None:

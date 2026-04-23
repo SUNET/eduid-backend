@@ -135,8 +135,9 @@ class MongoTestCase:
         """
         for db_name in self.tmp_db.conn.list_database_names():
             if db_name not in ["local", "admin", "config"]:  # Do not drop mongo internal dbs
-                self.tmp_db.conn.drop_database(db_name)
-        self.amdb._drop_whole_collection()
+                db = self.tmp_db.conn[db_name]
+                for coll_name in db.list_collection_names():
+                    db[coll_name].delete_many({})
 
 
 class AsyncMongoTestCase:
@@ -194,4 +195,6 @@ class AsyncMongoTestCase:
         """
         for db_name in self.tmp_db.conn.list_database_names():
             if db_name not in ["local", "admin", "config"]:  # Do not drop mongo internal dbs
-                self.tmp_db.conn.drop_database(db_name)
+                db = self.tmp_db.conn[db_name]
+                for coll_name in db.list_collection_names():
+                    db[coll_name].delete_many({})
