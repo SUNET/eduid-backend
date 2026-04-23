@@ -8,6 +8,7 @@ from eduid.common.config.base import (
     CaptchaConfigMixin,
     EduIDBaseAppConfig,
     Fido2RpConfigMixin,
+    FrontendActionMixin,
     MagicCookieMixin,
     PasswordConfigMixin,
     TouConfigMixin,
@@ -27,6 +28,7 @@ class SignupConfig(
     VCCSConfigMixin,
     Fido2RpConfigMixin,
     WebauthnRegistrationConfigMixin,
+    FrontendActionMixin,
 ):
     """
     Configuration for the signup app

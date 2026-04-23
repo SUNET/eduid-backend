@@ -5,6 +5,7 @@ from fido2.webauthn import AuthenticatorAttachment, PublicKeyCredentialUserEntit
 from fido_mds.models.webauthn import AttestationFormat
 from flask import Blueprint, abort, request
 
+from eduid.common.config.base import FrontendAction
 from eduid.common.misc.timeutil import utc_now
 from eduid.common.utils import generate_password
 from eduid.userdb import User
@@ -26,8 +27,13 @@ from eduid.webapp.common.authn.webauthn import (
 )
 from eduid.webapp.common.session import session
 from eduid.webapp.common.session.namespaces import (
+    AuthnRequestRef,
     LoginApplication,
+    OIDCState,
     RequestRef,
+    RP_AuthnRequest,
+    SignupExternalMfa,
+    SP_AuthnRequest,
     WebauthnCredential,
     WebauthnRegistration,
 )
@@ -48,6 +54,7 @@ from eduid.webapp.signup.helpers import (
 from eduid.webapp.signup.schemas import (
     AcceptTouRequest,
     CreateUserRequest,
+    ExternalMfaRegisterRequest,
     InviteCodeRequest,
     InviteDataResponse,
     NameAndEmailSchema,
@@ -412,6 +419,93 @@ def return_to_auth(ref: str) -> FluxData:
     session.signup.idp_request_ref = request_ref
     current_app.logger.info(f"Stored idp_request_ref: {request_ref}")
     return success_response(payload={"state": session.signup.to_dict()})
+
+
+_SUPPORTED_EXTERNAL_MFA_APPS = {"eidas", "bankid", "samleid", "freja_eid"}
+
+
+@signup_views.route("/external-mfa-register", methods=["POST"])
+@UnmarshalWith(ExternalMfaRegisterRequest)
+@MarshalWith(SignupStatusResponse)
+@require_not_logged_in
+def external_mfa_register(app_name: str, authn_id: str) -> FluxData:
+    """Store a successful external-MFA authn on the signup session.
+
+    The frontend hits ``/profile/ext-return/{app_name}/{authn_id}`` after the
+    user authenticates with BankID / Freja eID+ / eIDAS / SamlEid, then posts
+    the `(app_name, authn_id)` here. We read the corresponding SP/RP
+    AuthnRequest from the other webapp's session namespace, validate it, and
+    stash the parsed identity on ``session.signup.external_mfa``.
+
+    NIN/PRID collision against existing users is checked in a follow-up task.
+    """
+    if session.signup.user_created:
+        return error_response(message=SignupMsg.user_already_exists)
+
+    if app_name not in _SUPPORTED_EXTERNAL_MFA_APPS:
+        return error_response(message=SignupMsg.external_mfa_not_found)
+
+    authn = _lookup_external_mfa_authn(app_name, authn_id)
+    if authn is None:
+        return error_response(message=SignupMsg.external_mfa_not_found)
+
+    err = _validate_external_mfa_authn(authn)
+    if err is not None:
+        return error_response(message=err)
+
+    ident = authn.external_mfa_signup_identity
+    assert ident is not None  # validated above
+    session.signup.external_mfa = SignupExternalMfa(
+        app_name=app_name,
+        authn_id=str(authn_id),
+        framework=ident.framework,
+        loa=ident.loa,
+        given_name=ident.given_name,
+        surname=ident.surname,
+        date_of_birth=ident.date_of_birth,
+        nin=ident.nin,
+        eidas_prid=ident.eidas_prid,
+        eidas_prid_persistence=ident.eidas_prid_persistence,
+        country_code=ident.country_code,
+    )
+    authn.consumed = True
+
+    return success_response(payload={"state": session.signup.to_dict()})
+
+
+def _lookup_external_mfa_authn(
+    app_name: str, authn_id: str
+) -> SP_AuthnRequest | RP_AuthnRequest | None:
+    if app_name == "freja_eid":
+        return session.freja_eid.rp.authns.get(OIDCState(authn_id))
+    if app_name == "eidas":
+        return session.eidas.sp.authns.get(AuthnRequestRef(authn_id))
+    if app_name == "bankid":
+        return session.bankid.sp.authns.get(AuthnRequestRef(authn_id))
+    if app_name == "samleid":
+        return session.samleid.sp.authns.get(AuthnRequestRef(authn_id))
+    return None
+
+
+def _validate_external_mfa_authn(
+    authn: SP_AuthnRequest | RP_AuthnRequest,
+) -> SignupMsg | None:
+    if authn.frontend_action != FrontendAction.SIGNUP_EXTERNAL_MFA:
+        return SignupMsg.external_mfa_wrong_action
+    if authn.error:
+        return SignupMsg.external_mfa_not_verified
+    if authn.external_mfa_signup_identity is None:
+        return SignupMsg.external_mfa_not_verified
+    if authn.consumed:
+        return SignupMsg.external_mfa_already_consumed
+    if authn.authn_instant is None:
+        return SignupMsg.external_mfa_not_verified
+    max_age = current_app.conf.frontend_action_authn_parameters[
+        FrontendAction.SIGNUP_EXTERNAL_MFA
+    ].max_age
+    if utc_now() - authn.authn_instant > max_age:
+        return SignupMsg.external_mfa_too_old
+    return None
 
 
 def _check_user_not_created() -> FluxData | None:
