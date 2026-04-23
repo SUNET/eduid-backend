@@ -22,8 +22,9 @@ from eduid.scimapi.app import init_api
 from eduid.scimapi.config import ScimApiConfig
 from eduid.scimapi.context import Context
 from eduid.userdb.scimapi import ScimApiEvent, ScimApiGroup, ScimApiLinkedAccount, ScimApiName
+from eduid.userdb.scimapi.common import ScimApiProfile
 from eduid.userdb.scimapi.invitedb import ScimApiInvite
-from eduid.userdb.scimapi.userdb import ScimApiProfile, ScimApiUser
+from eduid.userdb.scimapi.userdb import ScimApiUser
 from eduid.userdb.signup import SignupInviteDB
 from eduid.userdb.testing import MongoTemporaryInstance
 

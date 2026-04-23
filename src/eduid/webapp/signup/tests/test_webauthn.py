@@ -14,7 +14,7 @@ from eduid.common.config.base import EduidEnvironment
 from eduid.userdb.credentials import Password, Webauthn
 from eduid.webapp.common.api.testing import EduidAPITestCase
 from eduid.webapp.common.authn.webauthn import get_webauthn_server
-from eduid.webapp.common.session import EduidSession
+from eduid.webapp.common.session.eduid_session import EduidSession
 from eduid.webapp.common.session.namespaces import WebauthnCredential, WebauthnRegistration, WebauthnState
 from eduid.webapp.signup.app import SignupApp, signup_init_app
 from eduid.webapp.signup.helpers import SignupMsg

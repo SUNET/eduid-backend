@@ -25,7 +25,8 @@ from eduid.webapp.common.authn.cache import OutstandingQueriesCache
 from eduid.webapp.common.authn.middleware import AuthnBaseApp
 from eduid.webapp.common.authn.tests.responses import auth_response, logout_request, logout_response
 from eduid.webapp.common.authn.utils import no_authn_views
-from eduid.webapp.common.session import EduidSession, session
+from eduid.webapp.common.session import session
+from eduid.webapp.common.session.eduid_session import EduidSession
 from eduid.webapp.common.session.namespaces import AuthnRequestRef
 
 logger = logging.getLogger(__name__)

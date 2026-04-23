@@ -4,8 +4,7 @@ from datetime import datetime
 from pydantic import field_validator
 
 from eduid.userdb.db import TUserDbDocument
-from eduid.userdb.element import UserDBValueError
-from eduid.userdb.exceptions import EduIDDBError
+from eduid.userdb.exceptions import EduIDDBError, UserDBValueError
 from eduid.userdb.idp import IdPUser
 from eduid.userdb.user import User
 from eduid.userdb.userdb import UserDB

@@ -8,6 +8,7 @@ from fido2.webauthn import AuthenticatorAttachment
 
 from eduid.common.config.base import EduidEnvironment
 from eduid.common.misc.timeutil import utc_now
+from eduid.common.proofing_utils import set_user_names_from_official_address
 from eduid.common.rpc.msg_relay import FullPostalAddress, NavetData
 from eduid.common.utils import generate_password
 from eduid.queue.client import init_queue_item
@@ -17,7 +18,6 @@ from eduid.userdb.identity import IdentityType
 from eduid.userdb.logs.element import NameUpdateProofing
 from eduid.userdb.security import SecurityUser
 from eduid.userdb.user import User
-from eduid.webapp.common.api.helpers import set_user_names_from_official_address
 from eduid.webapp.common.api.messages import TranslatableMsg
 from eduid.webapp.common.api.translation import get_user_locale
 from eduid.webapp.common.session import session

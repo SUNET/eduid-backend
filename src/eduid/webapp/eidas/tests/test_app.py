@@ -27,7 +27,7 @@ from eduid.webapp.common.authn.acs_enums import AuthnAcsAction
 from eduid.webapp.common.authn.cache import OutstandingQueriesCache
 from eduid.webapp.common.proofing.messages import ProofingMsg
 from eduid.webapp.common.proofing.testing import ProofingTests
-from eduid.webapp.common.session import EduidSession
+from eduid.webapp.common.session.eduid_session import EduidSession
 from eduid.webapp.common.session.namespaces import AuthnRequestRef, SP_AuthnRequest
 from eduid.webapp.eidas.app import EidasApp, init_eidas_app
 from eduid.webapp.eidas.helpers import EidasMsg
@@ -608,9 +608,8 @@ class EidasTests(ProofingTests[EidasApp]):
         self._verify_user_parameters(eppn, token_verified=True, num_proofings=2, num_mfa_tokens=2)
 
     def test_webauthn_token_verify(self, mocker: MockerFixture) -> None:
-        mock_get_all_navet_data = mocker.patch("eduid.common.rpc.msg_relay.MsgRelay.get_all_navet_data")
+        mocker.patch("eduid.webapp.common.api.helpers.get_reference_nin_from_navet_data", return_value=None)
         mock_request_user_sync = mocker.patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-        mock_get_all_navet_data.return_value = self._get_all_navet_data()
         mock_request_user_sync.side_effect = self.request_user_sync
 
         eppn = self.test_user.eppn
@@ -704,9 +703,7 @@ class EidasTests(ProofingTests[EidasApp]):
 
     def test_mfa_token_verify_no_verified_nin(self, mocker: MockerFixture) -> None:
         mock_reference_nin = mocker.patch("eduid.webapp.common.api.helpers.get_reference_nin_from_navet_data")
-        mock_get_all_navet_data = mocker.patch("eduid.common.rpc.msg_relay.MsgRelay.get_all_navet_data")
         mock_request_user_sync = mocker.patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-        mock_get_all_navet_data.return_value = self._get_all_navet_data()
         mock_request_user_sync.side_effect = self.request_user_sync
         mock_reference_nin.return_value = None
 
@@ -866,9 +863,7 @@ class EidasTests(ProofingTests[EidasApp]):
 
     def test_nin_verify(self, mocker: MockerFixture) -> None:
         mock_reference_nin = mocker.patch("eduid.webapp.common.api.helpers.get_reference_nin_from_navet_data")
-        mock_get_all_navet_data = mocker.patch("eduid.common.rpc.msg_relay.MsgRelay.get_all_navet_data")
         mock_request_user_sync = mocker.patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-        mock_get_all_navet_data.return_value = self._get_all_navet_data()
         mock_request_user_sync.side_effect = self.request_user_sync
         mock_reference_nin.return_value = None
 
@@ -969,9 +964,7 @@ class EidasTests(ProofingTests[EidasApp]):
 
     def test_mfa_login_unverified_nin(self, mocker: MockerFixture) -> None:
         mock_reference_nin = mocker.patch("eduid.webapp.common.api.helpers.get_reference_nin_from_navet_data")
-        mock_get_all_navet_data = mocker.patch("eduid.common.rpc.msg_relay.MsgRelay.get_all_navet_data")
         mock_request_user_sync = mocker.patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-        mock_get_all_navet_data.return_value = self._get_all_navet_data()
         mock_request_user_sync.side_effect = self.request_user_sync
         mock_reference_nin.return_value = None
         eppn = self.test_unverified_user_eppn
@@ -1264,9 +1257,7 @@ class EidasTests(ProofingTests[EidasApp]):
 
     def test_nin_verify_no_backdoor_in_pro(self, mocker: MockerFixture) -> None:
         mock_reference_nin = mocker.patch("eduid.webapp.common.api.helpers.get_reference_nin_from_navet_data")
-        mock_get_all_navet_data = mocker.patch("eduid.common.rpc.msg_relay.MsgRelay.get_all_navet_data")
         mock_request_user_sync = mocker.patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-        mock_get_all_navet_data.return_value = self._get_all_navet_data()
         mock_request_user_sync.side_effect = self.request_user_sync
         mock_reference_nin.return_value = None
 
@@ -1295,9 +1286,7 @@ class EidasTests(ProofingTests[EidasApp]):
 
     def test_nin_verify_no_backdoor_misconfigured(self, mocker: MockerFixture) -> None:
         mock_reference_nin = mocker.patch("eduid.webapp.common.api.helpers.get_reference_nin_from_navet_data")
-        mock_get_all_navet_data = mocker.patch("eduid.common.rpc.msg_relay.MsgRelay.get_all_navet_data")
         mock_request_user_sync = mocker.patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-        mock_get_all_navet_data.return_value = self._get_all_navet_data()
         mock_request_user_sync.side_effect = self.request_user_sync
         mock_reference_nin.return_value = None
 
@@ -1393,9 +1382,7 @@ class EidasTests(ProofingTests[EidasApp]):
 
     def test_nin_staging_remap_verify(self, mocker: MockerFixture) -> None:
         mock_reference_nin = mocker.patch("eduid.webapp.common.api.helpers.get_reference_nin_from_navet_data")
-        mock_get_all_navet_data = mocker.patch("eduid.common.rpc.msg_relay.MsgRelay.get_all_navet_data")
         mock_request_user_sync = mocker.patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-        mock_get_all_navet_data.return_value = self._get_all_navet_data()
         mock_request_user_sync.side_effect = self.request_user_sync
         mock_reference_nin.return_value = None
 

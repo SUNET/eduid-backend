@@ -2,11 +2,10 @@ from dataclasses import replace
 
 from fastapi import Response
 
-from eduid.common.fastapi.context_request import ContextRequest
 from eduid.common.models.scim_base import ListResponse, SCIMResourceType, SearchRequest
 from eduid.common.models.scim_invite import InviteCreateRequest, InviteResponse, InviteUpdateRequest
 from eduid.scimapi.api_router import APIRouter
-from eduid.scimapi.context_request import ScimApiContext, ScimApiRoute
+from eduid.scimapi.context_request import ScimApiRequest, ScimApiRoute
 from eduid.scimapi.exceptions import BadRequest, ErrorDetail, NotFound
 from eduid.scimapi.routers.utils.events import add_api_event
 from eduid.scimapi.routers.utils.invites import (
@@ -36,13 +35,11 @@ invites_router = APIRouter(
 
 
 @invites_router.get("/{scim_id}", response_model_exclude_none=True)
-async def on_get(req: ContextRequest, resp: Response, scim_id: str | None = None) -> InviteResponse:
+async def on_get(req: ScimApiRequest, resp: Response, scim_id: str | None = None) -> InviteResponse:
     if scim_id is None:
         raise BadRequest(detail="Not implemented")
     req.app.context.logger.info(f"Fetching invite {scim_id}")
-    assert isinstance(req.context, ScimApiContext)  # please mypy
-    assert req.context.invitedb is not None  # please mypy
-    db_invite = req.context.invitedb.get_invite_by_scim_id(scim_id)
+    db_invite = req.context.require_invitedb().get_invite_by_scim_id(scim_id)
     if not db_invite:
         raise NotFound(detail="Invite not found")
     ref = create_signup_ref(req, db_invite)
@@ -54,7 +51,7 @@ async def on_get(req: ContextRequest, resp: Response, scim_id: str | None = None
 
 @invites_router.put("/{scim_id}", response_model_exclude_none=True)
 async def on_put(
-    req: ContextRequest, resp: Response, update_request: InviteUpdateRequest, scim_id: str
+    req: ScimApiRequest, resp: Response, update_request: InviteUpdateRequest, scim_id: str
 ) -> InviteResponse:
     if scim_id != str(update_request.id):
         req.app.context.logger.error("Id mismatch")
@@ -62,9 +59,7 @@ async def on_put(
         raise BadRequest(detail="Id mismatch")
 
     req.app.context.logger.info(f"Updating invite {scim_id}")
-    assert isinstance(req.context, ScimApiContext)  # please mypy
-    assert req.context.invitedb is not None  # please mypy
-    db_invite = req.context.invitedb.get_invite_by_scim_id(scim_id)
+    db_invite = req.context.require_invitedb().get_invite_by_scim_id(scim_id)
     if not db_invite:
         raise NotFound(detail="Invite not found")
     ref = create_signup_ref(req, db_invite)
@@ -81,8 +76,6 @@ async def on_put(
         signup_invite = replace(signup_invite, completed_ts=update_request.nutid_invite_v1.completed)
         db_invite = replace(db_invite, completed=update_request.nutid_invite_v1.completed)
         invite_changed = True
-
-    assert req.context.data_owner is not None  # please mypy
     if invite_changed:
         save_invite(
             req=req,
@@ -92,7 +85,7 @@ async def on_put(
         )
         add_api_event(
             context=req.app.context,
-            data_owner=req.context.data_owner,
+            data_owner=req.context.require_data_owner(),
             db_obj=db_invite,
             resource_type=SCIMResourceType.INVITE,
             level=EventLevel.INFO,
@@ -106,7 +99,7 @@ async def on_put(
 
 
 @invites_router.post("/", response_model_exclude_none=True)
-async def on_post(req: ContextRequest, resp: Response, create_request: InviteCreateRequest) -> InviteResponse:
+async def on_post(req: ScimApiRequest, resp: Response, create_request: InviteCreateRequest) -> InviteResponse:
     """
     POST /Invites  HTTP/1.1
     Host: example.com
@@ -177,12 +170,9 @@ async def on_post(req: ContextRequest, resp: Response, create_request: InviteCre
     )
     if signup_invite.send_email:
         send_invite_mail(req, signup_invite)
-
-    assert isinstance(req.context, ScimApiContext)  # please mypy
-    assert req.context.data_owner is not None  # please mypy
     add_api_event(
         context=req.app.context,
-        data_owner=req.context.data_owner,
+        data_owner=req.context.require_data_owner(),
         db_obj=db_invite,
         resource_type=SCIMResourceType.INVITE,
         level=EventLevel.INFO,
@@ -195,11 +185,9 @@ async def on_post(req: ContextRequest, resp: Response, create_request: InviteCre
 
 
 @invites_router.delete("/{scim_id}", status_code=204, responses={204: {"description": "No Content"}})
-async def on_delete(req: ContextRequest, scim_id: str) -> None:
+async def on_delete(req: ScimApiRequest, scim_id: str) -> None:
     req.app.context.logger.info(f"Deleting invite {scim_id}")
-    assert isinstance(req.context, ScimApiContext)  # please mypy
-    assert req.context.invitedb is not None  # please mypy
-    db_invite = req.context.invitedb.get_invite_by_scim_id(scim_id=scim_id)
+    db_invite = req.context.require_invitedb().get_invite_by_scim_id(scim_id=scim_id)
     req.app.context.logger.debug(f"Found invite: {db_invite}")
 
     if not db_invite:
@@ -216,12 +204,10 @@ async def on_delete(req: ContextRequest, scim_id: str) -> None:
         req.app.context.signup_invitedb.remove_document(signup_invite.invite_id)
 
     # Remove scim invite
-    res = req.context.invitedb.remove(db_invite)
-
-    assert req.context.data_owner is not None  # please mypy
+    res = req.context.require_invitedb().remove(db_invite)
     add_api_event(
         context=req.app.context,
-        data_owner=req.context.data_owner,
+        data_owner=req.context.require_data_owner(),
         db_obj=db_invite,
         resource_type=SCIMResourceType.INVITE,
         level=EventLevel.INFO,
@@ -233,7 +219,7 @@ async def on_delete(req: ContextRequest, scim_id: str) -> None:
 
 
 @invites_router.post("/.search", response_model_exclude_none=True)
-async def search(req: ContextRequest, query: SearchRequest) -> ListResponse:
+async def search(req: ScimApiRequest, query: SearchRequest) -> ListResponse:
     """
     POST /Invites/.search
     Host: scim.eduid.se

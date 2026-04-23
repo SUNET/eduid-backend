@@ -146,7 +146,7 @@ class ScimAttributes(ResponseMicroService):  # type: ignore[misc]
         # TODO: handle multiple profiles beyond just picking the first one
         profiles = user.profiles.keys()
         if profiles:
-            _name = sorted(profiles)[0]
+            _name = min(profiles)
             logger.info(f"Applying attributes from SCIM user {user.scim_id}, profile {_name}")
             profile = user.profiles[_name]
 

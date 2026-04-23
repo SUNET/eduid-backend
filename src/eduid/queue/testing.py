@@ -18,7 +18,8 @@ from eduid.queue.db import Payload, QueueDB, QueueItem, SenderInfo
 from eduid.queue.db.worker import AsyncQueueDB
 from eduid.queue.workers.base import QueueWorker
 from eduid.userdb.db import TUserDbDocument
-from eduid.userdb.testing import EduidTemporaryInstance, MongoTemporaryInstance
+from eduid.userdb.testing import MongoTemporaryInstance
+from eduid.userdb.testing.temp_instance import EduidTemporaryInstance
 
 __author__ = "lundberg"
 

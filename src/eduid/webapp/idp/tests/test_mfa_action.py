@@ -1,6 +1,8 @@
 from collections.abc import Mapping
 from typing import cast
-from unittest.mock import MagicMock
+
+import pytest
+from pytest_mock import MockerFixture
 
 from eduid.common.misc.timeutil import utc_now
 from eduid.userdb.credentials import FidoCredential
@@ -16,6 +18,10 @@ from eduid.webapp.idp.tests.test_api import IdPAPITests
 class TestNeedSecurityKey(IdPAPITests):
     """Tests for the need_security_key function"""
 
+    @pytest.fixture(autouse=True)
+    def setup(self, setup_api: None, mocker: MockerFixture) -> None:
+        self.mocker = mocker
+
     def _get_idp_user(self) -> IdPUser:
         """Get the test user as an IdPUser from the IdP userdb"""
         user = self.app.userdb.lookup_user(self.test_user.eppn)
@@ -30,8 +36,8 @@ class TestNeedSecurityKey(IdPAPITests):
         """Create a mock LoginContext ticket with the specified credentials_used"""
         if credentials_used is None:
             credentials_used = {}
-        ticket = MagicMock(spec=LoginContext)
-        ticket.pending_request = MagicMock()
+        ticket = self.mocker.MagicMock(spec=LoginContext)
+        ticket.pending_request = self.mocker.MagicMock()
         ticket.pending_request.credentials_used = credentials_used
         return cast(LoginContext, ticket)
 

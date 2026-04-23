@@ -582,10 +582,12 @@ def _check_credentials_selected(use_password: bool, use_webauthn: bool, custom_p
     if use_webauthn and not session.signup.credentials.webauthn:
         current_app.logger.error("No webauthn registered")
         return error_response(message=SignupMsg.webauthn_registration_failed)
-    if use_webauthn and not use_password:
+    if use_webauthn:
         wn = session.signup.credentials.webauthn
-        assert wn is not None  # checked above
-        if not wn.is_discoverable:
+        if wn is None:
+            current_app.logger.error("No webauthn registered")
+            return error_response(message=SignupMsg.webauthn_registration_failed)
+        if not use_password and not wn.is_discoverable:
             current_app.logger.error("Non-discoverable webauthn credential without password")
             return error_response(message=SignupMsg.password_required)
     if not use_password and not use_webauthn:

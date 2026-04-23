@@ -33,7 +33,8 @@ from eduid.webapp.common.authn.acs_registry import ACSArgs, get_action
 from eduid.webapp.common.authn.cache import IdentityCache, StateCache
 from eduid.webapp.common.authn.eduid_saml2 import get_authn_request, process_assertion, saml_logout
 from eduid.webapp.common.authn.utils import get_location
-from eduid.webapp.common.session import EduidSession, session
+from eduid.webapp.common.session import session
+from eduid.webapp.common.session.eduid_session import EduidSession
 from eduid.webapp.common.session.namespaces import AuthnRequestRef, SP_AuthnRequest
 
 assert acs_actions  # make sure nothing optimises away the import of this, as it is needed to execute @acs_actions

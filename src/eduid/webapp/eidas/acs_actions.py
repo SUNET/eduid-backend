@@ -1,3 +1,4 @@
+from eduid.common.models.saml_models import BaseSessionInfo
 from eduid.userdb import User
 from eduid.userdb.credentials.fido import FidoCredential
 from eduid.webapp.common.api.decorators import require_user

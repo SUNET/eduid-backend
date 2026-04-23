@@ -1,11 +1,11 @@
 from typing import Any
 
 from fastapi import FastAPI
+from fastapi.exceptions import RequestValidationError
 
 from eduid.common.config.parsers import load_config
 from eduid.common.fastapi.exceptions import (
     HTTPErrorDetail,
-    RequestValidationError,
     http_error_detail_handler,
     unexpected_error_handler,
     validation_exception_handler,

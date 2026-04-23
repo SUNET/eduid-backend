@@ -1,6 +1,6 @@
+from eduid.common.config.base import WorkerConfig
 from eduid.common.config.exceptions import BadConfiguration
 from eduid.common.config.parsers import load_config
-from eduid.common.config.workers import WorkerConfig
 
 
 def get_worker_config[T: WorkerConfig](name: str, config_class: type[T]) -> T:

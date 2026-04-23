@@ -9,13 +9,14 @@ from enum import StrEnum
 from typing import Any
 from uuid import UUID
 
-from fido2.server import Fido2Server, PublicKeyCredentialRpEntity
+from fido2.server import Fido2Server
 from fido2.webauthn import (
     AttestationConveyancePreference,
     AttestationObject,
     AttestedCredentialData,
     AuthenticatorAttachment,
     AuthenticatorData,
+    PublicKeyCredentialRpEntity,
     RegistrationResponse,
 )
 from fido_mds import Attestation, FidoMetadataStore
