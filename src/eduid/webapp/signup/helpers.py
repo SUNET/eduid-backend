@@ -83,6 +83,14 @@ class SignupMsg(TranslatableMsg):
     # IdP request ref not found in session
     idp_request_ref_not_found = "signup.idp-request-ref-not-found"
 
+    # external MFA signup
+    external_mfa_not_found = "signup.external-mfa-not-found"
+    external_mfa_not_verified = "signup.external-mfa-not-verified"
+    external_mfa_too_old = "signup.external-mfa-too-old"
+    external_mfa_already_consumed = "signup.external-mfa-already-consumed"
+    external_mfa_wrong_action = "signup.external-mfa-wrong-action"
+    identity_already_registered = "signup.identity-already-registered"
+
     # backwards compatibility
     # partial success registering new account
     reg_new = "signup.registering-new"
