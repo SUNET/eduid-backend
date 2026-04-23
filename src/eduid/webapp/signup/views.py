@@ -11,6 +11,7 @@ from eduid.common.utils import generate_password
 from eduid.userdb import User
 from eduid.userdb.credentials import Webauthn
 from eduid.userdb.exceptions import UserOutOfSync
+from eduid.userdb.identity import IdentityType
 from eduid.webapp.common.api.captcha import CaptchaCompleteRequest, CaptchaResponse
 from eduid.webapp.common.api.decorators import MarshalWith, UnmarshalWith, require_not_logged_in, require_user
 from eduid.webapp.common.api.exceptions import ProofingLogFailure
@@ -28,6 +29,7 @@ from eduid.webapp.common.authn.webauthn import (
 from eduid.webapp.common.session import session
 from eduid.webapp.common.session.namespaces import (
     AuthnRequestRef,
+    ExternalMfaSignupIdentity,
     LoginApplication,
     OIDCState,
     RequestRef,
@@ -455,6 +457,12 @@ def external_mfa_register(app_name: str, authn_id: str) -> FluxData:
 
     ident = authn.external_mfa_signup_identity
     assert ident is not None  # validated above
+    if _existing_user_for_identity(ident) is not None:
+        current_app.logger.info(
+            f"External MFA signup blocked: identity already registered ({app_name})"
+        )
+        return error_response(message=SignupMsg.identity_already_registered)
+
     session.signup.external_mfa = SignupExternalMfa(
         app_name=app_name,
         authn_id=str(authn_id),
@@ -505,6 +513,24 @@ def _validate_external_mfa_authn(
     ].max_age
     if utc_now() - authn.authn_instant > max_age:
         return SignupMsg.external_mfa_too_old
+    return None
+
+
+def _existing_user_for_identity(ident: ExternalMfaSignupIdentity) -> User | None:
+    """Return an existing verified user that matches the NIN or eIDAS PRID in *ident*, or None."""
+    if ident.nin:
+        return current_app.central_userdb.get_user_by_nin(ident.nin)
+    if ident.eidas_prid:
+        users = current_app.central_userdb.get_users_by_identity(
+            identity_type=IdentityType.EIDAS,
+            key="prid",
+            value=ident.eidas_prid,
+        )
+        if not users:
+            return None
+        if len(users) > 1:
+            current_app.logger.warning(f"Multiple users matched PRID {ident.eidas_prid}")
+        return users[0]
     return None
 
 

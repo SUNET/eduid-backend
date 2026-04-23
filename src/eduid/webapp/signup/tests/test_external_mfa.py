@@ -242,3 +242,108 @@ class ExternalMfaSignupTests(SignupTests):
             type_="POST_SIGNUP_EXTERNAL_MFA_REGISTER_FAIL",
             message=SignupMsg.external_mfa_not_verified,
         )
+
+    def _seed_eidas_foreign_authn(
+        self,
+        authn_id: str = "authn-eidas-1",
+        prid: str = "DE:abc",
+        country_code: str = "DE",
+        minutes_ago: int = 0,
+        consumed: bool = False,
+        frontend_action: FrontendAction = FrontendAction.SIGNUP_EXTERNAL_MFA,
+        has_identity: bool = True,
+        error: bool = False,
+    ) -> None:
+        ident: ExternalMfaSignupIdentity | None = None
+        if has_identity:
+            from eduid.userdb.identity import PridPersistence as _PridPersistence
+
+            ident = ExternalMfaSignupIdentity(
+                given_name="Diana",
+                surname="Diaz",
+                date_of_birth=date(1990, 6, 15),
+                eidas_prid=prid,
+                eidas_prid_persistence=_PridPersistence.A,
+                country_code=country_code,
+                framework=TrustFramework.EIDAS,
+                loa="eidas-nf-sub",
+            )
+        req = SP_AuthnRequest(
+            authn_id=AuthnRequestRef(authn_id),
+            frontend_action=frontend_action,
+            finish_url=_FINISH_URL,
+            consumed=consumed,
+            authn_instant=utc_now() - timedelta(minutes=minutes_ago),
+            error=error,
+            external_mfa_signup_identity=ident,
+        )
+        with self.session_cookie_anon(self.browser) as client:
+            with client.session_transaction() as sess:
+                sess.eidas.sp.authns[AuthnRequestRef(authn_id)] = req
+
+    # ------------------------------------------------------------------
+    # Collision checks
+    # ------------------------------------------------------------------
+
+    def test_nin_collision(self) -> None:
+        """Signup is hard-blocked when NIN already belongs to an existing verified user.
+
+        The test user (hubba-bubba / new_user_example) already has a verified NIN
+        of 197801011234, so we seed the authn with that same NIN to trigger the
+        collision path without needing to modify the user.
+        """
+        # Verify the test user actually has the NIN we will collide against
+        existing = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
+        assert existing is not None
+        assert existing.identities.nin is not None
+        collision_nin = existing.identities.nin.number  # "197801011234"
+
+        self._seed_bankid_authn(nin=collision_nin)
+        response = self._call_external_mfa_register("bankid", "authn-1")
+        self._check_api_response(
+            response,
+            status=200,
+            type_="POST_SIGNUP_EXTERNAL_MFA_REGISTER_FAIL",
+            message=SignupMsg.identity_already_registered,
+        )
+
+        with self.session_cookie_anon(self.browser) as client:
+            with client.session_transaction() as sess:
+                # collision => nothing stored, nothing consumed
+                assert sess.signup.external_mfa is None
+                assert sess.bankid.sp.authns[AuthnRequestRef("authn-1")].consumed is False
+
+    def test_prid_collision(self) -> None:
+        """Signup is hard-blocked when eIDAS PRID already belongs to an existing verified user.
+
+        The test user (hubba-bubba / new_user_example) already has a verified eIDAS
+        identity with PRID unique/prid/string/1, so we seed the authn with that same
+        PRID to trigger the collision path.
+        """
+        existing = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
+        assert existing is not None
+        eidas_ident = existing.identities.eidas
+        assert eidas_ident is not None
+        collision_prid = eidas_ident.prid  # "unique/prid/string/1"
+
+        self._seed_eidas_foreign_authn(prid=collision_prid, country_code="DE")
+        response = self._call_external_mfa_register("eidas", "authn-eidas-1")
+        self._check_api_response(
+            response,
+            status=200,
+            type_="POST_SIGNUP_EXTERNAL_MFA_REGISTER_FAIL",
+            message=SignupMsg.identity_already_registered,
+        )
+
+    def test_collision_check_skipped_when_no_identity_fields(self) -> None:
+        """Helper returns None when no NIN or PRID is present."""
+        from eduid.webapp.signup.views import _existing_user_for_identity
+
+        empty_ident = ExternalMfaSignupIdentity(
+            given_name="X",
+            surname="Y",
+            date_of_birth=date(1980, 1, 1),
+            framework=TrustFramework.BANKID,
+            loa="loa3",
+        )
+        assert _existing_user_for_identity(empty_ident) is None
