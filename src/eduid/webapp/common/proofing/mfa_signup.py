@@ -71,9 +71,13 @@ def parse_mfa_register_args(
     current_loa = proofing.get_current_loa()
     if current_loa.error is not None:
         return ACSResult(message=current_loa.error)
+    if not current_loa.result:
+        # No error but missing/empty LoA (e.g. authn_context absent or unmapped).
+        # Refuse rather than persist an empty LoA on the signup identity.
+        return ACSResult(message=method_not_available_msg)
 
     return MfaRegisterParsed(
         session_info=parsed.info,
         framework=args.proofing_method.framework,
-        loa=current_loa.result or "",
+        loa=current_loa.result,
     )

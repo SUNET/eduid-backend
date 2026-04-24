@@ -113,6 +113,58 @@ def test_happy_path_returns_parsed() -> None:
     assert result.loa == "loa3"
 
 
+def test_returns_method_not_available_when_loa_missing() -> None:
+    """get_current_loa returns result=None with no error → helper refuses with method_not_available_msg."""
+    fake_session_info = MagicMock(spec=BaseSessionInfo)
+    pm = _make_proofing_method(framework=TrustFramework.EIDAS)
+    pm.parse_session_info.return_value = MagicMock(error=None, info=fake_session_info)
+
+    fake_proofing = MagicMock()
+    fake_proofing.get_current_loa.return_value = GenericResult(result=None, error=None)
+    get_proofing_functions = MagicMock(return_value=fake_proofing)
+
+    args = _make_args(proofing_method=pm)
+    sentinel_msg = ProofingMsg.malformed_identity
+
+    result = parse_mfa_register_args(
+        args,
+        common_saml_checks=MagicMock(return_value=None),
+        get_proofing_functions=get_proofing_functions,
+        method_not_available_msg=sentinel_msg,
+        app_name="myapp",
+        config=object(),
+    )
+
+    assert isinstance(result, ACSResult)
+    assert result.message is sentinel_msg
+
+
+def test_returns_method_not_available_when_loa_empty_string() -> None:
+    """get_current_loa returns result='' with no error → helper refuses rather than persist empty LoA."""
+    fake_session_info = MagicMock(spec=BaseSessionInfo)
+    pm = _make_proofing_method(framework=TrustFramework.EIDAS)
+    pm.parse_session_info.return_value = MagicMock(error=None, info=fake_session_info)
+
+    fake_proofing = MagicMock()
+    fake_proofing.get_current_loa.return_value = GenericResult(result="", error=None)
+    get_proofing_functions = MagicMock(return_value=fake_proofing)
+
+    args = _make_args(proofing_method=pm)
+    sentinel_msg = ProofingMsg.malformed_identity
+
+    result = parse_mfa_register_args(
+        args,
+        common_saml_checks=MagicMock(return_value=None),
+        get_proofing_functions=get_proofing_functions,
+        method_not_available_msg=sentinel_msg,
+        app_name="myapp",
+        config=object(),
+    )
+
+    assert isinstance(result, ACSResult)
+    assert result.message is sentinel_msg
+
+
 def test_common_saml_checks_none_skips_saml_checks() -> None:
     """Passing common_saml_checks=None skips SAML checks (OIDC webapps have no SAML-level checks)."""
     fake_session_info = MagicMock(spec=BaseSessionInfo)
