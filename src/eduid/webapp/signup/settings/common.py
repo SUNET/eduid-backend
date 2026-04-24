@@ -50,4 +50,5 @@ class SignupConfig(
     eduid_site_name: str = "eduID"
     scim_api_url: AnyUrlStr | None = None
     gnap_auth_data: GNAPClientAuthData | None = None
+    credential_verify_max_age: timedelta = Field(default=timedelta(minutes=5))
     eduid_scope: str = "eduid.se"

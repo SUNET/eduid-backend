@@ -246,6 +246,7 @@ def create_and_sync_user(
     webauthn: Webauthn | None = None,
     webauthn_authenticator_info: AuthenticatorInformation | None = None,
     external_mfa: SignupExternalMfa | None = None,
+    webauthn_registered_at: datetime | None = None,
 ) -> SignupUser:
     """
     * Create a new user in the central userdb
@@ -349,6 +350,10 @@ def create_and_sync_user(
         else:
             raise RuntimeError("SignupExternalMfa has neither nin, eidas_prid, nor freja_user_id")
 
+    # If the user registered a security key and verified their identity via external MFA,
+    # and both happened recently enough, mark the security key as verified too.
+    _maybe_verify_webauthn_credential(signup_user, webauthn, webauthn_registered_at, external_mfa)
+
     try:
         save_and_sync_user(signup_user)
     except UserOutOfSync as e:
@@ -370,6 +375,10 @@ def create_and_sync_user(
 
     if external_mfa is not None:
         _write_external_mfa_proofing_log(signup_user, external_mfa)
+
+    # Write credential verification proofing log if the webauthn credential was verified
+    if webauthn is not None and webauthn.is_verified and external_mfa is not None:
+        _write_credential_verification_proofing_log(signup_user, external_mfa)
 
     current_app.stats.count(name="user_created")
     current_app.logger.info("Signup user created")
@@ -618,6 +627,85 @@ def _proofing_version_for_framework(framework: TrustFramework) -> str:
             return current_app.conf.freja_eid_proofing_version
         case _:
             raise ValueError(f"Unsupported TrustFramework: {framework}")
+
+
+def _maybe_verify_webauthn_credential(
+    signup_user: SignupUser,
+    webauthn: Webauthn | None,
+    webauthn_registered_at: datetime | None,
+    external_mfa: SignupExternalMfa | None,
+) -> None:
+    """Mark a webauthn credential as verified if an external MFA identity verification
+    was performed recently enough and the security key was also registered recently enough.
+
+    Both the external MFA authn_instant and the webauthn registration timestamp must be
+    within ``credential_verify_max_age`` of the current time.
+    """
+    if webauthn is None or external_mfa is None or webauthn_registered_at is None:
+        return
+
+    max_age = current_app.conf.credential_verify_max_age
+    now = utc_now()
+
+    if now - external_mfa.authn_instant > max_age:
+        current_app.logger.info("External MFA authn_instant too old for credential verification")
+        return
+
+    if now - webauthn_registered_at > max_age:
+        current_app.logger.info("Webauthn registration too old for credential verification")
+        return
+
+    credential = signup_user.credentials.find(webauthn.key)
+    if credential is None:
+        current_app.logger.error(f"Could not find webauthn credential {webauthn.key} on signup user")
+        return
+
+    credential.is_verified = True
+    credential.verified_by = current_app.conf.app_name
+    credential.verified_ts = now
+    credential.proofing_method = current_app.conf.security_key_proofing_method
+    credential.proofing_version = current_app.conf.security_key_proofing_version
+    current_app.logger.info(f"Marked webauthn credential {webauthn.key} as verified via external MFA during signup")
+
+
+def _write_credential_verification_proofing_log(signup_user: SignupUser, external_mfa: SignupExternalMfa) -> None:
+    """Write a proofing log entry for a webauthn credential verified via external MFA during signup."""
+    app_name = current_app.conf.app_name
+    method = external_mfa.app_name
+    version = _proofing_version_for_framework(external_mfa.framework)
+
+    entry: NinEIDProofingLogElement | ForeignIdProofingLogElement
+
+    if external_mfa.nin:
+        entry = NinEIDProofingLogElement(
+            eppn=signup_user.eppn,
+            created_by=app_name,
+            proofing_method=method,
+            proofing_version=version,
+            nin=external_mfa.nin,
+            given_name=external_mfa.given_name,
+            surname=external_mfa.surname,
+        )
+    elif external_mfa.eidas_prid or external_mfa.freja_user_id:
+        entry = ForeignIdProofingLogElement(
+            eppn=signup_user.eppn,
+            created_by=app_name,
+            proofing_method=method,
+            proofing_version=version,
+            given_name=external_mfa.given_name,
+            surname=external_mfa.surname,
+            date_of_birth=external_mfa.date_of_birth.isoformat(),
+            country_code=external_mfa.country_code or "",
+        )
+    else:
+        current_app.logger.error(
+            "SignupExternalMfa has neither nin, eidas_prid, nor freja_user_id — no credential proofing log written"
+        )
+        return
+
+    if not current_app.proofing_log.save(entry):
+        current_app.logger.error(f"Failed to save credential verification proofing log for {signup_user.eppn}")
+        raise ProofingLogFailure("Failed to save credential verification proofing log")
 
 
 def _write_external_mfa_proofing_log(signup_user: SignupUser, external_mfa: SignupExternalMfa) -> None:

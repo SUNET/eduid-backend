@@ -4,11 +4,14 @@ from datetime import UTC, date, datetime, timedelta
 from typing import Any
 
 import pytest
+from fido2.webauthn import AuthenticatorAttachment
+from jwcrypto.jwk import JWK
 from pytest_mock import MockerFixture
 from werkzeug.test import TestResponse
 
 from eduid.common.config.base import FrontendAction
 from eduid.common.misc.timeutil import utc_now
+from eduid.userdb.credentials import Webauthn
 from eduid.userdb.credentials.external import (
     BankIDCredential,
     EidasCredential,
@@ -23,6 +26,7 @@ from eduid.webapp.common.session.namespaces import (
     OIDCState,
     RP_AuthnRequest,
     SP_AuthnRequest,
+    WebauthnCredential,
 )
 from eduid.webapp.signup.helpers import SignupMsg
 from eduid.webapp.signup.tests.test_app import SignupTests
@@ -947,3 +951,162 @@ class ExternalMfaSignupTests(SignupTests):
             with client.session_transaction() as sess:
                 assert sess.signup.external_mfa is None
                 assert sess.signup.user_created is False
+
+
+class ExternalMfaWebauthnVerificationTests(ExternalMfaSignupTests):
+    """Tests for webauthn credential verification via external MFA during signup."""
+
+    @pytest.fixture(scope="class")
+    def update_config(self) -> dict[str, Any]:
+        config = self._get_base_config()
+        config.update(
+            {
+                "available_languages": {"en": "English", "sv": "Svenska"},
+                "signup_url": "https://localhost/",
+                "dashboard_url": "https://localhost/",
+                "development": "DEBUG",
+                "application_root": "/",
+                "log_level": "DEBUG",
+                "password_length": 10,
+                "vccs_url": "http://turq:13085/",
+                "default_finish_url": "https://www.eduid.se/",
+                "captcha_max_bad_attempts": 3,
+                "environment": "dev",
+                "fido2_rp_id": "eduid.docker",
+                "scim_api_url": "http://localhost/scim/",
+                "gnap_auth_data": {
+                    "authn_server_url": "http://localhost/auth/",
+                    "key_name": "app_name",
+                    "client_jwk": JWK.generate(kid="testkey", kty="EC", size=256).export(as_dict=True),
+                },
+                # Use a shorter credential verify max age so we can test staleness
+                # without hitting the external MFA max_age check (default 5 min)
+                "credential_verify_max_age": timedelta(minutes=2),
+            }
+        )
+        return config
+
+    def _set_webauthn_in_session(self, registered_at: datetime | None = None) -> None:
+        """Store a fake webauthn credential in the signup session."""
+        with self.session_cookie_anon(self.browser) as client:
+            with client.session_transaction() as sess:
+                sess.signup.credentials.webauthn = WebauthnCredential(
+                    credential_data="dGVzdC1jcmVkZW50aWFsLWRhdGE",
+                    keyhandle="test-keyhandle",
+                    authenticator=AuthenticatorAttachment.CROSS_PLATFORM,
+                    authenticator_id="test-authenticator-id",
+                    description="test security key",
+                    is_discoverable=True,
+                    **({"registered_at": registered_at} if registered_at is not None else {}),
+                )
+                sess.signup.credentials.completed = True
+
+    def _get_user_webauthn_credentials(self, eppn: str) -> list[Webauthn]:
+        user = self.app.central_userdb.get_user_by_eppn(eppn)
+        assert user is not None
+        return [c for c in user.credentials.to_list() if isinstance(c, Webauthn)]
+
+    def test_webauthn_verified_with_fresh_external_mfa(self) -> None:
+        """Webauthn credential is verified when both it and external MFA are fresh."""
+        self._seed_bankid_authn(nin="198001011234", authn_id="authn-1")
+        self._call_external_mfa_register("bankid", "authn-1")
+        self._set_webauthn_in_session()
+
+        self._prepare_for_create_user(
+            given_name="Anna",
+            surname="Andersson",
+            email="anna.webauthn@example.com",
+        )
+
+        self._create_user(data={"use_webauthn": True})
+
+        with self.session_cookie_anon(self.browser) as client:
+            with client.session_transaction() as sess:
+                eppn = sess.common.eppn
+        assert eppn is not None
+
+        webauthn_creds = self._get_user_webauthn_credentials(eppn)
+        assert len(webauthn_creds) == 1
+        assert webauthn_creds[0].is_verified is True
+        assert webauthn_creds[0].proofing_method == self.app.conf.security_key_proofing_method
+        assert webauthn_creds[0].proofing_version == self.app.conf.security_key_proofing_version
+
+        # Proofing log should have a credential verification entry
+        log_entries = list(self.app.proofing_log._coll.find({"eduPersonPrincipalName": eppn}))
+        # There should be entries for: email, identity proofing, and credential verification
+        assert len(log_entries) >= 3
+
+    def test_webauthn_not_verified_stale_external_mfa(self) -> None:
+        """Webauthn credential stays unverified when external MFA authn_instant is too old."""
+        self._seed_bankid_authn(nin="198001011234", authn_id="authn-1")
+        self._call_external_mfa_register("bankid", "authn-1")
+
+        # Override authn_instant to be older than credential_verify_max_age (2 min)
+        # but within the external MFA max_age (5 min)
+        with self.session_cookie_anon(self.browser) as client:
+            with client.session_transaction() as sess:
+                assert sess.signup.external_mfa is not None
+                sess.signup.external_mfa.authn_instant = utc_now() - timedelta(minutes=3)
+
+        self._set_webauthn_in_session()
+
+        self._prepare_for_create_user(
+            given_name="Anna",
+            surname="Andersson",
+            email="anna.stale@example.com",
+        )
+
+        self._create_user(data={"use_webauthn": True})
+
+        with self.session_cookie_anon(self.browser) as client:
+            with client.session_transaction() as sess:
+                eppn = sess.common.eppn
+        assert eppn is not None
+
+        webauthn_creds = self._get_user_webauthn_credentials(eppn)
+        assert len(webauthn_creds) == 1
+        assert webauthn_creds[0].is_verified is False
+
+    def test_webauthn_not_verified_stale_registration(self) -> None:
+        """Webauthn credential stays unverified when it was registered too long ago."""
+        self._seed_bankid_authn(nin="198001011234", authn_id="authn-1")
+        self._call_external_mfa_register("bankid", "authn-1")
+        self._set_webauthn_in_session(registered_at=utc_now() - timedelta(minutes=3))
+
+        self._prepare_for_create_user(
+            given_name="Anna",
+            surname="Andersson",
+            email="anna.stale-key@example.com",
+        )
+
+        self._create_user(data={"use_webauthn": True})
+
+        with self.session_cookie_anon(self.browser) as client:
+            with client.session_transaction() as sess:
+                eppn = sess.common.eppn
+        assert eppn is not None
+
+        webauthn_creds = self._get_user_webauthn_credentials(eppn)
+        assert len(webauthn_creds) == 1
+        assert webauthn_creds[0].is_verified is False
+
+    def test_webauthn_not_verified_no_external_mfa(self) -> None:
+        """Webauthn credential stays unverified when no external MFA is present."""
+        self._set_webauthn_in_session()
+
+        self._prepare_for_create_user(
+            given_name="Anna",
+            surname="Andersson",
+            email="anna.noext@example.com",
+        )
+
+        self._create_user(data={"use_webauthn": True})
+
+        with self.session_cookie_anon(self.browser) as client:
+            with client.session_transaction() as sess:
+                eppn = sess.common.eppn
+        assert eppn is not None
+
+        webauthn_creds = self._get_user_webauthn_credentials(eppn)
+        assert len(webauthn_creds) == 1
+        assert webauthn_creds[0].is_verified is False

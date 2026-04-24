@@ -760,6 +760,9 @@ def create_user(use_suggested_password: bool, use_webauthn: bool, custom_passwor
             webauthn=webauthn_credential,
             webauthn_authenticator_info=webauthn_authenticator_info,
             external_mfa=session.signup.external_mfa,
+            webauthn_registered_at=session.signup.credentials.webauthn.registered_at
+            if session.signup.credentials.webauthn
+            else None,
         )
     except EmailAlreadyVerifiedException:
         return error_response(message=SignupMsg.email_used)

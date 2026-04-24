@@ -172,6 +172,8 @@ class WebauthnCredential(BaseModel):
     key_protection: list[str] = Field(default_factory=list)
     # credProps.rk from the registration response
     is_discoverable: bool = False
+    # timestamp of when the credential was registered (for freshness checks)
+    registered_at: datetime = Field(default_factory=utc_now)
 
 
 class Credentials(SessionNSBase):
