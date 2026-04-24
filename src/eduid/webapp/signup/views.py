@@ -5,11 +5,13 @@ from fido2.webauthn import AuthenticatorAttachment, PublicKeyCredentialUserEntit
 from fido_mds.models.webauthn import AttestationFormat
 from flask import Blueprint, abort, request
 
+from eduid.common.config.base import FrontendAction
 from eduid.common.misc.timeutil import utc_now
 from eduid.common.utils import generate_password
 from eduid.userdb import User
 from eduid.userdb.credentials import Webauthn
 from eduid.userdb.exceptions import UserOutOfSync
+from eduid.userdb.identity import IdentityType, PridPersistence
 from eduid.webapp.common.api.captcha import CaptchaCompleteRequest, CaptchaResponse
 from eduid.webapp.common.api.decorators import MarshalWith, UnmarshalWith, require_not_logged_in, require_user
 from eduid.webapp.common.api.exceptions import ProofingLogFailure
@@ -26,8 +28,14 @@ from eduid.webapp.common.authn.webauthn import (
 )
 from eduid.webapp.common.session import session
 from eduid.webapp.common.session.namespaces import (
+    AuthnRequestRef,
+    ExternalMfaSignupIdentity,
     LoginApplication,
+    OIDCState,
     RequestRef,
+    RP_AuthnRequest,
+    SignupExternalMfa,
+    SP_AuthnRequest,
     WebauthnCredential,
     WebauthnRegistration,
 )
@@ -48,6 +56,7 @@ from eduid.webapp.signup.helpers import (
 from eduid.webapp.signup.schemas import (
     AcceptTouRequest,
     CreateUserRequest,
+    ExternalMfaRegisterRequest,
     InviteCodeRequest,
     InviteDataResponse,
     NameAndEmailSchema,
@@ -414,6 +423,201 @@ def return_to_auth(ref: str) -> FluxData:
     return success_response(payload={"state": session.signup.to_dict()})
 
 
+_SUPPORTED_EXTERNAL_MFA_APPS = {"eidas", "bankid", "samleid", "freja_eid"}
+
+
+@signup_views.route("/external-mfa-register", methods=["POST"])
+@UnmarshalWith(ExternalMfaRegisterRequest)
+@MarshalWith(SignupStatusResponse)
+@require_not_logged_in
+def external_mfa_register(app_name: str, authn_id: str) -> FluxData:
+    """Store a successful external-MFA authn on the signup session.
+
+    The frontend hits ``/profile/ext-return/{app_name}/{authn_id}`` after the
+    user authenticates with BankID / Freja eID+ / eIDAS / SamlEid, then posts
+    the `(app_name, authn_id)` here. We read the corresponding SP/RP
+    AuthnRequest from the other webapp's session namespace, validate it, and
+    stash the parsed identity on ``session.signup.external_mfa``.
+
+    NIN/PRID collision against existing users is checked in a follow-up task.
+    """
+    if session.signup.user_created:
+        return error_response(message=SignupMsg.user_already_exists)
+
+    if app_name not in _SUPPORTED_EXTERNAL_MFA_APPS:
+        return error_response(message=SignupMsg.external_mfa_not_found)
+
+    authn = _lookup_external_mfa_authn(app_name, authn_id)
+    if authn is None:
+        return error_response(message=SignupMsg.external_mfa_not_found)
+
+    err = _validate_external_mfa_authn(authn)
+    if err is not None:
+        return error_response(message=err)
+
+    ident = authn.external_mfa_signup_identity
+    assert ident is not None  # validated above
+    if (
+        _existing_user_for_identity(
+            nin=ident.nin,
+            eidas_prid=ident.eidas_prid,
+            prid_persistence=ident.eidas_prid_persistence,
+            freja_user_id=ident.freja_user_id,
+        )
+        is not None
+    ):
+        current_app.logger.info(f"External MFA signup blocked: identity already registered ({app_name})")
+        return error_response(message=SignupMsg.identity_already_registered)
+
+    assert authn.authn_instant is not None  # validated above
+    session.signup.external_mfa = SignupExternalMfa(
+        app_name=app_name,
+        authn_id=str(authn_id),
+        framework=ident.framework,
+        loa=ident.loa,
+        given_name=ident.given_name,
+        surname=ident.surname,
+        date_of_birth=ident.date_of_birth,
+        authn_instant=authn.authn_instant,
+        nin=ident.nin,
+        eidas_prid=ident.eidas_prid,
+        eidas_prid_persistence=ident.eidas_prid_persistence,
+        country_code=ident.country_code,
+        freja_user_id=ident.freja_user_id,
+        freja_registration_level=ident.freja_registration_level,
+        freja_loa_level=ident.freja_loa_level,
+    )
+    authn.consumed = True
+
+    return success_response(payload={"state": session.signup.to_dict()})
+
+
+def _lookup_external_mfa_authn(app_name: str, authn_id: str) -> SP_AuthnRequest | RP_AuthnRequest | None:
+    if app_name == "freja_eid":
+        return session.freja_eid.rp.authns.get(OIDCState(authn_id))
+    if app_name == "eidas":
+        return session.eidas.sp.authns.get(AuthnRequestRef(authn_id))
+    if app_name == "bankid":
+        return session.bankid.sp.authns.get(AuthnRequestRef(authn_id))
+    if app_name == "samleid":
+        return session.samleid.sp.authns.get(AuthnRequestRef(authn_id))
+    return None
+
+
+def _validate_external_mfa_authn(
+    authn: SP_AuthnRequest | RP_AuthnRequest,
+) -> SignupMsg | None:
+    if authn.frontend_action != FrontendAction.SIGNUP_EXTERNAL_MFA:
+        return SignupMsg.external_mfa_wrong_action
+    if authn.error:
+        return SignupMsg.external_mfa_not_verified
+    if authn.external_mfa_signup_identity is None:
+        return SignupMsg.external_mfa_not_verified
+    if authn.consumed:
+        return SignupMsg.external_mfa_already_consumed
+    if authn.authn_instant is None:
+        return SignupMsg.external_mfa_not_verified
+    max_age = current_app.conf.frontend_action_authn_parameters[FrontendAction.SIGNUP_EXTERNAL_MFA].max_age
+    if utc_now() - authn.authn_instant > max_age:
+        return SignupMsg.external_mfa_too_old
+    if err := _validate_signup_identity(authn.external_mfa_signup_identity):
+        return err
+    return None
+
+
+def _validate_signup_identity(ident: ExternalMfaSignupIdentity) -> SignupMsg | None:
+    """Require exactly one identity discriminator (NIN, eIDAS PRID, or Freja user_id) and its
+    required companion fields. Prevents downstream 500s in ``create_and_sync_user``
+    when the upstream ACS handler failed to populate a usable identity."""
+    has_nin = bool(ident.nin)
+    has_prid = bool(ident.eidas_prid)
+    has_freja = bool(ident.freja_user_id)
+    if sum([has_nin, has_prid, has_freja]) != 1:
+        current_app.logger.error(
+            f"External MFA signup identity has invalid discriminators: "
+            f"nin={has_nin}, eidas_prid={has_prid}, freja_user_id={has_freja}"
+        )
+        return SignupMsg.external_mfa_not_verified
+    if has_prid and not ident.country_code:
+        current_app.logger.error("External MFA signup identity with eidas_prid is missing country_code")
+        return SignupMsg.external_mfa_not_verified
+    if has_freja and (
+        not ident.country_code or ident.freja_registration_level is None or ident.freja_loa_level is None
+    ):
+        current_app.logger.error("External MFA signup identity with freja_user_id is missing required fields")
+        return SignupMsg.external_mfa_not_verified
+    return None
+
+
+def _existing_user_for_identity(
+    nin: str | None,
+    eidas_prid: str | None,
+    prid_persistence: PridPersistence | None = None,
+    freja_user_id: str | None = None,
+) -> User | None:
+    """Return an existing verified user matching the given NIN or eIDAS PRID, or None.
+
+    For eIDAS, matches both the active verified identity (where the same PRID is
+    currently a user's verified EIDAS identity) and the locked identity (where the
+    user has since re-verified with a rotated PRID but the original is still locked).
+    eIDAS PRIDs with persistence B/C rotate over time so an exact miss does not
+    guarantee no duplicate — we log a warning in that case.
+    """
+    if nin:
+        return current_app.central_userdb.get_user_by_nin(nin)
+    if eidas_prid:
+        users = current_app.central_userdb.get_users_by_identity(
+            identity_type=IdentityType.EIDAS,
+            key="prid",
+            value=eidas_prid,
+        )
+        if users:
+            if len(users) > 1:
+                current_app.logger.warning(f"Multiple users matched PRID {eidas_prid}")
+            return users[0]
+        locked = current_app.central_userdb.get_users_by_locked_identity(
+            identity_type=IdentityType.EIDAS,
+            key="prid",
+            value=eidas_prid,
+        )
+        if locked:
+            if len(locked) > 1:
+                current_app.logger.warning(f"Multiple users matched locked PRID {eidas_prid}")
+            return locked[0]
+        if prid_persistence in (PridPersistence.B, PridPersistence.C):
+            current_app.logger.warning(
+                f"Signup eIDAS PRID has persistence {prid_persistence.value} with no exact match; "
+                "cannot rule out duplicate of an existing user whose PRID has rotated"
+            )
+    if freja_user_id:
+        users = current_app.central_userdb.get_users_by_identity(
+            identity_type=IdentityType.FREJA,
+            key="user_id",
+            value=freja_user_id,
+        )
+        if users:
+            if len(users) > 1:
+                current_app.logger.warning(f"Multiple users matched Freja user_id {freja_user_id}")
+            return users[0]
+    return None
+
+
+@signup_views.route("/external-mfa-clear", methods=["POST"])
+@UnmarshalWith(EmptyRequest)
+@MarshalWith(SignupStatusResponse)
+@require_not_logged_in
+def external_mfa_clear() -> FluxData:
+    """Clear any previously stored external-MFA state on the signup session.
+
+    Called by the frontend when the user switches from the external-MFA
+    signup branch back to the email + password branch.
+    """
+    if session.signup.user_created:
+        return error_response(message=SignupMsg.user_already_exists)
+    session.signup.external_mfa = None
+    return success_response(payload={"state": session.signup.to_dict()})
+
+
 def _check_user_not_created() -> FluxData | None:
     if session.common.eppn or session.signup.user_created:
         current_app.logger.error("User already created")
@@ -460,12 +664,44 @@ def _check_credentials_selected(use_password: bool, use_webauthn: bool, custom_p
     return None
 
 
+def _check_external_mfa_still_valid() -> FluxData | None:
+    """Re-validate any stored external MFA at /create-user time.
+
+    The authn's freshness (max_age) and the identity collision are checked at
+    /external-mfa-register, but /create-user can happen an arbitrary time later.
+    Re-check so a stale or now-superseded authn can't be used to finish signup."""
+    ext = session.signup.external_mfa
+    if ext is None:
+        return None
+    max_age = current_app.conf.frontend_action_authn_parameters[FrontendAction.SIGNUP_EXTERNAL_MFA].max_age
+    if utc_now() - ext.authn_instant > max_age:
+        current_app.logger.info("External MFA signup blocked: authn too old at create-user time")
+        session.signup.external_mfa = None
+        return error_response(message=SignupMsg.external_mfa_too_old)
+    if (
+        _existing_user_for_identity(
+            nin=ext.nin,
+            eidas_prid=ext.eidas_prid,
+            prid_persistence=ext.eidas_prid_persistence,
+            freja_user_id=ext.freja_user_id,
+        )
+        is not None
+    ):
+        current_app.logger.info(
+            "External MFA signup blocked: identity registered between /external-mfa-register and /create-user"
+        )
+        session.signup.external_mfa = None
+        return error_response(message=SignupMsg.identity_already_registered)
+    return None
+
+
 def _validate_create_user(use_password: bool, use_webauthn: bool, custom_password: str | None) -> FluxData | None:
     """Validate preconditions for user creation. Returns error response or None if valid."""
     return (
         _check_user_not_created()
         or _check_signup_steps_completed()
         or _check_credentials_selected(use_password, use_webauthn, custom_password)
+        or _check_external_mfa_still_valid()
     )
 
 
@@ -523,6 +759,10 @@ def create_user(use_suggested_password: bool, use_webauthn: bool, custom_passwor
             tou_version=session.signup.tou.version,
             webauthn=webauthn_credential,
             webauthn_authenticator_info=webauthn_authenticator_info,
+            external_mfa=session.signup.external_mfa,
+            webauthn_registered_at=session.signup.credentials.webauthn.registered_at
+            if session.signup.credentials.webauthn
+            else None,
         )
     except EmailAlreadyVerifiedException:
         return error_response(message=SignupMsg.email_used)
@@ -536,6 +776,8 @@ def create_user(use_suggested_password: bool, use_webauthn: bool, custom_passwor
     session.signup.credentials.completed = True
     session.common.eppn = signup_user.eppn
     session.common.login_source = LoginApplication.signup
+    if session.signup.external_mfa is not None:
+        current_app.stats.count(name=f"signup_external_mfa_completed_{session.signup.external_mfa.app_name}")
     if custom_password is not None:
         session.signup.credentials.custom_password = True
         session.signup.credentials.generated_password = None

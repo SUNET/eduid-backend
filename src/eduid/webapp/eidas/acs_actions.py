@@ -1,3 +1,5 @@
+from datetime import UTC, datetime
+
 from eduid.common.models.saml_models import BaseSessionInfo
 from eduid.userdb import User
 from eduid.userdb.credentials.fido import FidoCredential
@@ -8,12 +10,14 @@ from eduid.webapp.common.authn.acs_registry import ACSArgs, ACSResult, acs_actio
 from eduid.webapp.common.authn.utils import check_reauthn
 from eduid.webapp.common.proofing.messages import ProofingMsg
 from eduid.webapp.common.proofing.methods import ProofingMethodSAML
+from eduid.webapp.common.proofing.mfa_signup import MfaRegisterParsed, parse_mfa_register_args
 from eduid.webapp.common.proofing.saml_helpers import is_required_loa, is_valid_authn_instant
 from eduid.webapp.common.session import session
-from eduid.webapp.common.session.namespaces import SP_AuthnRequest
+from eduid.webapp.common.session.namespaces import ExternalMfaSignupIdentity, SP_AuthnRequest
 from eduid.webapp.eidas.app import current_eidas_app as current_app
 from eduid.webapp.eidas.helpers import EidasMsg
 from eduid.webapp.eidas.proofing import get_proofing_functions
+from eduid.webapp.eidas.saml_session_info import ForeignEidSessionInfo, NinSessionInfo
 
 __author__ = "lundberg"
 
@@ -217,4 +221,56 @@ def mfa_authenticate_action(args: ACSArgs) -> ACSResult:
     current_app.stats.count(name="mfa_auth_success")
     current_app.stats.count(name=f"mfa_auth_{args.proofing_method.method}_success")
     current_app.stats.count(name=f"mfa_auth_{parsed.info.issuer}_success")
+    return ACSResult(success=True, message=EidasMsg.mfa_authn_success)
+
+
+@acs_action(EidasAcsAction.mfa_register)
+def mfa_register_action(args: ACSArgs) -> ACSResult:
+    """Parse the external MFA assertion for a signup-flow authn and persist
+    identity + LoA on the SP_AuthnRequest.
+
+    No user exists yet, no DB write, no proofing log. The signup backend
+    reads ``args.authn_req.external_mfa_signup_identity`` later.
+    """
+    parsed = parse_mfa_register_args(
+        args,
+        common_saml_checks=common_saml_checks,
+        get_proofing_functions=get_proofing_functions,
+        method_not_available_msg=EidasMsg.method_not_available,
+        app_name=current_app.conf.app_name,
+        config=current_app.conf,
+    )
+    if isinstance(parsed, ACSResult):
+        return parsed
+    assert isinstance(parsed, MfaRegisterParsed)  # type narrowing
+
+    match parsed.session_info:
+        case NinSessionInfo():
+            args.authn_req.external_mfa_signup_identity = ExternalMfaSignupIdentity(
+                given_name=parsed.session_info.attributes.given_name,
+                surname=parsed.session_info.attributes.surname,
+                date_of_birth=datetime.combine(
+                    parsed.session_info.attributes.date_of_birth, datetime.min.time(), tzinfo=UTC
+                ),
+                nin=parsed.session_info.attributes.nin,
+                framework=parsed.framework,
+                loa=parsed.loa,
+            )
+        case ForeignEidSessionInfo():
+            args.authn_req.external_mfa_signup_identity = ExternalMfaSignupIdentity(
+                given_name=parsed.session_info.attributes.given_name,
+                surname=parsed.session_info.attributes.surname,
+                date_of_birth=datetime.combine(
+                    parsed.session_info.attributes.date_of_birth, datetime.min.time(), tzinfo=UTC
+                ),
+                eidas_prid=parsed.session_info.attributes.prid,
+                eidas_prid_persistence=parsed.session_info.attributes.prid_persistence,
+                country_code=parsed.session_info.attributes.country_code,
+                framework=parsed.framework,
+                loa=parsed.loa,
+            )
+        case _:
+            current_app.logger.error(f"Unsupported session info type: {type(parsed.session_info)}")
+            return ACSResult(message=EidasMsg.method_not_available)
+
     return ACSResult(success=True, message=EidasMsg.mfa_authn_success)

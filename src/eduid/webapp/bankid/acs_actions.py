@@ -3,6 +3,7 @@ from eduid.userdb.credentials.fido import FidoCredential
 from eduid.webapp.bankid.app import current_bankid_app as current_app
 from eduid.webapp.bankid.helpers import BankIDMsg
 from eduid.webapp.bankid.proofing import get_proofing_functions
+from eduid.webapp.bankid.saml_session_info import BankIDSessionInfo
 from eduid.webapp.common.api.decorators import require_user
 from eduid.webapp.common.api.messages import AuthnStatusMsg
 from eduid.webapp.common.authn.acs_enums import BankIDAcsAction
@@ -10,9 +11,10 @@ from eduid.webapp.common.authn.acs_registry import ACSArgs, ACSResult, acs_actio
 from eduid.webapp.common.authn.utils import check_reauthn
 from eduid.webapp.common.proofing.messages import ProofingMsg
 from eduid.webapp.common.proofing.methods import ProofingMethodSAML
+from eduid.webapp.common.proofing.mfa_signup import MfaRegisterParsed, parse_mfa_register_args
 from eduid.webapp.common.proofing.saml_helpers import is_required_loa, is_valid_authn_instant
 from eduid.webapp.common.session import session
-from eduid.webapp.common.session.namespaces import SP_AuthnRequest
+from eduid.webapp.common.session.namespaces import ExternalMfaSignupIdentity, SP_AuthnRequest
 
 __author__ = "lundberg"
 
@@ -211,4 +213,40 @@ def mfa_authenticate_action(args: ACSArgs) -> ACSResult:
     current_app.stats.count(name="mfa_auth_success")
     current_app.stats.count(name=f"mfa_auth_{args.proofing_method.method}_success")
     current_app.stats.count(name=f"mfa_auth_{parsed.info.issuer}_success")
+    return ACSResult(success=True, message=BankIDMsg.mfa_authn_success)
+
+
+@acs_action(BankIDAcsAction.mfa_register)
+def mfa_register_action(args: ACSArgs) -> ACSResult:
+    """Parse the external MFA assertion for a signup-flow authn and persist
+    identity + LoA on the SP_AuthnRequest.
+
+    No user exists yet, no DB write, no proofing log.
+    """
+    parsed = parse_mfa_register_args(
+        args,
+        common_saml_checks=common_saml_checks,
+        get_proofing_functions=get_proofing_functions,
+        method_not_available_msg=BankIDMsg.method_not_available,
+        app_name=current_app.conf.app_name,
+        config=current_app.conf,
+    )
+    if isinstance(parsed, ACSResult):
+        return parsed
+    assert isinstance(parsed, MfaRegisterParsed)  # type narrowing
+
+    match parsed.session_info:
+        case BankIDSessionInfo():
+            nin = parsed.session_info.attributes.nin
+            args.authn_req.external_mfa_signup_identity = ExternalMfaSignupIdentity(
+                given_name=parsed.session_info.attributes.given_name,
+                surname=parsed.session_info.attributes.surname,
+                nin=nin,
+                framework=parsed.framework,
+                loa=parsed.loa,
+            )
+        case _:
+            current_app.logger.error(f"Unsupported session info type: {type(parsed.session_info)}")
+            return ACSResult(message=BankIDMsg.method_not_available)
+
     return ACSResult(success=True, message=BankIDMsg.mfa_authn_success)

@@ -154,7 +154,9 @@ async def on_put(
                 req.app.context.logger.error(f"User {member.value} not found")
                 raise BadRequest(detail=f"User {member.value} not found")
 
-    updated_group, changed = req.context.require_groupdb().update_group(update_request=update_request, db_group=db_group)
+    updated_group, changed = req.context.require_groupdb().update_group(
+        update_request=update_request, db_group=db_group
+    )
     # Load the group from the database to ensure results are consistent with subsequent GETs.
     # For example, timestamps have higher resolution in updated_group than after a load.
     db_group = req.context.require_groupdb().get_group_by_scim_id(str(updated_group.scim_id))

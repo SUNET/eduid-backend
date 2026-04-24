@@ -4,7 +4,7 @@ import logging
 from abc import ABC
 from collections.abc import Mapping
 from copy import deepcopy
-from datetime import datetime
+from datetime import date, datetime
 from enum import StrEnum, unique
 from typing import Any, NewType, Self, cast
 
@@ -19,6 +19,7 @@ from eduid.common.utils import uuid4_str
 from eduid.userdb.credentials import Credential
 from eduid.userdb.credentials.external import TrustFramework
 from eduid.userdb.element import ElementKey
+from eduid.userdb.identity import FrejaLoaLevel, FrejaRegistrationLevel, PridPersistence
 from eduid.webapp.common.authn.acs_enums import AuthnAcsAction, BankIDAcsAction, EidasAcsAction
 from eduid.webapp.freja_eid.callback_enums import FrejaEIDAction
 from eduid.webapp.idp.idp_authn import AuthnData
@@ -171,6 +172,8 @@ class WebauthnCredential(BaseModel):
     key_protection: list[str] = Field(default_factory=list)
     # credProps.rk from the registration response
     is_discoverable: bool = False
+    # timestamp of when the credential was registered (for freshness checks)
+    registered_at: datetime = Field(default_factory=utc_now)
 
 
 class Credentials(SessionNSBase):
@@ -179,6 +182,26 @@ class Credentials(SessionNSBase):
     custom_password: bool = False
     webauthn_registration: WebauthnRegistration | None = None
     webauthn: WebauthnCredential | None = None
+
+
+class SignupExternalMfa(BaseModel):
+    app_name: str  # "eidas" | "bankid" | "freja_eid" | "samleid"
+    authn_id: str  # AuthnRequestRef | OIDCState — both are str NewTypes
+    framework: TrustFramework
+    loa: str
+    given_name: str
+    surname: str
+    date_of_birth: date
+    # authn_instant of the underlying external authn — used to re-check freshness
+    # at /create-user time so a stale authn can't be used to finish signup.
+    authn_instant: datetime
+    nin: str | None = None
+    eidas_prid: str | None = None
+    eidas_prid_persistence: PridPersistence | None = None
+    country_code: str | None = None
+    freja_user_id: str | None = None
+    freja_registration_level: FrejaRegistrationLevel | None = None
+    freja_loa_level: FrejaLoaLevel | None = None
 
 
 class Signup(TimestampedNS):
@@ -192,6 +215,7 @@ class Signup(TimestampedNS):
     captcha: Captcha = Field(default_factory=Captcha)
     credentials: Credentials = Field(default_factory=Credentials)
     idp_request_ref: RequestRef | None = None
+    external_mfa: SignupExternalMfa | None = None
 
 
 class Phone(SessionNSBase):
@@ -249,6 +273,29 @@ class BaseAuthnRequest(BaseModel, ABC):
     consumed: bool = False  # an operation that requires a new authentication has used this one already
 
 
+class ExternalMfaSignupIdentity(BaseModel):
+    """Identity + LoA parsed from a signup-flow external MFA authn.
+
+    Populated by the ``mfa_register`` ACS action in each external MFA webapp and read
+    by the signup backend at /external-mfa-register time.
+    """
+
+    given_name: str
+    surname: str
+    date_of_birth: datetime | None = None
+    # exactly one of these identity discriminators is set; the rest stay None
+    nin: str | None = None
+    eidas_prid: str | None = None
+    eidas_prid_persistence: PridPersistence | None = None
+    country_code: str | None = None
+    freja_user_id: str | None = None
+    freja_registration_level: FrejaRegistrationLevel | None = None
+    freja_loa_level: FrejaLoaLevel | None = None
+    # credential metadata
+    framework: TrustFramework
+    loa: str
+
+
 class SP_AuthnRequest(BaseAuthnRequest):
     authn_id: AuthnRequestRef = Field(default_factory=lambda: AuthnRequestRef(uuid4_str()))
     credentials_used: list[ElementKey] = Field(default_factory=list)
@@ -256,6 +303,7 @@ class SP_AuthnRequest(BaseAuthnRequest):
     req_authn_ctx: list[str] = Field(default_factory=list)
     # the authentication contexts asserted for this authentication
     asserted_authn_ctx: EduidAuthnContextClass | None = None
+    external_mfa_signup_identity: ExternalMfaSignupIdentity | None = None
 
     def formatted_finish_url(self, app_name: str) -> str:
         return self.finish_url.format(app_name=app_name, authn_id=self.authn_id)
@@ -311,6 +359,7 @@ class AuthnNamespace(SessionNSBase):
 
 class RP_AuthnRequest(BaseAuthnRequest):
     authn_id: OIDCState
+    external_mfa_signup_identity: ExternalMfaSignupIdentity | None = None
 
     def formatted_finish_url(self, app_name: str) -> str:
         return self.finish_url.format(app_name=app_name, authn_id=self.authn_id)

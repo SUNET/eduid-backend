@@ -157,6 +157,28 @@ def mfa_authenticate(method: str, frontend_action: str, frontend_state: str | No
     return success_response(payload={"location": result.url})
 
 
+@samleid_views.route("/mfa-register", methods=["POST"])
+@UnmarshalWith(SamlEidCommonRequestSchema)
+@MarshalWith(SamlEidCommonResponseSchema)
+def mfa_register(method: str, frontend_action: str, frontend_state: str | None = None) -> FluxData:
+    """Start an external MFA authn as the first step of a signup flow."""
+    current_app.logger.debug("mfa-register called")
+
+    if frontend_action != FrontendAction.SIGNUP_EXTERNAL_MFA.value:
+        current_app.logger.error(f"Invalid frontend_action for mfa-register: {frontend_action}")
+        return error_response(message=SamlEidMsg.frontend_action_not_supported)
+
+    result = _authn(
+        SamlEidAcsAction.mfa_register,
+        method=method,
+        frontend_action=frontend_action,
+        frontend_state=frontend_state,
+    )
+    if result.error:
+        return error_response(message=result.error)
+    return success_response(payload={"location": result.url})
+
+
 @dataclass
 class AuthnResult:
     authn_req: SAMLHttpArgs | None = None
