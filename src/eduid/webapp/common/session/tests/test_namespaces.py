@@ -1,6 +1,6 @@
 import logging
 from collections.abc import Mapping
-from datetime import date, datetime
+from datetime import UTC, date, datetime
 from typing import Any
 
 from eduid.common.config.base import FrontendAction
@@ -236,6 +236,7 @@ def test_signup_external_mfa_bankid_roundtrip() -> None:
         given_name="Anna",
         surname="Andersson",
         date_of_birth=date(1980, 1, 1),
+        authn_instant=datetime(2026, 4, 24, tzinfo=UTC),
         nin="198001011234",
     )
     sns = Signup(external_mfa=ext)
@@ -256,6 +257,7 @@ def test_signup_external_mfa_eidas_roundtrip() -> None:
         given_name="Karla",
         surname="Müller",
         date_of_birth=date(1990, 6, 15),
+        authn_instant=datetime(2026, 4, 24, tzinfo=UTC),
         eidas_prid="DE:abc",
         eidas_prid_persistence=PridPersistence.A,
         country_code="DE",

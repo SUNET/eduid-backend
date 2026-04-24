@@ -11,7 +11,7 @@ from eduid.common.utils import generate_password
 from eduid.userdb import User
 from eduid.userdb.credentials import Webauthn
 from eduid.userdb.exceptions import UserOutOfSync
-from eduid.userdb.identity import IdentityType
+from eduid.userdb.identity import IdentityType, PridPersistence
 from eduid.webapp.common.api.captcha import CaptchaCompleteRequest, CaptchaResponse
 from eduid.webapp.common.api.decorators import MarshalWith, UnmarshalWith, require_not_logged_in, require_user
 from eduid.webapp.common.api.exceptions import ProofingLogFailure
@@ -457,12 +457,15 @@ def external_mfa_register(app_name: str, authn_id: str) -> FluxData:
 
     ident = authn.external_mfa_signup_identity
     assert ident is not None  # validated above
-    if _existing_user_for_identity(ident) is not None:
+    if _existing_user_for_identity(
+        nin=ident.nin, eidas_prid=ident.eidas_prid, prid_persistence=ident.eidas_prid_persistence
+    ) is not None:
         current_app.logger.info(
             f"External MFA signup blocked: identity already registered ({app_name})"
         )
         return error_response(message=SignupMsg.identity_already_registered)
 
+    assert authn.authn_instant is not None  # validated above
     session.signup.external_mfa = SignupExternalMfa(
         app_name=app_name,
         authn_id=str(authn_id),
@@ -471,6 +474,7 @@ def external_mfa_register(app_name: str, authn_id: str) -> FluxData:
         given_name=ident.given_name,
         surname=ident.surname,
         date_of_birth=ident.date_of_birth,
+        authn_instant=authn.authn_instant,
         nin=ident.nin,
         eidas_prid=ident.eidas_prid,
         eidas_prid_persistence=ident.eidas_prid_persistence,
@@ -535,21 +539,45 @@ def _validate_signup_identity(ident: ExternalMfaSignupIdentity) -> SignupMsg | N
     return None
 
 
-def _existing_user_for_identity(ident: ExternalMfaSignupIdentity) -> User | None:
-    """Return an existing verified user that matches the NIN or eIDAS PRID in *ident*, or None."""
-    if ident.nin:
-        return current_app.central_userdb.get_user_by_nin(ident.nin)
-    if ident.eidas_prid:
+def _existing_user_for_identity(
+    nin: str | None,
+    eidas_prid: str | None,
+    prid_persistence: PridPersistence | None = None,
+) -> User | None:
+    """Return an existing verified user matching the given NIN or eIDAS PRID, or None.
+
+    For eIDAS, matches both the active verified identity (where the same PRID is
+    currently a user's verified EIDAS identity) and the locked identity (where the
+    user has since re-verified with a rotated PRID but the original is still locked).
+    eIDAS PRIDs with persistence B/C rotate over time so an exact miss does not
+    guarantee no duplicate — we log a warning in that case.
+    """
+    if nin:
+        return current_app.central_userdb.get_user_by_nin(nin)
+    if eidas_prid:
         users = current_app.central_userdb.get_users_by_identity(
             identity_type=IdentityType.EIDAS,
             key="prid",
-            value=ident.eidas_prid,
+            value=eidas_prid,
         )
-        if not users:
-            return None
-        if len(users) > 1:
-            current_app.logger.warning(f"Multiple users matched PRID {ident.eidas_prid}")
-        return users[0]
+        if users:
+            if len(users) > 1:
+                current_app.logger.warning(f"Multiple users matched PRID {eidas_prid}")
+            return users[0]
+        locked = current_app.central_userdb.get_users_by_locked_identity(
+            identity_type=IdentityType.EIDAS,
+            key="prid",
+            value=eidas_prid,
+        )
+        if locked:
+            if len(locked) > 1:
+                current_app.logger.warning(f"Multiple users matched locked PRID {eidas_prid}")
+            return locked[0]
+        if prid_persistence in (PridPersistence.B, PridPersistence.C):
+            current_app.logger.warning(
+                f"Signup eIDAS PRID has persistence {prid_persistence.value} with no exact match; "
+                "cannot rule out duplicate of an existing user whose PRID has rotated"
+            )
     return None
 
 
@@ -615,12 +643,40 @@ def _check_credentials_selected(use_password: bool, use_webauthn: bool, custom_p
     return None
 
 
+def _check_external_mfa_still_valid() -> FluxData | None:
+    """Re-validate any stored external MFA at /create-user time.
+
+    The authn's freshness (max_age) and the identity collision are checked at
+    /external-mfa-register, but /create-user can happen an arbitrary time later.
+    Re-check so a stale or now-superseded authn can't be used to finish signup."""
+    ext = session.signup.external_mfa
+    if ext is None:
+        return None
+    max_age = current_app.conf.frontend_action_authn_parameters[
+        FrontendAction.SIGNUP_EXTERNAL_MFA
+    ].max_age
+    if utc_now() - ext.authn_instant > max_age:
+        current_app.logger.info("External MFA signup blocked: authn too old at create-user time")
+        session.signup.external_mfa = None
+        return error_response(message=SignupMsg.external_mfa_too_old)
+    if _existing_user_for_identity(
+        nin=ext.nin, eidas_prid=ext.eidas_prid, prid_persistence=ext.eidas_prid_persistence
+    ) is not None:
+        current_app.logger.info(
+            "External MFA signup blocked: identity registered between /external-mfa-register and /create-user"
+        )
+        session.signup.external_mfa = None
+        return error_response(message=SignupMsg.identity_already_registered)
+    return None
+
+
 def _validate_create_user(use_password: bool, use_webauthn: bool, custom_password: str | None) -> FluxData | None:
     """Validate preconditions for user creation. Returns error response or None if valid."""
     return (
         _check_user_not_created()
         or _check_signup_steps_completed()
         or _check_credentials_selected(use_password, use_webauthn, custom_password)
+        or _check_external_mfa_still_valid()
     )
 
 

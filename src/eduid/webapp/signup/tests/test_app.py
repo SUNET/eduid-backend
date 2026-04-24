@@ -1739,6 +1739,7 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
                     given_name="Test",
                     surname="Testsson",
                     date_of_birth=date(1980, 1, 1),
+                    authn_instant=utc_now(),
                     nin="198001011234",
                 )
             with self.app.test_request_context():
@@ -1774,6 +1775,7 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
                     given_name="Greta",
                     surname="Müller",
                     date_of_birth=date(1990, 6, 15),
+                    authn_instant=utc_now(),
                     eidas_prid="DE/SE/12345",
                     eidas_prid_persistence=PridPersistence.A,
                     country_code="DE",
@@ -1812,6 +1814,7 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
                     given_name="Test",
                     surname="Testsson",
                     date_of_birth=date(1980, 1, 1),
+                    authn_instant=utc_now(),
                     nin=raw_nin,
                 )
             with self.app.test_request_context():

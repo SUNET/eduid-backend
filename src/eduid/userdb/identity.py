@@ -3,7 +3,7 @@ from __future__ import annotations
 import copy
 import logging
 from abc import ABC
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 from enum import StrEnum
 from typing import Any, Literal
 
@@ -17,6 +17,20 @@ logger = logging.getLogger(__name__)
 
 
 COORDINATION_NUMBER_OFFSET = 60
+
+
+def nin_to_date_of_birth(nin: str) -> date:
+    """Parse the 8-digit date prefix of a Swedish NIN or coordination number.
+
+    Coordination numbers add 60 to the day part (61-91); subtract the offset before
+    constructing the date.
+    """
+    year = int(nin[:4])
+    month = int(nin[4:6])
+    day = int(nin[6:8])
+    if day > COORDINATION_NUMBER_OFFSET:
+        day -= COORDINATION_NUMBER_OFFSET
+    return date(year, month, day)
 
 
 class IdentityType(StrEnum):

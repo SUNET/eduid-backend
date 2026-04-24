@@ -190,6 +190,9 @@ class SignupExternalMfa(BaseModel):
     given_name: str
     surname: str
     date_of_birth: date
+    # authn_instant of the underlying external authn — used to re-check freshness
+    # at /create-user time so a stale authn can't be used to finish signup.
+    authn_instant: datetime
     nin: str | None = None
     eidas_prid: str | None = None
     eidas_prid_persistence: PridPersistence | None = None

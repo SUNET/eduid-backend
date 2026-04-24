@@ -1,6 +1,6 @@
 import json
 import logging
-from datetime import date, timedelta
+from datetime import UTC, date, datetime, timedelta
 from typing import Any
 
 import pytest
@@ -16,6 +16,7 @@ from eduid.userdb.credentials.external import (
     SwedenConnectCredential,
     TrustFramework,
 )
+from eduid.userdb.identity import IdentityProofingMethod, PridPersistence
 from eduid.webapp.common.session.namespaces import (
     AuthnRequestRef,
     ExternalMfaSignupIdentity,
@@ -381,17 +382,16 @@ class ExternalMfaSignupTests(SignupTests):
         frontend_action: FrontendAction = FrontendAction.SIGNUP_EXTERNAL_MFA,
         has_identity: bool = True,
         error: bool = False,
+        prid_persistence: PridPersistence | None = None,
     ) -> None:
         ident: ExternalMfaSignupIdentity | None = None
         if has_identity:
-            from eduid.userdb.identity import PridPersistence as _PridPersistence
-
             ident = ExternalMfaSignupIdentity(
                 given_name="Diana",
                 surname="Diaz",
                 date_of_birth=date(1990, 6, 15),
                 eidas_prid=prid,
-                eidas_prid_persistence=_PridPersistence.A,
+                eidas_prid_persistence=prid_persistence or PridPersistence.A,
                 country_code=country_code,
                 framework=TrustFramework.EIDAS,
                 loa="eidas-nf-sub",
@@ -467,14 +467,55 @@ class ExternalMfaSignupTests(SignupTests):
         """Helper returns None when no NIN or PRID is present."""
         from eduid.webapp.signup.views import _existing_user_for_identity
 
-        empty_ident = ExternalMfaSignupIdentity(
-            given_name="X",
-            surname="Y",
-            date_of_birth=date(1980, 1, 1),
-            framework=TrustFramework.BANKID,
-            loa="loa3",
+        assert _existing_user_for_identity(nin=None, eidas_prid=None) is None
+
+    def test_prid_collision_via_locked_identity(self) -> None:
+        """Signup is blocked when the PRID is on another user's locked_identity (rotated PRID case)."""
+        from eduid.userdb.identity import EIDASIdentity, EIDASLoa, PridPersistence
+
+        eppn = self.test_user_eppn
+        user = self.app.central_userdb.get_user_by_eppn(eppn)
+        assert user is not None
+        old_prid = "DE:rotated-old-prid"
+        user.locked_identity.add(
+            EIDASIdentity(
+                prid=old_prid,
+                prid_persistence=PridPersistence.B,
+                loa=EIDASLoa.NF_SUBSTANTIAL,
+                date_of_birth=datetime(1990, 6, 15, tzinfo=UTC),
+                country_code="DE",
+                created_by="test",
+                is_verified=True,
+            )
         )
-        assert _existing_user_for_identity(empty_ident) is None
+        self.app.central_userdb.save(user)
+
+        self._seed_eidas_foreign_authn(prid=old_prid, country_code="DE")
+        response = self._call_external_mfa_register("eidas", "authn-eidas-1")
+        self._check_api_response(
+            response,
+            status=200,
+            type_="POST_SIGNUP_EXTERNAL_MFA_REGISTER_FAIL",
+            message=SignupMsg.identity_already_registered,
+        )
+
+    def test_prid_persistence_b_without_match_logs_warning(self) -> None:
+        """A persistence-B PRID with no exact or locked match is allowed but a warning is logged."""
+        warning_spy = self.mocker.spy(self.app.logger, "warning")
+
+        self._seed_eidas_foreign_authn(
+            prid="DE:novel-b-prid", country_code="DE", prid_persistence=PridPersistence.B
+        )
+        response = self._call_external_mfa_register("eidas", "authn-eidas-1")
+        assert response.status_code == 200
+        with self.session_cookie_anon(self.browser) as client:
+            with client.session_transaction() as sess:
+                assert sess.signup.external_mfa is not None
+                assert sess.signup.external_mfa.eidas_prid == "DE:novel-b-prid"
+        warning_messages = [call.args[0] for call in warning_spy.call_args_list if call.args]
+        assert any(
+            "persistence" in msg and "rotated" in msg for msg in warning_messages
+        ), f"Expected persistence-rotated warning: {warning_messages}"
 
     # ------------------------------------------------------------------
     # Clear external MFA state
@@ -598,6 +639,8 @@ class ExternalMfaSignupTests(SignupTests):
         assert user.identities.eidas.prid == "DE:abc123"
         assert user.identities.eidas.country_code == "DE"
         assert user.identities.eidas.is_verified is True
+        assert user.identities.eidas.proofing_method == IdentityProofingMethod.SWEDEN_CONNECT
+        assert user.identities.eidas.proofing_version == self.app.conf.foreign_eid_proofing_version
 
         # Exactly one EidasCredential
         eidas_creds = [c for c in user.credentials.to_list() if isinstance(c, EidasCredential)]
@@ -615,16 +658,28 @@ class ExternalMfaSignupTests(SignupTests):
     # ------------------------------------------------------------------
 
     @pytest.mark.parametrize(
-        ("app_name", "framework", "credential_class", "proofing_version_attr"),
+        ("app_name", "framework", "credential_class", "proofing_version_attr", "identity_proofing_method"),
         [
             # bankid SP — TrustFramework.BANKID → BankIDCredential
-            ("bankid", TrustFramework.BANKID, BankIDCredential, "bankid_proofing_version"),
+            ("bankid", TrustFramework.BANKID, BankIDCredential, "bankid_proofing_version", IdentityProofingMethod.BANKID),
             # samleid SP with bankid-style NIN — same credential type as bankid
-            ("samleid", TrustFramework.BANKID, BankIDCredential, "bankid_proofing_version"),
+            ("samleid", TrustFramework.BANKID, BankIDCredential, "bankid_proofing_version", IdentityProofingMethod.BANKID),
             # samleid SP with Swedish Freja (SwedenConnect) NIN
-            ("samleid", TrustFramework.SWECONN, SwedenConnectCredential, "freja_proofing_version"),
+            (
+                "samleid",
+                TrustFramework.SWECONN,
+                SwedenConnectCredential,
+                "freja_proofing_version",
+                IdentityProofingMethod.SWEDEN_CONNECT,
+            ),
             # freja_eid RP — TrustFramework.FREJA → FrejaCredential
-            ("freja_eid", TrustFramework.FREJA, FrejaCredential, "freja_eid_proofing_version"),
+            (
+                "freja_eid",
+                TrustFramework.FREJA,
+                FrejaCredential,
+                "freja_eid_proofing_version",
+                IdentityProofingMethod.FREJA_EID,
+            ),
         ],
     )
     def test_create_user_with_external_mfa_nin(
@@ -633,6 +688,7 @@ class ExternalMfaSignupTests(SignupTests):
         framework: TrustFramework,
         credential_class: type[BankIDCredential | SwedenConnectCredential | FrejaCredential | EidasCredential],
         proofing_version_attr: str,
+        identity_proofing_method: IdentityProofingMethod,
     ) -> None:
         """Parametrized NIN-based create-user test covering bankid, samleid (BANKID + SWECONN), and freja_eid."""
         nin = "198001011234"
@@ -669,15 +725,83 @@ class ExternalMfaSignupTests(SignupTests):
         assert user.identities.nin.number == nin
         assert user.identities.nin.is_verified is True
 
+        # Identity must carry the correct proofing_method/proofing_version so the
+        # IdP DIGG LoA 2 check accepts it.
+        expected_version: Any = getattr(self.app.conf, proofing_version_attr)
+        assert user.identities.nin.proofing_method == identity_proofing_method
+        assert user.identities.nin.proofing_version == expected_version
+
         # Exactly one credential of the expected subclass at loa3
         matching_creds = [c for c in user.credentials.to_list() if isinstance(c, credential_class)]
         assert len(matching_creds) == 1
         assert matching_creds[0].level == "loa3"
 
         # Proofing log entry with correct proofing_method and proofing_version
-        expected_version: Any = getattr(self.app.conf, proofing_version_attr)
         log_entries = list(self.app.proofing_log._coll.find({"eduPersonPrincipalName": eppn}))
         external_mfa_entries = [e for e in log_entries if e.get("proofing_method") == app_name]
         assert len(external_mfa_entries) == 1
         assert external_mfa_entries[0]["nin"] == nin
         assert external_mfa_entries[0]["proofing_version"] == expected_version
+
+    # ------------------------------------------------------------------
+    # Re-validation of external MFA at /create-user time
+    # ------------------------------------------------------------------
+
+    def test_create_user_rejects_stale_external_mfa(self) -> None:
+        """External MFA stored long before /create-user is rejected as too old."""
+        self._seed_bankid_authn(nin="198001011234", authn_id="authn-1")
+        self._call_external_mfa_register("bankid", "authn-1")
+
+        # Rewind authn_instant on the stored external_mfa past max_age
+        max_age = self.app.conf.frontend_action_authn_parameters[FrontendAction.SIGNUP_EXTERNAL_MFA].max_age
+        with self.session_cookie_anon(self.browser) as client:
+            with client.session_transaction() as sess:
+                assert sess.signup.external_mfa is not None
+                sess.signup.external_mfa.authn_instant = utc_now() - max_age - timedelta(seconds=1)
+
+        self._prepare_for_create_user(
+            given_name="Anna",
+            surname="Andersson",
+            email="anna.andersson@example.com",
+        )
+
+        result = self._create_user(expect_success=False)
+        payload = self.get_response_payload(result.response)
+        assert payload["message"] == SignupMsg.external_mfa_too_old.value
+
+        # external_mfa was cleared; user was not created
+        with self.session_cookie_anon(self.browser) as client:
+            with client.session_transaction() as sess:
+                assert sess.signup.external_mfa is None
+                assert sess.signup.user_created is False
+
+    def test_create_user_rejects_identity_registered_since(self) -> None:
+        """Identity that becomes taken between /external-mfa-register and /create-user
+        is rejected at /create-user time."""
+        self._seed_bankid_authn(nin="198001011234", authn_id="authn-1")
+        self._call_external_mfa_register("bankid", "authn-1")
+
+        # Simulate race: between the register call and /create-user, someone else
+        # signed up with this NIN. Point the stored NIN at an existing verified user.
+        existing = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
+        assert existing is not None
+        assert existing.identities.nin is not None
+        with self.session_cookie_anon(self.browser) as client:
+            with client.session_transaction() as sess:
+                assert sess.signup.external_mfa is not None
+                sess.signup.external_mfa.nin = existing.identities.nin.number
+
+        self._prepare_for_create_user(
+            given_name="Anna",
+            surname="Andersson",
+            email="anna.andersson@example.com",
+        )
+
+        result = self._create_user(expect_success=False)
+        payload = self.get_response_payload(result.response)
+        assert payload["message"] == SignupMsg.identity_already_registered.value
+
+        with self.session_cookie_anon(self.browser) as client:
+            with client.session_transaction() as sess:
+                assert sess.signup.external_mfa is None
+                assert sess.signup.user_created is False

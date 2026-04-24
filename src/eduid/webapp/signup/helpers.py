@@ -26,7 +26,7 @@ from eduid.userdb.credentials.external import (
     TrustFramework,
 )
 from eduid.userdb.exceptions import UserDoesNotExist, UserOutOfSync
-from eduid.userdb.identity import EIDASIdentity, EIDASLoa, PridPersistence
+from eduid.userdb.identity import EIDASIdentity, EIDASLoa, IdentityProofingMethod, PridPersistence
 from eduid.userdb.logs import MailAddressProofing
 from eduid.userdb.logs.element import (
     ForeignIdProofingLogElement,
@@ -290,14 +290,19 @@ def create_and_sync_user(
                 created_by=current_app.conf.app_name,
             )
         )
+        identity_proofing_method = _identity_proofing_method_for_framework(external_mfa.framework)
+        identity_proofing_version = _proofing_version_for_framework(external_mfa.framework)
         if external_mfa.nin:
             signup_user.identities.add(
                 NinIdentity(
                     number=external_mfa.nin,
+                    date_of_birth=datetime.combine(external_mfa.date_of_birth, datetime.min.time()),
                     created_by=current_app.conf.app_name,
                     is_verified=True,
                     verified_by=current_app.conf.app_name,
                     verified_ts=utc_now(),
+                    proofing_method=identity_proofing_method,
+                    proofing_version=identity_proofing_version,
                 )
             )
         elif external_mfa.eidas_prid:
@@ -312,6 +317,8 @@ def create_and_sync_user(
                     is_verified=True,
                     verified_by=current_app.conf.app_name,
                     verified_ts=utc_now(),
+                    proofing_method=identity_proofing_method,
+                    proofing_version=identity_proofing_version,
                 )
             )
         else:
@@ -556,6 +563,21 @@ def build_external_credential(framework: TrustFramework, loa: str, created_by: s
             raise ValueError(f"Unsupported TrustFramework: {framework}")
     cred.created_by = created_by
     return cred
+
+
+def _identity_proofing_method_for_framework(framework: TrustFramework) -> IdentityProofingMethod:
+    """Map the external MFA TrustFramework to the IdentityProofingMethod to record
+    on the verified NinIdentity/EIDASIdentity. Required so that the IdP DIGG LoA 2
+    assurance check recognises the proofing method."""
+    match framework:
+        case TrustFramework.BANKID:
+            return IdentityProofingMethod.BANKID
+        case TrustFramework.SWECONN | TrustFramework.EIDAS:
+            return IdentityProofingMethod.SWEDEN_CONNECT
+        case TrustFramework.FREJA:
+            return IdentityProofingMethod.FREJA_EID
+        case _:
+            raise ValueError(f"Unsupported TrustFramework: {framework}")
 
 
 def _proofing_version_for_framework(framework: TrustFramework) -> str:

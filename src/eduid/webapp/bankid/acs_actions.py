@@ -1,7 +1,6 @@
-from datetime import date
-
 from eduid.userdb import User
 from eduid.userdb.credentials.fido import FidoCredential
+from eduid.userdb.identity import nin_to_date_of_birth
 from eduid.webapp.bankid.app import current_bankid_app as current_app
 from eduid.webapp.bankid.helpers import BankIDMsg
 from eduid.webapp.bankid.proofing import get_proofing_functions
@@ -243,7 +242,7 @@ def mfa_register_action(args: ACSArgs) -> ACSResult:
             args.authn_req.external_mfa_signup_identity = ExternalMfaSignupIdentity(
                 given_name=parsed.session_info.attributes.given_name,
                 surname=parsed.session_info.attributes.surname,
-                date_of_birth=date(int(nin[:4]), int(nin[4:6]), int(nin[6:8])),
+                date_of_birth=nin_to_date_of_birth(nin),
                 nin=nin,
                 framework=parsed.framework,
                 loa=parsed.loa,

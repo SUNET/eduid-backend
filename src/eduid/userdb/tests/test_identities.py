@@ -15,6 +15,7 @@ from eduid.userdb.identity import (
     IdentityType,
     NinIdentity,
     PridPersistence,
+    nin_to_date_of_birth,
 )
 
 __author__ = "lundberg"
@@ -146,6 +147,19 @@ class TestIdentityList:
     def test_remove_unknown(self) -> None:
         with pytest.raises(eduid.userdb.exceptions.UserDBValueError):
             self.one.remove(ElementKey("+46709999999"))
+
+
+class TestNinToDateOfBirth:
+    def test_standard_nin(self) -> None:
+        assert nin_to_date_of_birth("197801011234") == datetime.date(1978, 1, 1)
+
+    def test_coordination_number(self) -> None:
+        # coordination number: day part offset by +60 (day 61 == day 1)
+        assert nin_to_date_of_birth("198001611234") == datetime.date(1980, 1, 1)
+
+    def test_coordination_number_upper_bound(self) -> None:
+        # day 91 == day 31
+        assert nin_to_date_of_birth("197805911234") == datetime.date(1978, 5, 31)
 
 
 class TestIdentity:
