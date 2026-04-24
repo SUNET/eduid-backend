@@ -513,6 +513,25 @@ def _validate_external_mfa_authn(
     ].max_age
     if utc_now() - authn.authn_instant > max_age:
         return SignupMsg.external_mfa_too_old
+    if err := _validate_signup_identity(authn.external_mfa_signup_identity):
+        return err
+    return None
+
+
+def _validate_signup_identity(ident: ExternalMfaSignupIdentity) -> SignupMsg | None:
+    """Require exactly one identity discriminator (NIN or eIDAS PRID) and its
+    required companion fields. Prevents downstream 500s in ``create_and_sync_user``
+    when the upstream ACS handler failed to populate a usable identity."""
+    has_nin = bool(ident.nin)
+    has_prid = bool(ident.eidas_prid)
+    if has_nin == has_prid:
+        current_app.logger.error(
+            f"External MFA signup identity has invalid discriminators: nin={has_nin}, eidas_prid={has_prid}"
+        )
+        return SignupMsg.external_mfa_not_verified
+    if has_prid and not ident.country_code:
+        current_app.logger.error("External MFA signup identity with eidas_prid is missing country_code")
+        return SignupMsg.external_mfa_not_verified
     return None
 
 

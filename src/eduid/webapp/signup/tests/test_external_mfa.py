@@ -250,6 +250,91 @@ class ExternalMfaSignupTests(SignupTests):
             message=SignupMsg.external_mfa_not_verified,
         )
 
+    def _seed_bankid_authn_with_identity(
+        self, ident: ExternalMfaSignupIdentity, authn_id: str = "authn-1"
+    ) -> None:
+        req = SP_AuthnRequest(
+            authn_id=AuthnRequestRef(authn_id),
+            frontend_action=FrontendAction.SIGNUP_EXTERNAL_MFA,
+            finish_url=_FINISH_URL,
+            consumed=False,
+            authn_instant=utc_now(),
+            error=False,
+            external_mfa_signup_identity=ident,
+        )
+        with self.session_cookie_anon(self.browser) as client:
+            with client.session_transaction() as sess:
+                sess.bankid.sp.authns[AuthnRequestRef(authn_id)] = req
+
+    def test_identity_missing_discriminator(self) -> None:
+        """Identity with neither nin nor eidas_prid is rejected as not verified."""
+        ident = ExternalMfaSignupIdentity(
+            given_name="Anna",
+            surname="Andersson",
+            date_of_birth=date(1980, 1, 1),
+            framework=TrustFramework.BANKID,
+            loa="loa3",
+        )
+        self._seed_bankid_authn_with_identity(ident)
+        response = self._call_external_mfa_register("bankid", "authn-1")
+        self._check_api_response(
+            response,
+            status=200,
+            type_="POST_SIGNUP_EXTERNAL_MFA_REGISTER_FAIL",
+            message=SignupMsg.external_mfa_not_verified,
+        )
+        with self.session_cookie_anon(self.browser) as client:
+            with client.session_transaction() as sess:
+                assert sess.signup.external_mfa is None
+                assert sess.bankid.sp.authns[AuthnRequestRef("authn-1")].consumed is False
+
+    def test_identity_with_both_discriminators(self) -> None:
+        """Identity with both nin and eidas_prid is rejected (ambiguous)."""
+        from eduid.userdb.identity import PridPersistence as _PridPersistence
+
+        ident = ExternalMfaSignupIdentity(
+            given_name="Anna",
+            surname="Andersson",
+            date_of_birth=date(1980, 1, 1),
+            nin="198001011234",
+            eidas_prid="DE:abc",
+            eidas_prid_persistence=_PridPersistence.A,
+            country_code="DE",
+            framework=TrustFramework.EIDAS,
+            loa="eidas-nf-sub",
+        )
+        self._seed_bankid_authn_with_identity(ident)
+        response = self._call_external_mfa_register("bankid", "authn-1")
+        self._check_api_response(
+            response,
+            status=200,
+            type_="POST_SIGNUP_EXTERNAL_MFA_REGISTER_FAIL",
+            message=SignupMsg.external_mfa_not_verified,
+        )
+
+    def test_identity_prid_missing_country_code(self) -> None:
+        """Identity with eidas_prid but no country_code is rejected."""
+        from eduid.userdb.identity import PridPersistence as _PridPersistence
+
+        ident = ExternalMfaSignupIdentity(
+            given_name="Diana",
+            surname="Diaz",
+            date_of_birth=date(1990, 6, 15),
+            eidas_prid="DE:abc",
+            eidas_prid_persistence=_PridPersistence.A,
+            country_code=None,
+            framework=TrustFramework.EIDAS,
+            loa="eidas-nf-sub",
+        )
+        self._seed_bankid_authn_with_identity(ident)
+        response = self._call_external_mfa_register("bankid", "authn-1")
+        self._check_api_response(
+            response,
+            status=200,
+            type_="POST_SIGNUP_EXTERNAL_MFA_REGISTER_FAIL",
+            message=SignupMsg.external_mfa_not_verified,
+        )
+
     def _seed_samleid_authn(
         self,
         authn_id: str = "authn-samleid-1",
