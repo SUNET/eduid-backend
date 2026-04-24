@@ -457,12 +457,16 @@ def external_mfa_register(app_name: str, authn_id: str) -> FluxData:
 
     ident = authn.external_mfa_signup_identity
     assert ident is not None  # validated above
-    if _existing_user_for_identity(
-        nin=ident.nin, eidas_prid=ident.eidas_prid, prid_persistence=ident.eidas_prid_persistence
-    ) is not None:
-        current_app.logger.info(
-            f"External MFA signup blocked: identity already registered ({app_name})"
+    if (
+        _existing_user_for_identity(
+            nin=ident.nin,
+            eidas_prid=ident.eidas_prid,
+            prid_persistence=ident.eidas_prid_persistence,
+            freja_user_id=ident.freja_user_id,
         )
+        is not None
+    ):
+        current_app.logger.info(f"External MFA signup blocked: identity already registered ({app_name})")
         return error_response(message=SignupMsg.identity_already_registered)
 
     assert authn.authn_instant is not None  # validated above
@@ -479,15 +483,16 @@ def external_mfa_register(app_name: str, authn_id: str) -> FluxData:
         eidas_prid=ident.eidas_prid,
         eidas_prid_persistence=ident.eidas_prid_persistence,
         country_code=ident.country_code,
+        freja_user_id=ident.freja_user_id,
+        freja_registration_level=ident.freja_registration_level,
+        freja_loa_level=ident.freja_loa_level,
     )
     authn.consumed = True
 
     return success_response(payload={"state": session.signup.to_dict()})
 
 
-def _lookup_external_mfa_authn(
-    app_name: str, authn_id: str
-) -> SP_AuthnRequest | RP_AuthnRequest | None:
+def _lookup_external_mfa_authn(app_name: str, authn_id: str) -> SP_AuthnRequest | RP_AuthnRequest | None:
     if app_name == "freja_eid":
         return session.freja_eid.rp.authns.get(OIDCState(authn_id))
     if app_name == "eidas":
@@ -512,9 +517,7 @@ def _validate_external_mfa_authn(
         return SignupMsg.external_mfa_already_consumed
     if authn.authn_instant is None:
         return SignupMsg.external_mfa_not_verified
-    max_age = current_app.conf.frontend_action_authn_parameters[
-        FrontendAction.SIGNUP_EXTERNAL_MFA
-    ].max_age
+    max_age = current_app.conf.frontend_action_authn_parameters[FrontendAction.SIGNUP_EXTERNAL_MFA].max_age
     if utc_now() - authn.authn_instant > max_age:
         return SignupMsg.external_mfa_too_old
     if err := _validate_signup_identity(authn.external_mfa_signup_identity):
@@ -523,18 +526,25 @@ def _validate_external_mfa_authn(
 
 
 def _validate_signup_identity(ident: ExternalMfaSignupIdentity) -> SignupMsg | None:
-    """Require exactly one identity discriminator (NIN or eIDAS PRID) and its
+    """Require exactly one identity discriminator (NIN, eIDAS PRID, or Freja user_id) and its
     required companion fields. Prevents downstream 500s in ``create_and_sync_user``
     when the upstream ACS handler failed to populate a usable identity."""
     has_nin = bool(ident.nin)
     has_prid = bool(ident.eidas_prid)
-    if has_nin == has_prid:
+    has_freja = bool(ident.freja_user_id)
+    if sum([has_nin, has_prid, has_freja]) != 1:
         current_app.logger.error(
-            f"External MFA signup identity has invalid discriminators: nin={has_nin}, eidas_prid={has_prid}"
+            f"External MFA signup identity has invalid discriminators: "
+            f"nin={has_nin}, eidas_prid={has_prid}, freja_user_id={has_freja}"
         )
         return SignupMsg.external_mfa_not_verified
     if has_prid and not ident.country_code:
         current_app.logger.error("External MFA signup identity with eidas_prid is missing country_code")
+        return SignupMsg.external_mfa_not_verified
+    if has_freja and (
+        not ident.country_code or ident.freja_registration_level is None or ident.freja_loa_level is None
+    ):
+        current_app.logger.error("External MFA signup identity with freja_user_id is missing required fields")
         return SignupMsg.external_mfa_not_verified
     return None
 
@@ -543,6 +553,7 @@ def _existing_user_for_identity(
     nin: str | None,
     eidas_prid: str | None,
     prid_persistence: PridPersistence | None = None,
+    freja_user_id: str | None = None,
 ) -> User | None:
     """Return an existing verified user matching the given NIN or eIDAS PRID, or None.
 
@@ -578,6 +589,16 @@ def _existing_user_for_identity(
                 f"Signup eIDAS PRID has persistence {prid_persistence.value} with no exact match; "
                 "cannot rule out duplicate of an existing user whose PRID has rotated"
             )
+    if freja_user_id:
+        users = current_app.central_userdb.get_users_by_identity(
+            identity_type=IdentityType.FREJA,
+            key="user_id",
+            value=freja_user_id,
+        )
+        if users:
+            if len(users) > 1:
+                current_app.logger.warning(f"Multiple users matched Freja user_id {freja_user_id}")
+            return users[0]
     return None
 
 
@@ -652,16 +673,20 @@ def _check_external_mfa_still_valid() -> FluxData | None:
     ext = session.signup.external_mfa
     if ext is None:
         return None
-    max_age = current_app.conf.frontend_action_authn_parameters[
-        FrontendAction.SIGNUP_EXTERNAL_MFA
-    ].max_age
+    max_age = current_app.conf.frontend_action_authn_parameters[FrontendAction.SIGNUP_EXTERNAL_MFA].max_age
     if utc_now() - ext.authn_instant > max_age:
         current_app.logger.info("External MFA signup blocked: authn too old at create-user time")
         session.signup.external_mfa = None
         return error_response(message=SignupMsg.external_mfa_too_old)
-    if _existing_user_for_identity(
-        nin=ext.nin, eidas_prid=ext.eidas_prid, prid_persistence=ext.eidas_prid_persistence
-    ) is not None:
+    if (
+        _existing_user_for_identity(
+            nin=ext.nin,
+            eidas_prid=ext.eidas_prid,
+            prid_persistence=ext.eidas_prid_persistence,
+            freja_user_id=ext.freja_user_id,
+        )
+        is not None
+    ):
         current_app.logger.info(
             "External MFA signup blocked: identity registered between /external-mfa-register and /create-user"
         )
@@ -749,9 +774,7 @@ def create_user(use_suggested_password: bool, use_webauthn: bool, custom_passwor
     session.common.eppn = signup_user.eppn
     session.common.login_source = LoginApplication.signup
     if session.signup.external_mfa is not None:
-        current_app.stats.count(
-            name=f"signup_external_mfa_completed_{session.signup.external_mfa.app_name}"
-        )
+        current_app.stats.count(name=f"signup_external_mfa_completed_{session.signup.external_mfa.app_name}")
     if custom_password is not None:
         session.signup.credentials.custom_password = True
         session.signup.credentials.generated_password = None

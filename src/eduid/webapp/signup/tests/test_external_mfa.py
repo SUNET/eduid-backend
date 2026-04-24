@@ -111,6 +111,45 @@ class ExternalMfaSignupTests(SignupTests):
             with client.session_transaction() as sess:
                 sess.freja_eid.rp.authns[OIDCState(authn_id)] = req
 
+    def _seed_freja_eid_foreign_authn(
+        self,
+        authn_id: str = "authn-freja-foreign-1",
+        freja_user_id: str = "unique_freja_foreign_user",
+        country_code: str = "DK",
+        minutes_ago: int = 0,
+        consumed: bool = False,
+        frontend_action: FrontendAction = FrontendAction.SIGNUP_EXTERNAL_MFA,
+        has_identity: bool = True,
+        error: bool = False,
+    ) -> None:
+        from eduid.userdb.identity import FrejaLoaLevel, FrejaRegistrationLevel
+
+        ident: ExternalMfaSignupIdentity | None = None
+        if has_identity:
+            ident = ExternalMfaSignupIdentity(
+                given_name="Frida",
+                surname="Fredriksen",
+                date_of_birth=date(1985, 3, 15),
+                freja_user_id=freja_user_id,
+                country_code=country_code,
+                freja_registration_level=FrejaRegistrationLevel.PLUS,
+                freja_loa_level=FrejaLoaLevel.LOA3_NR,
+                framework=TrustFramework.FREJA,
+                loa="freja-loa3_nr",
+            )
+        req = RP_AuthnRequest(
+            authn_id=OIDCState(authn_id),
+            frontend_action=frontend_action,
+            finish_url=_FINISH_URL,
+            consumed=consumed,
+            authn_instant=utc_now() - timedelta(minutes=minutes_ago),
+            error=error,
+            external_mfa_signup_identity=ident,
+        )
+        with self.session_cookie_anon(self.browser) as client:
+            with client.session_transaction() as sess:
+                sess.freja_eid.rp.authns[OIDCState(authn_id)] = req
+
     def _call_external_mfa_register(self, app_name: str, authn_id: str) -> TestResponse:
         with self.session_cookie_anon(self.browser) as client:
             with client.session_transaction() as sess:
@@ -154,6 +193,23 @@ class ExternalMfaSignupTests(SignupTests):
         assert state["external_mfa"]["app_name"] == "freja_eid"
         assert state["external_mfa"]["given_name"] == "Britta"
         assert state["external_mfa"]["masked_nin"] == "198001**-****"
+
+    def test_ok_freja_eid_foreign_passport(self) -> None:
+        """A valid freja_eid authn with foreign passport (no NIN) is accepted."""
+        self._seed_freja_eid_foreign_authn()
+        response = self._call_external_mfa_register("freja_eid", "authn-freja-foreign-1")
+        assert response.status_code == 200
+        state = self.get_response_payload(response)["state"]
+        assert state["external_mfa"]["completed"] is True
+        assert state["external_mfa"]["app_name"] == "freja_eid"
+        assert state["external_mfa"]["given_name"] == "Frida"
+        assert state["external_mfa"]["masked_nin"] is None
+        assert state["external_mfa"]["eidas_country"] == "DK"
+        with self.session_cookie_anon(self.browser) as client:
+            with client.session_transaction() as sess:
+                assert sess.signup.external_mfa is not None
+                assert sess.signup.external_mfa.freja_user_id == "unique_freja_foreign_user"
+                assert sess.signup.external_mfa.nin is None
 
     # ------------------------------------------------------------------
     # Error cases
@@ -251,9 +307,7 @@ class ExternalMfaSignupTests(SignupTests):
             message=SignupMsg.external_mfa_not_verified,
         )
 
-    def _seed_bankid_authn_with_identity(
-        self, ident: ExternalMfaSignupIdentity, authn_id: str = "authn-1"
-    ) -> None:
+    def _seed_bankid_authn_with_identity(self, ident: ExternalMfaSignupIdentity, authn_id: str = "authn-1") -> None:
         req = SP_AuthnRequest(
             authn_id=AuthnRequestRef(authn_id),
             frontend_action=FrontendAction.SIGNUP_EXTERNAL_MFA,
@@ -268,7 +322,7 @@ class ExternalMfaSignupTests(SignupTests):
                 sess.bankid.sp.authns[AuthnRequestRef(authn_id)] = req
 
     def test_identity_missing_discriminator(self) -> None:
-        """Identity with neither nin nor eidas_prid is rejected as not verified."""
+        """Identity with neither nin, eidas_prid, nor freja_user_id is rejected as not verified."""
         ident = ExternalMfaSignupIdentity(
             given_name="Anna",
             surname="Andersson",
@@ -464,10 +518,10 @@ class ExternalMfaSignupTests(SignupTests):
         )
 
     def test_collision_check_skipped_when_no_identity_fields(self) -> None:
-        """Helper returns None when no NIN or PRID is present."""
+        """Helper returns None when no NIN, PRID, or Freja user_id is present."""
         from eduid.webapp.signup.views import _existing_user_for_identity
 
-        assert _existing_user_for_identity(nin=None, eidas_prid=None) is None
+        assert _existing_user_for_identity(nin=None, eidas_prid=None, freja_user_id=None) is None
 
     def test_prid_collision_via_locked_identity(self) -> None:
         """Signup is blocked when the PRID is on another user's locked_identity (rotated PRID case)."""
@@ -503,9 +557,7 @@ class ExternalMfaSignupTests(SignupTests):
         """A persistence-B PRID with no exact or locked match is allowed but a warning is logged."""
         warning_spy = self.mocker.spy(self.app.logger, "warning")
 
-        self._seed_eidas_foreign_authn(
-            prid="DE:novel-b-prid", country_code="DE", prid_persistence=PridPersistence.B
-        )
+        self._seed_eidas_foreign_authn(prid="DE:novel-b-prid", country_code="DE", prid_persistence=PridPersistence.B)
         response = self._call_external_mfa_register("eidas", "authn-eidas-1")
         assert response.status_code == 200
         with self.session_cookie_anon(self.browser) as client:
@@ -513,9 +565,38 @@ class ExternalMfaSignupTests(SignupTests):
                 assert sess.signup.external_mfa is not None
                 assert sess.signup.external_mfa.eidas_prid == "DE:novel-b-prid"
         warning_messages = [call.args[0] for call in warning_spy.call_args_list if call.args]
-        assert any(
-            "persistence" in msg and "rotated" in msg for msg in warning_messages
-        ), f"Expected persistence-rotated warning: {warning_messages}"
+        assert any("persistence" in msg and "rotated" in msg for msg in warning_messages), (
+            f"Expected persistence-rotated warning: {warning_messages}"
+        )
+
+    def test_freja_user_id_collision(self) -> None:
+        """Signup is blocked when Freja user_id already belongs to an existing user."""
+        from eduid.userdb.identity import FrejaIdentity, FrejaLoaLevel, FrejaRegistrationLevel
+
+        # Give the existing test user a Freja identity with the same user_id we'll try to sign up with
+        existing = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
+        assert existing is not None
+        existing.identities.add(
+            FrejaIdentity(
+                user_id="unique_freja_foreign_user",
+                country_code="DK",
+                date_of_birth=datetime(1985, 3, 15, tzinfo=UTC),
+                registration_level=FrejaRegistrationLevel.PLUS,
+                loa_level=FrejaLoaLevel.LOA3_NR,
+                created_by="test",
+                is_verified=True,
+            )
+        )
+        self.app.central_userdb.save(existing)
+
+        self._seed_freja_eid_foreign_authn(freja_user_id="unique_freja_foreign_user")
+        response = self._call_external_mfa_register("freja_eid", "authn-freja-foreign-1")
+        self._check_api_response(
+            response,
+            status=200,
+            type_="POST_SIGNUP_EXTERNAL_MFA_REGISTER_FAIL",
+            message=SignupMsg.identity_already_registered,
+        )
 
     # ------------------------------------------------------------------
     # Clear external MFA state
@@ -653,6 +734,55 @@ class ExternalMfaSignupTests(SignupTests):
         assert len(external_mfa_entries) == 1
         assert external_mfa_entries[0]["country_code"] == "DE"
 
+    def test_create_user_with_external_mfa_freja_foreign(self) -> None:
+        """A new user created via Freja eID foreign passport gets a verified FrejaIdentity and FrejaCredential."""
+        self._seed_freja_eid_foreign_authn(
+            freja_user_id="freja_foreign_signup_user",
+            country_code="DK",
+            authn_id="authn-freja-foreign-1",
+        )
+        self._call_external_mfa_register("freja_eid", "authn-freja-foreign-1")
+
+        self._prepare_for_create_user(
+            given_name="Frida",
+            surname="Fredriksen",
+            email="frida.fredriksen@example.com",
+        )
+
+        result = self._create_user()
+        assert result.response.status_code == 200
+
+        # Retrieve the eppn from the session after user creation
+        with self.session_cookie_anon(self.browser) as client:
+            with client.session_transaction() as sess:
+                eppn = sess.common.eppn
+        assert eppn is not None
+
+        user = self.app.central_userdb.get_user_by_eppn(eppn)
+        assert user is not None
+
+        # Verified FrejaIdentity must be present
+        assert user.identities.freja is not None
+        assert user.identities.freja.user_id == "freja_foreign_signup_user"
+        assert user.identities.freja.country_code == "DK"
+        assert user.identities.freja.is_verified is True
+        assert user.identities.freja.proofing_method == IdentityProofingMethod.FREJA_EID
+        assert user.identities.freja.proofing_version == self.app.conf.freja_eid_proofing_version
+
+        # NIN must NOT be present
+        assert user.identities.nin is None
+
+        # Exactly one FrejaCredential
+        freja_creds = [c for c in user.credentials.to_list() if isinstance(c, FrejaCredential)]
+        assert len(freja_creds) == 1
+        assert freja_creds[0].level == "freja-loa3_nr"
+
+        # Proofing log must have an entry for this eppn
+        log_entries = list(self.app.proofing_log._coll.find({"eduPersonPrincipalName": eppn}))
+        external_mfa_entries = [e for e in log_entries if e.get("proofing_method") == "freja_eid"]
+        assert len(external_mfa_entries) == 1
+        assert external_mfa_entries[0]["country_code"] == "DK"
+
     # ------------------------------------------------------------------
     # Parametrized NIN-based create-user variants
     # ------------------------------------------------------------------
@@ -661,9 +791,21 @@ class ExternalMfaSignupTests(SignupTests):
         ("app_name", "framework", "credential_class", "proofing_version_attr", "identity_proofing_method"),
         [
             # bankid SP — TrustFramework.BANKID → BankIDCredential
-            ("bankid", TrustFramework.BANKID, BankIDCredential, "bankid_proofing_version", IdentityProofingMethod.BANKID),
+            (
+                "bankid",
+                TrustFramework.BANKID,
+                BankIDCredential,
+                "bankid_proofing_version",
+                IdentityProofingMethod.BANKID,
+            ),
             # samleid SP with bankid-style NIN — same credential type as bankid
-            ("samleid", TrustFramework.BANKID, BankIDCredential, "bankid_proofing_version", IdentityProofingMethod.BANKID),
+            (
+                "samleid",
+                TrustFramework.BANKID,
+                BankIDCredential,
+                "bankid_proofing_version",
+                IdentityProofingMethod.BANKID,
+            ),
             # samleid SP with Swedish Freja (SwedenConnect) NIN
             (
                 "samleid",

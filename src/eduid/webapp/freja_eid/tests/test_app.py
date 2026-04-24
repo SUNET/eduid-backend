@@ -1327,9 +1327,7 @@ class FrejaEIDTests(ProofingTests[FrejaEIDApp]):
             mock_parse_id_token = self.mocker.patch(
                 "authlib.integrations.base_client.sync_openid.OpenIDMixin.parse_id_token"
             )
-            mock_userinfo_ep = self.mocker.patch(
-                "authlib.integrations.base_client.sync_openid.OpenIDMixin.userinfo"
-            )
+            mock_userinfo_ep = self.mocker.patch("authlib.integrations.base_client.sync_openid.OpenIDMixin.userinfo")
             mock_fetch_access_token = self.mocker.patch(
                 "authlib.integrations.base_client.sync_app.OAuth2Mixin.fetch_access_token"
             )
@@ -1382,8 +1380,8 @@ class FrejaEIDTests(ProofingTests[FrejaEIDApp]):
                 assert ident.framework == TrustFramework.FREJA
                 assert ident.loa == "freja-loa3_nr"
 
-    def test_mfa_register_acs_rejects_missing_nin(self) -> None:
-        """mfa_register ACS handler rejects a Freja userinfo with no personal_identity_number."""
+    def test_mfa_register_acs_foreign_passport_populates_identity(self) -> None:
+        """mfa_register ACS handler populates Freja foreign identity when no personal_identity_number."""
         mock_metadata = self.mocker.patch("authlib.integrations.base_client.sync_app.OAuth2Mixin.load_server_metadata")
         mock_metadata.return_value = self.oidc_provider_config
 
@@ -1406,7 +1404,7 @@ class FrejaEIDTests(ProofingTests[FrejaEIDApp]):
             assert loc is not None
             state, nonce = self._get_state_and_nonce(loc)
 
-            # Userinfo without personal_identity_number
+            # Userinfo without personal_identity_number (foreign passport)
             userinfo = self.get_mock_userinfo(
                 issuing_country=country,
                 personal_identity_number=None,
@@ -1420,9 +1418,7 @@ class FrejaEIDTests(ProofingTests[FrejaEIDApp]):
             mock_parse_id_token = self.mocker.patch(
                 "authlib.integrations.base_client.sync_openid.OpenIDMixin.parse_id_token"
             )
-            mock_userinfo_ep = self.mocker.patch(
-                "authlib.integrations.base_client.sync_openid.OpenIDMixin.userinfo"
-            )
+            mock_userinfo_ep = self.mocker.patch("authlib.integrations.base_client.sync_openid.OpenIDMixin.userinfo")
             mock_fetch_access_token = self.mocker.patch(
                 "authlib.integrations.base_client.sync_app.OAuth2Mixin.fetch_access_token"
             )
@@ -1463,8 +1459,16 @@ class FrejaEIDTests(ProofingTests[FrejaEIDApp]):
 
                 authn = sess.freja_eid.rp.authns.get(OIDCState(state))
                 assert authn is not None
-                # The ACS handler should have set error=True because no NIN
-                assert authn.error is True
-                assert authn.status == FrejaEIDMsg.method_not_available.value
-                # No identity should be populated
-                assert authn.external_mfa_signup_identity is None
+                assert authn.error is not True
+                ident = authn.external_mfa_signup_identity
+                assert ident is not None
+                assert ident.nin is None
+                assert ident.freja_user_id == "unique_freja_eid"
+                assert ident.country_code == "DK"
+                assert ident.freja_registration_level == FrejaRegistrationLevel.PLUS
+                assert ident.freja_loa_level == FrejaLoaLevel.LOA3_NR
+                assert ident.given_name == "Test"
+                assert ident.surname == "Testsson"
+                assert ident.date_of_birth == date(1901, 2, 3)
+                assert ident.framework == TrustFramework.FREJA
+                assert ident.loa == "freja-loa3_nr"

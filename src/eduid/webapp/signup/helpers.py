@@ -26,7 +26,13 @@ from eduid.userdb.credentials.external import (
     TrustFramework,
 )
 from eduid.userdb.exceptions import UserDoesNotExist, UserOutOfSync
-from eduid.userdb.identity import EIDASIdentity, EIDASLoa, IdentityProofingMethod, PridPersistence
+from eduid.userdb.identity import (
+    EIDASIdentity,
+    EIDASLoa,
+    FrejaIdentity,
+    IdentityProofingMethod,
+    PridPersistence,
+)
 from eduid.userdb.logs import MailAddressProofing
 from eduid.userdb.logs.element import (
     ForeignIdProofingLogElement,
@@ -321,8 +327,27 @@ def create_and_sync_user(
                     proofing_version=identity_proofing_version,
                 )
             )
+        elif external_mfa.freja_user_id:
+            assert external_mfa.freja_registration_level is not None  # please mypy
+            assert external_mfa.freja_loa_level is not None  # please mypy
+            signup_user.identities.add(
+                FrejaIdentity(
+                    user_id=external_mfa.freja_user_id,
+                    country_code=external_mfa.country_code or "",
+                    date_of_birth=datetime.combine(external_mfa.date_of_birth, datetime.min.time()),
+                    personal_identity_number=None,
+                    registration_level=external_mfa.freja_registration_level,
+                    loa_level=external_mfa.freja_loa_level,
+                    created_by=current_app.conf.app_name,
+                    is_verified=True,
+                    verified_by=current_app.conf.app_name,
+                    verified_ts=utc_now(),
+                    proofing_method=identity_proofing_method,
+                    proofing_version=identity_proofing_version,
+                )
+            )
         else:
-            raise RuntimeError("SignupExternalMfa has neither nin nor eidas_prid")
+            raise RuntimeError("SignupExternalMfa has neither nin, eidas_prid, nor freja_user_id")
 
     try:
         save_and_sync_user(signup_user)
@@ -621,7 +646,7 @@ def _write_external_mfa_proofing_log(signup_user: SignupUser, external_mfa: Sign
             given_name=external_mfa.given_name,
             surname=external_mfa.surname,
         )
-    elif external_mfa.eidas_prid:
+    elif external_mfa.eidas_prid or external_mfa.freja_user_id:
         entry = ForeignIdProofingLogElement(
             eppn=signup_user.eppn,
             created_by=app_name,
@@ -633,7 +658,9 @@ def _write_external_mfa_proofing_log(signup_user: SignupUser, external_mfa: Sign
             country_code=external_mfa.country_code or "",
         )
     else:
-        current_app.logger.error("SignupExternalMfa has neither nin nor eidas_prid — no proofing log written")
+        current_app.logger.error(
+            "SignupExternalMfa has neither nin, eidas_prid, nor freja_user_id — no proofing log written"
+        )
         return
 
     if not current_app.proofing_log.save(entry):

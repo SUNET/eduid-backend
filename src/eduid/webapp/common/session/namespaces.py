@@ -19,7 +19,7 @@ from eduid.common.utils import uuid4_str
 from eduid.userdb.credentials import Credential
 from eduid.userdb.credentials.external import TrustFramework
 from eduid.userdb.element import ElementKey
-from eduid.userdb.identity import PridPersistence
+from eduid.userdb.identity import FrejaLoaLevel, FrejaRegistrationLevel, PridPersistence
 from eduid.webapp.common.authn.acs_enums import AuthnAcsAction, BankIDAcsAction, EidasAcsAction
 from eduid.webapp.freja_eid.callback_enums import FrejaEIDAction
 from eduid.webapp.idp.idp_authn import AuthnData
@@ -197,6 +197,9 @@ class SignupExternalMfa(BaseModel):
     eidas_prid: str | None = None
     eidas_prid_persistence: PridPersistence | None = None
     country_code: str | None = None
+    freja_user_id: str | None = None
+    freja_registration_level: FrejaRegistrationLevel | None = None
+    freja_loa_level: FrejaLoaLevel | None = None
 
 
 class Signup(TimestampedNS):
@@ -283,6 +286,9 @@ class ExternalMfaSignupIdentity(BaseModel):
     eidas_prid: str | None = None
     eidas_prid_persistence: PridPersistence | None = None
     country_code: str | None = None
+    freja_user_id: str | None = None
+    freja_registration_level: FrejaRegistrationLevel | None = None
+    freja_loa_level: FrejaLoaLevel | None = None
     # credential metadata
     framework: TrustFramework
     loa: str

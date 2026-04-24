@@ -214,6 +214,32 @@ def test_sp_authn_request_external_mfa_eidas_roundtrip() -> None:
     assert rebuilt.external_mfa_signup_identity.nin is None
 
 
+def test_sp_authn_request_external_mfa_freja_foreign_roundtrip() -> None:
+    from eduid.userdb.identity import FrejaLoaLevel, FrejaRegistrationLevel
+
+    identity = ExternalMfaSignupIdentity(
+        given_name="Frida",
+        surname="Fredriksen",
+        date_of_birth=date(1985, 3, 15),
+        freja_user_id="unique_freja_user",
+        country_code="DK",
+        freja_registration_level=FrejaRegistrationLevel.PLUS,
+        freja_loa_level=FrejaLoaLevel.LOA3_NR,
+        framework=TrustFramework.FREJA,
+        loa="freja-loa3_nr",
+    )
+    req = SP_AuthnRequest(
+        frontend_action=FrontendAction.SIGNUP_EXTERNAL_MFA,
+        finish_url="https://eduid.se/profile/ext-return/{app_name}/{authn_id}",
+        external_mfa_signup_identity=identity,
+    )
+    rebuilt = SP_AuthnRequest(**req.model_dump())
+    assert rebuilt.external_mfa_signup_identity == identity
+    assert rebuilt.external_mfa_signup_identity.nin is None
+    assert rebuilt.external_mfa_signup_identity.eidas_prid is None
+    assert rebuilt.external_mfa_signup_identity.freja_user_id == "unique_freja_user"
+
+
 # --- Standalone tests for SignupExternalMfa and the external_mfa field on Signup ---
 
 

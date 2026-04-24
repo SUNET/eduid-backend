@@ -194,17 +194,29 @@ def mfa_register_action(args: ACSArgs) -> ACSResult:
 
     match parsed.session_info:
         case FrejaEIDDocumentUserInfo():
-            if parsed.session_info.personal_identity_number is None:
-                current_app.logger.error("Freja eID userinfo has no personal_identity_number")
-                return ACSResult(message=FrejaEIDMsg.method_not_available)
-            args.authn_req.external_mfa_signup_identity = ExternalMfaSignupIdentity(
-                given_name=parsed.session_info.given_name,
-                surname=parsed.session_info.family_name,
-                date_of_birth=parsed.session_info.date_of_birth,
-                nin=parsed.session_info.personal_identity_number,
-                framework=parsed.framework,
-                loa=parsed.loa,
-            )
+            if parsed.session_info.personal_identity_number is not None:
+                # Swedish NIN identity
+                args.authn_req.external_mfa_signup_identity = ExternalMfaSignupIdentity(
+                    given_name=parsed.session_info.given_name,
+                    surname=parsed.session_info.family_name,
+                    date_of_birth=parsed.session_info.date_of_birth,
+                    nin=parsed.session_info.personal_identity_number,
+                    framework=parsed.framework,
+                    loa=parsed.loa,
+                )
+            else:
+                # Foreign passport — Freja foreign identity
+                args.authn_req.external_mfa_signup_identity = ExternalMfaSignupIdentity(
+                    given_name=parsed.session_info.given_name,
+                    surname=parsed.session_info.family_name,
+                    date_of_birth=parsed.session_info.date_of_birth,
+                    freja_user_id=parsed.session_info.user_id,
+                    country_code=parsed.session_info.document.country,
+                    freja_registration_level=parsed.session_info.registration_level,
+                    freja_loa_level=parsed.session_info.loa_level,
+                    framework=parsed.framework,
+                    loa=parsed.loa,
+                )
         case _:
             current_app.logger.error(f"Unsupported session info type: {type(parsed.session_info)}")
             return ACSResult(message=FrejaEIDMsg.method_not_available)
