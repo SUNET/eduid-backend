@@ -40,6 +40,8 @@ class MongoTemporaryInstanceReplicaSet(MongoTemporaryInstance):
             "docker",
             "run",
             "--rm",
+            "--ulimit",
+            "nofile=65536:65536",
             "-p",
             f"{self.port}:{self.port}",
             "-e",
