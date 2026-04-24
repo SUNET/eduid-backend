@@ -155,7 +155,7 @@ class AsyncBaseDB:
         :return:
         """
         logger.warning(f"{self!s} Dropping collection {self._coll_name!r}")
-        return await self._coll.drop()
+        await self._coll.delete_many({})
 
     async def _get_document_by_attr(self, attr: str, value: object) -> Mapping[str, Any] | None:
         """

@@ -1,3 +1,5 @@
+from pytest_mock import MockerFixture
+
 from eduid.common.config.parsers import load_config
 from eduid.scimapi.config import ScimApiConfig
 from eduid.scimapi.context import Context
@@ -10,7 +12,11 @@ class TestContext(ScimApiTestCase):
         ctx = Context(config=config)
         assert ctx.base_url == "http://localhost:8000"
 
-    def test_load_many_data_owners(self) -> None:
+    def test_load_many_data_owners(self, mocker: MockerFixture) -> None:
+        mocker.patch("eduid.scimapi.context.ScimApiUserDB")
+        mocker.patch("eduid.scimapi.context.ScimApiGroupDB")
+        mocker.patch("eduid.scimapi.context.ScimApiInviteDB")
+        mocker.patch("eduid.scimapi.context.ScimApiEventDB")
         # Add 99 more data owners to the config
         for i in range(99):
             self.test_config["data_owners"][f"owner{i}"] = {"db_name": f"owner_{i}"}
