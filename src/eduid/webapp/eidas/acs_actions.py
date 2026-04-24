@@ -15,7 +15,7 @@ from eduid.webapp.common.session.namespaces import ExternalMfaSignupIdentity, SP
 from eduid.webapp.eidas.app import current_eidas_app as current_app
 from eduid.webapp.eidas.helpers import EidasMsg
 from eduid.webapp.eidas.proofing import get_proofing_functions
-from eduid.webapp.eidas.saml_session_info import BaseSessionInfo, ForeignEidSessionInfo, NinSessionInfo
+from eduid.webapp.eidas.saml_session_info import ForeignEidSessionInfo, NinSessionInfo
 
 __author__ = "lundberg"
 
