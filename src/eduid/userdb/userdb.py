@@ -188,9 +188,7 @@ class UserDB[UserVar](BaseDB, ABC):
         _filter = {"identities": {"$elemMatch": match}}
         return self._get_user_by_filter(_filter)
 
-    def get_users_by_locked_identity(
-        self, identity_type: IdentityType, key: str, value: str
-    ) -> list[UserVar]:
+    def get_users_by_locked_identity(self, identity_type: IdentityType, key: str, value: str) -> list[UserVar]:
         """Return users whose locked_identity has the given identity_type and key/value.
 
         Locked identities record a user's verified identity at the time of first

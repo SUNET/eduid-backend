@@ -1732,7 +1732,6 @@ class NINMethodTests(SamlEidTests):
                 backdoor=False,
             )
 
-
     # --- mfa-register tests ---
 
     def test_mfa_register_init_ok(self) -> None:
