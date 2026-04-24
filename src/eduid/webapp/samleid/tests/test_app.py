@@ -4,7 +4,7 @@ import logging
 import os
 from collections.abc import Mapping
 from dataclasses import dataclass
-from datetime import date, timedelta
+from datetime import timedelta
 from http import HTTPStatus
 from typing import Any, ClassVar
 
@@ -76,27 +76,30 @@ class SamlEidTests(ProofingTests[SamlEidApp]):
         self.test_user_eppn = "hubba-bubba"
         self.test_unverified_user_eppn = "hubba-baar"
         self.test_user_nin = NinIdentity(
-            number="197801011234", date_of_birth=datetime.datetime.fromisoformat("1978-01-01")
+            number="197801011234",
+            date_of_birth=datetime.datetime.fromisoformat("1978-01-01").replace(tzinfo=datetime.UTC),
         )
         self.test_user_eidas = EIDASIdentity(
             prid="XB:1bjrk7depnmhu7xn56kon3mlc9q1s0",
             prid_persistence=PridPersistence.B,
             loa=EIDASLoa.NF_SUBSTANTIAL,
-            date_of_birth=datetime.datetime.fromisoformat("1964-12-31"),
+            date_of_birth=datetime.datetime.fromisoformat("1964-12-31").replace(tzinfo=datetime.UTC),
             country_code="XB",
         )
         self.test_user_wrong_nin = NinIdentity(
-            number="190001021234", date_of_birth=datetime.datetime.fromisoformat("1900-01-02")
+            number="190001021234",
+            date_of_birth=datetime.datetime.fromisoformat("1900-01-02").replace(tzinfo=datetime.UTC),
         )
         self.test_user_other_eidas = EIDASIdentity(
             prid="XA:some_other_prid",
             prid_persistence=PridPersistence.B,
             loa=EIDASLoa.NF_SUBSTANTIAL,
-            date_of_birth=datetime.datetime.fromisoformat("1920-11-18"),
+            date_of_birth=datetime.datetime.fromisoformat("1920-11-18").replace(tzinfo=datetime.UTC),
             country_code="XA",
         )
         self.test_backdoor_nin = NinIdentity(
-            number="190102031234", date_of_birth=datetime.datetime.fromisoformat("1901-02-03")
+            number="190102031234",
+            date_of_birth=datetime.datetime.fromisoformat("1901-02-03").replace(tzinfo=datetime.UTC),
         )
         self.default_redirect_url = "http://redirect.localhost/redirect"
 
@@ -1813,7 +1816,7 @@ class NINMethodTests(SamlEidTests):
                 assert ident.given_name == "Ûlla"
                 assert ident.surname == "Älm"
                 assert ident.nin == self.test_user_nin.number
-                assert ident.date_of_birth == date(1978, 1, 1)
+                assert ident.date_of_birth == datetime.datetime(1978, 1, 1, tzinfo=datetime.UTC)
                 assert ident.framework == TrustFramework.SWECONN
                 assert ident.loa == "loa3"
 
@@ -1861,7 +1864,7 @@ class NINMethodTests(SamlEidTests):
                 assert ident.given_name == "Ûlla"
                 assert ident.surname == "Älm"
                 assert ident.nin == self.test_user_nin.number
-                assert ident.date_of_birth == date(1978, 1, 1)
+                assert ident.date_of_birth == datetime.datetime(1978, 1, 1, tzinfo=datetime.UTC)
                 assert ident.framework == TrustFramework.BANKID
                 assert ident.loa == "uncertified-loa3"
 
@@ -2181,7 +2184,7 @@ class EidasMethodTests(SamlEidTests):
             prid="XA:some_other_other_prid",
             prid_persistence=PridPersistence.B,
             loa=EIDASLoa.NF_SUBSTANTIAL,
-            date_of_birth=datetime.datetime.fromisoformat("1920-11-18"),
+            date_of_birth=datetime.datetime.fromisoformat("1920-11-18").replace(tzinfo=datetime.UTC),
             country_code="XX",
             is_verified=True,
         )
@@ -2256,6 +2259,6 @@ class EidasMethodTests(SamlEidTests):
                 assert ident.eidas_prid == self.test_user_eidas.unique_value
                 assert ident.eidas_prid_persistence == self.test_user_eidas.prid_persistence
                 assert ident.country_code == self.test_user_eidas.country_code
-                assert ident.date_of_birth == date(1964, 12, 31)
+                assert ident.date_of_birth == datetime.datetime(1964, 12, 31, tzinfo=datetime.UTC)
                 assert ident.framework == TrustFramework.EIDAS
                 assert ident.loa == "eidas-nf-sub"

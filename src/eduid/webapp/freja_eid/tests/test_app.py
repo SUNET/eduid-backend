@@ -1,5 +1,5 @@
 import json
-from datetime import date, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 from http import HTTPStatus
 from typing import Any, ClassVar
 from urllib.parse import parse_qs, urlparse
@@ -48,7 +48,9 @@ class FrejaEIDTests(ProofingTests[FrejaEIDApp]):
         self.test_unverified_user_eppn = "hubba-baar"
         self._user_setup()
 
-        self.test_user_nin = NinIdentity(number="197801011234", date_of_birth=datetime.fromisoformat("1978-01-01"))
+        self.test_user_nin = NinIdentity(
+            number="197801011234", date_of_birth=datetime.fromisoformat("1978-01-01").replace(tzinfo=UTC)
+        )
 
         self.oidc_provider_config = {
             "response_types_supported": ["code"],
@@ -553,7 +555,7 @@ class FrejaEIDTests(ProofingTests[FrejaEIDApp]):
             FrejaIdentity(
                 personal_identity_number=userinfo.personal_identity_number,
                 country_code=country.alpha2,
-                date_of_birth=datetime.combine(userinfo.date_of_birth, datetime.min.time()),
+                date_of_birth=datetime.combine(userinfo.date_of_birth, datetime.min.time(), tzinfo=UTC),
                 is_verified=True,
                 user_id=userinfo.user_id,
                 registration_level=userinfo.registration_level,
@@ -598,7 +600,7 @@ class FrejaEIDTests(ProofingTests[FrejaEIDApp]):
             FrejaIdentity(
                 personal_identity_number=userinfo.personal_identity_number,
                 country_code="DK",
-                date_of_birth=datetime.combine(userinfo.date_of_birth, datetime.min.time()),
+                date_of_birth=datetime.combine(userinfo.date_of_birth, datetime.min.time(), tzinfo=UTC),
                 is_verified=True,
                 user_id="another_freja_eid",
                 registration_level=userinfo.registration_level,
@@ -630,7 +632,7 @@ class FrejaEIDTests(ProofingTests[FrejaEIDApp]):
         new_locked_identity = FrejaIdentity(
             personal_identity_number=userinfo.personal_identity_number,
             country_code="DK",
-            date_of_birth=datetime.combine(userinfo.date_of_birth, datetime.min.time()),
+            date_of_birth=datetime.combine(userinfo.date_of_birth, datetime.min.time(), tzinfo=UTC),
             user_id=userinfo.user_id,
             registration_level=userinfo.registration_level,
             loa_level=userinfo.loa_level,
@@ -706,7 +708,7 @@ class FrejaEIDTests(ProofingTests[FrejaEIDApp]):
             FrejaIdentity(
                 personal_identity_number=other_admin_number,  # not matching the new identity
                 country_code=userinfo.document.country,
-                date_of_birth=datetime.combine(userinfo.date_of_birth, datetime.min.time()),
+                date_of_birth=datetime.combine(userinfo.date_of_birth, datetime.min.time(), tzinfo=UTC),
                 is_verified=True,
                 user_id="another_freja_eid",
                 registration_level=userinfo.registration_level,
@@ -1033,7 +1035,7 @@ class FrejaEIDTests(ProofingTests[FrejaEIDApp]):
             FrejaIdentity(
                 personal_identity_number=userinfo.personal_identity_number,
                 country_code=userinfo.document.country,
-                date_of_birth=datetime.combine(userinfo.date_of_birth, datetime.min.time()),
+                date_of_birth=datetime.combine(userinfo.date_of_birth, datetime.min.time(), tzinfo=UTC),
                 is_verified=True,
                 user_id=userinfo.user_id,
                 registration_level=userinfo.registration_level,
@@ -1202,7 +1204,7 @@ class FrejaEIDTests(ProofingTests[FrejaEIDApp]):
             created_by="test",
             personal_identity_number=userinfo.personal_identity_number,
             country_code=userinfo.document.country,
-            date_of_birth=datetime.combine(userinfo.date_of_birth, datetime.min.time()),
+            date_of_birth=datetime.combine(userinfo.date_of_birth, datetime.min.time(), tzinfo=UTC),
             is_verified=True,
             user_id=userinfo.user_id,
             registration_level=userinfo.registration_level,
@@ -1376,7 +1378,7 @@ class FrejaEIDTests(ProofingTests[FrejaEIDApp]):
                 assert ident.given_name == "Test"
                 assert ident.surname == "Testsson"
                 assert ident.nin == "197801011234"
-                assert ident.date_of_birth == date(1978, 1, 1)
+                assert ident.date_of_birth == datetime(1978, 1, 1, tzinfo=UTC)
                 assert ident.framework == TrustFramework.FREJA
                 assert ident.loa == "freja-loa3_nr"
 
@@ -1469,6 +1471,6 @@ class FrejaEIDTests(ProofingTests[FrejaEIDApp]):
                 assert ident.freja_loa_level == FrejaLoaLevel.LOA3_NR
                 assert ident.given_name == "Test"
                 assert ident.surname == "Testsson"
-                assert ident.date_of_birth == date(1901, 2, 3)
+                assert ident.date_of_birth == datetime(1901, 2, 3, tzinfo=UTC)
                 assert ident.framework == TrustFramework.FREJA
                 assert ident.loa == "freja-loa3_nr"

@@ -1,3 +1,5 @@
+from datetime import UTC, datetime
+
 from eduid.common.models.saml_models import BaseSessionInfo
 from eduid.userdb import User
 from eduid.userdb.credentials.fido import FidoCredential
@@ -247,7 +249,9 @@ def mfa_register_action(args: ACSArgs) -> ACSResult:
             args.authn_req.external_mfa_signup_identity = ExternalMfaSignupIdentity(
                 given_name=parsed.session_info.attributes.given_name,
                 surname=parsed.session_info.attributes.surname,
-                date_of_birth=parsed.session_info.attributes.date_of_birth,
+                date_of_birth=datetime.combine(
+                    parsed.session_info.attributes.date_of_birth, datetime.min.time(), tzinfo=UTC
+                ),
                 nin=parsed.session_info.attributes.nin,
                 framework=parsed.framework,
                 loa=parsed.loa,
@@ -256,7 +260,9 @@ def mfa_register_action(args: ACSArgs) -> ACSResult:
             args.authn_req.external_mfa_signup_identity = ExternalMfaSignupIdentity(
                 given_name=parsed.session_info.attributes.given_name,
                 surname=parsed.session_info.attributes.surname,
-                date_of_birth=parsed.session_info.attributes.date_of_birth,
+                date_of_birth=datetime.combine(
+                    parsed.session_info.attributes.date_of_birth, datetime.min.time(), tzinfo=UTC
+                ),
                 eidas_prid=parsed.session_info.attributes.prid,
                 eidas_prid_persistence=parsed.session_info.attributes.prid_persistence,
                 country_code=parsed.session_info.attributes.country_code,

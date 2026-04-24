@@ -1,3 +1,5 @@
+from datetime import UTC, datetime
+
 from eduid.userdb import User
 from eduid.userdb.credentials import FidoCredential
 from eduid.webapp.common.api.decorators import require_user
@@ -199,7 +201,7 @@ def mfa_register_action(args: ACSArgs) -> ACSResult:
                 args.authn_req.external_mfa_signup_identity = ExternalMfaSignupIdentity(
                     given_name=parsed.session_info.given_name,
                     surname=parsed.session_info.family_name,
-                    date_of_birth=parsed.session_info.date_of_birth,
+                    date_of_birth=datetime.combine(parsed.session_info.date_of_birth, datetime.min.time(), tzinfo=UTC),
                     nin=parsed.session_info.personal_identity_number,
                     framework=parsed.framework,
                     loa=parsed.loa,
@@ -209,7 +211,7 @@ def mfa_register_action(args: ACSArgs) -> ACSResult:
                 args.authn_req.external_mfa_signup_identity = ExternalMfaSignupIdentity(
                     given_name=parsed.session_info.given_name,
                     surname=parsed.session_info.family_name,
-                    date_of_birth=parsed.session_info.date_of_birth,
+                    date_of_birth=datetime.combine(parsed.session_info.date_of_birth, datetime.min.time(), tzinfo=UTC),
                     freja_user_id=parsed.session_info.user_id,
                     country_code=parsed.session_info.document.country,
                     freja_registration_level=parsed.session_info.registration_level,

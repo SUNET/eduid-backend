@@ -282,7 +282,7 @@ class ExternalMfaSignupIdentity(BaseModel):
 
     given_name: str
     surname: str
-    date_of_birth: date
+    date_of_birth: datetime | None = None
     # exactly one of these identity discriminators is set; the rest stay None
     nin: str | None = None
     eidas_prid: str | None = None

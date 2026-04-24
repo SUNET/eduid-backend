@@ -3,7 +3,7 @@ import datetime
 import logging
 import os
 from collections.abc import Mapping
-from datetime import date, timedelta
+from datetime import timedelta
 from http import HTTPStatus
 from typing import Any, ClassVar
 
@@ -50,7 +50,8 @@ class EidasTests(ProofingTests[EidasApp]):
         self.test_user_eppn = "hubba-bubba"
         self.test_unverified_user_eppn = "hubba-baar"
         self.test_user_nin = NinIdentity(
-            number="197801011234", date_of_birth=datetime.datetime.fromisoformat("1978-01-01")
+            number="197801011234",
+            date_of_birth=datetime.datetime.fromisoformat("1978-01-01").replace(tzinfo=datetime.UTC),
         )
         self.test_user_eidas = EIDASIdentity(
             prid="XB:1bjrk7depnmhu7xn56kon3mlc9q1s0",
@@ -1505,7 +1506,7 @@ class EidasTests(ProofingTests[EidasApp]):
             prid="XA:some_other_other_prid",
             prid_persistence=PridPersistence.B,
             loa=EIDASLoa.NF_SUBSTANTIAL,
-            date_of_birth=datetime.datetime.fromisoformat("1920-11-18"),
+            date_of_birth=datetime.datetime.fromisoformat("1920-11-18").replace(tzinfo=datetime.UTC),
             country_code="XX",
             is_verified=True,
         )
@@ -1613,7 +1614,7 @@ class EidasTests(ProofingTests[EidasApp]):
                 assert ident.given_name == "Ûlla"
                 assert ident.surname == "Älm"
                 assert ident.nin == self.test_user_nin.number
-                assert ident.date_of_birth == date(1978, 1, 1)
+                assert ident.date_of_birth == datetime.datetime(1978, 1, 1, tzinfo=datetime.UTC)
                 assert ident.framework == TrustFramework.SWECONN
                 assert ident.loa == "loa3"
 

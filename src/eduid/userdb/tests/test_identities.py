@@ -151,15 +151,19 @@ class TestIdentityList:
 
 class TestNinToDateOfBirth:
     def test_standard_nin(self) -> None:
-        assert nin_to_date_of_birth("197801011234") == datetime.date(1978, 1, 1)
+        assert nin_to_date_of_birth("197801011234") == datetime.datetime(1978, 1, 1, tzinfo=datetime.UTC)
 
     def test_coordination_number(self) -> None:
         # coordination number: day part offset by +60 (day 61 == day 1)
-        assert nin_to_date_of_birth("198001611234") == datetime.date(1980, 1, 1)
+        assert nin_to_date_of_birth("198001611234") == datetime.datetime(1980, 1, 1, tzinfo=datetime.UTC)
 
     def test_coordination_number_upper_bound(self) -> None:
         # day 91 == day 31
-        assert nin_to_date_of_birth("197805911234") == datetime.date(1978, 5, 31)
+        assert nin_to_date_of_birth("197805911234") == datetime.datetime(1978, 5, 31, tzinfo=datetime.UTC)
+
+    def test_invalid_number(self) -> None:
+        with pytest.raises(ValueError, match="day is out of range for month"):
+            nin_to_date_of_birth("197809911234")
 
 
 class TestIdentity:
