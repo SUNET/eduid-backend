@@ -64,8 +64,10 @@ uvx ty check
 
 - **mypy**: Uses plugins `pydantic.mypy`, `marshmallow_dataclass.mypy`
 - **ty** (experimental): New type checker being evaluated in beta
-  - Configuration in [ty.toml](ty.toml)
+    - Configuration in [pyproject.toml](pyproject.toml)
   - Requires virtual environment to be activated first
+
+Tool configuration is centralized in [pyproject.toml](pyproject.toml) for Ruff, import sorting, mypy, pytest, coverage, and ty.
 
 ## Code Style Guidelines
 
@@ -336,9 +338,10 @@ src/eduid/
 
 ## Ruff Configuration
 
+- Configuration lives in [pyproject.toml](pyproject.toml)
 - Line length: 120 characters
 - Target: Python 3.13
-- Key rules: ANN, ASYNC, E, F, I (isort), PERF, UP (pyupgrade)
+- Key rules: ANN, ASYNC, E, F, I (Ruff import sorting, replacing standalone isort), PERF, UP (pyupgrade)
 - Magic numbers allowed in test files (PLR2004 ignored)
 
 ## CI/CD
