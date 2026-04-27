@@ -2,6 +2,110 @@
 requires = ["setuptools>=77"]
 build-backend = "setuptools.build_meta"
 
+[project]
+name = "eduid-backend"
+version = "0.0.0"
+requires-python = ">=3.13"
+dependencies = [
+  "Babel",
+  "Pillow",
+  "PyNaCl",
+  "PyYAML",
+  "aiosmtplib",
+  "bleach",
+  "boto3",
+  "celery[redis]",
+  "cookies-samesite-compat",
+  "cryptography",
+  "email-validator",
+  "fido2",
+  "fido_mds",
+  "gunicorn",
+  "hammock",
+  "html5lib",
+  "httpx",
+  "idna",
+  "iso3166",
+  "jwcrypto",
+  "langcodes",
+  "marshmallow",
+  "marshmallow-dataclass",
+  "marshmallow-enum",
+  "motor",
+  "neo4j",
+  "oic",
+  "phonenumbers",
+  "proquint",
+  "pwgen",
+  "py-bcrypt",
+  "pyOpenSSL",
+  "pyXMLSecurity[PKCS11]",
+  "pydantic",
+  "pymongo",
+  "pysaml2",
+  "pysmscom",
+  "python-dateutil",
+  "python-jose",
+  "qrcode",
+  "redis",
+  "statsd",
+  "suds-community",
+  "xhtml2pdf",
+  "zxcvbn",
+]
+
+[project.optional-dependencies]
+webapp = [
+  "Flask",
+  "Flask-Mail",
+  "authlib",
+  "captcha",
+  "flask-babel",
+  "flask-cors",
+  "sentry-sdk[flask]",
+  "user-agents",
+]
+worker = ["jinja2"]
+fastapi = [
+  "apscheduler<4",
+  "deepdiff",
+  "fastapi",
+  "hsmkey",
+  "loguru",
+  "ndnkdf",
+  "pyhsm @ https://github.com/SUNET/python-pyhsm/archive/3b867ec8e0aa2c4444e9c84444228e95fc6aaabf.zip",
+  "python-multipart",
+  "uvicorn[standard]",
+]
+satosa-scim = ["SATOSA"]
+
+[dependency-groups]
+sub_main = [
+  "importlib-metadata",
+  "importlib-resources",
+  "cached-property",
+  "setuptools",
+  "backports.zoneinfo; python_version < '3.9'",
+  "tomli",
+  "exceptiongroup",
+  "async-timeout",
+]
+test = [
+  "mypy",
+  "pip-tools",
+  "pytest",
+  "pytest-asyncio",
+  "pytest-cov",
+  "pytest-mock",
+  "pytest-xdist",
+  "respx",
+  "uv",
+  "celery-types",
+  "motor-types",
+  "statsd-stubs",
+  "ruff",
+]
+
 [tool.ruff]
 line-length = 120
 target-version = "py313"

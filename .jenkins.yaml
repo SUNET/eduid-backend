@@ -34,7 +34,6 @@ extra_jobs:
       - "python3.13 -m venv venv"
       - ". venv/bin/activate"
       - "pip install -U pip setuptools wheel pip-tools mypy uv"
-      - "touch requirements/*in"
       - "make update_deps"
       - "pip install --index-url https://pypi.sunet.se -r requirements/test_requirements.txt"
       - "pip freeze"

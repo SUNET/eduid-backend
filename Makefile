@@ -47,7 +47,6 @@ compile_queue_translations:
 
 update_deps:
 	@echo "Updating ALL the dependencies"
-	touch requirements/*.in
 	cd requirements && make update_deps
 
 dev_sync_deps:

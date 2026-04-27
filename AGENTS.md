@@ -69,6 +69,20 @@ uvx ty check
 
 Tool configuration is centralized in [pyproject.toml](pyproject.toml) for Ruff, import sorting, mypy, pytest, coverage, and ty.
 
+Dependency metadata is also centralized in [pyproject.toml](pyproject.toml). The generated lockfiles in `requirements/*.txt`
+remain the install artifacts used by CI and local setup, while `requirements/*.in` has been removed.
+
+### Dependency Updates
+
+Dependency changes should be made in [pyproject.toml](pyproject.toml), not in files under `requirements/`.
+
+```bash
+make update_deps
+```
+
+This regenerates the compiled lockfiles in `requirements/*.txt` from [pyproject.toml](pyproject.toml) using the
+profiles and groups defined there.
+
 ## Code Style Guidelines
 
 ### Import Ordering
