@@ -1,0 +1,129 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[tool.ruff]
+line-length = 120
+target-version = "py313"
+
+[tool.ruff.lint]
+select = [
+  "A",
+  "ANN",
+  "ASYNC",
+  "B",
+  "C4",
+  "DTZ",
+  "E",
+  "ERA",
+  "F",
+  "FAST",
+  "FLY",
+  "FURB",
+  "I",
+  "ISC",
+  "PERF",
+  "PGH",
+  "PIE",
+  "PL",
+  "PT",
+  "RUF",
+  "SIM",
+  "UP",
+  "W",
+]
+ignore = [
+  "PLR09",
+  "PLC0415",
+  "SIM102",
+  "SIM103",
+  "SIM108",
+  "W191",
+  "E111",
+  "E114",
+  "E117",
+  "E501",
+  "D206",
+  "D300",
+  "Q000",
+  "Q001",
+  "Q002",
+  "Q003",
+  "COM812",
+  "COM819",
+  "ISC002",
+]
+allowed-confusables = ["’", "х"]
+
+[tool.ruff.lint.flake8-annotations]
+allow-star-arg-any = true
+
+[tool.ruff.lint.isort]
+known-third-party = ["marshmallow_enum"]
+section-order = ["future", "standard-library", "third-party", "eduid", "first-party", "local-folder"]
+
+[tool.ruff.lint.isort.sections]
+eduid = ["ndnkdf"]
+
+[tool.ruff.lint.per-file-ignores]
+"**/test_*.py" = ["PLR2004"]
+"**/test*.py" = ["SIM117"]
+"src/eduid/webapp/common/authn/vccs.py" = ["PLR2004"]
+
+[tool.mypy]
+plugins = ["pydantic.mypy", "marshmallow_dataclass.mypy"]
+namespace_packages = true
+pretty = true
+
+[[tool.mypy.overrides]]
+module = ["ndnkdf.*"]
+follow_untyped_imports = true
+
+[[tool.mypy.overrides]]
+module = ["fido_mds.*"]
+follow_untyped_imports = true
+
+[[tool.mypy.overrides]]
+module = ["saml2.*"]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = ["satosa.*"]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+addopts = "--import-mode=importlib"
+asyncio_mode = "auto"
+python_classes = ["Test*", "*Test", "*Tests"]
+norecursedirs = ["cookiecutter-app", ".worktrees", ".claude"]
+filterwarnings = [
+  "ignore::DeprecationWarning:saml2.*",
+  "ignore:The SAML service provider accepts unsigned:UserWarning:saml2.*",
+]
+
+[tool.coverage.run]
+branch = true
+source = ["eduid"]
+
+[tool.coverage.report]
+exclude_lines = [
+  "if self.debug:",
+  "pragma: no cover",
+  "raise NotImplementedError",
+  "if __name__ == .__main__.:",
+]
+ignore_errors = true
+omit = ["tests/*"]
+
+[tool.ty.environment]
+python-version = "3.13"
+
+[tool.ty.analysis]
+respect-type-ignore-comments = false
+
+[tool.ty.rules]
+invalid-argument-type = "ignore"
+invalid-assignment = "ignore"
+missing-argument = "ignore"
+unknown-argument = "ignore"
+unresolved-attribute = "ignore"
