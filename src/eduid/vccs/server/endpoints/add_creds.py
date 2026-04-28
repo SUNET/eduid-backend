@@ -4,7 +4,7 @@ from typing import Annotated, cast
 from fastapi import APIRouter, Form, Request
 from pydantic.main import BaseModel
 
-from eduid.vccs.server.config import VCCSConfig
+from eduid.vccs.server.config import VCCSConfig, get_config
 from eduid.vccs.server.db import KDF, CredType, PasswordCredential, Status, Version
 from eduid.vccs.server.factors import RequestFactor
 from eduid.vccs.server.password import calculate_cred_hash
@@ -51,8 +51,7 @@ async def add_creds_legacy(req: Request, request: Annotated[str, Form(...)]) -> 
 @add_creds_router.post("/v2/add_creds", response_model=AddCredsFormResponse)
 async def add_creds(req: Request, request: AddCredsRequestV1) -> AddCredsResponseV1:
     # convenience and typing
-    _config = req.app.state.config
-    assert isinstance(_config, VCCSConfig)
+    _config = get_config(req)
     results = []
     for factor in request.factors:
         this_result = False
