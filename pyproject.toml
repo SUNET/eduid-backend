@@ -67,14 +67,14 @@ webapp = [
 ]
 worker = ["jinja2"]
 fastapi = [
-  "apscheduler<4",
+  "apscheduler<4", # Next major version has API breaking changes
   "deepdiff",
   "fastapi",
   "hsmkey",
   "loguru",
   "ndnkdf",
   "pyhsm @ https://github.com/SUNET/python-pyhsm/archive/3b867ec8e0aa2c4444e9c84444228e95fc6aaabf.zip",
-  "python-multipart",
+  "python-multipart", # needed to parse form data
   "uvicorn[standard]",
 ]
 satosa-scim = ["SATOSA"]
@@ -107,7 +107,7 @@ test = [
 ]
 
 [tool.ruff]
-line-length = 120
+line-length = 120 # Set the maximum line length to 120.
 target-version = "py313"
 
 [tool.ruff.lint]
@@ -137,11 +137,13 @@ select = [
   "W",
 ]
 ignore = [
-  "PLR09",
-  "PLC0415",
-  "SIM102",
-  "SIM103",
-  "SIM108",
+  "PLR09", # rule set for complexity checks
+  "PLC0415", # non top level imports
+  "SIM102", # collapsible-if
+  "SIM103", # return-bool-condition-directly (keeping explicit if/else for clarity)
+  "SIM108", # if-else-block-instead-of-if-exp
+  # Since we use ruff as a formatter, the following rules should be ignored
+  # See: https://docs.astral.sh/ruff/formatter/#conflicting-lint-rules
   "W191",
   "E111",
   "E114",
@@ -170,9 +172,10 @@ section-order = ["future", "standard-library", "third-party", "eduid", "first-pa
 eduid = ["ndnkdf"]
 
 [tool.ruff.lint.per-file-ignores]
-"**/test_*.py" = ["PLR2004"]
-"**/test*.py" = ["SIM117"]
-"src/eduid/webapp/common/authn/vccs.py" = ["PLR2004"]
+"**/test_*.py" = ["PLR2004"] # magic-value-comparison - allow magic numbers in tests
+"**/test*.py" = ["SIM117"] # multiple-with-statements - combined session_transaction() calls break tests
+# "src/eduid/scimapi/**" = ["A001", "A002"] # builtin shadowing - filter is core concept of scim and builtin is not used
+"src/eduid/webapp/common/authn/vccs.py" = ["PLR2004"] # magic-value-comparison - allow magic numbers for password version
 
 [tool.mypy]
 plugins = ["pydantic.mypy", "marshmallow_dataclass.mypy"]
@@ -187,6 +190,7 @@ follow_untyped_imports = true
 module = ["fido_mds.*"]
 follow_untyped_imports = true
 
+# No stubs available, too many import sites to pin individually
 [[tool.mypy.overrides]]
 module = ["saml2.*"]
 ignore_missing_imports = true
@@ -219,6 +223,7 @@ exclude_lines = [
 ignore_errors = true
 omit = ["tests/*"]
 
+# Trying out new typechecker 'ty' via 'uvx ty check' i.e. not installing
 [tool.ty.environment]
 python-version = "3.13"
 
