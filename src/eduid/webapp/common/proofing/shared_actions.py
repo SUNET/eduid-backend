@@ -85,7 +85,7 @@ def run_verify_identity(
     assert isinstance(parsed.info, BaseModel)
 
     proofing = get_proofing_functions(
-        session_info=parsed.info, app_name=app.name, config=app.config, backdoor=args.backdoor
+        session_info=parsed.info, app_name=app.name, config=app.conf, backdoor=args.backdoor
     )
 
     current = proofing.get_identity(user)
@@ -149,7 +149,7 @@ def run_verify_credential(
     assert isinstance(parsed.info, BaseModel)
 
     proofing = get_proofing_functions(
-        session_info=parsed.info, app_name=app.name, config=app.config, backdoor=args.backdoor
+        session_info=parsed.info, app_name=app.name, config=app.conf, backdoor=args.backdoor
     )
 
     _identity = proofing.get_identity(user=user)
@@ -221,7 +221,7 @@ def run_mfa_authenticate(
     assert isinstance(parsed.info, BaseModel)
 
     proofing = get_proofing_functions(
-        session_info=parsed.info, app_name=app.name, config=app.config, backdoor=args.backdoor
+        session_info=parsed.info, app_name=app.name, config=app.conf, backdoor=args.backdoor
     )
 
     match_res = proofing.match_identity(user=user, proofing_method=args.proofing_method)
