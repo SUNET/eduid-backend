@@ -171,7 +171,8 @@ def get_proofing_method(
     | None
 ):
     authn_params = config.frontend_action_authn_parameters.get(frontend_action)
-    assert authn_params is not None  # please mypy
+    if authn_params is None:
+        raise RuntimeError(f"no authn parameters configured for frontend_action {frontend_action}")
 
     if method == "freja":
         if not config.freja_idp:
