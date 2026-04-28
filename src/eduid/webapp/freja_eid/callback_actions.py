@@ -29,8 +29,8 @@ def verify_identity_action(user: User, args: ACSArgs) -> ACSResult:
     if parsed.error:
         return ACSResult(message=parsed.error)
 
-    # please type checking
-    assert isinstance(parsed.info, FrejaEIDDocumentUserInfo)
+    if not isinstance(parsed.info, FrejaEIDDocumentUserInfo):
+        raise RuntimeError(f"unexpected parsed.info type: {type(parsed.info).__name__}")
 
     proofing = get_proofing_functions(
         session_info=parsed.info, app_name=current_app.conf.app_name, config=current_app.conf, backdoor=args.backdoor
@@ -64,7 +64,8 @@ def verify_credential_action(user: User, args: ACSArgs) -> ACSResult:
     if not args.proofing_method:
         return ACSResult(message=FrejaEIDMsg.method_not_available)
 
-    assert isinstance(args.authn_req, RP_AuthnRequest)
+    if not isinstance(args.authn_req, RP_AuthnRequest):
+        raise RuntimeError(f"unexpected authn_req type: {type(args.authn_req).__name__}")
 
     credential = user.credentials.find(args.authn_req.proofing_credential_id)
     if not isinstance(credential, FidoCredential):
@@ -83,8 +84,8 @@ def verify_credential_action(user: User, args: ACSArgs) -> ACSResult:
     if parsed.error:
         return ACSResult(message=parsed.error)
 
-    # please type checking
-    assert isinstance(parsed.info, FrejaEIDDocumentUserInfo)
+    if not isinstance(parsed.info, FrejaEIDDocumentUserInfo):
+        raise RuntimeError(f"unexpected parsed.info type: {type(parsed.info).__name__}")
 
     proofing = get_proofing_functions(
         session_info=parsed.info, app_name=current_app.conf.app_name, config=current_app.conf, backdoor=args.backdoor
@@ -151,8 +152,8 @@ def mfa_authenticate_action(args: ACSArgs) -> ACSResult:
     if parsed.error:
         return ACSResult(message=parsed.error)
 
-    # please type checking
-    assert isinstance(parsed.info, FrejaEIDDocumentUserInfo)
+    if not isinstance(parsed.info, FrejaEIDDocumentUserInfo):
+        raise RuntimeError(f"unexpected parsed.info type: {type(parsed.info).__name__}")
 
     proofing = get_proofing_functions(
         session_info=parsed.info, app_name=current_app.conf.app_name, config=current_app.conf, backdoor=args.backdoor
