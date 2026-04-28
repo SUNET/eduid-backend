@@ -1864,7 +1864,7 @@ class NINMethodTests(SamlEidTests):
                 assert ident.given_name == "Ûlla"
                 assert ident.surname == "Älm"
                 assert ident.nin == self.test_user_nin.number
-                assert ident.date_of_birth == datetime.datetime(1978, 1, 1, tzinfo=datetime.UTC)
+                assert ident.date_of_birth is None
                 assert ident.framework == TrustFramework.BANKID
                 assert ident.loa == "uncertified-loa3"
 
