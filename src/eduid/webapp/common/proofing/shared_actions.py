@@ -14,12 +14,15 @@ from typing import Any
 from pydantic import BaseModel
 
 from eduid.userdb import User
-from eduid.webapp.common.api.messages import TranslatableMsg
+from eduid.userdb.credentials.fido import FidoCredential
+from eduid.webapp.common.api.messages import AuthnStatusMsg, TranslatableMsg
 from eduid.webapp.common.authn.acs_registry import ACSArgs, ACSResult
+from eduid.webapp.common.authn.utils import check_reauthn
 from eduid.webapp.common.proofing.base import ProofingFunctions
 from eduid.webapp.common.proofing.messages import ProofingMsg
 from eduid.webapp.common.proofing.methods import ProofingMethodSAML
 from eduid.webapp.common.proofing.saml_helpers import is_required_loa, is_valid_authn_instant
+from eduid.webapp.common.session.namespaces import RP_AuthnRequest, SP_AuthnRequest
 
 logger = logging.getLogger(__name__)
 
@@ -98,3 +101,93 @@ def run_verify_identity(
         return ACSResult(message=verify_result.error)
 
     return ACSResult(success=True, message=identity_verify_success_msg)
+
+
+def run_verify_credential(
+    user: User,
+    args: ACSArgs,
+    *,
+    common_saml_checks: Callable[[ACSArgs], ACSResult | None] | None,
+    get_proofing_functions: Callable[..., ProofingFunctions[Any]],
+    method_not_available_msg: TranslatableMsg,
+    credential_not_found_msg: TranslatableMsg,
+    identity_not_matching_msg: TranslatableMsg,
+    credential_verify_success_msg: TranslatableMsg,
+    app_name: str,
+    config: object,
+) -> ACSResult:
+    """Shared verify-credential action logic.
+
+    Verifies a user's FIDO credential using an external identity assertion.
+    If the user doesn't have a verified identity, it is verified first.
+    Uses ``proofing.get_current_loa()`` for LoA retrieval (works for both SAML and OIDC).
+
+    Pass ``None`` for ``common_saml_checks`` when the webapp is OIDC-based.
+    """
+    if not args.proofing_method:
+        return ACSResult(message=method_not_available_msg)
+
+    if common_saml_checks is not None:
+        if ret := common_saml_checks(args):
+            return ret
+
+    assert isinstance(args.authn_req, SP_AuthnRequest | RP_AuthnRequest)
+
+    credential = user.credentials.find(args.authn_req.proofing_credential_id)
+    if not isinstance(credential, FidoCredential):
+        logger.error(f"Credential {credential} is not a FidoCredential")
+        return ACSResult(message=credential_not_found_msg)
+
+    _need_reauthn = check_reauthn(
+        frontend_action=args.authn_req.frontend_action, user=user, credential_requested=credential
+    )
+    if _need_reauthn:
+        logger.error(f"User needs to authenticate: {_need_reauthn}")
+        return ACSResult(message=AuthnStatusMsg.must_authenticate)
+
+    parsed = args.proofing_method.parse_session_info(args.session_info, args.backdoor)
+    if parsed.error:
+        return ACSResult(message=parsed.error)
+
+    assert isinstance(parsed.info, BaseModel)
+
+    proofing = get_proofing_functions(
+        session_info=parsed.info, app_name=app_name, config=config, backdoor=args.backdoor
+    )
+
+    _identity = proofing.get_identity(user=user)
+    if not _identity or not _identity.is_verified:
+        verify_result = proofing.verify_identity(user=user)
+        if verify_result.error is not None:
+            return ACSResult(message=verify_result.error)
+        if verify_result.user:
+            user = verify_result.user
+            credential = user.credentials.find(credential.key)
+            if not isinstance(credential, FidoCredential):
+                logger.error(f"Credential {credential} is not a FidoCredential")
+                return ACSResult(message=credential_not_found_msg)
+
+    match_res = proofing.match_identity(user=user, proofing_method=args.proofing_method)
+    if match_res.error is not None:
+        return ACSResult(message=match_res.error)
+
+    if not match_res.matched:
+        from flask import current_app as flask_app
+
+        flask_app.stats.count(name=f"verify_credential_{args.proofing_method.method}_identity_not_matching")
+        return ACSResult(message=identity_not_matching_msg)
+
+    current_loa = proofing.get_current_loa()
+    if current_loa.error is not None:
+        return ACSResult(message=current_loa.error)
+
+    verify_result = proofing.verify_credential(user=user, credential=credential, loa=current_loa.result)
+    if verify_result.error is not None:
+        return ACSResult(message=verify_result.error)
+
+    from flask import current_app as flask_app
+
+    flask_app.stats.count(name="fido_token_verified")
+    flask_app.stats.count(name=f"verify_credential_{args.proofing_method.method}_success")
+
+    return ACSResult(success=True, message=credential_verify_success_msg)
