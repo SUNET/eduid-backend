@@ -10,9 +10,8 @@ from eduid.webapp.common.authn.acs_enums import BankIDAcsAction
 from eduid.webapp.common.authn.acs_registry import ACSArgs, ACSResult, acs_action
 from eduid.webapp.common.authn.utils import check_reauthn
 from eduid.webapp.common.proofing.messages import ProofingMsg
-from eduid.webapp.common.proofing.methods import ProofingMethodSAML
 from eduid.webapp.common.proofing.mfa_signup import MfaRegisterParsed, parse_mfa_register_args
-from eduid.webapp.common.proofing.saml_helpers import is_required_loa, is_valid_authn_instant
+from eduid.webapp.common.proofing.shared_actions import run_common_saml_checks
 from eduid.webapp.common.session import session
 from eduid.webapp.common.session.namespaces import ExternalMfaSignupIdentity, SP_AuthnRequest
 
@@ -22,23 +21,13 @@ from eduid.common.models.saml_models import BaseSessionInfo
 
 
 def common_saml_checks(args: ACSArgs) -> ACSResult | None:
-    """
-    Perform common checks for SAML ACS actions.
-    """
-    assert isinstance(args.proofing_method, ProofingMethodSAML)  # please mypy
-    if not is_required_loa(
-        args.session_info, args.proofing_method.required_loa, current_app.conf.loa_authn_context_map
-    ):
-        args.authn_req.error = True
-        args.authn_req.status = BankIDMsg.authn_context_mismatch.value
-        return ACSResult(message=BankIDMsg.authn_context_mismatch)
-
-    if not is_valid_authn_instant(args.session_info):
-        args.authn_req.error = True
-        args.authn_req.status = BankIDMsg.authn_instant_too_old.value
-        return ACSResult(message=BankIDMsg.authn_instant_too_old)
-
-    return None
+    """Perform common checks for SAML ACS actions."""
+    return run_common_saml_checks(
+        args,
+        authn_context_mismatch_msg=BankIDMsg.authn_context_mismatch,
+        authn_instant_too_old_msg=BankIDMsg.authn_instant_too_old,
+        loa_authn_context_map=current_app.conf.loa_authn_context_map,
+    )
 
 
 @acs_action(BankIDAcsAction.verify_identity)
