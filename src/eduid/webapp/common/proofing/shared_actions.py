@@ -5,8 +5,6 @@ Each webapp's action function becomes a thin wrapper that delegates to these hel
 passing in app-specific callables and message constants.
 """
 
-from __future__ import annotations
-
 import logging
 from collections.abc import Callable
 from typing import Any
@@ -15,6 +13,7 @@ from pydantic import BaseModel
 
 from eduid.userdb import User
 from eduid.userdb.credentials.fido import FidoCredential
+from eduid.webapp.common.api.app import EduIDBaseApp
 from eduid.webapp.common.api.messages import AuthnStatusMsg, TranslatableMsg
 from eduid.webapp.common.authn.acs_registry import ACSArgs, ACSResult
 from eduid.webapp.common.authn.utils import check_reauthn
@@ -66,8 +65,7 @@ def run_verify_identity(
     get_proofing_functions: Callable[..., ProofingFunctions[Any]],
     method_not_available_msg: TranslatableMsg,
     identity_verify_success_msg: TranslatableMsg,
-    app_name: str,
-    config: object,
+    app: EduIDBaseApp,
 ) -> ACSResult:
     """Shared verify-identity action logic.
 
@@ -87,7 +85,7 @@ def run_verify_identity(
     assert isinstance(parsed.info, BaseModel)
 
     proofing = get_proofing_functions(
-        session_info=parsed.info, app_name=app_name, config=config, backdoor=args.backdoor
+        session_info=parsed.info, app_name=app.name, config=app.config, backdoor=args.backdoor
     )
 
     current = proofing.get_identity(user)
@@ -113,8 +111,7 @@ def run_verify_credential(
     credential_not_found_msg: TranslatableMsg,
     identity_not_matching_msg: TranslatableMsg,
     credential_verify_success_msg: TranslatableMsg,
-    app_name: str,
-    config: object,
+    app: EduIDBaseApp,
 ) -> ACSResult:
     """Shared verify-credential action logic.
 
@@ -152,7 +149,7 @@ def run_verify_credential(
     assert isinstance(parsed.info, BaseModel)
 
     proofing = get_proofing_functions(
-        session_info=parsed.info, app_name=app_name, config=config, backdoor=args.backdoor
+        session_info=parsed.info, app_name=app.name, config=app.config, backdoor=args.backdoor
     )
 
     _identity = proofing.get_identity(user=user)
@@ -172,9 +169,7 @@ def run_verify_credential(
         return ACSResult(message=match_res.error)
 
     if not match_res.matched:
-        from flask import current_app as flask_app
-
-        flask_app.stats.count(name=f"verify_credential_{args.proofing_method.method}_identity_not_matching")  # type: ignore[attr-defined]
+        app.stats.count(name=f"verify_credential_{args.proofing_method.method}_identity_not_matching")
         return ACSResult(message=identity_not_matching_msg)
 
     current_loa = proofing.get_current_loa()
@@ -185,10 +180,8 @@ def run_verify_credential(
     if verify_result.error is not None:
         return ACSResult(message=verify_result.error)
 
-    from flask import current_app as flask_app
-
-    flask_app.stats.count(name="fido_token_verified")  # type: ignore[attr-defined]
-    flask_app.stats.count(name=f"verify_credential_{args.proofing_method.method}_success")  # type: ignore[attr-defined]
+    app.stats.count(name="fido_token_verified")
+    app.stats.count(name=f"verify_credential_{args.proofing_method.method}_success")
 
     return ACSResult(success=True, message=credential_verify_success_msg)
 
@@ -202,8 +195,7 @@ def run_mfa_authenticate(
     method_not_available_msg: TranslatableMsg,
     identity_not_matching_msg: TranslatableMsg,
     mfa_authn_success_msg: TranslatableMsg,
-    app_name: str,
-    config: object,
+    app: EduIDBaseApp,
 ) -> ACSResult:
     """Shared MFA authentication action logic.
 
@@ -229,7 +221,7 @@ def run_mfa_authenticate(
     assert isinstance(parsed.info, BaseModel)
 
     proofing = get_proofing_functions(
-        session_info=parsed.info, app_name=app_name, config=config, backdoor=args.backdoor
+        session_info=parsed.info, app_name=app.name, config=app.config, backdoor=args.backdoor
     )
 
     match_res = proofing.match_identity(user=user, proofing_method=args.proofing_method)
@@ -238,13 +230,9 @@ def run_mfa_authenticate(
         return ACSResult(message=match_res.error)
 
     if not match_res.matched:
-        from flask import current_app as flask_app
-
-        flask_app.stats.count(name=f"mfa_auth_{args.proofing_method.method}_identity_not_matching")  # type: ignore[attr-defined]
+        app.stats.count(name=f"mfa_auth_{args.proofing_method.method}_identity_not_matching")
         return ACSResult(message=identity_not_matching_msg)
 
-    from flask import current_app as flask_app
-
-    flask_app.stats.count(name="mfa_auth_success")  # type: ignore[attr-defined]
-    flask_app.stats.count(name=f"mfa_auth_{args.proofing_method.method}_success")  # type: ignore[attr-defined]
+    app.stats.count(name="mfa_auth_success")
+    app.stats.count(name=f"mfa_auth_{args.proofing_method.method}_success")
     return ACSResult(success=True, message=mfa_authn_success_msg)

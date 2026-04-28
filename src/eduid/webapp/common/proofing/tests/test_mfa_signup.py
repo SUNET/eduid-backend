@@ -5,14 +5,23 @@ These tests exercise each early-return branch plus the happy path using lightwei
 stand-ins — no Flask app is spun up.
 """
 
+from typing import cast
 from unittest.mock import MagicMock
+
+import pytest
 
 from eduid.common.models.saml_models import BaseSessionInfo
 from eduid.userdb.credentials.external import TrustFramework
+from eduid.webapp.common.api.app import EduIDBaseApp
 from eduid.webapp.common.authn.acs_registry import ACSArgs, ACSResult
 from eduid.webapp.common.proofing.base import GenericResult
 from eduid.webapp.common.proofing.messages import ProofingMsg
 from eduid.webapp.common.proofing.mfa_signup import MfaRegisterParsed, parse_mfa_register_args
+
+
+@pytest.fixture
+def app() -> EduIDBaseApp:
+    return cast(EduIDBaseApp, MagicMock())
 
 
 def _make_args(proofing_method: object = None) -> ACSArgs:
@@ -22,7 +31,7 @@ def _make_args(proofing_method: object = None) -> ACSArgs:
     args.backdoor = False
     args.session_info = MagicMock()
     args.authn_req = MagicMock()
-    return args
+    return cast(ACSArgs, args)
 
 
 def _make_proofing_method(framework: TrustFramework = TrustFramework.BANKID) -> MagicMock:
@@ -31,7 +40,7 @@ def _make_proofing_method(framework: TrustFramework = TrustFramework.BANKID) -> 
     return pm
 
 
-def test_returns_method_not_available_when_no_proofing_method() -> None:
+def test_returns_method_not_available_when_no_proofing_method(app: EduIDBaseApp) -> None:
     """args.proofing_method is None → helper returns ACSResult with the given message."""
     args = _make_args(proofing_method=None)
     sentinel_msg = ProofingMsg.attribute_missing
@@ -41,15 +50,14 @@ def test_returns_method_not_available_when_no_proofing_method() -> None:
         common_saml_checks=MagicMock(return_value=None),
         get_proofing_functions=MagicMock(),
         method_not_available_msg=sentinel_msg,
-        app_name="test",
-        config=MagicMock(),
+        app=app,
     )
 
     assert isinstance(result, ACSResult)
     assert result.message is sentinel_msg
 
 
-def test_returns_early_on_common_saml_checks_failure() -> None:
+def test_returns_early_on_common_saml_checks_failure(app: EduIDBaseApp) -> None:
     """common_saml_checks returns a non-None ACSResult → helper returns the same result."""
     args = _make_args(proofing_method=_make_proofing_method())
     saml_error = ACSResult(message=ProofingMsg.attribute_missing)
@@ -59,14 +67,13 @@ def test_returns_early_on_common_saml_checks_failure() -> None:
         common_saml_checks=MagicMock(return_value=saml_error),
         get_proofing_functions=MagicMock(),
         method_not_available_msg=ProofingMsg.malformed_identity,
-        app_name="test",
-        config=MagicMock(),
+        app=app,
     )
 
     assert result is saml_error
 
 
-def test_returns_parse_error() -> None:
+def test_returns_parse_error(app: EduIDBaseApp) -> None:
     """parse_session_info returns a result with non-None error → helper returns ACSResult with that error."""
     pm = _make_proofing_method()
     pm.parse_session_info.return_value = MagicMock(error=ProofingMsg.attribute_missing, info=None)
@@ -78,15 +85,14 @@ def test_returns_parse_error() -> None:
         common_saml_checks=MagicMock(return_value=None),
         get_proofing_functions=MagicMock(),
         method_not_available_msg=ProofingMsg.malformed_identity,
-        app_name="test",
-        config=MagicMock(),
+        app=app,
     )
 
     assert isinstance(result, ACSResult)
     assert result.message is ProofingMsg.attribute_missing
 
 
-def test_happy_path_returns_parsed() -> None:
+def test_happy_path_returns_parsed(app: EduIDBaseApp) -> None:
     """All steps succeed → helper returns MfaRegisterParsed with session_info, framework, loa."""
     fake_session_info = MagicMock(spec=BaseSessionInfo)
     pm = _make_proofing_method(framework=TrustFramework.EIDAS)
@@ -103,8 +109,7 @@ def test_happy_path_returns_parsed() -> None:
         common_saml_checks=MagicMock(return_value=None),
         get_proofing_functions=get_proofing_functions,
         method_not_available_msg=ProofingMsg.malformed_identity,
-        app_name="myapp",
-        config=object(),
+        app=app,
     )
 
     assert isinstance(result, MfaRegisterParsed)
@@ -113,7 +118,7 @@ def test_happy_path_returns_parsed() -> None:
     assert result.loa == "loa3"
 
 
-def test_returns_method_not_available_when_loa_missing() -> None:
+def test_returns_method_not_available_when_loa_missing(app: EduIDBaseApp) -> None:
     """get_current_loa returns result=None with no error → helper refuses with method_not_available_msg."""
     fake_session_info = MagicMock(spec=BaseSessionInfo)
     pm = _make_proofing_method(framework=TrustFramework.EIDAS)
@@ -131,15 +136,14 @@ def test_returns_method_not_available_when_loa_missing() -> None:
         common_saml_checks=MagicMock(return_value=None),
         get_proofing_functions=get_proofing_functions,
         method_not_available_msg=sentinel_msg,
-        app_name="myapp",
-        config=object(),
+        app=app,
     )
 
     assert isinstance(result, ACSResult)
     assert result.message is sentinel_msg
 
 
-def test_returns_method_not_available_when_loa_empty_string() -> None:
+def test_returns_method_not_available_when_loa_empty_string(app: EduIDBaseApp) -> None:
     """get_current_loa returns result='' with no error → helper refuses rather than persist empty LoA."""
     fake_session_info = MagicMock(spec=BaseSessionInfo)
     pm = _make_proofing_method(framework=TrustFramework.EIDAS)
@@ -157,15 +161,14 @@ def test_returns_method_not_available_when_loa_empty_string() -> None:
         common_saml_checks=MagicMock(return_value=None),
         get_proofing_functions=get_proofing_functions,
         method_not_available_msg=sentinel_msg,
-        app_name="myapp",
-        config=object(),
+        app=app,
     )
 
     assert isinstance(result, ACSResult)
     assert result.message is sentinel_msg
 
 
-def test_common_saml_checks_none_skips_saml_checks() -> None:
+def test_common_saml_checks_none_skips_saml_checks(app: EduIDBaseApp) -> None:
     """Passing common_saml_checks=None skips SAML checks (OIDC webapps have no SAML-level checks)."""
     fake_session_info = MagicMock(spec=BaseSessionInfo)
     pm = _make_proofing_method(framework=TrustFramework.FREJA)
@@ -182,8 +185,7 @@ def test_common_saml_checks_none_skips_saml_checks() -> None:
         common_saml_checks=None,  # OIDC — no SAML-level checks
         get_proofing_functions=get_proofing_functions,
         method_not_available_msg=ProofingMsg.malformed_identity,
-        app_name="freja_eid",
-        config=object(),
+        app=app,
     )
 
     assert isinstance(result, MfaRegisterParsed)

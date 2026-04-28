@@ -13,6 +13,7 @@ from typing import Any
 
 from eduid.userdb.credentials.external import TrustFramework
 from eduid.webapp.bankid.saml_session_info import BankIDSessionInfo
+from eduid.webapp.common.api.app import EduIDBaseApp
 from eduid.webapp.common.api.messages import TranslatableMsg
 from eduid.webapp.common.authn.acs_registry import ACSArgs, ACSResult
 from eduid.webapp.common.proofing.base import ProofingFunctions
@@ -38,8 +39,7 @@ def parse_mfa_register_args(
     common_saml_checks: Callable[[ACSArgs], ACSResult | None] | None,
     get_proofing_functions: Callable[..., ProofingFunctions[Any]],
     method_not_available_msg: TranslatableMsg,
-    app_name: str,
-    config: object,
+    app: EduIDBaseApp,
 ) -> MfaRegisterParsed | ACSResult:
     """Run the common validation pipeline for a signup-flow external MFA ACS callback.
 
@@ -71,8 +71,8 @@ def parse_mfa_register_args(
 
     proofing = get_proofing_functions(
         session_info=parsed.info,
-        app_name=app_name,
-        config=config,
+        app_name=app.name,
+        config=app.config,
         backdoor=args.backdoor,
     )
     current_loa = proofing.get_current_loa()

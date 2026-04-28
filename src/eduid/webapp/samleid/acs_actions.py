@@ -58,8 +58,7 @@ def samleid_verify_identity_action(user: User, args: ACSArgs) -> ACSResult:
         get_proofing_functions=get_proofing_functions,
         method_not_available_msg=SamlEidMsg.method_not_available,
         identity_verify_success_msg=SamlEidMsg.identity_verify_success,
-        app_name=current_app.conf.app_name,
-        config=current_app.conf,
+        app=current_app,
     )
 
 
@@ -91,8 +90,7 @@ def samleid_verify_credential_action(user: User, args: ACSArgs) -> ACSResult:
         credential_not_found_msg=SamlEidMsg.credential_not_found,
         identity_not_matching_msg=SamlEidMsg.identity_not_matching,
         credential_verify_success_msg=SamlEidMsg.credential_verify_success,
-        app_name=current_app.conf.app_name,
-        config=current_app.conf,
+        app=current_app,
     )
 
 
@@ -121,8 +119,7 @@ def samleid_mfa_authenticate_action(args: ACSArgs) -> ACSResult:
         method_not_available_msg=SamlEidMsg.method_not_available,
         identity_not_matching_msg=SamlEidMsg.identity_not_matching,
         mfa_authn_success_msg=SamlEidMsg.mfa_authn_success,
-        app_name=current_app.conf.app_name,
-        config=current_app.conf,
+        app=current_app,
     )
     if result.success:
         assert args.proofing_method is not None
@@ -141,8 +138,7 @@ def samleid_mfa_register_action(args: ACSArgs) -> ACSResult:
         common_saml_checks=common_saml_checks,
         get_proofing_functions=get_proofing_functions,
         method_not_available_msg=SamlEidMsg.method_not_available,
-        app_name=current_app.conf.app_name,
-        config=current_app.conf,
+        app=current_app,
     )
     if isinstance(parsed, ACSResult):
         return parsed

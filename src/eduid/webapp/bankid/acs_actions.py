@@ -42,8 +42,7 @@ def verify_identity_action(user: User, args: ACSArgs) -> ACSResult:
         get_proofing_functions=get_proofing_functions,
         method_not_available_msg=BankIDMsg.method_not_available,
         identity_verify_success_msg=BankIDMsg.identity_verify_success,
-        app_name=current_app.conf.app_name,
-        config=current_app.conf,
+        app=current_app,
     )
 
 
@@ -60,8 +59,7 @@ def verify_credential_action(user: User, args: ACSArgs) -> ACSResult:
         credential_not_found_msg=BankIDMsg.credential_not_found,
         identity_not_matching_msg=BankIDMsg.identity_not_matching,
         credential_verify_success_msg=BankIDMsg.credential_verify_success,
-        app_name=current_app.conf.app_name,
-        config=current_app.conf,
+        app=current_app,
     )
 
 
@@ -76,8 +74,7 @@ def mfa_authenticate_action(args: ACSArgs) -> ACSResult:
         method_not_available_msg=BankIDMsg.method_not_available,
         identity_not_matching_msg=BankIDMsg.identity_not_matching,
         mfa_authn_success_msg=BankIDMsg.mfa_authn_success,
-        app_name=current_app.conf.app_name,
-        config=current_app.conf,
+        app=current_app,
     )
     if result.success:
         assert args.proofing_method is not None
@@ -99,8 +96,7 @@ def mfa_register_action(args: ACSArgs) -> ACSResult:
         common_saml_checks=common_saml_checks,
         get_proofing_functions=get_proofing_functions,
         method_not_available_msg=BankIDMsg.method_not_available,
-        app_name=current_app.conf.app_name,
-        config=current_app.conf,
+        app=current_app,
     )
     if isinstance(parsed, ACSResult):
         return parsed

@@ -43,8 +43,7 @@ def verify_identity_action(user: User, args: ACSArgs) -> ACSResult:
         get_proofing_functions=get_proofing_functions,
         method_not_available_msg=EidasMsg.method_not_available,
         identity_verify_success_msg=EidasMsg.identity_verify_success,
-        app_name=current_app.conf.app_name,
-        config=current_app.conf,
+        app=current_app,
     )
 
 
@@ -61,8 +60,7 @@ def verify_credential_action(user: User, args: ACSArgs) -> ACSResult:
         credential_not_found_msg=EidasMsg.credential_not_found,
         identity_not_matching_msg=EidasMsg.identity_not_matching,
         credential_verify_success_msg=EidasMsg.credential_verify_success,
-        app_name=current_app.conf.app_name,
-        config=current_app.conf,
+        app=current_app,
     )
 
 
@@ -77,8 +75,7 @@ def mfa_authenticate_action(args: ACSArgs) -> ACSResult:
         method_not_available_msg=EidasMsg.method_not_available,
         identity_not_matching_msg=EidasMsg.identity_not_matching,
         mfa_authn_success_msg=EidasMsg.mfa_authn_success,
-        app_name=current_app.conf.app_name,
-        config=current_app.conf,
+        app=current_app,
     )
     if result.success:
         assert args.proofing_method is not None
@@ -101,8 +98,7 @@ def mfa_register_action(args: ACSArgs) -> ACSResult:
         common_saml_checks=common_saml_checks,
         get_proofing_functions=get_proofing_functions,
         method_not_available_msg=EidasMsg.method_not_available,
-        app_name=current_app.conf.app_name,
-        config=current_app.conf,
+        app=current_app,
     )
     if isinstance(parsed, ACSResult):
         return parsed
