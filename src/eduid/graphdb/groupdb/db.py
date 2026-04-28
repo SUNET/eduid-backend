@@ -97,9 +97,7 @@ class GroupDB(BaseGraphDB):
             version=version,
             display_name=group.display_name,
             new_version=new_version,
-        ).single()
-        if res is None:
-            raise RuntimeError("group update query returned no record")
+        ).single(strict=True)
         return self._load_group(res.data()["group"])
 
     def _add_or_update_users_and_groups(
@@ -374,9 +372,7 @@ class GroupDB(BaseGraphDB):
             RETURN count(*) as exists LIMIT 1
             """
         with self.db.driver.session(default_access_mode=READ_ACCESS) as session:
-            single_value = session.run(q, scope=self.scope, identifier=identifier).single()
-            if single_value is None:
-                raise RuntimeError("group_exists query returned no record")
+            single_value = session.run(q, scope=self.scope, identifier=identifier).single(strict=True)
             ret = single_value["exists"]
         return bool(ret)
 
