@@ -100,7 +100,7 @@ def compile_credential_list(user: User) -> list[CredentialInfo]:
     """
     credentials: list[CredentialInfo] = []
     authn_info = current_app.authninfo_db.get_authn_info(user)
-    latest_authn = session.authn.sp.get_latest_authn()
+    latest_authn = session.authn.sp.get_latest_authn(completed_only=True)
     for cred_key, authn in authn_info.items():
         cred = user.credentials.find(cred_key)
         # pick up attributes not present on all types of credentials
