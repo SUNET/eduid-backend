@@ -8,9 +8,8 @@ from eduid.webapp.common.api.messages import AuthnStatusMsg
 from eduid.webapp.common.authn.acs_enums import SamlEidAcsAction
 from eduid.webapp.common.authn.acs_registry import ACSArgs, ACSResult, acs_action
 from eduid.webapp.common.authn.utils import check_reauthn
-from eduid.webapp.common.proofing.messages import ProofingMsg
 from eduid.webapp.common.proofing.mfa_signup import MfaRegisterParsed, parse_mfa_register_args
-from eduid.webapp.common.proofing.shared_actions import run_common_saml_checks
+from eduid.webapp.common.proofing.shared_actions import run_common_saml_checks, run_verify_identity
 from eduid.webapp.common.session import session
 from eduid.webapp.common.session.namespaces import ExternalMfaSignupIdentity, SP_AuthnRequest
 from eduid.webapp.samleid.app import current_samleid_app as current_app
@@ -50,36 +49,16 @@ def samleid_verify_identity_action(user: User, args: ACSArgs) -> ACSResult:
 
     :returns: ACS action result
     """
-    # please type checking
-    if not args.proofing_method:
-        return ACSResult(message=SamlEidMsg.method_not_available)
-
-    # validate the assertion data
-    if ret := common_saml_checks(args=args):
-        return ret
-
-    parsed = args.proofing_method.parse_session_info(args.session_info, backdoor=args.backdoor)
-    if parsed.error:
-        return ACSResult(message=parsed.error)
-
-    # please type checking
-    assert isinstance(parsed.info, BaseSessionInfo)
-
-    proofing = get_proofing_functions(
-        session_info=parsed.info, app_name=current_app.conf.app_name, config=current_app.conf, backdoor=args.backdoor
+    return run_verify_identity(
+        user,
+        args,
+        common_saml_checks=common_saml_checks,
+        get_proofing_functions=get_proofing_functions,
+        method_not_available_msg=SamlEidMsg.method_not_available,
+        identity_verify_success_msg=SamlEidMsg.identity_verify_success,
+        app_name=current_app.conf.app_name,
+        config=current_app.conf,
     )
-
-    current = proofing.get_identity(user)
-    if current and current.is_verified:
-        current_app.logger.error(f"User already has a verified identity for {args.proofing_method.method}")
-        current_app.logger.debug(f"Current: {current}. Assertion: {args.session_info}")
-        return ACSResult(message=ProofingMsg.identity_already_verified)
-
-    verify_result = proofing.verify_identity(user=user)
-    if verify_result.error is not None:
-        return ACSResult(message=verify_result.error)
-
-    return ACSResult(success=True, message=SamlEidMsg.identity_verify_success)
 
 
 @acs_action(SamlEidAcsAction.verify_credential)
