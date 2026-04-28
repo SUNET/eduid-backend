@@ -191,3 +191,60 @@ def run_verify_credential(
     flask_app.stats.count(name=f"verify_credential_{args.proofing_method.method}_success")
 
     return ACSResult(success=True, message=credential_verify_success_msg)
+
+
+def run_mfa_authenticate(
+    args: ACSArgs,
+    *,
+    common_saml_checks: Callable[[ACSArgs], ACSResult | None] | None,
+    get_proofing_functions: Callable[..., ProofingFunctions[Any]],
+    get_user: Callable[[], Any],
+    method_not_available_msg: TranslatableMsg,
+    identity_not_matching_msg: TranslatableMsg,
+    mfa_authn_success_msg: TranslatableMsg,
+    app_name: str,
+    config: object,
+) -> ACSResult:
+    """Shared MFA authentication action logic.
+
+    Emits ``mfa_auth_success`` and ``mfa_auth_{method}_success`` stats on success.
+    The issuer-specific stat (``mfa_auth_{issuer}_success``) must be emitted by the
+    caller since the issuer source is protocol-specific (SAML issuer vs OIDC static).
+
+    :param get_user: Callable returning the user (typically from session.mfa_action.eppn).
+    """
+    if not args.proofing_method:
+        return ACSResult(message=method_not_available_msg)
+
+    if common_saml_checks is not None:
+        if ret := common_saml_checks(args):
+            return ret
+
+    user = get_user()
+
+    parsed = args.proofing_method.parse_session_info(args.session_info, backdoor=args.backdoor)
+    if parsed.error:
+        return ACSResult(message=parsed.error)
+
+    assert isinstance(parsed.info, BaseModel)
+
+    proofing = get_proofing_functions(
+        session_info=parsed.info, app_name=app_name, config=config, backdoor=args.backdoor
+    )
+
+    match_res = proofing.match_identity(user=user, proofing_method=args.proofing_method)
+    logger.debug(f"MFA authentication identity matching result: {match_res}")
+    if match_res.error is not None:
+        return ACSResult(message=match_res.error)
+
+    if not match_res.matched:
+        from flask import current_app as flask_app
+
+        flask_app.stats.count(name=f"mfa_auth_{args.proofing_method.method}_identity_not_matching")
+        return ACSResult(message=identity_not_matching_msg)
+
+    from flask import current_app as flask_app
+
+    flask_app.stats.count(name="mfa_auth_success")
+    flask_app.stats.count(name=f"mfa_auth_{args.proofing_method.method}_success")
+    return ACSResult(success=True, message=mfa_authn_success_msg)

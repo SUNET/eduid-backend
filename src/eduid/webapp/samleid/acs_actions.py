@@ -8,6 +8,7 @@ from eduid.webapp.common.authn.acs_registry import ACSArgs, ACSResult, acs_actio
 from eduid.webapp.common.proofing.mfa_signup import MfaRegisterParsed, parse_mfa_register_args
 from eduid.webapp.common.proofing.shared_actions import (
     run_common_saml_checks,
+    run_mfa_authenticate,
     run_verify_credential,
     run_verify_identity,
 )
@@ -112,44 +113,23 @@ def samleid_mfa_authenticate_action(args: ACSArgs) -> ACSResult:
 
     :returns: ACS action result
     """
-    # please type checking
-    if not args.proofing_method:
-        return ACSResult(message=SamlEidMsg.method_not_available)
-
-    # validate the assertion data
-    if ret := common_saml_checks(args=args):
-        return ret
-
-    # Get user from central database
-    current_app.logger.debug(f"{session.mfa_action=}")
-    user = current_app.central_userdb.get_user_by_eppn(session.mfa_action.eppn)
-
-    parsed = args.proofing_method.parse_session_info(args.session_info, backdoor=args.backdoor)
-    if parsed.error:
-        return ACSResult(message=parsed.error)
-
-    # please type checking
-    assert isinstance(parsed.info, BaseSessionInfo)
-
-    proofing = get_proofing_functions(
-        session_info=parsed.info, app_name=current_app.conf.app_name, config=current_app.conf, backdoor=args.backdoor
+    result = run_mfa_authenticate(
+        args,
+        common_saml_checks=common_saml_checks,
+        get_proofing_functions=get_proofing_functions,
+        get_user=lambda: current_app.central_userdb.get_user_by_eppn(session.mfa_action.eppn),
+        method_not_available_msg=SamlEidMsg.method_not_available,
+        identity_not_matching_msg=SamlEidMsg.identity_not_matching,
+        mfa_authn_success_msg=SamlEidMsg.mfa_authn_success,
+        app_name=current_app.conf.app_name,
+        config=current_app.conf,
     )
-
-    # Check that a verified identity is equal to the asserted identity
-    match_res = proofing.match_identity(user=user, proofing_method=args.proofing_method)
-    current_app.logger.debug(f"MFA authentication identity matching result: {match_res}")
-    if match_res.error is not None:
-        return ACSResult(message=match_res.error)
-
-    if not match_res.matched:
-        # Matching external mfa authentication with user identity failed, bail
-        current_app.stats.count(name=f"mfa_auth_{args.proofing_method.method}_identity_not_matching")
-        return ACSResult(message=SamlEidMsg.identity_not_matching)
-
-    current_app.stats.count(name="mfa_auth_success")
-    current_app.stats.count(name=f"mfa_auth_{args.proofing_method.method}_success")
-    current_app.stats.count(name=f"mfa_auth_{parsed.info.issuer}_success")
-    return ACSResult(success=True, message=SamlEidMsg.mfa_authn_success)
+    if result.success:
+        assert args.proofing_method is not None
+        parsed = args.proofing_method.parse_session_info(args.session_info, backdoor=args.backdoor)
+        assert isinstance(parsed.info, BaseSessionInfo)
+        current_app.stats.count(name=f"mfa_auth_{parsed.info.issuer}_success")
+    return result
 
 
 @acs_action(SamlEidAcsAction.mfa_register)
