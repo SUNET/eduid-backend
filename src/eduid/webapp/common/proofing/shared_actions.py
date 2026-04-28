@@ -174,7 +174,7 @@ def run_verify_credential(
     if not match_res.matched:
         from flask import current_app as flask_app
 
-        flask_app.stats.count(name=f"verify_credential_{args.proofing_method.method}_identity_not_matching")
+        flask_app.stats.count(name=f"verify_credential_{args.proofing_method.method}_identity_not_matching")  # type: ignore[attr-defined]
         return ACSResult(message=identity_not_matching_msg)
 
     current_loa = proofing.get_current_loa()
@@ -187,8 +187,8 @@ def run_verify_credential(
 
     from flask import current_app as flask_app
 
-    flask_app.stats.count(name="fido_token_verified")
-    flask_app.stats.count(name=f"verify_credential_{args.proofing_method.method}_success")
+    flask_app.stats.count(name="fido_token_verified")  # type: ignore[attr-defined]
+    flask_app.stats.count(name=f"verify_credential_{args.proofing_method.method}_success")  # type: ignore[attr-defined]
 
     return ACSResult(success=True, message=credential_verify_success_msg)
 
@@ -240,11 +240,11 @@ def run_mfa_authenticate(
     if not match_res.matched:
         from flask import current_app as flask_app
 
-        flask_app.stats.count(name=f"mfa_auth_{args.proofing_method.method}_identity_not_matching")
+        flask_app.stats.count(name=f"mfa_auth_{args.proofing_method.method}_identity_not_matching")  # type: ignore[attr-defined]
         return ACSResult(message=identity_not_matching_msg)
 
     from flask import current_app as flask_app
 
-    flask_app.stats.count(name="mfa_auth_success")
-    flask_app.stats.count(name=f"mfa_auth_{args.proofing_method.method}_success")
+    flask_app.stats.count(name="mfa_auth_success")  # type: ignore[attr-defined]
+    flask_app.stats.count(name=f"mfa_auth_{args.proofing_method.method}_success")  # type: ignore[attr-defined]
     return ACSResult(success=True, message=mfa_authn_success_msg)

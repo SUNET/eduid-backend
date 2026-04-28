@@ -2,6 +2,7 @@ from datetime import UTC, datetime
 
 from eduid.common.models.saml_models import BaseSessionInfo
 from eduid.userdb import User
+from eduid.userdb.identity import nin_to_date_of_birth
 from eduid.webapp.common.api.decorators import require_user
 from eduid.webapp.common.authn.acs_enums import SamlEidAcsAction
 from eduid.webapp.common.authn.acs_registry import ACSArgs, ACSResult, acs_action
@@ -178,6 +179,7 @@ def samleid_mfa_register_action(args: ACSArgs) -> ACSResult:
             args.authn_req.external_mfa_signup_identity = ExternalMfaSignupIdentity(
                 given_name=parsed.session_info.attributes.given_name,
                 surname=parsed.session_info.attributes.surname,
+                date_of_birth=nin_to_date_of_birth(nin),
                 nin=nin,
                 framework=parsed.framework,
                 loa=parsed.loa,
