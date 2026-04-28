@@ -75,6 +75,8 @@ remain the install artifacts used by CI and local setup, while `requirements/*.i
 ### Dependency Updates
 
 Dependency changes should be made in [pyproject.toml](pyproject.toml), not in files under `requirements/`.
+If the project must use an exact version or a custom local build, pin that exact requirement directly in
+[pyproject.toml](pyproject.toml).
 
 ```bash
 make update_deps
@@ -323,6 +325,9 @@ make typecheck  # Verify type correctness
 ```
 
 ## Commit Message Convention
+
+Must create signed commits.
+If commit signing fails, fix the signing issue and try again with signing enabled rather than falling back to an unsigned commit.
 
 Should use [Conventional Commits](https://www.conventionalcommits.org/) for commit messages:
 ```

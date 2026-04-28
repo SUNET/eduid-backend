@@ -1,10 +1,11 @@
 [build-system]
-requires = ["setuptools>=77"]
+requires = ["setuptools>=77"] # Conservative baseline for isolated setuptools builds from pyproject.toml
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "eduid-backend"
 version = "0.0.0"
+license = { file = "LICENSE" }
 requires-python = ">=3.13"
 dependencies = [
   "Babel",
@@ -42,7 +43,7 @@ dependencies = [
   "pyXMLSecurity[PKCS11]",
   "pydantic",
   "pymongo",
-  "pysaml2",
+  "pysaml2==7.5.2+sunet4",
   "pysmscom",
   "python-dateutil",
   "python-jose",
