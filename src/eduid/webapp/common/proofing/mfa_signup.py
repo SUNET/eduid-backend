@@ -6,23 +6,28 @@ Each webapp's handler handles identity-field extraction for its own session-info
 subclasses; this helper handles the validation boilerplate that every handler needs.
 """
 
+import logging
 from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any
 
-from pydantic import BaseModel
-
 from eduid.userdb.credentials.external import TrustFramework
+from eduid.webapp.bankid.saml_session_info import BankIDSessionInfo
 from eduid.webapp.common.api.messages import TranslatableMsg
 from eduid.webapp.common.authn.acs_registry import ACSArgs, ACSResult
 from eduid.webapp.common.proofing.base import ProofingFunctions
+from eduid.webapp.eidas.saml_session_info import ForeignEidSessionInfo, NinSessionInfo
+from eduid.webapp.freja_eid.helpers import FrejaEIDDocumentUserInfo
+from eduid.webapp.svipe_id.helpers import SvipeDocumentUserInfo
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
 class MfaRegisterParsed:
-    # Concrete type is one of: NinSessionInfo, ForeignEidSessionInfo, BankIDSessionInfo (SAML-based),
-    # or FrejaEIDDocumentUserInfo, SvipeDocumentUserInfo (OIDC-based). All are Pydantic BaseModel subclasses.
-    session_info: BaseModel
+    session_info: (
+        NinSessionInfo | ForeignEidSessionInfo | BankIDSessionInfo | FrejaEIDDocumentUserInfo | SvipeDocumentUserInfo
+    )
     framework: TrustFramework
     loa: str
 
@@ -48,6 +53,7 @@ def parse_mfa_register_args(
     (no SAML-level checks to run).
     """
     if not args.proofing_method:
+        logger.error("No proofing method specified.")
         return ACSResult(message=method_not_available_msg)
 
     if common_saml_checks is not None:
@@ -56,11 +62,12 @@ def parse_mfa_register_args(
 
     parsed = args.proofing_method.parse_session_info(args.session_info, backdoor=args.backdoor)
     if parsed.error:
+        logger.error(f"Parsing error for {args.proofing_method.method}: {parsed.error}")
         return ACSResult(message=parsed.error)
 
-    # After error check, parsed.info is a concrete session-info instance (a Pydantic BaseModel subclass).
-    # The SessionInfoParseResult union is wide (includes None), so we narrow here to satisfy mypy.
-    assert isinstance(parsed.info, BaseModel)
+    if parsed.info is None:
+        logger.error("No session info.")
+        return ACSResult(message=method_not_available_msg)
 
     proofing = get_proofing_functions(
         session_info=parsed.info,
@@ -70,10 +77,10 @@ def parse_mfa_register_args(
     )
     current_loa = proofing.get_current_loa()
     if current_loa.error is not None:
+        logger.error(f"Proofing error for {args.proofing_method.method}: {current_loa.error}")
         return ACSResult(message=current_loa.error)
     if not current_loa.result:
-        # No error but missing/empty LoA (e.g. authn_context absent or unmapped).
-        # Refuse rather than persist an empty LoA on the signup identity.
+        logger.error(f"No LOA result for {args.proofing_method.method}.")
         return ACSResult(message=method_not_available_msg)
 
     return MfaRegisterParsed(
