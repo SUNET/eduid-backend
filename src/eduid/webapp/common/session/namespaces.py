@@ -4,7 +4,7 @@ import logging
 from abc import ABC
 from collections.abc import Mapping
 from copy import deepcopy
-from datetime import date, datetime
+from datetime import datetime
 from enum import StrEnum, unique
 from typing import Any, NewType, Self, cast
 
@@ -191,7 +191,7 @@ class SignupExternalMfa(BaseModel):
     loa: str
     given_name: str
     surname: str
-    date_of_birth: date
+    date_of_birth: datetime | None = None
     # authn_instant of the underlying external authn — used to re-check freshness
     # at /create-user time so a stale authn can't be used to finish signup.
     authn_instant: datetime

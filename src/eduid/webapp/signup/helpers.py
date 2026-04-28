@@ -303,7 +303,7 @@ def create_and_sync_user(
             signup_user.identities.add(
                 NinIdentity(
                     number=external_mfa.nin,
-                    date_of_birth=datetime.combine(external_mfa.date_of_birth, datetime.min.time()),
+                    date_of_birth=external_mfa.date_of_birth,
                     created_by=current_app.conf.app_name,
                     is_verified=True,
                     verified_by=current_app.conf.app_name,
@@ -318,8 +318,8 @@ def create_and_sync_user(
                     prid=external_mfa.eidas_prid,
                     prid_persistence=external_mfa.eidas_prid_persistence or PridPersistence.A,
                     loa=EIDASLoa(external_mfa.loa),
-                    date_of_birth=datetime.combine(external_mfa.date_of_birth, datetime.min.time()),
                     country_code=external_mfa.country_code or "",
+                    date_of_birth=external_mfa.date_of_birth,
                     created_by=current_app.conf.app_name,
                     is_verified=True,
                     verified_by=current_app.conf.app_name,
@@ -334,8 +334,7 @@ def create_and_sync_user(
             signup_user.identities.add(
                 FrejaIdentity(
                     user_id=external_mfa.freja_user_id,
-                    country_code=external_mfa.country_code or "",
-                    date_of_birth=datetime.combine(external_mfa.date_of_birth, datetime.min.time()),
+                    date_of_birth=external_mfa.date_of_birth,
                     personal_identity_number=None,
                     registration_level=external_mfa.freja_registration_level,
                     loa_level=external_mfa.freja_loa_level,
@@ -694,8 +693,8 @@ def _write_credential_verification_proofing_log(signup_user: SignupUser, externa
             proofing_version=version,
             given_name=external_mfa.given_name,
             surname=external_mfa.surname,
-            date_of_birth=external_mfa.date_of_birth.isoformat(),
             country_code=external_mfa.country_code or "",
+            date_of_birth=external_mfa.date_of_birth,
         )
     else:
         current_app.logger.error(
@@ -742,8 +741,8 @@ def _write_external_mfa_proofing_log(signup_user: SignupUser, external_mfa: Sign
             proofing_version=version,
             given_name=external_mfa.given_name,
             surname=external_mfa.surname,
-            date_of_birth=external_mfa.date_of_birth.isoformat(),
             country_code=external_mfa.country_code or "",
+            date_of_birth=external_mfa.date_of_birth,
         )
     else:
         current_app.logger.error(
