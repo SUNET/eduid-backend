@@ -71,12 +71,19 @@ Tool configuration is centralized in [pyproject.toml](pyproject.toml) for Ruff, 
 
 Dependency metadata is also centralized in [pyproject.toml](pyproject.toml). The generated lockfiles in `requirements/*.txt`
 remain the install artifacts used by CI and local setup, while `requirements/*.in` has been removed.
+It will never be necessary to build a package out of this repo; [pyproject.toml](pyproject.toml) is used here as the
+source of truth for dependency and tool metadata.
 
 ### Dependency Updates
 
 Dependency changes should be made in [pyproject.toml](pyproject.toml), not in files under `requirements/`.
 If the project must use an exact version or a custom local build, pin that exact requirement directly in
 [pyproject.toml](pyproject.toml).
+
+Dependency metadata must stay aligned with the repository Python baseline declared in [pyproject.toml](pyproject.toml).
+When the minimum supported Python version already provides a stdlib feature, should remove obsolete backports,
+compatibility-only markers, and legacy conditional dependencies unless the code still imports the third-party
+package name and the change is part of the same update.
 
 ```bash
 make update_deps

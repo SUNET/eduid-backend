@@ -16,7 +16,7 @@ environment_variables:
 script:
   - "python3.13 -m venv venv"
   - ". venv/bin/activate"
-  - "pip install -U pip setuptools wheel mypy"
+  - "pip install -U pip wheel mypy"
   - "pip install --index-url https://pypi.sunet.se -r requirements/test_requirements.txt"
   - "pip freeze"
   - "make test"
@@ -33,7 +33,7 @@ extra_jobs:
     script:
       - "python3.13 -m venv venv"
       - ". venv/bin/activate"
-      - "pip install -U pip setuptools wheel pip-tools mypy uv"
+      - "pip install -U pip wheel pip-tools mypy uv"
       - "make update_deps"
       - "pip install --index-url https://pypi.sunet.se -r requirements/test_requirements.txt"
       - "pip freeze"
