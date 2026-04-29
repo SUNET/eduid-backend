@@ -1707,7 +1707,7 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
                     loa="http://id.elegnamnden.se/loa/1.0/loa3",
                     given_name="Test",
                     surname="Testsson",
-                    date_of_birth=date(1980, 1, 1),
+                    date_of_birth=datetime(1980, 1, 1, tzinfo=UTC),
                     authn_instant=utc_now(),
                     nin="198001011234",
                 )
@@ -1728,7 +1728,6 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
 
     def test_external_mfa_state_eidas(self) -> None:
         """State endpoint returns eidas_country and no masked_nin for eIDAS external_mfa."""
-        from datetime import date
 
         from eduid.userdb.credentials.external import TrustFramework
         from eduid.userdb.identity import PridPersistence
@@ -1744,7 +1743,7 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
                     loa="http://eidas.europa.eu/LoA/high",
                     given_name="Greta",
                     surname="Müller",
-                    date_of_birth=date(1990, 6, 15),
+                    date_of_birth=datetime(1990, 6, 15, tzinfo=UTC),
                     authn_instant=utc_now(),
                     eidas_prid="DE/SE/12345",
                     eidas_prid_persistence=PridPersistence.A,
