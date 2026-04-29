@@ -539,13 +539,22 @@ def _validate_signup_identity(ident: ExternalMfaSignupIdentity) -> SignupMsg | N
             f"nin={has_nin}, eidas_prid={has_prid}, freja_user_id={has_freja}"
         )
         return SignupMsg.external_mfa_not_verified
-    if has_prid and not ident.country_code:
-        current_app.logger.error("External MFA signup identity with eidas_prid is missing country_code")
+    if has_prid and (ident.country_code is None or ident.date_of_birth is None):
+        current_app.logger.error("External MFA signup identity with eidas_prid is missing required fields")
+        current_app.logger.debug(f"country_code: {ident.country_code}")
+        current_app.logger.debug(f"date_of_birth: {ident.date_of_birth}")
         return SignupMsg.external_mfa_not_verified
     if has_freja and (
-        not ident.country_code or ident.freja_registration_level is None or ident.freja_loa_level is None
+        ident.country_code is None
+        or ident.freja_registration_level is None
+        or ident.freja_loa_level is None
+        or ident.date_of_birth is None
     ):
         current_app.logger.error("External MFA signup identity with freja_user_id is missing required fields")
+        current_app.logger.debug(f"country_code: {ident.country_code}")
+        current_app.logger.debug(f"freja_registration_level: {ident.freja_registration_level}")
+        current_app.logger.debug(f"freja_loa_level: {ident.freja_loa_level}")
+        current_app.logger.debug(f"date_of_birth: {ident.date_of_birth}")
         return SignupMsg.external_mfa_not_verified
     return None
 
