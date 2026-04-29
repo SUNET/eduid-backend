@@ -52,46 +52,10 @@ class SignupResult:
     response: TestResponse
 
 
-class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
-    copy_user_to_private = True
-
+class BaseSignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
     @pytest.fixture(autouse=True)
     def setup(self, setup_api: None, mocker: MockerFixture) -> None:
         self.mocker = mocker
-
-    def load_app(self, config: Mapping[str, Any]) -> SignupApp:
-        """
-        Called from the parent class, so we can provide the appropriate flask
-        app for this test case.
-        """
-        return signup_init_app(name="signup", test_config=config)
-
-    @pytest.fixture(scope="class")
-    def update_config(self) -> dict[str, Any]:
-        config = self._get_base_config()
-        config.update(
-            {
-                "available_languages": {"en": "English", "sv": "Svenska"},
-                "signup_url": "https://localhost/",
-                "dashboard_url": "https://localhost/",
-                "development": "DEBUG",
-                "application_root": "/",
-                "log_level": "DEBUG",
-                "password_length": 10,
-                "vccs_url": "http://turq:13085/",
-                "default_finish_url": "https://www.eduid.se/",
-                "captcha_max_bad_attempts": 3,
-                "environment": "dev",
-                "fido2_rp_id": "eduid.docker",
-                "scim_api_url": "http://localhost/scim/",
-                "gnap_auth_data": {
-                    "authn_server_url": "http://localhost/auth/",
-                    "key_name": "app_name",
-                    "client_jwk": JWK.generate(kid="testkey", kty="EC", size=256).export(as_dict=True),
-                },
-            }
-        )
-        return config
 
     def _get_captcha(
         self,
@@ -851,6 +815,44 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
             with client.session_transaction():
                 with self.app.test_request_context():
                     return client.get(f"/get-code?email={email}")
+
+
+class SignupTests(BaseSignupTests):
+    copy_user_to_private = True
+
+    def load_app(self, config: Mapping[str, Any]) -> SignupApp:
+        """
+        Called from the parent class, so we can provide the appropriate flask
+        app for this test case.
+        """
+        return signup_init_app(name="signup", test_config=config)
+
+    @pytest.fixture(scope="class")
+    def update_config(self) -> dict[str, Any]:
+        config = self._get_base_config()
+        config.update(
+            {
+                "available_languages": {"en": "English", "sv": "Svenska"},
+                "signup_url": "https://localhost/",
+                "dashboard_url": "https://localhost/",
+                "development": "DEBUG",
+                "application_root": "/",
+                "log_level": "DEBUG",
+                "password_length": 10,
+                "vccs_url": "http://turq:13085/",
+                "default_finish_url": "https://www.eduid.se/",
+                "captcha_max_bad_attempts": 3,
+                "environment": "dev",
+                "fido2_rp_id": "eduid.docker",
+                "scim_api_url": "http://localhost/scim/",
+                "gnap_auth_data": {
+                    "authn_server_url": "http://localhost/auth/",
+                    "key_name": "app_name",
+                    "client_jwk": JWK.generate(kid="testkey", kty="EC", size=256).export(as_dict=True),
+                },
+            }
+        )
+        return config
 
     # actual tests
     def test_get_state_initial(self) -> None:
