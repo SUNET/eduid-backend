@@ -334,6 +334,7 @@ make typecheck  # Verify type correctness
 ## Commit Message Convention
 
 Must create signed commits.
+Must never commit with `--no-gpg-sign`.
 If commit signing fails, fix the signing issue and try again with signing enabled rather than falling back to an unsigned commit.
 
 Should use [Conventional Commits](https://www.conventionalcommits.org/) for commit messages:
