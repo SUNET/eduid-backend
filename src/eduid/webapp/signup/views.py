@@ -424,9 +424,6 @@ def return_to_auth(ref: str) -> FluxData:
     return success_response(payload={"state": session.signup.to_dict()})
 
 
-_SUPPORTED_EXTERNAL_MFA_APPS = {"eidas", "bankid", "samleid", "freja_eid"}
-
-
 @signup_views.route("/external-mfa-register", methods=["POST"])
 @UnmarshalWith(ExternalMfaRegisterRequest)
 @MarshalWith(SignupStatusResponse)
@@ -444,9 +441,6 @@ def external_mfa_register(app_name: str, authn_id: str) -> FluxData:
     """
     if session.signup.user_created:
         return error_response(message=SignupMsg.user_already_exists)
-
-    if app_name not in _SUPPORTED_EXTERNAL_MFA_APPS:
-        return error_response(message=SignupMsg.external_mfa_not_found)
 
     authn = _lookup_external_mfa_authn(app_name, authn_id)
     if authn is None:
@@ -495,15 +489,17 @@ def external_mfa_register(app_name: str, authn_id: str) -> FluxData:
 
 
 def _lookup_external_mfa_authn(app_name: str, authn_id: str) -> SP_AuthnRequest | RP_AuthnRequest | None:
-    if app_name == "freja_eid":
-        return session.freja_eid.rp.authns.get(OIDCState(authn_id))
-    if app_name == "eidas":
-        return session.eidas.sp.authns.get(AuthnRequestRef(authn_id))
-    if app_name == "bankid":
-        return session.bankid.sp.authns.get(AuthnRequestRef(authn_id))
-    if app_name == "samleid":
-        return session.samleid.sp.authns.get(AuthnRequestRef(authn_id))
-    return None
+    match app_name:
+        case "freja_eid":
+            return session.freja_eid.rp.authns.get(OIDCState(authn_id))
+        case "eidas":
+            return session.eidas.sp.authns.get(AuthnRequestRef(authn_id))
+        case "bankid":
+            return session.bankid.sp.authns.get(AuthnRequestRef(authn_id))
+        case "samleid":
+            return session.samleid.sp.authns.get(AuthnRequestRef(authn_id))
+        case _:
+            return None
 
 
 def _validate_external_mfa_authn(
