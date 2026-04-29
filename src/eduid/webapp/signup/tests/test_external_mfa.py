@@ -997,7 +997,7 @@ class ExternalMfaWebauthnVerificationTests(ExternalMfaSignupTests):
                     authenticator_id="test-authenticator-id",
                     description="test security key",
                     is_discoverable=True,
-                    **({"registered_at": registered_at} if registered_at is not None else {}),
+                    registered_at=registered_at,
                 )
                 sess.signup.credentials.completed = True
 
@@ -1010,7 +1010,7 @@ class ExternalMfaWebauthnVerificationTests(ExternalMfaSignupTests):
         """Webauthn credential is verified when both it and external MFA are fresh."""
         self._seed_bankid_authn(nin="198001011234", authn_id="authn-1")
         self._call_external_mfa_register("bankid", "authn-1")
-        self._set_webauthn_in_session()
+        self._set_webauthn_in_session(registered_at=utc_now())
 
         self._prepare_for_create_user(
             given_name="Anna",
@@ -1048,7 +1048,7 @@ class ExternalMfaWebauthnVerificationTests(ExternalMfaSignupTests):
                 assert sess.signup.external_mfa is not None
                 sess.signup.external_mfa.authn_instant = utc_now() - timedelta(minutes=3)
 
-        self._set_webauthn_in_session()
+        self._set_webauthn_in_session(registered_at=utc_now())
 
         self._prepare_for_create_user(
             given_name="Anna",
