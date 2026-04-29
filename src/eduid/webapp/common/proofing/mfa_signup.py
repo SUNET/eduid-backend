@@ -72,7 +72,7 @@ def parse_mfa_register_args(
     proofing = get_proofing_functions(
         session_info=parsed.info,
         app_name=app.name,
-        config=app.config,
+        config=app.conf,
         backdoor=args.backdoor,
     )
     current_loa = proofing.get_current_loa()
