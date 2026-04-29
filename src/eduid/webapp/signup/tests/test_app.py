@@ -1724,7 +1724,7 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
         assert ext["surname"] == "Testsson"
         assert ext["date_of_birth"] == "1980-01-01"
         assert ext["masked_nin"] == "198001**-****"
-        assert ext["eidas_country"] is None
+        assert ext["country_code"] is None
 
     def test_external_mfa_state_eidas(self) -> None:
         """State endpoint returns eidas_country and no masked_nin for eIDAS external_mfa."""
@@ -1762,7 +1762,7 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
         assert ext["surname"] == "Müller"
         assert ext["date_of_birth"] == "1990-06-15"
         assert ext["masked_nin"] is None
-        assert ext["eidas_country"] == "DE"
+        assert ext["country_code"] == "DE"
 
     def test_external_mfa_raw_nin_does_not_leak(self) -> None:
         """The raw NIN must not appear anywhere in the response body."""

@@ -208,7 +208,7 @@ class ExternalMfaSignupTests(SignupTests):
         assert state["external_mfa"]["app_name"] == "freja_eid"
         assert state["external_mfa"]["given_name"] == "Frida"
         assert state["external_mfa"]["masked_nin"] is None
-        assert state["external_mfa"]["eidas_country"] == "DK"
+        assert state["external_mfa"]["country_code"] == "DK"
         with self.session_cookie_anon(self.browser) as client:
             with client.session_transaction() as sess:
                 assert sess.signup.external_mfa is not None
