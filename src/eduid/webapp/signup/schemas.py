@@ -59,7 +59,7 @@ class SignupStatusResponse(FluxStandardAction):
                 surname = fields.String(required=True, dump_default=None)
                 date_of_birth = fields.Date(required=True, dump_default=None)
                 masked_nin = fields.String(required=True, dump_default=None)
-                eidas_country = fields.String(required=True, dump_default=None)
+                country_code = fields.String(required=True, dump_default=None)
 
             already_signed_up = fields.Boolean(required=True)
             name = fields.Nested(Name, required=True)
@@ -132,35 +132,10 @@ class SignupStatusResponse(FluxStandardAction):
 
     @pre_dump
     def set_external_mfa(self, out_data: dict[str, Any], **kwargs: Any) -> dict[str, Any]:
-        state = out_data.get("payload", {}).get("state")
-        if state is None:
-            return out_data
-        ext = state.get("external_mfa")
-        if not ext:
-            state["external_mfa"] = {
-                "completed": False,
-                "app_name": None,
-                "given_name": None,
-                "surname": None,
-                "date_of_birth": None,
-                "masked_nin": None,
-                "eidas_country": None,
-            }
-            return out_data
-        nin = ext.get("nin")
-        masked = None
-        nin_min_len = 8
-        if nin and len(nin) >= nin_min_len:
-            masked = f"{nin[:6]}**-****"
-        state["external_mfa"] = {
-            "completed": True,
-            "app_name": ext.get("app_name"),
-            "given_name": ext.get("given_name"),
-            "surname": ext.get("surname"),
-            "date_of_birth": ext.get("date_of_birth"),
-            "masked_nin": masked,
-            "eidas_country": ext.get("country_code"),
-        }
+        if ext := out_data.get("payload", {}).get("state", {}).get("external_mfa"):
+            if nin := ext.get("nin"):
+                masked_nin = f"{nin[:6]}**-****"
+                ext["masked_nin"] = masked_nin
         return out_data
 
 

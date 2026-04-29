@@ -185,6 +185,7 @@ class Credentials(SessionNSBase):
 
 
 class SignupExternalMfa(BaseModel):
+    completed: bool = False
     app_name: str  # "eidas" | "bankid" | "freja_eid" | "samleid"
     authn_id: str  # AuthnRequestRef | OIDCState — both are str NewTypes
     framework: TrustFramework

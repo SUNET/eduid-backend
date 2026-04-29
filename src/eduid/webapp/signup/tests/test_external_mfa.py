@@ -626,7 +626,7 @@ class ExternalMfaSignupTests(SignupTests):
         resp = self._call_external_mfa_clear()
         assert resp.status_code == 200
         state = self.get_response_payload(resp)["state"]
-        assert state["external_mfa"]["completed"] is False
+        assert state["external_mfa"] is None
         with self.session_cookie_anon(self.browser) as client:
             with client.session_transaction() as sess:
                 assert sess.signup.external_mfa is None
@@ -636,7 +636,7 @@ class ExternalMfaSignupTests(SignupTests):
         resp = self._call_external_mfa_clear()
         assert resp.status_code == 200
         state = self.get_response_payload(resp)["state"]
-        assert state["external_mfa"]["completed"] is False
+        assert state["external_mfa"] is None
 
     def test_external_mfa_clear_rejected_after_user_created(self) -> None:
         self._seed_bankid_authn()

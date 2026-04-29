@@ -869,15 +869,7 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
                 "webauthn_description": None,
             },
             "email": {"address": None, "bad_attempts": 0, "bad_attempts_max": 3, "completed": False, "sent_at": None},
-            "external_mfa": {
-                "completed": False,
-                "app_name": None,
-                "given_name": None,
-                "surname": None,
-                "date_of_birth": None,
-                "masked_nin": None,
-                "eidas_country": None,
-            },
+            "external_mfa": None,
             "invite": {"completed": False, "finish_url": None, "initiated_signup": False},
             "name": {"given_name": None, "surname": None},
             "tou": {"completed": False, "version": "2016-v1"},
@@ -901,15 +893,7 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
                 "webauthn_description": None,
             },
             "email": {"address": None, "bad_attempts": 0, "bad_attempts_max": 3, "completed": False, "sent_at": None},
-            "external_mfa": {
-                "completed": False,
-                "app_name": None,
-                "given_name": None,
-                "surname": None,
-                "date_of_birth": None,
-                "masked_nin": None,
-                "eidas_country": None,
-            },
+            "external_mfa": None,
             "invite": {"completed": False, "finish_url": None, "initiated_signup": False},
             "name": {"given_name": None, "surname": None},
             "tou": {"completed": False, "version": "2016-v1"},
@@ -1493,15 +1477,7 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
                 "expires_time_max": 600,
                 "throttle_time_max": 300,
             },
-            "external_mfa": {
-                "completed": False,
-                "app_name": None,
-                "given_name": None,
-                "surname": None,
-                "date_of_birth": None,
-                "masked_nin": None,
-                "eidas_country": None,
-            },
+            "external_mfa": None,
             "invite": {"completed": False, "finish_url": None, "initiated_signup": True},
             "name": {"given_name": "Invite", "surname": "Invitesson"},
             "tou": {"completed": False, "version": "2016-v1"},
@@ -1713,18 +1689,10 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
         """State endpoint returns external_mfa with completed=False and all fields None for a fresh session."""
         res = self._get_state()
         state = self.get_response_payload(res.response)["state"]
-        ext = state["external_mfa"]
-        assert ext["completed"] is False
-        assert ext["app_name"] is None
-        assert ext["given_name"] is None
-        assert ext["surname"] is None
-        assert ext["date_of_birth"] is None
-        assert ext["masked_nin"] is None
-        assert ext["eidas_country"] is None
+        assert state["external_mfa"] is None
 
     def test_external_mfa_state_bankid(self) -> None:
         """State endpoint returns masked_nin and completed=True when external_mfa is populated with BankID NIN."""
-        from datetime import date
 
         from eduid.userdb.credentials.external import TrustFramework
         from eduid.webapp.common.session.namespaces import SignupExternalMfa
@@ -1732,6 +1700,7 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
         with self.session_cookie(self.browser, eppn=None) as client:
             with client.session_transaction() as sess:
                 sess.signup.external_mfa = SignupExternalMfa(
+                    completed=True,
                     app_name="bankid",
                     authn_id="test-authn-id",
                     framework=TrustFramework.SWECONN,
@@ -1768,6 +1737,7 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
         with self.session_cookie(self.browser, eppn=None) as client:
             with client.session_transaction() as sess:
                 sess.signup.external_mfa = SignupExternalMfa(
+                    completed=True,
                     app_name="eidas",
                     authn_id="test-eidas-id",
                     framework=TrustFramework.EIDAS,

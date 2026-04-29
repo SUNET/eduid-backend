@@ -472,6 +472,7 @@ def external_mfa_register(app_name: str, authn_id: str) -> FluxData:
 
     assert authn.authn_instant is not None  # validated above
     session.signup.external_mfa = SignupExternalMfa(
+        completed=True,
         app_name=app_name,
         authn_id=str(authn_id),
         framework=ident.framework,
