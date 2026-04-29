@@ -687,6 +687,11 @@ def _write_credential_verification_proofing_log(signup_user: SignupUser, externa
             surname=external_mfa.surname,
         )
     elif external_mfa.eidas_prid or external_mfa.freja_user_id:
+        if external_mfa.date_of_birth is None:
+            current_app.logger.error(
+                "date_of_birth is needed for ForeignIdProofingLogElement — no credential proofing log written"
+            )
+            return
         entry = ForeignIdProofingLogElement(
             eppn=signup_user.eppn,
             created_by=app_name,
@@ -694,7 +699,7 @@ def _write_credential_verification_proofing_log(signup_user: SignupUser, externa
             proofing_version=version,
             given_name=external_mfa.given_name,
             surname=external_mfa.surname,
-            date_of_birth=external_mfa.date_of_birth,
+            date_of_birth=external_mfa.date_of_birth.isoformat(),
             country_code=external_mfa.country_code,
         )
     else:
