@@ -160,7 +160,8 @@ def check_email_status(email: str) -> EmailStatus:
         return EmailStatus.NEW
 
     # check if mail sending is throttled
-    assert session.signup.email.sent_at is not None
+    if session.signup.email.sent_at is None:
+        raise RuntimeError("session.signup.email.sent_at not set")
     if is_throttled(session.signup.email.sent_at, current_app.conf.throttle_resend):
         seconds_left = time_left(session.signup.email.sent_at, current_app.conf.throttle_resend)
         current_app.logger.info(f"User has been sent a verification code too recently: {seconds_left} seconds left")
@@ -242,7 +243,8 @@ def create_and_sync_user(
     if generated_password is not None or custom_password is not None:
         is_generated = custom_password is None
         password = custom_password or generated_password
-        assert password is not None  # please mypy
+        if password is None:
+            raise RuntimeError("password not set after generated/custom password check")
 
         if not add_password(
             signup_user,
@@ -441,7 +443,8 @@ def update_or_create_scim_user(invite: Invite, signup_user: SignupUser) -> UserR
             value=f"{signup_user.eppn}@{current_app.conf.eduid_scope}",
             parameters=parameters,
         )
-        assert update_user.nutid_user_v1 is not None  # please mypy
+        if update_user.nutid_user_v1 is None:
+            raise RuntimeError("update_user.nutid_user_v1 not set")
         linked_accounts = update_user.nutid_user_v1.model_dump().get("linked_accounts", [])
         linked_accounts.append(eduid_linked_account)
         update_user = update_user.model_copy(
