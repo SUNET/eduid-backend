@@ -48,12 +48,15 @@ def get_saml2_config(module_path: str, name: str = "SAML_CONFIG") -> SPConfig:
 
 def get_location(http_info: SAMLHttpArgs) -> str:
     """Extract the redirect URL from a pysaml2 http_info object"""
-    assert "headers" in http_info
+    if "headers" not in http_info:
+        raise ValueError("http_info missing 'headers' key")
     headers = http_info["headers"]
 
-    assert len(headers) == 1
+    if len(headers) != 1:
+        raise ValueError(f"expected exactly one header, got {len(headers)}")
     header_name, header_value = headers[0]
-    assert header_name == "Location"
+    if header_name != "Location":
+        raise ValueError(f"expected 'Location' header, got {header_name!r}")
     return cast(str, header_value)
 
 

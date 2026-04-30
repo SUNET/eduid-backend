@@ -4,7 +4,7 @@ from typing import Annotated
 from fastapi import APIRouter, Form, Request
 from pydantic.main import BaseModel
 
-from eduid.vccs.server.config import VCCSConfig
+from eduid.vccs.server.config import get_config
 from eduid.vccs.server.db import CredType, Status
 from eduid.vccs.server.factors import RequestFactor
 from eduid.vccs.server.log import audit_log
@@ -70,8 +70,7 @@ async def authenticate(req: Request, request: AuthenticateRequestV1) -> Authenti
     :returns: True on successful authentication, False otherwise
     """
     # convenience and typing
-    _config = req.app.state.config
-    assert isinstance(_config, VCCSConfig)
+    _config = get_config(req)
 
     results: list[bool] = []
     # TODO: Make sure to respond False if request.factors is empty.
