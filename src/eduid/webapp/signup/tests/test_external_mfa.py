@@ -127,6 +127,7 @@ class ExternalMfaSignupTestsBase(BaseSignupTests):
                 surname="Fredriksen",
                 date_of_birth=date(1985, 3, 15),
                 freja_user_id=freja_user_id,
+                freja_personal_identity_number="123456789",
                 country_code=country_code,
                 freja_registration_level=FrejaRegistrationLevel.PLUS,
                 freja_loa_level=FrejaLoaLevel.LOA3_NR,
@@ -243,6 +244,7 @@ class ExternalMfaSignupTests(ExternalMfaSignupTestsBase):
             with client.session_transaction() as sess:
                 assert sess.signup.external_mfa is not None
                 assert sess.signup.external_mfa.freja_user_id == "unique_freja_foreign_user"
+                assert sess.signup.external_mfa.freja_personal_identity_number == "123456789"
                 assert sess.signup.external_mfa.nin is None
 
     # ------------------------------------------------------------------
@@ -798,6 +800,7 @@ class ExternalMfaSignupTests(ExternalMfaSignupTestsBase):
         # Verified FrejaIdentity must be present
         assert user.identities.freja is not None
         assert user.identities.freja.user_id == "freja_foreign_signup_user"
+        assert user.identities.freja.personal_identity_number == "123456789"
         assert user.identities.freja.country_code == "DK"
         assert user.identities.freja.is_verified is True
         assert user.identities.freja.proofing_method == IdentityProofingMethod.FREJA_EID

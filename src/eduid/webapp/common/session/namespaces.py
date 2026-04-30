@@ -203,6 +203,7 @@ class SignupExternalMfa(BaseModel):
     freja_user_id: str | None = None
     freja_registration_level: FrejaRegistrationLevel | None = None
     freja_loa_level: FrejaLoaLevel | None = None
+    freja_personal_identity_number: str | None = None
 
 
 class Signup(TimestampedNS):
@@ -292,6 +293,7 @@ class ExternalMfaSignupIdentity(BaseModel):
     freja_user_id: str | None = None
     freja_registration_level: FrejaRegistrationLevel | None = None
     freja_loa_level: FrejaLoaLevel | None = None
+    freja_personal_identity_number: str | None = None
     # credential metadata
     framework: TrustFramework
     loa: str
