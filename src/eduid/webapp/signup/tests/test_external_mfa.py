@@ -56,7 +56,7 @@ class ExternalMfaSignupTestsBase(BaseSignupTests):
             ident = ExternalMfaSignupIdentity(
                 given_name="Anna",
                 surname="Andersson",
-                date_of_birth=date(1980, 1, 1),
+                date_of_birth=datetime(1980, 1, 1, tzinfo=UTC),
                 nin=nin,
                 framework=TrustFramework.BANKID,
                 loa="loa3",
@@ -90,7 +90,7 @@ class ExternalMfaSignupTestsBase(BaseSignupTests):
             ident = ExternalMfaSignupIdentity(
                 given_name="Britta",
                 surname="Borg",
-                date_of_birth=date(1980, 1, 1),
+                date_of_birth=datetime(1980, 1, 1, tzinfo=UTC),
                 nin=nin,
                 framework=TrustFramework.FREJA,
                 loa="loa3",
@@ -126,7 +126,7 @@ class ExternalMfaSignupTestsBase(BaseSignupTests):
             ident = ExternalMfaSignupIdentity(
                 given_name="Frida",
                 surname="Fredriksen",
-                date_of_birth=date(1985, 3, 15),
+                date_of_birth=datetime(1985, 3, 15, tzinfo=UTC),
                 freja_user_id=freja_user_id,
                 freja_personal_identity_number="123456789",
                 country_code=country_code,
