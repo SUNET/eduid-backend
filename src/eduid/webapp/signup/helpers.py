@@ -7,7 +7,7 @@ from enum import StrEnum, unique
 import proquint  # type: ignore[import-untyped]
 from flask import abort
 
-from eduid.common.config.base import EduidEnvironment
+from eduid.common.config.base import EduidEnvironment, FrontendAction
 from eduid.common.misc.timeutil import utc_now
 from eduid.common.models.scim_base import Email, SCIMSchema
 from eduid.common.models.scim_base import PhoneNumber as ScimPhoneNumber
@@ -31,6 +31,7 @@ from eduid.userdb.identity import (
     EIDASLoa,
     FrejaIdentity,
     IdentityProofingMethod,
+    IdentityType,
     PridPersistence,
 )
 from eduid.userdb.logs import MailAddressProofing
@@ -48,7 +49,14 @@ from eduid.webapp.common.api.validation import is_valid_password
 from eduid.webapp.common.authn.vccs import add_password, revoke_passwords
 from eduid.webapp.common.authn.webauthn import AuthenticatorInformation, save_webauthn_proofing_log
 from eduid.webapp.common.session import session
-from eduid.webapp.common.session.namespaces import SignupExternalMfa
+from eduid.webapp.common.session.namespaces import (
+    AuthnRequestRef,
+    ExternalMfaSignupIdentity,
+    OIDCState,
+    RP_AuthnRequest,
+    SignupExternalMfa,
+    SP_AuthnRequest,
+)
 from eduid.webapp.signup.app import current_signup_app as current_app
 
 
@@ -628,7 +636,7 @@ def build_external_credential(framework: TrustFramework, loa: str, created_by: s
 def _identity_proofing_method_for_framework(framework: TrustFramework) -> IdentityProofingMethod:
     """Map the external MFA TrustFramework to the IdentityProofingMethod to record
     on the verified NinIdentity/EIDASIdentity. Required so that the IdP DIGG LoA 2
-    assurance check recognises the proofing method."""
+    assurance check recognizes the proofing method."""
     match framework:
         case TrustFramework.BANKID:
             return IdentityProofingMethod.BANKID

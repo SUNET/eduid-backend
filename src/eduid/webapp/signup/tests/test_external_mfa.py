@@ -8,7 +8,6 @@ import pytest
 from fido2.webauthn import AuthenticatorAttachment
 from fido_mds.models.webauthn import AttestationFormat
 from jwcrypto.jwk import JWK
-from pytest_mock import MockerFixture
 from werkzeug.test import TestResponse
 
 from eduid.common.config.base import FrontendAction
