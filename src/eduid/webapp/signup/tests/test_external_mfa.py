@@ -30,7 +30,7 @@ from eduid.webapp.common.session.namespaces import (
     WebauthnCredential,
 )
 from eduid.webapp.signup.app import SignupApp, signup_init_app
-from eduid.webapp.signup.helpers import SignupMsg
+from eduid.webapp.signup.helpers import SignupMsg, existing_user_for_identity
 from eduid.webapp.signup.tests.test_app import BaseSignupTests
 
 logger = logging.getLogger(__name__)
@@ -555,9 +555,7 @@ class ExternalMfaSignupTests(ExternalMfaSignupTestsBase):
 
     def test_collision_check_skipped_when_no_identity_fields(self) -> None:
         """Helper returns None when no NIN, PRID, or Freja user_id is present."""
-        from eduid.webapp.signup.views import _existing_user_for_identity
-
-        assert _existing_user_for_identity(nin=None, eidas_prid=None, freja_user_id=None) is None
+        assert existing_user_for_identity(nin=None, eidas_prid=None, freja_user_id=None) is None
 
     def test_prid_collision_via_locked_identity(self) -> None:
         """Signup is blocked when the PRID is on another user's locked_identity (rotated PRID case)."""

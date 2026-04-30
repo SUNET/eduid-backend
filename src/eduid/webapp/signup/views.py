@@ -2,16 +2,13 @@ from typing import Any
 from uuid import uuid4
 
 from fido2.webauthn import AuthenticatorAttachment, PublicKeyCredentialUserEntity
-from fido_mds.models.webauthn import AttestationFormat
 from flask import Blueprint, abort, request
 
 from eduid.common.config.base import FrontendAction
 from eduid.common.misc.timeutil import utc_now
 from eduid.common.utils import generate_password
 from eduid.userdb import User
-from eduid.userdb.credentials import Webauthn
 from eduid.userdb.exceptions import UserOutOfSync
-from eduid.userdb.identity import IdentityType, PridPersistence
 from eduid.webapp.common.api.captcha import CaptchaCompleteRequest, CaptchaResponse
 from eduid.webapp.common.api.decorators import MarshalWith, UnmarshalWith, require_not_logged_in, require_user
 from eduid.webapp.common.api.exceptions import ProofingLogFailure
@@ -21,21 +18,15 @@ from eduid.webapp.common.api.schemas.base import FluxStandardAction
 from eduid.webapp.common.api.schemas.csrf import EmptyRequest
 from eduid.webapp.common.api.utils import make_short_code
 from eduid.webapp.common.authn.webauthn import (
-    AuthenticatorInformation,
     RegistrationError,
     get_webauthn_server,
     verify_webauthn_registration,
 )
 from eduid.webapp.common.session import session
 from eduid.webapp.common.session.namespaces import (
-    AuthnRequestRef,
-    ExternalMfaSignupIdentity,
     LoginApplication,
-    OIDCState,
     RequestRef,
-    RP_AuthnRequest,
     SignupExternalMfa,
-    SP_AuthnRequest,
     WebauthnCredential,
     WebauthnRegistration,
 )
@@ -48,10 +39,14 @@ from eduid.webapp.signup.helpers import (
     check_email_status,
     complete_and_update_invite,
     create_and_sync_user,
+    existing_user_for_identity,
     get_eppn,
+    get_webauthn_credential_data,
     is_email_verification_expired,
     is_valid_custom_password,
+    lookup_external_mfa_authn,
     send_signup_mail,
+    validate_external_mfa_authn,
 )
 from eduid.webapp.signup.schemas import (
     AcceptTouRequest,
@@ -437,23 +432,23 @@ def external_mfa_register(app_name: str, authn_id: str) -> FluxData:
     AuthnRequest from the other webapp's session namespace, validate it, and
     stash the parsed identity on ``session.signup.external_mfa``.
 
-    NIN/PRID collision against existing users is checked in a follow-up task.
+    NIN/PRID/Freja user_id collision against existing users is checked.
     """
     if session.signup.user_created:
         return error_response(message=SignupMsg.user_already_exists)
 
-    authn = _lookup_external_mfa_authn(app_name, authn_id)
+    authn = lookup_external_mfa_authn(app_name, authn_id)
     if authn is None:
         return error_response(message=SignupMsg.external_mfa_not_found)
 
-    err = _validate_external_mfa_authn(authn)
+    err = validate_external_mfa_authn(authn)
     if err is not None:
         return error_response(message=err)
 
     ident = authn.external_mfa_signup_identity
     assert ident is not None  # validated above
     if (
-        _existing_user_for_identity(
+        existing_user_for_identity(
             nin=ident.nin,
             eidas_prid=ident.eidas_prid,
             prid_persistence=ident.eidas_prid_persistence,
@@ -566,7 +561,7 @@ def _check_external_mfa_still_valid() -> FluxData | None:
         session.signup.external_mfa = None
         return error_response(message=SignupMsg.external_mfa_too_old)
     if (
-        _existing_user_for_identity(
+        existing_user_for_identity(
             nin=ext.nin,
             eidas_prid=ext.eidas_prid,
             prid_persistence=ext.eidas_prid_persistence,
@@ -613,28 +608,7 @@ def create_user(use_suggested_password: bool, use_webauthn: bool, custom_passwor
     webauthn_credential = None
     webauthn_authenticator_info = None
     if use_webauthn:
-        wn = session.signup.credentials.webauthn
-        assert wn is not None  # checked above
-        webauthn_credential = Webauthn(
-            keyhandle=wn.keyhandle,
-            credential_data=wn.credential_data,
-            authenticator_id=wn.authenticator_id,
-            authenticator=wn.authenticator,
-            app_id=current_app.conf.fido2_rp_id,
-            description=wn.description,
-            created_by=current_app.conf.app_name,
-            mfa_approved=wn.mfa_approved,
-            webauthn_proofing_version=current_app.conf.webauthn_proofing_version,
-            attestation_format=wn.attestation_format,
-        )
-        webauthn_authenticator_info = AuthenticatorInformation(
-            authenticator_id=wn.authenticator_id or "",
-            attestation_format=wn.attestation_format or AttestationFormat.NONE,
-            user_present=wn.user_present,
-            user_verified=wn.user_verified,
-            user_verification_methods=wn.user_verification_methods,
-            key_protection=wn.key_protection,
-        )
+        webauthn_credential, webauthn_authenticator_info = get_webauthn_credential_data()
 
     try:
         signup_user = create_and_sync_user(
