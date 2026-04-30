@@ -6,6 +6,7 @@ from typing import Any
 
 import pytest
 from fido2.webauthn import AuthenticatorAttachment, RegistrationResponse
+from fido_mds.models.webauthn import AttestationFormat
 from jwcrypto.jwk import JWK
 from pytest_mock import MockerFixture
 from werkzeug.test import TestResponse
@@ -203,6 +204,7 @@ class SignupWebauthnTests(EduidAPITestCase[SignupApp]):
                     keyhandle=auth_data.credential_data.credential_id.hex(),
                     authenticator=AuthenticatorAttachment.CROSS_PLATFORM,
                     authenticator_id="test-authenticator-id",
+                    attestation_format=AttestationFormat.NONE,
                     description="test security key",
                     is_discoverable=is_discoverable,
                 )
@@ -499,6 +501,7 @@ class SignupWebauthnTests(EduidAPITestCase[SignupApp]):
                     keyhandle=auth_data.credential_data.credential_id.hex(),
                     authenticator=AuthenticatorAttachment.CROSS_PLATFORM,
                     authenticator_id="test-authenticator-id",
+                    attestation_format=AttestationFormat.NONE,
                     mfa_approved=True,
                     user_verified=True,
                     description="mfa security key",

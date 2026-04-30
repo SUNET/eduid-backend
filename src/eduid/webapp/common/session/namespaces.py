@@ -161,9 +161,9 @@ class WebauthnCredential(BaseModel):
     credential_data: str  # base64 AttestedCredentialData
     keyhandle: str
     authenticator: AuthenticatorAttachment
-    authenticator_id: str | None = None
+    authenticator_id: str
+    attestation_format: AttestationFormat
     mfa_approved: bool = False
-    attestation_format: AttestationFormat | None = None
     description: str = ""
     # attestation flags for proofing log
     user_present: bool = True

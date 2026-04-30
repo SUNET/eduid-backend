@@ -6,6 +6,7 @@ from typing import Any
 
 import pytest
 from fido2.webauthn import AuthenticatorAttachment
+from fido_mds.models.webauthn import AttestationFormat
 from jwcrypto.jwk import JWK
 from pytest_mock import MockerFixture
 from werkzeug.test import TestResponse
@@ -1033,6 +1034,7 @@ class ExternalMfaWebauthnVerificationTests(ExternalMfaSignupTestsBase):
                     keyhandle="test-keyhandle",
                     authenticator=AuthenticatorAttachment.CROSS_PLATFORM,
                     authenticator_id="test-authenticator-id",
+                    attestation_format=AttestationFormat.NONE,
                     description="test security key",
                     is_discoverable=True,
                     registered_at=registered_at,
