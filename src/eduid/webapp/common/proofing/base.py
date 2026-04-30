@@ -91,7 +91,8 @@ class ProofingFunctions[SessionInfoVar](ABC):
         mark_result = self.mark_credential_as_verified(credential, loa)
         if mark_result.error:
             return mark_result
-        assert mark_result.credential  # please type checking
+        if mark_result.credential is None:
+            raise RuntimeError("mark_credential_as_verified returned no error and no credential")
         credential = mark_result.credential
 
         # Create a proofing log
@@ -101,8 +102,8 @@ class ProofingFunctions[SessionInfoVar](ABC):
 
         # get a reference to the credential on the proofing_user, since that is the one we'll save below
         _credential = proofing_user.credentials.find(credential.key)
-        # please type checking
-        assert _credential
+        if _credential is None:
+            raise RuntimeError(f"credential {credential.key} not found on proofing_user")
         credential = _credential
 
         # Set token as verified
@@ -111,7 +112,8 @@ class ProofingFunctions[SessionInfoVar](ABC):
         credential.proofing_version = self.config.security_key_proofing_version
 
         # Save proofing log entry and save user
-        assert proofing_log_entry.data  # please type checking
+        if proofing_log_entry.data is None:
+            raise RuntimeError("credential_proofing_element returned no error and no data")
         if not current_app.proofing_log.save(proofing_log_entry.data):
             current_app.logger.exception("Saving proofing log for user failed")
             return VerifyCredentialResult(error=CommonMsg.temp_problem)
@@ -173,7 +175,8 @@ class ProofingFunctions[SessionInfoVar](ABC):
                 mfa_data = self.get_mfa_data()
                 if mfa_data.error is not None:
                     return MatchResult(error=mfa_data.error)
-                assert mfa_data.result is not None  # please mypy
+                if mfa_data.result is None:
+                    raise RuntimeError("get_mfa_data returned no error and no result")
 
                 if mfa_success:
                     credential_used = self._find_or_add_credential(

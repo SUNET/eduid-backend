@@ -82,7 +82,8 @@ class FrejaProofingFunctions(SwedenConnectProofingFunctions[NinSessionInfo]):
         proofing_log_entry = self.identity_proofing_element(user=user)
         if proofing_log_entry.error:
             return VerifyUserResult(error=proofing_log_entry.error)
-        assert isinstance(proofing_log_entry.data, NinProofingLogElement)  # please type checking
+        if not isinstance(proofing_log_entry.data, NinProofingLogElement):
+            raise RuntimeError(f"unexpected proofing_log_entry.data type: {type(proofing_log_entry.data).__name__}")
 
         # Verify NIN for user
         date_of_birth = self.session_info.attributes.date_of_birth
@@ -151,8 +152,8 @@ class FrejaProofingFunctions(SwedenConnectProofingFunctions[NinSessionInfo]):
             issuer = self.session_info.issuer
             authn_context = self.session_info.authn_context
 
-        # please type checking
-        assert user.identities.nin
+        if user.identities.nin is None:
+            raise RuntimeError("user.identities.nin not set when expected")
 
         data = MFATokenProofing(
             authn_context_class=authn_context,
@@ -240,7 +241,8 @@ class EidasProofingFunctions(SwedenConnectProofingFunctions[ForeignEidSessionInf
         proofing_log_entry = self.identity_proofing_element(user=proofing_user)
         if proofing_log_entry.error:
             return VerifyUserResult(error=proofing_log_entry.error)
-        assert isinstance(proofing_log_entry.data, ForeignIdProofingLogElement)  # please type checking
+        if not isinstance(proofing_log_entry.data, ForeignIdProofingLogElement):
+            raise RuntimeError(f"unexpected proofing_log_entry.data type: {type(proofing_log_entry.data).__name__}")
 
         # update the users names from the verified identity
         proofing_user = set_user_names_from_foreign_id(proofing_user, proofing_log_entry.data)

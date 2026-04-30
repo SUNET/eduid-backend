@@ -55,7 +55,8 @@ class BankIDProofingFunctions(ProofingFunctions[BankIDSessionInfo]):
         proofing_log_entry = self.identity_proofing_element(user=user)
         if proofing_log_entry.error:
             return VerifyUserResult(error=proofing_log_entry.error)
-        assert isinstance(proofing_log_entry.data, NinProofingLogElement)  # please type checking
+        if not isinstance(proofing_log_entry.data, NinProofingLogElement):
+            raise RuntimeError(f"unexpected proofing_log_entry.data type: {type(proofing_log_entry.data).__name__}")
 
         # Verify NIN for user
         nin_element = NinProofingElement(
@@ -103,8 +104,8 @@ class BankIDProofingFunctions(ProofingFunctions[BankIDSessionInfo]):
         else:
             proofing_version = self.config.security_key_proofing_version
 
-        # please type checking
-        assert user.identities.nin
+        if user.identities.nin is None:
+            raise RuntimeError("user.identities.nin not set when expected")
 
         data = MFATokenBankIDProofing(
             created_by=self.app_name,

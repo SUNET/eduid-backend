@@ -95,7 +95,8 @@ class FrejaEIDProofingFunctions(ProofingFunctions[FrejaEIDDocumentUserInfo]):
         proofing_log_entry = self.identity_proofing_element(user=user)
         if proofing_log_entry.error:
             return VerifyUserResult(error=proofing_log_entry.error)
-        assert isinstance(proofing_log_entry.data, NinProofingLogElement)  # please type checking
+        if not isinstance(proofing_log_entry.data, NinProofingLogElement):
+            raise RuntimeError(f"unexpected proofing_log_entry.data type: {type(proofing_log_entry.data).__name__}")
 
         # Verify NIN for user
         date_of_birth = self.session_info.date_of_birth
@@ -172,7 +173,8 @@ class FrejaEIDProofingFunctions(ProofingFunctions[FrejaEIDDocumentUserInfo]):
         proofing_log_entry = self.identity_proofing_element(user=proofing_user)
         if proofing_log_entry.error:
             return VerifyUserResult(error=proofing_log_entry.error)
-        assert isinstance(proofing_log_entry.data, FrejaEIDForeignProofing)  # please type checking
+        if not isinstance(proofing_log_entry.data, FrejaEIDForeignProofing):
+            raise RuntimeError(f"unexpected proofing_log_entry.data type: {type(proofing_log_entry.data).__name__}")
 
         # update the users names from the verified identity
         proofing_user = set_user_names_from_foreign_id(proofing_user, proofing_log_entry.data)
@@ -273,13 +275,15 @@ class FrejaEIDProofingFunctions(ProofingFunctions[FrejaEIDDocumentUserInfo]):
 
     def _nin_credential_proofing_element(self, user: User, credential: Credential) -> ProofingElementResult:
         proofing_element_result = self._nin_identity_proofing_element(user)
-        assert proofing_element_result.data is not None  # please mypy
+        if proofing_element_result.data is None:
+            raise RuntimeError("proofing_element_result.data not set when expected")
         data = MFATokenFrejaEIDProofing(**proofing_element_result.data.to_dict(), key_id=credential.key)
         return ProofingElementResult(data=data)
 
     def _foreign_credential_proofing_element(self, user: User, credential: Credential) -> ProofingElementResult:
         proofing_element_result = self._foreign_identity_proofing_element(user)
-        assert proofing_element_result.data is not None  # please mypy
+        if proofing_element_result.data is None:
+            raise RuntimeError("proofing_element_result.data not set when expected")
         data = MFATokenFrejaEIDForeignProofing(**proofing_element_result.data.to_dict(), key_id=credential.key)
         return ProofingElementResult(data=data)
 
@@ -287,7 +291,8 @@ class FrejaEIDProofingFunctions(ProofingFunctions[FrejaEIDDocumentUserInfo]):
         if self.is_swedish_document():
             identity_type = IdentityType.NIN
             asserted_unique_value = self.session_info.personal_identity_number
-            assert asserted_unique_value is not None  # please mypy
+            if asserted_unique_value is None:
+                raise RuntimeError("asserted_unique_value not set when expected")
         else:
             identity_type = IdentityType.FREJA
             asserted_unique_value = self.session_info.user_id

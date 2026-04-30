@@ -60,7 +60,8 @@ class SvipeIDProofingFunctions(ProofingFunctions[SvipeDocumentUserInfo]):
         proofing_log_entry = self.identity_proofing_element(user=user)
         if proofing_log_entry.error:
             return VerifyUserResult(error=proofing_log_entry.error)
-        assert isinstance(proofing_log_entry.data, NinProofingLogElement)  # please type checking
+        if not isinstance(proofing_log_entry.data, NinProofingLogElement):
+            raise RuntimeError(f"unexpected proofing_log_entry.data type: {type(proofing_log_entry.data).__name__}")
 
         # Verify NIN for user
         date_of_birth = self.session_info.birthdate
@@ -130,7 +131,8 @@ class SvipeIDProofingFunctions(ProofingFunctions[SvipeDocumentUserInfo]):
         proofing_log_entry = self.identity_proofing_element(user=proofing_user)
         if proofing_log_entry.error:
             return VerifyUserResult(error=proofing_log_entry.error)
-        assert isinstance(proofing_log_entry.data, SvipeIDForeignProofing)  # please type checking
+        if not isinstance(proofing_log_entry.data, SvipeIDForeignProofing):
+            raise RuntimeError(f"unexpected proofing_log_entry.data type: {type(proofing_log_entry.data).__name__}")
 
         # update the users names from the verified identity
         proofing_user = set_user_names_from_foreign_id(proofing_user, proofing_log_entry.data)
