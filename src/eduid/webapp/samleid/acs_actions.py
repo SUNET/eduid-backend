@@ -28,7 +28,8 @@ def common_saml_checks(args: ACSArgs) -> ACSResult | None:
     :param args: ACS action arguments containing session info and proofing method
     :returns: ACSResult with error message if validation fails, None if all checks pass
     """
-    assert isinstance(args.proofing_method, ProofingMethodSAML)  # please mypy
+    if not isinstance(args.proofing_method, ProofingMethodSAML):
+        return ACSResult(message=SamlEidMsg.method_not_available)
     if not is_required_loa(
         args.session_info, args.proofing_method.required_loa, current_app.conf.loa_authn_context_map
     ):
@@ -65,8 +66,7 @@ def samleid_verify_identity_action(user: User, args: ACSArgs) -> ACSResult:
 
     :returns: ACS action result
     """
-    # please type checking
-    if not args.proofing_method:
+    if not isinstance(args.proofing_method, ProofingMethodSAML):
         return ACSResult(message=SamlEidMsg.method_not_available)
 
     # validate the assertion data
@@ -77,8 +77,8 @@ def samleid_verify_identity_action(user: User, args: ACSArgs) -> ACSResult:
     if parsed.error:
         return ACSResult(message=parsed.error)
 
-    # please type checking
-    assert isinstance(parsed.info, BaseSessionInfo)
+    if not isinstance(parsed.info, BaseSessionInfo):
+        raise RuntimeError(f"unexpected parsed.info type: {type(parsed.info).__name__}")
 
     proofing = get_proofing_functions(
         session_info=parsed.info, app_name=current_app.conf.app_name, config=current_app.conf, backdoor=args.backdoor
@@ -116,15 +116,15 @@ def samleid_verify_credential_action(user: User, args: ACSArgs) -> ACSResult:
 
     :returns: ACS action result
     """
-    # please type checking
-    if not args.proofing_method:
+    if not isinstance(args.proofing_method, ProofingMethodSAML):
         return ACSResult(message=SamlEidMsg.method_not_available)
 
     # validate the assertion data
     if ret := common_saml_checks(args=args):
         return ret
 
-    assert isinstance(args.authn_req, SP_AuthnRequest)
+    if not isinstance(args.authn_req, SP_AuthnRequest):
+        raise RuntimeError(f"unexpected authn_req type: {type(args.authn_req).__name__}")
 
     credential = user.credentials.find(args.authn_req.proofing_credential_id)
     if not isinstance(credential, FidoCredential):
@@ -143,8 +143,8 @@ def samleid_verify_credential_action(user: User, args: ACSArgs) -> ACSResult:
     if parsed.error:
         return ACSResult(message=parsed.error)
 
-    # please type checking
-    assert isinstance(parsed.info, BaseSessionInfo)
+    if not isinstance(parsed.info, BaseSessionInfo):
+        raise RuntimeError(f"unexpected parsed.info type: {type(parsed.info).__name__}")
 
     proofing = get_proofing_functions(
         session_info=parsed.info, app_name=current_app.conf.app_name, config=current_app.conf, backdoor=args.backdoor
@@ -207,8 +207,7 @@ def samleid_mfa_authenticate_action(args: ACSArgs) -> ACSResult:
 
     :returns: ACS action result
     """
-    # please type checking
-    if not args.proofing_method:
+    if not isinstance(args.proofing_method, ProofingMethodSAML):
         return ACSResult(message=SamlEidMsg.method_not_available)
 
     # validate the assertion data
@@ -223,8 +222,8 @@ def samleid_mfa_authenticate_action(args: ACSArgs) -> ACSResult:
     if parsed.error:
         return ACSResult(message=parsed.error)
 
-    # please type checking
-    assert isinstance(parsed.info, BaseSessionInfo)
+    if not isinstance(parsed.info, BaseSessionInfo):
+        raise RuntimeError(f"unexpected parsed.info type: {type(parsed.info).__name__}")
 
     proofing = get_proofing_functions(
         session_info=parsed.info, app_name=current_app.conf.app_name, config=current_app.conf, backdoor=args.backdoor

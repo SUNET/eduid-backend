@@ -23,7 +23,8 @@ def common_saml_checks(args: ACSArgs) -> ACSResult | None:
     """
     Perform common checks for SAML ACS actions.
     """
-    assert isinstance(args.proofing_method, ProofingMethodSAML)  # please mypy
+    if not isinstance(args.proofing_method, ProofingMethodSAML):
+        return ACSResult(message=BankIDMsg.method_not_available)
     if not is_required_loa(
         args.session_info, args.proofing_method.required_loa, current_app.conf.loa_authn_context_map
     ):
@@ -50,8 +51,7 @@ def verify_identity_action(user: User, args: ACSArgs) -> ACSResult:
 
     :return: ACS action result
     """
-    # please type checking
-    if not args.proofing_method:
+    if not isinstance(args.proofing_method, ProofingMethodSAML):
         return ACSResult(message=BankIDMsg.method_not_available)
 
     if ret := common_saml_checks(args=args):
@@ -61,8 +61,8 @@ def verify_identity_action(user: User, args: ACSArgs) -> ACSResult:
     if parsed.error:
         return ACSResult(message=parsed.error)
 
-    # please type checking
-    assert isinstance(parsed.info, BaseSessionInfo)
+    if not isinstance(parsed.info, BaseSessionInfo):
+        raise RuntimeError(f"unexpected parsed.info type: {type(parsed.info).__name__}")
 
     proofing = get_proofing_functions(
         session_info=parsed.info, app_name=current_app.conf.app_name, config=current_app.conf, backdoor=args.backdoor
@@ -92,10 +92,10 @@ def verify_credential_action(user: User, args: ACSArgs) -> ACSResult:
 
     :return: ACS action result
     """
-    # please type checking
-    if not args.proofing_method:
+    if not isinstance(args.proofing_method, ProofingMethodSAML):
         return ACSResult(message=BankIDMsg.method_not_available)
-    assert isinstance(args.authn_req, SP_AuthnRequest)
+    if not isinstance(args.authn_req, SP_AuthnRequest):
+        raise RuntimeError(f"unexpected authn_req type: {type(args.authn_req).__name__}")
 
     if ret := common_saml_checks(args=args):
         return ret
@@ -117,8 +117,8 @@ def verify_credential_action(user: User, args: ACSArgs) -> ACSResult:
     if parsed.error:
         return ACSResult(message=parsed.error)
 
-    # please type checking
-    assert isinstance(parsed.info, BaseSessionInfo)
+    if not isinstance(parsed.info, BaseSessionInfo):
+        raise RuntimeError(f"unexpected parsed.info type: {type(parsed.info).__name__}")
 
     proofing = get_proofing_functions(
         session_info=parsed.info, app_name=current_app.conf.app_name, config=current_app.conf, backdoor=args.backdoor
@@ -176,8 +176,7 @@ def mfa_authenticate_action(args: ACSArgs) -> ACSResult:
 
     :return: ACS action result
     """
-    # please type checking
-    if not args.proofing_method:
+    if not isinstance(args.proofing_method, ProofingMethodSAML):
         return ACSResult(message=BankIDMsg.method_not_available)
 
     if ret := common_saml_checks(args=args):
@@ -190,8 +189,8 @@ def mfa_authenticate_action(args: ACSArgs) -> ACSResult:
     if parsed.error:
         return ACSResult(message=parsed.error)
 
-    # please type checking
-    assert isinstance(parsed.info, BaseSessionInfo)
+    if not isinstance(parsed.info, BaseSessionInfo):
+        raise RuntimeError(f"unexpected parsed.info type: {type(parsed.info).__name__}")
 
     proofing = get_proofing_functions(
         session_info=parsed.info, app_name=current_app.conf.app_name, config=current_app.conf, backdoor=args.backdoor
