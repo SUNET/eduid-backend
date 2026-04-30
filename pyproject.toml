@@ -1,0 +1,225 @@
+[project]
+name = "eduid-backend"
+dynamic = ["version"]
+license = { file = "LICENSE" }
+requires-python = ">=3.13"
+dependencies = [
+  "Babel",
+  "Pillow",
+  "PyNaCl",
+  "PyYAML",
+  "aiosmtplib",
+  "bleach",
+  "boto3",
+  "celery[redis]",
+  "cookies-samesite-compat",
+  "cryptography",
+  "email-validator",
+  "fido2",
+  "fido_mds",
+  "gunicorn",
+  "hammock",
+  "html5lib",
+  "httpx",
+  "idna",
+  "iso3166",
+  "jwcrypto",
+  "langcodes",
+  "marshmallow",
+  "marshmallow-dataclass",
+  "marshmallow-enum",
+  "motor",
+  "neo4j",
+  "oic",
+  "phonenumbers",
+  "proquint",
+  "pwgen",
+  "py-bcrypt",
+  "pyOpenSSL",
+  "pyXMLSecurity[PKCS11]",
+  "pydantic",
+  "pymongo",
+  "pysaml2==7.5.2+sunet4",
+  "pysmscom",
+  "python-dateutil",
+  "python-jose",
+  "qrcode",
+  "redis",
+  "statsd",
+  "suds-community",
+  "xhtml2pdf",
+  "zxcvbn",
+]
+
+[project.optional-dependencies]
+webapp = [
+  "Flask",
+  "Flask-Mail",
+  "authlib",
+  "captcha",
+  "flask-babel",
+  "flask-cors",
+  "sentry-sdk[flask]",
+  "user-agents",
+]
+worker = ["jinja2"]
+fastapi = [
+  "apscheduler<4", # Next major version has API breaking changes
+  "deepdiff",
+  "fastapi",
+  "hsmkey",
+  "loguru",
+  "ndnkdf",
+  "pyhsm @ https://github.com/SUNET/python-pyhsm/archive/3b867ec8e0aa2c4444e9c84444228e95fc6aaabf.zip",
+  "python-multipart", # needed to parse form data
+  "uvicorn[standard]",
+]
+satosa-scim = ["SATOSA"]
+
+[dependency-groups]
+test = [
+  "mypy",
+  "pip-tools",
+  "pytest",
+  "pytest-asyncio",
+  "pytest-cov",
+  "pytest-mock",
+  "pytest-xdist",
+  "respx",
+  "uv",
+  "celery-types",
+  "motor-types",
+  "statsd-stubs",
+  "ruff",
+]
+
+[tool.ruff]
+line-length = 120 # Set the maximum line length to 120.
+target-version = "py313"
+
+[tool.ruff.lint]
+select = [
+  "A",
+  "ANN",
+  "ASYNC",
+  "B",
+  "C4",
+  "DTZ",
+  "E",
+  "ERA",
+  "F",
+  "FAST",
+  "FLY",
+  "FURB",
+  "I",
+  "ISC",
+  "PERF",
+  "PGH",
+  "PIE",
+  "PL",
+  "PT",
+  "RUF",
+  "SIM",
+  "UP",
+  "W",
+]
+ignore = [
+  "PLR09", # rule set for complexity checks
+  "PLC0415", # non top level imports
+  "SIM102", # collapsible-if
+  "SIM103", # return-bool-condition-directly (keeping explicit if/else for clarity)
+  "SIM108", # if-else-block-instead-of-if-exp
+  # Since we use ruff as a formatter, the following rules should be ignored
+  # See: https://docs.astral.sh/ruff/formatter/#conflicting-lint-rules
+  "W191",
+  "E111",
+  "E114",
+  "E117",
+  "E501",
+  "D206",
+  "D300",
+  "Q000",
+  "Q001",
+  "Q002",
+  "Q003",
+  "COM812",
+  "COM819",
+  "ISC002",
+]
+allowed-confusables = ["’", "х"]
+
+[tool.ruff.lint.flake8-annotations]
+allow-star-arg-any = true
+
+[tool.ruff.lint.isort]
+known-third-party = ["marshmallow_enum"]
+section-order = ["future", "standard-library", "third-party", "eduid", "first-party", "local-folder"]
+
+[tool.ruff.lint.isort.sections]
+eduid = ["ndnkdf"]
+
+[tool.ruff.lint.per-file-ignores]
+"**/test_*.py" = ["PLR2004"] # magic-value-comparison - allow magic numbers in tests
+"**/test*.py" = ["SIM117"] # multiple-with-statements - combined session_transaction() calls break tests
+# "src/eduid/scimapi/**" = ["A001", "A002"] # builtin shadowing - filter is core concept of scim and builtin is not used
+"src/eduid/webapp/common/authn/vccs.py" = ["PLR2004"] # magic-value-comparison - allow magic numbers for password version
+
+[tool.mypy]
+plugins = ["pydantic.mypy", "marshmallow_dataclass.mypy"]
+namespace_packages = true
+pretty = true
+
+[[tool.mypy.overrides]]
+module = ["ndnkdf.*"]
+follow_untyped_imports = true
+
+[[tool.mypy.overrides]]
+module = ["fido_mds.*"]
+follow_untyped_imports = true
+
+# No stubs available, too many import sites to pin individually
+[[tool.mypy.overrides]]
+module = ["saml2.*"]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = ["satosa.*"]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+addopts = "--import-mode=importlib"
+asyncio_mode = "auto"
+python_classes = ["Test*", "*Test", "*Tests"]
+norecursedirs = ["cookiecutter-app", ".worktrees", ".claude"]
+filterwarnings = [
+  "ignore::DeprecationWarning:saml2.*",
+  "ignore:The SAML service provider accepts unsigned:UserWarning:saml2.*",
+]
+
+[tool.coverage.run]
+branch = true
+source = ["eduid"]
+
+[tool.coverage.report]
+exclude_lines = [
+  "if self.debug:",
+  "pragma: no cover",
+  "raise NotImplementedError",
+  "if __name__ == .__main__.:",
+]
+ignore_errors = true
+omit = ["tests/*"]
+
+# Trying out new typechecker 'ty' via 'uvx ty check' i.e. not installing
+[tool.ty.environment]
+python-version = "3.13"
+
+[tool.ty.analysis]
+respect-type-ignore-comments = false
+
+[tool.ty.rules]
+invalid-argument-type = "ignore"
+invalid-assignment = "ignore"
+missing-argument = "ignore"
+unknown-argument = "ignore"
+unresolved-attribute = "ignore"

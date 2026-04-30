@@ -7,11 +7,11 @@ from __future__ import annotations
 from collections.abc import Iterable, Mapping, Sequence
 from datetime import timedelta
 from enum import Enum, StrEnum, unique
+from importlib.resources import files
 from pathlib import Path
 from re import Pattern
 from typing import IO, Annotated, Any
 
-import importlib_resources
 from fido2.webauthn import (
     AttestationConveyancePreference,
     ResidentKeyRequirement,
@@ -320,9 +320,9 @@ class CaptchaConfigMixin(BaseModel):
     captcha_height: int = 60
     captcha_fonts: list[Path] = Field(
         default=[
-            Path(str(importlib_resources.files("eduid").joinpath("static/fonts/ProximaNova-Regular.ttf"))),
-            Path(str(importlib_resources.files("eduid").joinpath("static/fonts/ProximaNova-Light.ttf"))),
-            Path(str(importlib_resources.files("eduid").joinpath("static/fonts/ProximaNova-Bold.ttf"))),
+            Path(str(files("eduid").joinpath("static/fonts/ProximaNova-Regular.ttf"))),
+            Path(str(files("eduid").joinpath("static/fonts/ProximaNova-Light.ttf"))),
+            Path(str(files("eduid").joinpath("static/fonts/ProximaNova-Bold.ttf"))),
         ]
     )
     captcha_font_size: tuple[int, int, int] = (42, 50, 56)
