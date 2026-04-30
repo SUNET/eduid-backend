@@ -97,8 +97,7 @@ class GroupDB(BaseGraphDB):
             version=version,
             display_name=group.display_name,
             new_version=new_version,
-        ).single()
-        assert res is not None  # please mypy
+        ).single(strict=True)
         return self._load_group(res.data()["group"])
 
     def _add_or_update_users_and_groups(
@@ -244,21 +243,20 @@ class GroupDB(BaseGraphDB):
             # group did not exist
             return None
 
-        group_data: Node | None  # please mypy
         if len(group_graph.relationships) == 0:
             # Just a group with no owners or members
-            group_data = next(iter(group_graph.nodes))
-            assert group_data is not None
-            return self._load_group(group_data)
+            return self._load_group(next(iter(group_graph.nodes)))
         else:
             # Grab the first relationships end node and create the group from that
-            group_data = next(iter(group_graph.relationships)).end_node
-            assert group_data is not None
-            group = self._load_group(group_data)
+            end_node = next(iter(group_graph.relationships)).end_node
+            if end_node is None:
+                raise RuntimeError("relationship end_node missing in non-empty graph result")
+            group = self._load_group(end_node)
 
             # Iterate over relationships and create owners and members
             for rel in group_graph.relationships:
-                assert rel.start_node is not None  # please mypy
+                if rel.start_node is None:
+                    raise RuntimeError("relationship start_node missing in graph result")
                 labels = rel.start_node.labels
                 # Merge node and relationship data
                 data = dict(rel.start_node.items())
@@ -374,8 +372,7 @@ class GroupDB(BaseGraphDB):
             RETURN count(*) as exists LIMIT 1
             """
         with self.db.driver.session(default_access_mode=READ_ACCESS) as session:
-            single_value = session.run(q, scope=self.scope, identifier=identifier).single()
-            assert single_value is not None  # please mypy
+            single_value = session.run(q, scope=self.scope, identifier=identifier).single(strict=True)
             ret = single_value["exists"]
         return bool(ret)
 

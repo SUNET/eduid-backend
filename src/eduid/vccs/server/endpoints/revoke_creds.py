@@ -4,7 +4,7 @@ from typing import Annotated
 from fastapi import APIRouter, Form, Request
 from pydantic.main import BaseModel
 
-from eduid.vccs.server.config import VCCSConfig
+from eduid.vccs.server.config import get_config
 from eduid.vccs.server.db import CredType, RevokedCredential, Status
 from eduid.vccs.server.factors import RevokeFactor
 from eduid.vccs.server.log import audit_log
@@ -51,8 +51,7 @@ async def revoke_creds_legacy(req: Request, request: Annotated[str, Form(...)]) 
 @revoke_creds_router.post("/v2/revoke_creds", response_model=RevokeCredsFormResponse)
 async def revoke_creds(req: Request, request: RevokeCredsRequestV1) -> RevokeCredsResponseV1:
     # convenience and typing
-    _config = req.app.state.config
-    assert isinstance(_config, VCCSConfig)
+    _config = get_config(req)
 
     results: list[bool] = []
     for factor in request.factors:

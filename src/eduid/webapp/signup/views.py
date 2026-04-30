@@ -125,9 +125,12 @@ def register_email(given_name: str, surname: str, email: str) -> FluxData:
     # send email to the user
     if email_status in [EmailStatus.NEW, EmailStatus.RESEND_CODE]:
         current_app.logger.info("Sending verification email")
-        assert session.signup.email.address is not None  # please mypy
-        assert session.signup.email.verification_code is not None  # please mypy
-        assert session.signup.email.reference is not None  # please mypy
+        if session.signup.email.address is None:
+            raise RuntimeError("session.signup.email.address not set")
+        if session.signup.email.verification_code is None:
+            raise RuntimeError("session.signup.email.verification_code not set")
+        if session.signup.email.reference is None:
+            raise RuntimeError("session.signup.email.reference not set")
         send_signup_mail(
             email=session.signup.email.address,
             verification_code=session.signup.email.verification_code,
@@ -600,10 +603,14 @@ def create_user(use_suggested_password: bool, use_webauthn: bool, custom_passwor
     if error is not None:
         return error
 
-    assert session.signup.name.given_name is not None  # please mypy
-    assert session.signup.name.surname is not None  # please mypy
-    assert session.signup.email.address is not None  # please mypy
-    assert session.signup.tou.version is not None  # please mypy
+    if session.signup.name.given_name is None:
+        raise RuntimeError("session.signup.name.given_name not set")
+    if session.signup.name.surname is None:
+        raise RuntimeError("session.signup.name.surname not set")
+    if session.signup.email.address is None:
+        raise RuntimeError("session.signup.email.address not set")
+    if session.signup.tou.version is None:
+        raise RuntimeError("session.signup.tou.version not set")
 
     webauthn_credential = None
     webauthn_authenticator_info = None
@@ -681,7 +688,8 @@ def get_invite(invite_code: str) -> FluxData:
 
     if session.common.is_logged_in:
         user = current_app.central_userdb.get_user_by_eppn(eppn=session.common.eppn)
-        assert user.mail_addresses.primary is not None  # please mypy
+        if user.mail_addresses.primary is None:
+            raise RuntimeError("logged-in user has no primary email")
         invite_data["user"] = {
             "given_name": user.given_name,
             "surname": user.surname,
@@ -736,7 +744,8 @@ def complete_invite() -> FluxData:
 
     user = current_app.central_userdb.get_user_by_eppn(eppn=session.common.eppn)
 
-    assert session.signup.invite.invite_code is not None  # please mypy
+    if session.signup.invite.invite_code is None:
+        raise RuntimeError("session.signup.invite.invite_code not set")
     try:
         complete_and_update_invite(user=user, invite_code=session.signup.invite.invite_code)
     except InviteNotFound:
@@ -761,7 +770,8 @@ def complete_invite_existing_user(user: User) -> FluxData:
     if session.signup.invite.initiated_signup is False:
         return success_response(payload={"state": session.signup.to_dict()})
 
-    assert session.signup.invite.invite_code is not None  # please mypy
+    if session.signup.invite.invite_code is None:
+        raise RuntimeError("session.signup.invite.invite_code not set")
     try:
         complete_and_update_invite(user=user, invite_code=session.signup.invite.invite_code)
     except InviteNotFound:

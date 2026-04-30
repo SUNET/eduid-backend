@@ -64,8 +64,33 @@ uvx ty check
 
 - **mypy**: Uses plugins `pydantic.mypy`, `marshmallow_dataclass.mypy`
 - **ty** (experimental): New type checker being evaluated in beta
-  - Configuration in [ty.toml](ty.toml)
+    - Configuration in [pyproject.toml](pyproject.toml)
   - Requires virtual environment to be activated first
+
+Tool configuration is centralized in [pyproject.toml](pyproject.toml) for Ruff, import sorting, mypy, pytest, coverage, and ty.
+
+Dependency metadata is also centralized in [pyproject.toml](pyproject.toml). The generated lockfiles in `requirements/*.txt`
+remain the install artifacts used by CI and local setup, while `requirements/*.in` has been removed.
+It will never be necessary to build a package out of this repo; [pyproject.toml](pyproject.toml) is used here as the
+source of truth for dependency and tool metadata.
+
+### Dependency Updates
+
+Dependency changes should be made in [pyproject.toml](pyproject.toml), not in files under `requirements/`.
+If the project must use an exact version or a custom local build, pin that exact requirement directly in
+[pyproject.toml](pyproject.toml).
+
+Dependency metadata must stay aligned with the repository Python baseline declared in [pyproject.toml](pyproject.toml).
+When the minimum supported Python version already provides a stdlib feature, should remove obsolete backports,
+compatibility-only markers, and legacy conditional dependencies unless the code still imports the third-party
+package name and the change is part of the same update.
+
+```bash
+make update_deps
+```
+
+This regenerates the compiled lockfiles in `requirements/*.txt` from [pyproject.toml](pyproject.toml) using the
+profiles and groups defined there.
 
 ## Code Style Guidelines
 
@@ -308,6 +333,10 @@ make typecheck  # Verify type correctness
 
 ## Commit Message Convention
 
+Must create signed commits.
+Must never commit with `--no-gpg-sign`.
+If commit signing fails, fix the signing issue and try again with signing enabled rather than falling back to an unsigned commit.
+
 Should use [Conventional Commits](https://www.conventionalcommits.org/) for commit messages:
 ```
 feat(webapp): add new identity verification flow
@@ -336,9 +365,10 @@ src/eduid/
 
 ## Ruff Configuration
 
+- Configuration lives in [pyproject.toml](pyproject.toml)
 - Line length: 120 characters
 - Target: Python 3.13
-- Key rules: ANN, ASYNC, E, F, I (isort), PERF, UP (pyupgrade)
+- Key rules: ANN, ASYNC, E, F, I (Ruff import sorting, replacing standalone isort), PERF, UP (pyupgrade)
 - Magic numbers allowed in test files (PLR2004 ignored)
 
 ## CI/CD

@@ -6,9 +6,10 @@ from typing import Any
 
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
-from ndnkdf import ndnkdf
 from starlette.responses import JSONResponse
 from starlette.status import HTTP_422_UNPROCESSABLE_CONTENT
+
+from ndnkdf import ndnkdf
 
 from eduid.vccs.server.config import init_config
 from eduid.vccs.server.db import CredentialDB

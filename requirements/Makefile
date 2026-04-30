@@ -1,17 +1,28 @@
 UV=$(shell which uv)
-PIPCOMPILE=$(UV) pip compile --upgrade --generate-hashes --no-strip-extras --index-url https://pypi.sunet.se/simple --emit-index-url
+PROJECT_ROOT=..
+PIPCOMPILE=$(UV) pip compile --upgrade --generate-hashes --no-strip-extras --index-url https://pypi.sunet.se/simple --emit-index-url --project $(PROJECT_ROOT)
 PIPSYNC=$(UV) pip sync --index-url https://pypi.sunet.se/simple
+PYPROJECT=$(PROJECT_ROOT)/pyproject.toml
 
-update_deps: sub_main.txt main.txt $(patsubst %_requirements.in,%_requirements.txt,$(wildcard *_requirements.in))
+update_deps: main.txt fastapi_requirements.txt satosa_scim_requirements.txt test_requirements.txt webapp_requirements.txt worker_requirements.txt
 
-main.txt: sub_main.in main.in
-	CUSTOM_COMPILE_COMMAND="make update_deps" $(PIPCOMPILE) main.in -o $@
+main.txt: $(PYPROJECT)
+	CUSTOM_COMPILE_COMMAND="make update_deps" $(PIPCOMPILE) $(PYPROJECT) -o $@
 
-sub_main.txt: sub_main.in
-	CUSTOM_COMPILE_COMMAND="make update_deps" $(PIPCOMPILE) sub_main.in -o $@
+fastapi_requirements.txt: $(PYPROJECT)
+	CUSTOM_COMPILE_COMMAND="make update_deps" $(PIPCOMPILE) $(PYPROJECT) --extra fastapi -o $@
 
-%_requirements.txt: %_requirements.in
-	CUSTOM_COMPILE_COMMAND="make update_deps" $(PIPCOMPILE) $< -o $@
+satosa_scim_requirements.txt: $(PYPROJECT)
+	CUSTOM_COMPILE_COMMAND="make update_deps" $(PIPCOMPILE) $(PYPROJECT) --extra satosa-scim -o $@
+
+test_requirements.txt: $(PYPROJECT)
+	CUSTOM_COMPILE_COMMAND="make update_deps" $(PIPCOMPILE) $(PYPROJECT) --all-extras --group test -o $@
+
+webapp_requirements.txt: $(PYPROJECT)
+	CUSTOM_COMPILE_COMMAND="make update_deps" $(PIPCOMPILE) $(PYPROJECT) --extra webapp -o $@
+
+worker_requirements.txt: $(PYPROJECT)
+	CUSTOM_COMPILE_COMMAND="make update_deps" $(PIPCOMPILE) $(PYPROJECT) --extra worker -o $@
 
 dev_sync_deps:
 	@test $${VIRTUAL_ENV?virtual env not activated}

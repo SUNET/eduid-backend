@@ -2,7 +2,9 @@ from datetime import UTC, datetime
 
 from eduid.common.models.saml_models import BaseSessionInfo
 from eduid.userdb import User
+from eduid.userdb.credentials.fido import FidoCredential
 from eduid.webapp.common.api.decorators import require_user
+from eduid.webapp.common.api.messages import AuthnStatusMsg
 from eduid.webapp.common.authn.acs_enums import EidasAcsAction
 from eduid.webapp.common.authn.acs_registry import ACSArgs, ACSResult, acs_action
 from eduid.webapp.common.proofing.mfa_signup import MfaRegisterParsed, parse_mfa_register_args

@@ -1,9 +1,0 @@
-# secondary dependencies, need to add them here to get hashes :/
-importlib-metadata
-importlib-resources
-cached-property
-setuptools
-backports.zoneinfo;python_version<"3.9"
-tomli
-exceptiongroup
-async-timeout
