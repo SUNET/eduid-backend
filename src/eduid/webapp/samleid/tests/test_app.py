@@ -19,6 +19,7 @@ from eduid.userdb.credentials.external import (
     EidasCredential,
     ExternalCredential,
     SwedenConnectCredential,
+    TrustFramework,
 )
 from eduid.userdb.element import ElementKey
 from eduid.userdb.identity import EIDASIdentity, EIDASLoa, IdentityProofingMethod, PridPersistence
@@ -75,27 +76,30 @@ class SamlEidTests(ProofingTests[SamlEidApp]):
         self.test_user_eppn = "hubba-bubba"
         self.test_unverified_user_eppn = "hubba-baar"
         self.test_user_nin = NinIdentity(
-            number="197801011234", date_of_birth=datetime.datetime.fromisoformat("1978-01-01")
+            number="197801011234",
+            date_of_birth=datetime.datetime.fromisoformat("1978-01-01").replace(tzinfo=datetime.UTC),
         )
         self.test_user_eidas = EIDASIdentity(
             prid="XB:1bjrk7depnmhu7xn56kon3mlc9q1s0",
             prid_persistence=PridPersistence.B,
             loa=EIDASLoa.NF_SUBSTANTIAL,
-            date_of_birth=datetime.datetime.fromisoformat("1964-12-31"),
+            date_of_birth=datetime.datetime.fromisoformat("1964-12-31").replace(tzinfo=datetime.UTC),
             country_code="XB",
         )
         self.test_user_wrong_nin = NinIdentity(
-            number="190001021234", date_of_birth=datetime.datetime.fromisoformat("1900-01-02")
+            number="190001021234",
+            date_of_birth=datetime.datetime.fromisoformat("1900-01-02").replace(tzinfo=datetime.UTC),
         )
         self.test_user_other_eidas = EIDASIdentity(
             prid="XA:some_other_prid",
             prid_persistence=PridPersistence.B,
             loa=EIDASLoa.NF_SUBSTANTIAL,
-            date_of_birth=datetime.datetime.fromisoformat("1920-11-18"),
+            date_of_birth=datetime.datetime.fromisoformat("1920-11-18").replace(tzinfo=datetime.UTC),
             country_code="XA",
         )
         self.test_backdoor_nin = NinIdentity(
-            number="190102031234", date_of_birth=datetime.datetime.fromisoformat("1901-02-03")
+            number="190102031234",
+            date_of_birth=datetime.datetime.fromisoformat("1901-02-03").replace(tzinfo=datetime.UTC),
         )
         self.default_redirect_url = "http://redirect.localhost/redirect"
 
@@ -320,6 +324,13 @@ class SamlEidTests(ProofingTests[SamlEidApp]):
                         "allow_login_auth": True,
                         "allow_signup_auth": True,
                         "finish_url": "http://test.localhost/testing-verify-credential/{app_name}/{authn_id}",
+                    },
+                    FrontendAction.SIGNUP_EXTERNAL_MFA.value: {
+                        "force_authn": True,
+                        "force_mfa": True,
+                        "same_user": False,
+                        "allow_signup_auth": True,
+                        "finish_url": "http://test.localhost/testing-mfa-register/{app_name}/{authn_id}",
                     },
                 },
             }
@@ -1724,6 +1735,139 @@ class NINMethodTests(SamlEidTests):
                 backdoor=False,
             )
 
+    # --- mfa-register tests ---
+
+    def test_mfa_register_init_ok(self) -> None:
+        """POST /mfa-register with correct frontend_action returns a redirect URL."""
+        with self.session_cookie_anon(self.browser) as browser:
+            with browser.session_transaction() as sess:
+                csrf_token = sess.get_csrf_token()
+            response = browser.post(
+                "/mfa-register",
+                json={
+                    "method": "freja",
+                    "frontend_action": FrontendAction.SIGNUP_EXTERNAL_MFA.value,
+                    "csrf_token": csrf_token,
+                },
+            )
+        self._check_success_response(response, type_=None, payload={"csrf_token": csrf_token})
+        loc = self.get_response_payload(response).get("location")
+        assert loc is not None
+        assert loc.startswith("http")
+
+    def test_mfa_register_init_rejects_wrong_action(self) -> None:
+        """POST /mfa-register with the wrong frontend_action is rejected."""
+        with self.session_cookie_anon(self.browser) as browser:
+            with browser.session_transaction() as sess:
+                csrf_token = sess.get_csrf_token()
+            response = browser.post(
+                "/mfa-register",
+                json={
+                    "method": "freja",
+                    "frontend_action": FrontendAction.LOGIN_MFA_AUTHN.value,
+                    "csrf_token": csrf_token,
+                },
+            )
+        body = response.get_json()
+        assert body["payload"]["message"] == SamlEidMsg.frontend_action_not_supported.value
+
+    def test_mfa_register_acs_populates_identity_freja(self) -> None:
+        """ACS handler for mfa_register populates external_mfa_signup_identity for freja (NinSessionInfo)."""
+        browser = self.session_cookie_anon(self.browser)
+
+        with browser as b:
+            with b.session_transaction() as sess:
+                csrf_token = sess.get_csrf_token()
+
+            response = b.post(
+                "/mfa-register",
+                json={
+                    "method": "freja",
+                    "frontend_action": FrontendAction.SIGNUP_EXTERNAL_MFA.value,
+                    "csrf_token": csrf_token,
+                },
+            )
+            self._check_success_response(response, type_=None, payload={"csrf_token": csrf_token})
+
+            with b.session_transaction() as sess:
+                # Assert this is a genuine signup scenario — no eppn in session
+                assert sess.common.eppn is None
+                request_id, authn_ref = self._get_request_id_from_session(sess)
+
+            authn_response = self.generate_auth_response(
+                request_id,
+                self.saml_response_tpl_freja_success,
+                asserted_identity=self.test_user_nin.unique_value,
+                date_of_birth=self.test_user_nin.date_of_birth,
+                age=10,
+            )
+            resp = b.post(
+                "/saml2-acs",
+                data={"SAMLResponse": base64.b64encode(authn_response), "RelayState": ""},
+            )
+            assert resp.status_code == HTTPStatus.FOUND
+
+            with b.session_transaction() as sess:
+                # eppn must still be absent — the ACS handler must not set it
+                assert sess.common.eppn is None
+                authn = sess.samleid.sp.authns[authn_ref]
+                ident = authn.external_mfa_signup_identity
+                assert ident is not None
+                assert ident.given_name == "Ûlla"
+                assert ident.surname == "Älm"
+                assert ident.nin == self.test_user_nin.number
+                assert ident.date_of_birth == datetime.datetime(1978, 1, 1, tzinfo=datetime.UTC)
+                assert ident.framework == TrustFramework.SWECONN
+                assert ident.loa == "loa3"
+
+    def test_mfa_register_acs_populates_identity_bankid(self) -> None:
+        """ACS handler for mfa_register populates external_mfa_signup_identity for bankid (BankIDSessionInfo)."""
+        browser = self.session_cookie_anon(self.browser)
+
+        with browser as b:
+            with b.session_transaction() as sess:
+                csrf_token = sess.get_csrf_token()
+
+            response = b.post(
+                "/mfa-register",
+                json={
+                    "method": "bankid",
+                    "frontend_action": FrontendAction.SIGNUP_EXTERNAL_MFA.value,
+                    "csrf_token": csrf_token,
+                },
+            )
+            self._check_success_response(response, type_=None, payload={"csrf_token": csrf_token})
+
+            with b.session_transaction() as sess:
+                # Assert this is a genuine signup scenario — no eppn in session
+                assert sess.common.eppn is None
+                request_id, authn_ref = self._get_request_id_from_session(sess)
+
+            authn_response = self.generate_auth_response(
+                request_id,
+                self.saml_response_tpl_bankid_success,
+                asserted_identity=self.test_user_nin.unique_value,
+                age=10,
+            )
+            resp = b.post(
+                "/saml2-acs",
+                data={"SAMLResponse": base64.b64encode(authn_response), "RelayState": ""},
+            )
+            assert resp.status_code == HTTPStatus.FOUND
+
+            with b.session_transaction() as sess:
+                # eppn must still be absent — the ACS handler must not set it
+                assert sess.common.eppn is None
+                authn = sess.samleid.sp.authns[authn_ref]
+                ident = authn.external_mfa_signup_identity
+                assert ident is not None
+                assert ident.given_name == "Ûlla"
+                assert ident.surname == "Älm"
+                assert ident.nin == self.test_user_nin.number
+                assert ident.date_of_birth is None
+                assert ident.framework == TrustFramework.BANKID
+                assert ident.loa == "uncertified-loa3"
+
 
 class EidasMethodTests(SamlEidTests):
     """Tests for eidas method (foreign eID) - adapted from eidas/tests/test_app.py"""
@@ -2040,7 +2184,7 @@ class EidasMethodTests(SamlEidTests):
             prid="XA:some_other_other_prid",
             prid_persistence=PridPersistence.B,
             loa=EIDASLoa.NF_SUBSTANTIAL,
-            date_of_birth=datetime.datetime.fromisoformat("1920-11-18"),
+            date_of_birth=datetime.datetime.fromisoformat("1920-11-18").replace(tzinfo=datetime.UTC),
             country_code="XX",
             is_verified=True,
         )
@@ -2065,3 +2209,56 @@ class EidasMethodTests(SamlEidTests):
         self._verify_user_parameters(
             eppn, num_mfa_tokens=0, locked_identity=identity, identity=identity, identity_verified=True, num_proofings=1
         )
+
+    def test_mfa_register_acs_populates_identity_eidas(self) -> None:
+        """ACS handler for mfa_register populates external_mfa_signup_identity for eidas (ForeignEidSessionInfo)."""
+        browser = self.session_cookie_anon(self.browser)
+
+        with browser as b:
+            with b.session_transaction() as sess:
+                csrf_token = sess.get_csrf_token()
+
+            response = b.post(
+                "/mfa-register",
+                json={
+                    "method": "eidas",
+                    "frontend_action": FrontendAction.SIGNUP_EXTERNAL_MFA.value,
+                    "csrf_token": csrf_token,
+                },
+            )
+            self._check_success_response(response, type_=None, payload={"csrf_token": csrf_token})
+
+            with b.session_transaction() as sess:
+                # Assert this is a genuine signup scenario — no eppn in session
+                assert sess.common.eppn is None
+                request_id, authn_ref = self._get_request_id_from_session(sess)
+
+            authn_response = self.generate_auth_response(
+                request_id,
+                self.saml_response_foreign_eid_tpl_success,
+                asserted_identity=self.test_user_eidas.unique_value,
+                date_of_birth=self.test_user_eidas.date_of_birth,
+                age=10,
+                foreign_eid_loa="http://id.elegnamnden.se/loa/1.0/eidas-nf-sub",
+            )
+            resp = b.post(
+                "/saml2-acs",
+                data={"SAMLResponse": base64.b64encode(authn_response), "RelayState": ""},
+            )
+            assert resp.status_code == HTTPStatus.FOUND
+
+            with b.session_transaction() as sess:
+                # eppn must still be absent — the ACS handler must not set it
+                assert sess.common.eppn is None
+                authn = sess.samleid.sp.authns[authn_ref]
+                ident = authn.external_mfa_signup_identity
+                assert ident is not None
+                assert ident.given_name == "Javier"
+                assert ident.surname == "Garcia"
+                assert ident.nin is None
+                assert ident.eidas_prid == self.test_user_eidas.unique_value
+                assert ident.eidas_prid_persistence == self.test_user_eidas.prid_persistence
+                assert ident.country_code == self.test_user_eidas.country_code
+                assert ident.date_of_birth == datetime.datetime(1964, 12, 31, tzinfo=datetime.UTC)
+                assert ident.framework == TrustFramework.EIDAS
+                assert ident.loa == "eidas-nf-sub"

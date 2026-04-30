@@ -52,46 +52,10 @@ class SignupResult:
     response: TestResponse
 
 
-class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
-    copy_user_to_private = True
-
+class BaseSignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
     @pytest.fixture(autouse=True)
     def setup(self, setup_api: None, mocker: MockerFixture) -> None:
         self.mocker = mocker
-
-    def load_app(self, config: Mapping[str, Any]) -> SignupApp:
-        """
-        Called from the parent class, so we can provide the appropriate flask
-        app for this test case.
-        """
-        return signup_init_app(name="signup", test_config=config)
-
-    @pytest.fixture(scope="class")
-    def update_config(self) -> dict[str, Any]:
-        config = self._get_base_config()
-        config.update(
-            {
-                "available_languages": {"en": "English", "sv": "Svenska"},
-                "signup_url": "https://localhost/",
-                "dashboard_url": "https://localhost/",
-                "development": "DEBUG",
-                "application_root": "/",
-                "log_level": "DEBUG",
-                "password_length": 10,
-                "vccs_url": "http://turq:13085/",
-                "default_finish_url": "https://www.eduid.se/",
-                "captcha_max_bad_attempts": 3,
-                "environment": "dev",
-                "fido2_rp_id": "eduid.docker",
-                "scim_api_url": "http://localhost/scim/",
-                "gnap_auth_data": {
-                    "authn_server_url": "http://localhost/auth/",
-                    "key_name": "app_name",
-                    "client_jwk": JWK.generate(kid="testkey", kty="EC", size=256).export(as_dict=True),
-                },
-            }
-        )
-        return config
 
     def _get_captcha(
         self,
@@ -852,6 +816,44 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
                 with self.app.test_request_context():
                     return client.get(f"/get-code?email={email}")
 
+
+class SignupTests(BaseSignupTests):
+    copy_user_to_private = True
+
+    def load_app(self, config: Mapping[str, Any]) -> SignupApp:
+        """
+        Called from the parent class, so we can provide the appropriate flask
+        app for this test case.
+        """
+        return signup_init_app(name="signup", test_config=config)
+
+    @pytest.fixture(scope="class")
+    def update_config(self) -> dict[str, Any]:
+        config = self._get_base_config()
+        config.update(
+            {
+                "available_languages": {"en": "English", "sv": "Svenska"},
+                "signup_url": "https://localhost/",
+                "dashboard_url": "https://localhost/",
+                "development": "DEBUG",
+                "application_root": "/",
+                "log_level": "DEBUG",
+                "password_length": 10,
+                "vccs_url": "http://turq:13085/",
+                "default_finish_url": "https://www.eduid.se/",
+                "captcha_max_bad_attempts": 3,
+                "environment": "dev",
+                "fido2_rp_id": "eduid.docker",
+                "scim_api_url": "http://localhost/scim/",
+                "gnap_auth_data": {
+                    "authn_server_url": "http://localhost/auth/",
+                    "key_name": "app_name",
+                    "client_jwk": JWK.generate(kid="testkey", kty="EC", size=256).export(as_dict=True),
+                },
+            }
+        )
+        return config
+
     # actual tests
     def test_get_state_initial(self) -> None:
         res = self._get_state()
@@ -869,6 +871,7 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
                 "webauthn_description": None,
             },
             "email": {"address": None, "bad_attempts": 0, "bad_attempts_max": 3, "completed": False, "sent_at": None},
+            "external_mfa": None,
             "invite": {"completed": False, "finish_url": None, "initiated_signup": False},
             "name": {"given_name": None, "surname": None},
             "tou": {"completed": False, "version": "2016-v1"},
@@ -892,6 +895,7 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
                 "webauthn_description": None,
             },
             "email": {"address": None, "bad_attempts": 0, "bad_attempts_max": 3, "completed": False, "sent_at": None},
+            "external_mfa": None,
             "invite": {"completed": False, "finish_url": None, "initiated_signup": False},
             "name": {"given_name": None, "surname": None},
             "tou": {"completed": False, "version": "2016-v1"},
@@ -1475,6 +1479,7 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
                 "expires_time_max": 600,
                 "throttle_time_max": 300,
             },
+            "external_mfa": None,
             "invite": {"completed": False, "finish_url": None, "initiated_signup": True},
             "name": {"given_name": "Invite", "surname": "Invitesson"},
             "tou": {"completed": False, "version": "2016-v1"},
@@ -1679,3 +1684,113 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
             type_="POST_SIGNUP_RETURN_TO_AUTH_FAIL",
             message=SignupMsg.user_already_exists,
         )
+
+    # --- external_mfa state tests ---
+
+    def test_external_mfa_state_default(self) -> None:
+        """State endpoint returns external_mfa with completed=False and all fields None for a fresh session."""
+        res = self._get_state()
+        state = self.get_response_payload(res.response)["state"]
+        assert state["external_mfa"] is None
+
+    def test_external_mfa_state_bankid(self) -> None:
+        """State endpoint returns masked_nin and completed=True when external_mfa is populated with BankID NIN."""
+
+        from eduid.userdb.credentials.external import TrustFramework
+        from eduid.webapp.common.session.namespaces import SignupExternalMfa
+
+        with self.session_cookie(self.browser, eppn=None) as client:
+            with client.session_transaction() as sess:
+                sess.signup.external_mfa = SignupExternalMfa(
+                    completed=True,
+                    app_name="bankid",
+                    authn_id="test-authn-id",
+                    framework=TrustFramework.SWECONN,
+                    loa="http://id.elegnamnden.se/loa/1.0/loa3",
+                    given_name="Test",
+                    surname="Testsson",
+                    date_of_birth=datetime(1980, 1, 1, tzinfo=UTC),
+                    authn_instant=utc_now(),
+                    nin="198001011234",
+                )
+            with self.app.test_request_context():
+                endpoint = url_for("signup.get_state")
+                response = client.get(endpoint)
+
+        self._check_api_response(response, status=200, type_="GET_SIGNUP_STATE_SUCCESS")
+        state = self.get_response_payload(response)["state"]
+        ext = state["external_mfa"]
+        assert ext["completed"] is True
+        assert ext["app_name"] == "bankid"
+        assert ext["given_name"] == "Test"
+        assert ext["surname"] == "Testsson"
+        assert ext["date_of_birth"] == "1980-01-01"
+        assert ext["masked_nin"] == "198001**-****"
+        assert ext["country_code"] is None
+
+    def test_external_mfa_state_eidas(self) -> None:
+        """State endpoint returns eidas_country and no masked_nin for eIDAS external_mfa."""
+
+        from eduid.userdb.credentials.external import TrustFramework
+        from eduid.userdb.identity import PridPersistence
+        from eduid.webapp.common.session.namespaces import SignupExternalMfa
+
+        with self.session_cookie(self.browser, eppn=None) as client:
+            with client.session_transaction() as sess:
+                sess.signup.external_mfa = SignupExternalMfa(
+                    completed=True,
+                    app_name="eidas",
+                    authn_id="test-eidas-id",
+                    framework=TrustFramework.EIDAS,
+                    loa="http://eidas.europa.eu/LoA/high",
+                    given_name="Greta",
+                    surname="Müller",
+                    date_of_birth=datetime(1990, 6, 15, tzinfo=UTC),
+                    authn_instant=utc_now(),
+                    eidas_prid="DE/SE/12345",
+                    eidas_prid_persistence=PridPersistence.A,
+                    country_code="DE",
+                )
+            with self.app.test_request_context():
+                endpoint = url_for("signup.get_state")
+                response = client.get(endpoint)
+
+        self._check_api_response(response, status=200, type_="GET_SIGNUP_STATE_SUCCESS")
+        state = self.get_response_payload(response)["state"]
+        ext = state["external_mfa"]
+        assert ext["completed"] is True
+        assert ext["app_name"] == "eidas"
+        assert ext["given_name"] == "Greta"
+        assert ext["surname"] == "Müller"
+        assert ext["date_of_birth"] == "1990-06-15"
+        assert ext["masked_nin"] is None
+        assert ext["country_code"] == "DE"
+
+    def test_external_mfa_raw_nin_does_not_leak(self) -> None:
+        """The raw NIN must not appear anywhere in the response body."""
+        from datetime import date
+
+        from eduid.userdb.credentials.external import TrustFramework
+        from eduid.webapp.common.session.namespaces import SignupExternalMfa
+
+        raw_nin = "198001011234"
+
+        with self.session_cookie(self.browser, eppn=None) as client:
+            with client.session_transaction() as sess:
+                sess.signup.external_mfa = SignupExternalMfa(
+                    app_name="bankid",
+                    authn_id="test-authn-id",
+                    framework=TrustFramework.SWECONN,
+                    loa="http://id.elegnamnden.se/loa/1.0/loa3",
+                    given_name="Test",
+                    surname="Testsson",
+                    date_of_birth=date(1980, 1, 1),
+                    authn_instant=utc_now(),
+                    nin=raw_nin,
+                )
+            with self.app.test_request_context():
+                endpoint = url_for("signup.get_state")
+                response = client.get(endpoint)
+
+        self._check_api_response(response, status=200, type_="GET_SIGNUP_STATE_SUCCESS")
+        assert raw_nin not in response.get_data(as_text=True)

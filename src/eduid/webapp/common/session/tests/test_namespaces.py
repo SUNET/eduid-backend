@@ -1,15 +1,21 @@
 import logging
 from collections.abc import Mapping
-from datetime import datetime
+from datetime import UTC, date, datetime
 from typing import Any
 
 from eduid.common.config.base import FrontendAction
 from eduid.common.config.parsers import load_config
 from eduid.common.testing_base import normalised_data
+from eduid.userdb.credentials.external import TrustFramework
 from eduid.webapp.common.api.testing import EduidAPITestCase
 from eduid.webapp.common.session.eduid_session import EduidSession, SessionFactory
 from eduid.webapp.common.session.meta import SessionMeta
-from eduid.webapp.common.session.namespaces import AuthnRequestRef, SP_AuthnRequest
+from eduid.webapp.common.session.namespaces import (
+    AuthnRequestRef,
+    ExternalMfaSignupIdentity,
+    RP_AuthnRequest,
+    SP_AuthnRequest,
+)
 from eduid.webapp.common.session.tests.test_eduid_session import SessionTestApp, SessionTestConfig
 
 logger = logging.getLogger(__name__)
@@ -148,3 +154,140 @@ class TestAuthnNamespace(TestNameSpaceBase):
         sess2.authn.sp.get_latest_authn()
         sess2.persist()
         assert sess1._session._raw_data == sess2._session._raw_data
+
+
+# --- Standalone tests for ExternalMfaSignupIdentity and the new optional field ---
+
+
+def test_sp_authn_request_external_mfa_default_none() -> None:
+    req = SP_AuthnRequest(
+        frontend_action=FrontendAction.SIGNUP_EXTERNAL_MFA,
+        finish_url="https://eduid.se/profile/ext-return/{app_name}/{authn_id}",
+    )
+    assert req.external_mfa_signup_identity is None
+
+
+def test_sp_authn_request_external_mfa_roundtrip() -> None:
+    identity = ExternalMfaSignupIdentity(
+        given_name="Anna",
+        surname="Andersson",
+        date_of_birth=date(1980, 1, 1),
+        nin="198001011234",
+        framework=TrustFramework.BANKID,
+        loa="loa3",
+    )
+    req = SP_AuthnRequest(
+        frontend_action=FrontendAction.SIGNUP_EXTERNAL_MFA,
+        finish_url="https://eduid.se/profile/ext-return/{app_name}/{authn_id}",
+        external_mfa_signup_identity=identity,
+    )
+    dumped = req.model_dump()
+    rebuilt = SP_AuthnRequest(**dumped)
+    assert rebuilt.external_mfa_signup_identity == identity
+
+
+def test_rp_authn_request_has_external_mfa_field() -> None:
+    # freja_eid uses RP_AuthnRequest (OIDC) — the same optional field must exist
+    assert "external_mfa_signup_identity" in RP_AuthnRequest.model_fields
+
+
+def test_sp_authn_request_external_mfa_eidas_roundtrip() -> None:
+    from eduid.userdb.identity import PridPersistence
+
+    identity = ExternalMfaSignupIdentity(
+        given_name="Karla",
+        surname="Müller",
+        date_of_birth=date(1990, 6, 15),
+        eidas_prid="DE:abc123",
+        eidas_prid_persistence=PridPersistence.A,
+        country_code="DE",
+        framework=TrustFramework.EIDAS,
+        loa="eidas_sub",
+    )
+    req = SP_AuthnRequest(
+        frontend_action=FrontendAction.SIGNUP_EXTERNAL_MFA,
+        finish_url="https://eduid.se/profile/ext-return/{app_name}/{authn_id}",
+        external_mfa_signup_identity=identity,
+    )
+    rebuilt = SP_AuthnRequest(**req.model_dump())
+    assert rebuilt.external_mfa_signup_identity == identity
+    assert rebuilt.external_mfa_signup_identity.nin is None
+
+
+def test_sp_authn_request_external_mfa_freja_foreign_roundtrip() -> None:
+    from eduid.userdb.identity import FrejaLoaLevel, FrejaRegistrationLevel
+
+    identity = ExternalMfaSignupIdentity(
+        given_name="Frida",
+        surname="Fredriksen",
+        date_of_birth=date(1985, 3, 15),
+        freja_user_id="unique_freja_user",
+        country_code="DK",
+        freja_registration_level=FrejaRegistrationLevel.PLUS,
+        freja_loa_level=FrejaLoaLevel.LOA3_NR,
+        framework=TrustFramework.FREJA,
+        loa="freja-loa3_nr",
+    )
+    req = SP_AuthnRequest(
+        frontend_action=FrontendAction.SIGNUP_EXTERNAL_MFA,
+        finish_url="https://eduid.se/profile/ext-return/{app_name}/{authn_id}",
+        external_mfa_signup_identity=identity,
+    )
+    rebuilt = SP_AuthnRequest(**req.model_dump())
+    assert rebuilt.external_mfa_signup_identity == identity
+    assert rebuilt.external_mfa_signup_identity.nin is None
+    assert rebuilt.external_mfa_signup_identity.eidas_prid is None
+    assert rebuilt.external_mfa_signup_identity.freja_user_id == "unique_freja_user"
+
+
+# --- Standalone tests for SignupExternalMfa and the external_mfa field on Signup ---
+
+
+def test_signup_external_mfa_default_none() -> None:
+    from eduid.webapp.common.session.namespaces import Signup
+
+    sns = Signup()
+    assert sns.external_mfa is None
+
+
+def test_signup_external_mfa_bankid_roundtrip() -> None:
+    from eduid.userdb.credentials.external import TrustFramework
+    from eduid.webapp.common.session.namespaces import Signup, SignupExternalMfa
+
+    ext = SignupExternalMfa(
+        app_name="bankid",
+        authn_id="abc-123",
+        framework=TrustFramework.BANKID,
+        loa="loa3",
+        given_name="Anna",
+        surname="Andersson",
+        date_of_birth=date(1980, 1, 1),
+        authn_instant=datetime(2026, 4, 24, tzinfo=UTC),
+        nin="198001011234",
+    )
+    sns = Signup(external_mfa=ext)
+    rebuilt = Signup(**sns.model_dump())
+    assert rebuilt.external_mfa == ext
+
+
+def test_signup_external_mfa_eidas_roundtrip() -> None:
+    from eduid.userdb.credentials.external import TrustFramework
+    from eduid.userdb.identity import PridPersistence
+    from eduid.webapp.common.session.namespaces import Signup, SignupExternalMfa
+
+    ext = SignupExternalMfa(
+        app_name="eidas",
+        authn_id="oidc-state",
+        framework=TrustFramework.EIDAS,
+        loa="eidas_sub",
+        given_name="Karla",
+        surname="Müller",
+        date_of_birth=date(1990, 6, 15),
+        authn_instant=datetime(2026, 4, 24, tzinfo=UTC),
+        eidas_prid="DE:abc",
+        eidas_prid_persistence=PridPersistence.A,
+        country_code="DE",
+    )
+    sns = Signup(external_mfa=ext)
+    rebuilt = Signup(**sns.model_dump())
+    assert rebuilt.external_mfa == ext

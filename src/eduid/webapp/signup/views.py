@@ -2,13 +2,12 @@ from typing import Any
 from uuid import uuid4
 
 from fido2.webauthn import AuthenticatorAttachment, PublicKeyCredentialUserEntity
-from fido_mds.models.webauthn import AttestationFormat
 from flask import Blueprint, abort, request
 
+from eduid.common.config.base import FrontendAction
 from eduid.common.misc.timeutil import utc_now
 from eduid.common.utils import generate_password
 from eduid.userdb import User
-from eduid.userdb.credentials import Webauthn
 from eduid.userdb.exceptions import UserOutOfSync
 from eduid.webapp.common.api.captcha import CaptchaCompleteRequest, CaptchaResponse
 from eduid.webapp.common.api.decorators import MarshalWith, UnmarshalWith, require_not_logged_in, require_user
@@ -19,7 +18,6 @@ from eduid.webapp.common.api.schemas.base import FluxStandardAction
 from eduid.webapp.common.api.schemas.csrf import EmptyRequest
 from eduid.webapp.common.api.utils import make_short_code
 from eduid.webapp.common.authn.webauthn import (
-    AuthenticatorInformation,
     RegistrationError,
     get_webauthn_server,
     verify_webauthn_registration,
@@ -28,6 +26,7 @@ from eduid.webapp.common.session import session
 from eduid.webapp.common.session.namespaces import (
     LoginApplication,
     RequestRef,
+    SignupExternalMfa,
     WebauthnCredential,
     WebauthnRegistration,
 )
@@ -40,14 +39,19 @@ from eduid.webapp.signup.helpers import (
     check_email_status,
     complete_and_update_invite,
     create_and_sync_user,
+    existing_user_for_identity,
     get_eppn,
+    get_webauthn_credential_data,
     is_email_verification_expired,
     is_valid_custom_password,
+    lookup_external_mfa_authn,
     send_signup_mail,
+    validate_external_mfa_authn,
 )
 from eduid.webapp.signup.schemas import (
     AcceptTouRequest,
     CreateUserRequest,
+    ExternalMfaRegisterRequest,
     InviteCodeRequest,
     InviteDataResponse,
     NameAndEmailSchema,
@@ -382,6 +386,7 @@ def webauthn_register_complete(
         user_verification_methods=result.authenticator_info.user_verification_methods,
         key_protection=result.authenticator_info.key_protection,
         is_discoverable=result.is_discoverable,
+        registered_at=utc_now(),
     )
     session.signup.credentials.completed = True
 
@@ -414,6 +419,87 @@ def return_to_auth(ref: str) -> FluxData:
 
     session.signup.idp_request_ref = request_ref
     current_app.logger.info(f"Stored idp_request_ref: {request_ref}")
+    return success_response(payload={"state": session.signup.to_dict()})
+
+
+@signup_views.route("/external-mfa-register", methods=["POST"])
+@UnmarshalWith(ExternalMfaRegisterRequest)
+@MarshalWith(SignupStatusResponse)
+@require_not_logged_in
+def external_mfa_register(app_name: str, authn_id: str) -> FluxData:
+    """Store a successful external-MFA authn on the signup session.
+
+    The frontend hits ``/profile/ext-return/{app_name}/{authn_id}`` after the
+    user authenticates with BankID / Freja eID+ / eIDAS / SamlEid, then posts
+    the `(app_name, authn_id)` here. We read the corresponding SP/RP
+    AuthnRequest from the other webapp's session namespace, validate it, and
+    stash the parsed identity on ``session.signup.external_mfa``.
+
+    NIN/PRID/Freja user_id collision against existing users is checked.
+    """
+    if session.signup.user_created:
+        return error_response(message=SignupMsg.user_already_exists)
+
+    authn = lookup_external_mfa_authn(app_name, authn_id)
+    if authn is None:
+        return error_response(message=SignupMsg.external_mfa_not_found)
+
+    err = validate_external_mfa_authn(authn)
+    if err is not None:
+        return error_response(message=err)
+
+    ident = authn.external_mfa_signup_identity
+    assert ident is not None  # validated above
+    if (
+        existing_user_for_identity(
+            nin=ident.nin,
+            eidas_prid=ident.eidas_prid,
+            prid_persistence=ident.eidas_prid_persistence,
+            freja_user_id=ident.freja_user_id,
+        )
+        is not None
+    ):
+        current_app.logger.info(f"External MFA signup blocked: identity already registered ({app_name})")
+        return error_response(message=SignupMsg.identity_already_registered)
+
+    assert authn.authn_instant is not None  # validated above
+    session.signup.external_mfa = SignupExternalMfa(
+        completed=True,
+        app_name=app_name,
+        authn_id=str(authn_id),
+        framework=ident.framework,
+        loa=ident.loa,
+        given_name=ident.given_name,
+        surname=ident.surname,
+        date_of_birth=ident.date_of_birth,
+        authn_instant=authn.authn_instant,
+        nin=ident.nin,
+        eidas_prid=ident.eidas_prid,
+        eidas_prid_persistence=ident.eidas_prid_persistence,
+        country_code=ident.country_code,
+        freja_user_id=ident.freja_user_id,
+        freja_registration_level=ident.freja_registration_level,
+        freja_loa_level=ident.freja_loa_level,
+        freja_personal_identity_number=ident.freja_personal_identity_number,
+    )
+    authn.consumed = True
+
+    return success_response(payload={"state": session.signup.to_dict()})
+
+
+@signup_views.route("/external-mfa-clear", methods=["POST"])
+@UnmarshalWith(EmptyRequest)
+@MarshalWith(SignupStatusResponse)
+@require_not_logged_in
+def external_mfa_clear() -> FluxData:
+    """Clear any previously stored external-MFA state on the signup session.
+
+    Called by the frontend when the user switches from the external-MFA
+    signup branch back to the email + password branch.
+    """
+    if session.signup.user_created:
+        return error_response(message=SignupMsg.user_already_exists)
+    session.signup.external_mfa = None
     return success_response(payload={"state": session.signup.to_dict()})
 
 
@@ -463,12 +549,44 @@ def _check_credentials_selected(use_password: bool, use_webauthn: bool, custom_p
     return None
 
 
+def _check_external_mfa_still_valid() -> FluxData | None:
+    """Re-validate any stored external MFA at /create-user time.
+
+    The authn's freshness (max_age) and the identity collision are checked at
+    /external-mfa-register, but /create-user can happen an arbitrary time later.
+    Re-check so a stale or now-superseded authn can't be used to finish signup."""
+    ext = session.signup.external_mfa
+    if ext is None:
+        return None
+    max_age = current_app.conf.frontend_action_authn_parameters[FrontendAction.SIGNUP_EXTERNAL_MFA].max_age
+    if utc_now() - ext.authn_instant > max_age:
+        current_app.logger.info("External MFA signup blocked: authn too old at create-user time")
+        session.signup.external_mfa = None
+        return error_response(message=SignupMsg.external_mfa_too_old)
+    if (
+        existing_user_for_identity(
+            nin=ext.nin,
+            eidas_prid=ext.eidas_prid,
+            prid_persistence=ext.eidas_prid_persistence,
+            freja_user_id=ext.freja_user_id,
+        )
+        is not None
+    ):
+        current_app.logger.info(
+            "External MFA signup blocked: identity registered between /external-mfa-register and /create-user"
+        )
+        session.signup.external_mfa = None
+        return error_response(message=SignupMsg.identity_already_registered)
+    return None
+
+
 def _validate_create_user(use_password: bool, use_webauthn: bool, custom_password: str | None) -> FluxData | None:
     """Validate preconditions for user creation. Returns error response or None if valid."""
     return (
         _check_user_not_created()
         or _check_signup_steps_completed()
         or _check_credentials_selected(use_password, use_webauthn, custom_password)
+        or _check_external_mfa_still_valid()
     )
 
 
@@ -497,29 +615,7 @@ def create_user(use_suggested_password: bool, use_webauthn: bool, custom_passwor
     webauthn_credential = None
     webauthn_authenticator_info = None
     if use_webauthn:
-        wn = session.signup.credentials.webauthn
-        if wn is None:
-            raise RuntimeError("session.signup.credentials.webauthn not set after _check_credentials_selected")
-        webauthn_credential = Webauthn(
-            keyhandle=wn.keyhandle,
-            credential_data=wn.credential_data,
-            authenticator_id=wn.authenticator_id,
-            authenticator=wn.authenticator,
-            app_id=current_app.conf.fido2_rp_id,
-            description=wn.description,
-            created_by=current_app.conf.app_name,
-            mfa_approved=wn.mfa_approved,
-            webauthn_proofing_version=current_app.conf.webauthn_proofing_version,
-            attestation_format=wn.attestation_format,
-        )
-        webauthn_authenticator_info = AuthenticatorInformation(
-            authenticator_id=wn.authenticator_id or "",
-            attestation_format=wn.attestation_format or AttestationFormat.NONE,
-            user_present=wn.user_present,
-            user_verified=wn.user_verified,
-            user_verification_methods=wn.user_verification_methods,
-            key_protection=wn.key_protection,
-        )
+        webauthn_credential, webauthn_authenticator_info = get_webauthn_credential_data()
 
     try:
         signup_user = create_and_sync_user(
@@ -531,6 +627,10 @@ def create_user(use_suggested_password: bool, use_webauthn: bool, custom_passwor
             tou_version=session.signup.tou.version,
             webauthn=webauthn_credential,
             webauthn_authenticator_info=webauthn_authenticator_info,
+            external_mfa=session.signup.external_mfa,
+            webauthn_registered_at=session.signup.credentials.webauthn.registered_at
+            if session.signup.credentials.webauthn
+            else None,
         )
     except EmailAlreadyVerifiedException:
         return error_response(message=SignupMsg.email_used)
@@ -544,6 +644,8 @@ def create_user(use_suggested_password: bool, use_webauthn: bool, custom_passwor
     session.signup.credentials.completed = True
     session.common.eppn = signup_user.eppn
     session.common.login_source = LoginApplication.signup
+    if session.signup.external_mfa is not None:
+        current_app.stats.count(name=f"signup_external_mfa_completed_{session.signup.external_mfa.app_name}")
     if custom_password is not None:
         session.signup.credentials.custom_password = True
         session.signup.credentials.generated_password = None

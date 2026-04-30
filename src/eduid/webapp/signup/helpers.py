@@ -7,7 +7,7 @@ from enum import StrEnum, unique
 import proquint  # type: ignore[import-untyped]
 from flask import abort
 
-from eduid.common.config.base import EduidEnvironment
+from eduid.common.config.base import EduidEnvironment, FrontendAction
 from eduid.common.misc.timeutil import utc_now
 from eduid.common.models.scim_base import Email, SCIMSchema
 from eduid.common.models.scim_base import PhoneNumber as ScimPhoneNumber
@@ -17,8 +17,28 @@ from eduid.queue.client import init_queue_item
 from eduid.queue.db.message import EduidSignupEmail
 from eduid.userdb import MailAddress, NinIdentity, PhoneNumber, Profile, User
 from eduid.userdb.credentials import Webauthn
+from eduid.userdb.credentials.external import (
+    BankIDCredential,
+    EidasCredential,
+    ExternalCredential,
+    FrejaCredential,
+    SwedenConnectCredential,
+    TrustFramework,
+)
 from eduid.userdb.exceptions import UserDoesNotExist, UserOutOfSync
+from eduid.userdb.identity import (
+    EIDASIdentity,
+    EIDASLoa,
+    FrejaIdentity,
+    IdentityProofingMethod,
+    IdentityType,
+    PridPersistence,
+)
 from eduid.userdb.logs import MailAddressProofing
+from eduid.userdb.logs.element import (
+    ForeignIdProofingLogElement,
+    NinEIDProofingLogElement,
+)
 from eduid.userdb.signup import Invite, InviteType, SCIMReference, SignupUser
 from eduid.userdb.tou import ToUEvent
 from eduid.webapp.common.api.exceptions import ProofingLogFailure, VCCSBackendFailure
@@ -29,6 +49,14 @@ from eduid.webapp.common.api.validation import is_valid_password
 from eduid.webapp.common.authn.vccs import add_password, revoke_passwords
 from eduid.webapp.common.authn.webauthn import AuthenticatorInformation, save_webauthn_proofing_log
 from eduid.webapp.common.session import session
+from eduid.webapp.common.session.namespaces import (
+    AuthnRequestRef,
+    ExternalMfaSignupIdentity,
+    OIDCState,
+    RP_AuthnRequest,
+    SignupExternalMfa,
+    SP_AuthnRequest,
+)
 from eduid.webapp.signup.app import current_signup_app as current_app
 
 
@@ -82,6 +110,14 @@ class SignupMsg(TranslatableMsg):
     invite_already_completed = "signup.invite-already-completed"
     # IdP request ref not found in session
     idp_request_ref_not_found = "signup.idp-request-ref-not-found"
+
+    # external MFA signup
+    external_mfa_not_found = "signup.external-mfa-not-found"
+    external_mfa_not_verified = "signup.external-mfa-not-verified"
+    external_mfa_too_old = "signup.external-mfa-too-old"
+    external_mfa_already_consumed = "signup.external-mfa-already-consumed"
+    external_mfa_wrong_action = "signup.external-mfa-wrong-action"
+    identity_already_registered = "signup.identity-already-registered"
 
     # backwards compatibility
     # partial success registering new account
@@ -218,6 +254,8 @@ def create_and_sync_user(
     custom_password: str | None = None,
     webauthn: Webauthn | None = None,
     webauthn_authenticator_info: AuthenticatorInformation | None = None,
+    external_mfa: SignupExternalMfa | None = None,
+    webauthn_registered_at: datetime | None = None,
 ) -> SignupUser:
     """
     * Create a new user in the central userdb
@@ -258,8 +296,30 @@ def create_and_sync_user(
             current_app.logger.debug(f"signup_user: {signup_user}")
             raise VCCSBackendFailure("Failed to add a credential to user")
 
+    # Write webauthn proofing log after user is saved (eppn exists in DB)
     if webauthn is not None:
+        if webauthn.mfa_approved:
+            # Need to write proofing log for mfa_approved credentials
+            assert webauthn_authenticator_info is not None
+            if not save_webauthn_proofing_log(
+                eppn=signup_user.eppn,
+                authenticator_info=webauthn_authenticator_info,
+                proofing_log=current_app.proofing_log,
+                app_name=current_app.conf.app_name,
+                proofing_version=current_app.conf.webauthn_proofing_version,
+                proofing_method=current_app.conf.webauthn_proofing_method,
+            ):
+                current_app.logger.error("Failed to save webauthn proofing log")
+                raise ProofingLogFailure("Failed to save webauthn proofing log")
+        # add credential to user
         signup_user.credentials.add(webauthn)
+
+    if external_mfa is not None and _write_external_mfa_proofing_log(signup_user, external_mfa):
+        record_user_identity(signup_user=signup_user, external_mfa=external_mfa)
+
+    # If the user registered a security key and verified their identity via external MFA,
+    # and both happened recently enough, mark the security key as verified too.
+    _maybe_verify_webauthn_credential(signup_user, webauthn, webauthn_registered_at, external_mfa)
 
     try:
         save_and_sync_user(signup_user)
@@ -267,18 +327,6 @@ def create_and_sync_user(
         revoke_passwords(user=signup_user, reason="UserOutOfSync during signup", application=current_app.conf.app_name)
         current_app.logger.error(f"Failed saving user {signup_user}, data out of sync")
         raise e
-
-    # Write webauthn proofing log after user is saved (eppn exists in DB)
-    if webauthn is not None and webauthn_authenticator_info is not None and webauthn.mfa_approved:
-        if not save_webauthn_proofing_log(
-            eppn=signup_user.eppn,
-            authenticator_info=webauthn_authenticator_info,
-            proofing_log=current_app.proofing_log,
-            app_name=current_app.conf.app_name,
-            proofing_version=current_app.conf.webauthn_proofing_version,
-            proofing_method=current_app.conf.webauthn_proofing_method,
-        ):
-            current_app.logger.error("Failed to save webauthn proofing log")
 
     current_app.stats.count(name="user_created")
     current_app.logger.info("Signup user created")
@@ -332,6 +380,68 @@ def record_email_address(signup_user: SignupUser, email: str) -> None:
 
     signup_user.mail_addresses.add(mail_address)
     current_app.stats.count(name="mail_verified")
+
+
+def record_user_identity(signup_user: SignupUser, external_mfa: SignupExternalMfa) -> None:
+    signup_user.credentials.add(
+        build_external_credential(
+            framework=external_mfa.framework,
+            loa=external_mfa.loa,
+            created_by=current_app.conf.app_name,
+        )
+    )
+    identity_proofing_method = _identity_proofing_method_for_framework(external_mfa.framework)
+    identity_proofing_version = _proofing_version_for_framework(external_mfa.framework)
+    if external_mfa.nin:
+        signup_user.identities.add(
+            NinIdentity(
+                number=external_mfa.nin,
+                date_of_birth=external_mfa.date_of_birth,
+                created_by=current_app.conf.app_name,
+                is_verified=True,
+                verified_by=current_app.conf.app_name,
+                verified_ts=utc_now(),
+                proofing_method=identity_proofing_method,
+                proofing_version=identity_proofing_version,
+            )
+        )
+    elif external_mfa.eidas_prid and external_mfa.eidas_prid_persistence:
+        signup_user.identities.add(
+            EIDASIdentity(
+                prid=external_mfa.eidas_prid,
+                prid_persistence=external_mfa.eidas_prid_persistence,
+                loa=EIDASLoa(external_mfa.loa),
+                date_of_birth=external_mfa.date_of_birth,
+                country_code=external_mfa.country_code,
+                created_by=current_app.conf.app_name,
+                is_verified=True,
+                verified_by=current_app.conf.app_name,
+                verified_ts=utc_now(),
+                proofing_method=identity_proofing_method,
+                proofing_version=identity_proofing_version,
+            )
+        )
+    elif external_mfa.freja_user_id:
+        assert external_mfa.freja_registration_level is not None  # please mypy
+        assert external_mfa.freja_loa_level is not None  # please mypy
+        signup_user.identities.add(
+            FrejaIdentity(
+                user_id=external_mfa.freja_user_id,
+                country_code=external_mfa.country_code,
+                date_of_birth=external_mfa.date_of_birth,
+                personal_identity_number=external_mfa.freja_personal_identity_number,
+                registration_level=external_mfa.freja_registration_level,
+                loa_level=external_mfa.freja_loa_level,
+                created_by=current_app.conf.app_name,
+                is_verified=True,
+                verified_by=current_app.conf.app_name,
+                verified_ts=utc_now(),
+                proofing_method=identity_proofing_method,
+                proofing_version=identity_proofing_version,
+            )
+        )
+    else:
+        raise RuntimeError("SignupExternalMfa has neither nin, eidas_prid, nor freja_user_id")
 
 
 def complete_and_update_invite(user: User, invite_code: str) -> None:
@@ -481,6 +591,340 @@ def is_valid_custom_password(custom_password: str | None) -> bool:
         return False
 
     return True
+
+
+def get_webauthn_credential_data() -> tuple[Webauthn, AuthenticatorInformation]:
+    wn = session.signup.credentials.webauthn
+    assert wn is not None  # checked above
+    webauthn_credential = Webauthn(
+        keyhandle=wn.keyhandle,
+        credential_data=wn.credential_data,
+        authenticator_id=wn.authenticator_id,
+        authenticator=wn.authenticator,
+        app_id=current_app.conf.fido2_rp_id,
+        description=wn.description,
+        created_by=current_app.conf.app_name,
+        mfa_approved=wn.mfa_approved,
+        webauthn_proofing_version=current_app.conf.webauthn_proofing_version,
+        attestation_format=wn.attestation_format,
+    )
+    webauthn_authenticator_info = AuthenticatorInformation(
+        authenticator_id=wn.authenticator_id,
+        attestation_format=wn.attestation_format,
+        user_present=wn.user_present,
+        user_verified=wn.user_verified,
+        user_verification_methods=wn.user_verification_methods,
+        key_protection=wn.key_protection,
+    )
+    return webauthn_credential, webauthn_authenticator_info
+
+
+def build_external_credential(framework: TrustFramework, loa: str, created_by: str) -> ExternalCredential:
+    """Build the appropriate ExternalCredential subclass for the given TrustFramework."""
+    match framework:
+        case TrustFramework.SWECONN:
+            cred: ExternalCredential = SwedenConnectCredential(level=loa)
+        case TrustFramework.EIDAS:
+            cred = EidasCredential(level=loa)
+        case TrustFramework.BANKID:
+            cred = BankIDCredential(level=loa)
+        case TrustFramework.FREJA:
+            cred = FrejaCredential(level=loa)
+        case _:
+            raise ValueError(f"Unsupported TrustFramework: {framework}")
+    cred.created_by = created_by
+    return cred
+
+
+def _identity_proofing_method_for_framework(framework: TrustFramework) -> IdentityProofingMethod:
+    """Map the external MFA TrustFramework to the IdentityProofingMethod to record
+    on the verified NinIdentity/EIDASIdentity. Required so that the IdP DIGG LoA 2
+    assurance check recognizes the proofing method."""
+    match framework:
+        case TrustFramework.BANKID:
+            return IdentityProofingMethod.BANKID
+        case TrustFramework.SWECONN | TrustFramework.EIDAS:
+            return IdentityProofingMethod.SWEDEN_CONNECT
+        case TrustFramework.FREJA:
+            return IdentityProofingMethod.FREJA_EID
+        case _:
+            raise ValueError(f"Unsupported TrustFramework: {framework}")
+
+
+def _proofing_version_for_framework(framework: TrustFramework) -> str:
+    """Return the configured proofing version string for the given TrustFramework."""
+    match framework:
+        case TrustFramework.SWECONN:
+            return current_app.conf.freja_proofing_version
+        case TrustFramework.EIDAS:
+            return current_app.conf.foreign_eid_proofing_version
+        case TrustFramework.BANKID:
+            return current_app.conf.bankid_proofing_version
+        case TrustFramework.FREJA:
+            return current_app.conf.freja_eid_proofing_version
+        case _:
+            raise ValueError(f"Unsupported TrustFramework: {framework}")
+
+
+def _maybe_verify_webauthn_credential(
+    signup_user: SignupUser,
+    webauthn: Webauthn | None,
+    webauthn_registered_at: datetime | None,
+    external_mfa: SignupExternalMfa | None,
+) -> None:
+    """Mark a webauthn credential as verified if an external MFA identity verification
+    was performed recently enough and the security key was also registered recently enough.
+
+    Both the external MFA authn_instant and the webauthn registration timestamp must be
+    within ``credential_verify_max_age`` of the current time.
+    """
+    if webauthn is None or external_mfa is None or webauthn_registered_at is None:
+        return
+
+    max_age = current_app.conf.credential_verify_max_age
+    now = utc_now()
+
+    if now - external_mfa.authn_instant > max_age:
+        current_app.logger.info("External MFA authn_instant too old for credential verification")
+        return
+
+    if now - webauthn_registered_at > max_age:
+        current_app.logger.info("Webauthn registration too old for credential verification")
+        return
+
+    credential = signup_user.credentials.find(webauthn.key)
+    if credential is None:
+        current_app.logger.error(f"Could not find webauthn credential {webauthn.key} on signup user")
+        return
+
+    if not _write_credential_verification_proofing_log(signup_user, external_mfa):
+        return
+
+    credential.is_verified = True
+    credential.verified_by = current_app.conf.app_name
+    credential.verified_ts = now
+    credential.proofing_method = current_app.conf.security_key_proofing_method
+    credential.proofing_version = current_app.conf.security_key_proofing_version
+    current_app.logger.info(f"Marked webauthn credential {webauthn.key} as verified via external MFA during signup")
+
+
+def _write_credential_verification_proofing_log(signup_user: SignupUser, external_mfa: SignupExternalMfa) -> bool:
+    """Write a proofing log entry for a webauthn credential verified via external MFA during signup."""
+    app_name = current_app.conf.app_name
+    method = external_mfa.app_name
+    version = _proofing_version_for_framework(external_mfa.framework)
+
+    entry: NinEIDProofingLogElement | ForeignIdProofingLogElement
+
+    if external_mfa.nin:
+        entry = NinEIDProofingLogElement(
+            eppn=signup_user.eppn,
+            created_by=app_name,
+            proofing_method=method,
+            proofing_version=version,
+            nin=external_mfa.nin,
+            given_name=external_mfa.given_name,
+            surname=external_mfa.surname,
+        )
+    elif external_mfa.eidas_prid or external_mfa.freja_user_id:
+        if external_mfa.date_of_birth is None:
+            current_app.logger.error(
+                "date_of_birth is needed for ForeignIdProofingLogElement — no credential proofing log written"
+            )
+            return False
+        entry = ForeignIdProofingLogElement(
+            eppn=signup_user.eppn,
+            created_by=app_name,
+            proofing_method=method,
+            proofing_version=version,
+            given_name=external_mfa.given_name,
+            surname=external_mfa.surname,
+            date_of_birth=external_mfa.date_of_birth.isoformat(),
+            country_code=external_mfa.country_code,
+        )
+    else:
+        current_app.logger.error(
+            "SignupExternalMfa has neither nin, eidas_prid, nor freja_user_id — no credential proofing log written"
+        )
+        return False
+
+    if not current_app.proofing_log.save(entry):
+        current_app.logger.error(f"Failed to save credential verification proofing log for {signup_user.eppn}")
+        raise ProofingLogFailure("Failed to save credential verification proofing log")
+    return True
+
+
+def _write_external_mfa_proofing_log(signup_user: SignupUser, external_mfa: SignupExternalMfa) -> bool:
+    """Write a proofing log entry for an identity verified via external MFA during signup.
+
+    Uses the generic NinEIDProofingLogElement / ForeignIdProofingLogElement classes,
+    since the signup backend only has what `SignupExternalMfa` carries — no SAML
+    transaction_id, no Freja document info, etc. Those live in the original
+    SP_AuthnRequest / RP_AuthnRequest written by the MFA webapp at ACS time and are
+    not propagated into session.signup.external_mfa by design.
+    """
+    app_name = current_app.conf.app_name
+    # Record the source MFA webapp as proofing_method, version mapped from TrustFramework
+    method = external_mfa.app_name
+    version = _proofing_version_for_framework(external_mfa.framework)
+
+    entry: NinEIDProofingLogElement | ForeignIdProofingLogElement
+
+    if external_mfa.nin:
+        entry = NinEIDProofingLogElement(
+            eppn=signup_user.eppn,
+            created_by=app_name,
+            proofing_method=method,
+            proofing_version=version,
+            nin=external_mfa.nin,
+            given_name=external_mfa.given_name,
+            surname=external_mfa.surname,
+        )
+    elif external_mfa.eidas_prid or external_mfa.freja_user_id:
+        if external_mfa.date_of_birth is None:
+            current_app.logger.error("Missing date_of_birth for ForeignIdProofingLogElement")
+            return False
+        entry = ForeignIdProofingLogElement(
+            eppn=signup_user.eppn,
+            created_by=app_name,
+            proofing_method=method,
+            proofing_version=version,
+            given_name=external_mfa.given_name,
+            surname=external_mfa.surname,
+            date_of_birth=external_mfa.date_of_birth.isoformat(),
+            country_code=external_mfa.country_code,
+        )
+    else:
+        current_app.logger.error(
+            "SignupExternalMfa has neither nin, eidas_prid, nor freja_user_id — no proofing log written"
+        )
+        return False
+
+    if not current_app.proofing_log.save(entry):
+        current_app.logger.error(f"Failed to save external MFA proofing log for {signup_user.eppn}")
+        raise ProofingLogFailure("Failed to save external MFA proofing log")
+    return True
+
+
+def lookup_external_mfa_authn(app_name: str, authn_id: str) -> SP_AuthnRequest | RP_AuthnRequest | None:
+    match app_name:
+        case "freja_eid":
+            return session.freja_eid.rp.authns.get(OIDCState(authn_id))
+        case "eidas":
+            return session.eidas.sp.authns.get(AuthnRequestRef(authn_id))
+        case "bankid":
+            return session.bankid.sp.authns.get(AuthnRequestRef(authn_id))
+        case "samleid":
+            return session.samleid.sp.authns.get(AuthnRequestRef(authn_id))
+        case _:
+            return None
+
+
+def validate_external_mfa_authn(
+    authn: SP_AuthnRequest | RP_AuthnRequest,
+) -> SignupMsg | None:
+    if authn.frontend_action != FrontendAction.SIGNUP_EXTERNAL_MFA:
+        return SignupMsg.external_mfa_wrong_action
+    if authn.error:
+        return SignupMsg.external_mfa_not_verified
+    if authn.external_mfa_signup_identity is None:
+        return SignupMsg.external_mfa_not_verified
+    if authn.consumed:
+        return SignupMsg.external_mfa_already_consumed
+    if authn.authn_instant is None:
+        return SignupMsg.external_mfa_not_verified
+    max_age = current_app.conf.frontend_action_authn_parameters[FrontendAction.SIGNUP_EXTERNAL_MFA].max_age
+    if utc_now() - authn.authn_instant > max_age:
+        return SignupMsg.external_mfa_too_old
+    if err := _validate_signup_identity(authn.external_mfa_signup_identity):
+        return err
+    return None
+
+
+def _validate_signup_identity(ident: ExternalMfaSignupIdentity) -> SignupMsg | None:
+    """Require exactly one identity discriminator (NIN, eIDAS PRID, or Freja user_id) and its
+    required companion fields. Prevents downstream 500s in ``create_and_sync_user``
+    when the upstream ACS handler failed to populate a usable identity."""
+    has_nin = bool(ident.nin)
+    has_prid = bool(ident.eidas_prid)
+    has_freja = bool(ident.freja_user_id)
+    if sum([has_nin, has_prid, has_freja]) != 1:
+        current_app.logger.error(
+            f"External MFA signup identity has invalid discriminators: "
+            f"nin={has_nin}, eidas_prid={has_prid}, freja_user_id={has_freja}"
+        )
+        return SignupMsg.external_mfa_not_verified
+    if has_prid and (ident.country_code is None or ident.date_of_birth is None):
+        current_app.logger.error("External MFA signup identity with eidas_prid is missing required fields")
+        current_app.logger.debug(f"country_code: {ident.country_code}")
+        current_app.logger.debug(f"date_of_birth: {ident.date_of_birth}")
+        return SignupMsg.external_mfa_not_verified
+    if has_freja and (
+        ident.country_code is None
+        or ident.freja_registration_level is None
+        or ident.freja_loa_level is None
+        or ident.date_of_birth is None
+    ):
+        current_app.logger.error("External MFA signup identity with freja_user_id is missing required fields")
+        current_app.logger.debug(f"country_code: {ident.country_code}")
+        current_app.logger.debug(f"freja_registration_level: {ident.freja_registration_level}")
+        current_app.logger.debug(f"freja_loa_level: {ident.freja_loa_level}")
+        current_app.logger.debug(f"date_of_birth: {ident.date_of_birth}")
+        return SignupMsg.external_mfa_not_verified
+    return None
+
+
+def existing_user_for_identity(
+    nin: str | None,
+    eidas_prid: str | None,
+    prid_persistence: PridPersistence | None = None,
+    freja_user_id: str | None = None,
+) -> User | None:
+    """Return an existing verified user matching the given NIN or eIDAS PRID, or None.
+
+    For eIDAS, matches both the active verified identity (where the same PRID is
+    currently a user's verified EIDAS identity) and the locked identity (where the
+    user has since re-verified with a rotated PRID but the original is still locked).
+    eIDAS PRIDs with persistence B/C rotate over time so an exact miss does not
+    guarantee no duplicate — we log a warning in that case.
+    """
+    if nin:
+        return current_app.central_userdb.get_user_by_nin(nin)
+    if eidas_prid:
+        users = current_app.central_userdb.get_users_by_identity(
+            identity_type=IdentityType.EIDAS,
+            key="prid",
+            value=eidas_prid,
+        )
+        if users:
+            if len(users) > 1:
+                current_app.logger.warning(f"Multiple users matched PRID {eidas_prid}")
+            return users[0]
+        locked = current_app.central_userdb.get_users_by_locked_identity(
+            identity_type=IdentityType.EIDAS,
+            key="prid",
+            value=eidas_prid,
+        )
+        if locked:
+            if len(locked) > 1:
+                current_app.logger.warning(f"Multiple users matched locked PRID {eidas_prid}")
+            return locked[0]
+        if prid_persistence in (PridPersistence.B, PridPersistence.C):
+            current_app.logger.warning(
+                f"Signup eIDAS PRID has persistence {prid_persistence.value} with no exact match; "
+                "cannot rule out duplicate of an existing user whose PRID has rotated"
+            )
+    if freja_user_id:
+        users = current_app.central_userdb.get_users_by_identity(
+            identity_type=IdentityType.FREJA,
+            key="user_id",
+            value=freja_user_id,
+        )
+        if users:
+            if len(users) > 1:
+                current_app.logger.warning(f"Multiple users matched Freja user_id {freja_user_id}")
+            return users[0]
+    return None
 
 
 # backwards compatibility

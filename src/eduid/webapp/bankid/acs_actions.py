@@ -1,18 +1,20 @@
 from eduid.userdb import User
-from eduid.userdb.credentials.fido import FidoCredential
 from eduid.webapp.bankid.app import current_bankid_app as current_app
 from eduid.webapp.bankid.helpers import BankIDMsg
 from eduid.webapp.bankid.proofing import get_proofing_functions
+from eduid.webapp.bankid.saml_session_info import BankIDSessionInfo
 from eduid.webapp.common.api.decorators import require_user
-from eduid.webapp.common.api.messages import AuthnStatusMsg
 from eduid.webapp.common.authn.acs_enums import BankIDAcsAction
 from eduid.webapp.common.authn.acs_registry import ACSArgs, ACSResult, acs_action
-from eduid.webapp.common.authn.utils import check_reauthn
-from eduid.webapp.common.proofing.messages import ProofingMsg
-from eduid.webapp.common.proofing.methods import ProofingMethodSAML
-from eduid.webapp.common.proofing.saml_helpers import is_required_loa, is_valid_authn_instant
+from eduid.webapp.common.proofing.mfa_signup import MfaRegisterParsed, parse_mfa_register_args
+from eduid.webapp.common.proofing.shared_actions import (
+    run_common_saml_checks,
+    run_mfa_authenticate,
+    run_verify_credential,
+    run_verify_identity,
+)
 from eduid.webapp.common.session import session
-from eduid.webapp.common.session.namespaces import SP_AuthnRequest
+from eduid.webapp.common.session.namespaces import ExternalMfaSignupIdentity
 
 __author__ = "lundberg"
 
@@ -20,194 +22,99 @@ from eduid.common.models.saml_models import BaseSessionInfo
 
 
 def common_saml_checks(args: ACSArgs) -> ACSResult | None:
-    """
-    Perform common checks for SAML ACS actions.
-    """
-    if not isinstance(args.proofing_method, ProofingMethodSAML):
-        return ACSResult(message=BankIDMsg.method_not_available)
-    if not is_required_loa(
-        args.session_info, args.proofing_method.required_loa, current_app.conf.loa_authn_context_map
-    ):
-        args.authn_req.error = True
-        args.authn_req.status = BankIDMsg.authn_context_mismatch.value
-        return ACSResult(message=BankIDMsg.authn_context_mismatch)
-
-    if not is_valid_authn_instant(args.session_info):
-        args.authn_req.error = True
-        args.authn_req.status = BankIDMsg.authn_instant_too_old.value
-        return ACSResult(message=BankIDMsg.authn_instant_too_old)
-
-    return None
+    """Perform common checks for SAML ACS actions."""
+    return run_common_saml_checks(
+        args,
+        authn_context_mismatch_msg=BankIDMsg.authn_context_mismatch,
+        authn_instant_too_old_msg=BankIDMsg.authn_instant_too_old,
+        method_not_available=BankIDMsg.method_not_available,
+        loa_authn_context_map=current_app.conf.loa_authn_context_map,
+    )
 
 
 @acs_action(BankIDAcsAction.verify_identity)
 @require_user
 def verify_identity_action(user: User, args: ACSArgs) -> ACSResult:
-    """
-    Use a Sweden Connect federation IdP assertion to verify a users' identity.
-
-    :param args: ACS action arguments
-    :param user: Central db user
-
-    :return: ACS action result
-    """
-    if not isinstance(args.proofing_method, ProofingMethodSAML):
-        return ACSResult(message=BankIDMsg.method_not_available)
-
-    if ret := common_saml_checks(args=args):
-        return ret
-
-    parsed = args.proofing_method.parse_session_info(args.session_info, backdoor=args.backdoor)
-    if parsed.error:
-        return ACSResult(message=parsed.error)
-
-    if not isinstance(parsed.info, BaseSessionInfo):
-        raise RuntimeError(f"unexpected parsed.info type: {type(parsed.info).__name__}")
-
-    proofing = get_proofing_functions(
-        session_info=parsed.info, app_name=current_app.conf.app_name, config=current_app.conf, backdoor=args.backdoor
+    """Use a Sweden Connect federation IdP assertion to verify a users' identity."""
+    return run_verify_identity(
+        user,
+        args,
+        common_saml_checks=common_saml_checks,
+        get_proofing_functions=get_proofing_functions,
+        method_not_available_msg=BankIDMsg.method_not_available,
+        identity_verify_success_msg=BankIDMsg.identity_verify_success,
+        app=current_app,
     )
-
-    current = proofing.get_identity(user)
-    if current and current.is_verified:
-        current_app.logger.error(f"User already has a verified identity for {args.proofing_method.method}")
-        current_app.logger.debug(f"Current: {current}. Assertion: {args.session_info}")
-        return ACSResult(message=ProofingMsg.identity_already_verified)
-
-    verify_result = proofing.verify_identity(user=user)
-    if verify_result.error is not None:
-        return ACSResult(message=verify_result.error)
-
-    return ACSResult(success=True, message=BankIDMsg.identity_verify_success)
 
 
 @acs_action(BankIDAcsAction.verify_credential)
 @require_user
 def verify_credential_action(user: User, args: ACSArgs) -> ACSResult:
-    """
-    Use a Sweden Connect federation IdP assertion to person-proof a users' FIDO credential.
-
-    :param args: ACS action arguments
-    :param user: Central db user
-
-    :return: ACS action result
-    """
-    if not isinstance(args.proofing_method, ProofingMethodSAML):
-        return ACSResult(message=BankIDMsg.method_not_available)
-    if not isinstance(args.authn_req, SP_AuthnRequest):
-        raise RuntimeError(f"unexpected authn_req type: {type(args.authn_req).__name__}")
-
-    if ret := common_saml_checks(args=args):
-        return ret
-
-    credential = user.credentials.find(args.authn_req.proofing_credential_id)
-    if not isinstance(credential, FidoCredential):
-        current_app.logger.error(f"Credential {credential} is not a FidoCredential")
-        return ACSResult(message=BankIDMsg.credential_not_found)
-
-    # Check (again) if token was used to authenticate this session and that the auth is not stale.
-    _need_reauthn = check_reauthn(
-        frontend_action=args.authn_req.frontend_action, user=user, credential_requested=credential
+    """Use a Sweden Connect federation IdP assertion to person-proof a users' FIDO credential."""
+    return run_verify_credential(
+        user,
+        args,
+        common_saml_checks=common_saml_checks,
+        get_proofing_functions=get_proofing_functions,
+        method_not_available_msg=BankIDMsg.method_not_available,
+        credential_not_found_msg=BankIDMsg.credential_not_found,
+        identity_not_matching_msg=BankIDMsg.identity_not_matching,
+        credential_verify_success_msg=BankIDMsg.credential_verify_success,
+        app=current_app,
     )
-    if _need_reauthn:
-        current_app.logger.error(f"User needs to authenticate: {_need_reauthn}")
-        return ACSResult(message=AuthnStatusMsg.must_authenticate)
-
-    parsed = args.proofing_method.parse_session_info(args.session_info, args.backdoor)
-    if parsed.error:
-        return ACSResult(message=parsed.error)
-
-    if not isinstance(parsed.info, BaseSessionInfo):
-        raise RuntimeError(f"unexpected parsed.info type: {type(parsed.info).__name__}")
-
-    proofing = get_proofing_functions(
-        session_info=parsed.info, app_name=current_app.conf.app_name, config=current_app.conf, backdoor=args.backdoor
-    )
-
-    _identity = proofing.get_identity(user=user)
-    if not _identity or not _identity.is_verified:
-        # proof users' identity too in this process if the user didn't have a verified identity of this type already
-        verify_result = proofing.verify_identity(user=user)
-        if verify_result.error is not None:
-            return ACSResult(message=verify_result.error)
-        if verify_result.user:
-            # Get an updated user object
-            user = verify_result.user
-            # It is necessary to look up the credential again in order for changes to the instance to
-            # actually be saved to the database. Can't be references to old user objects credential.
-            credential = user.credentials.find(credential.key)
-            if not isinstance(credential, FidoCredential):
-                current_app.logger.error(f"Credential {credential} is not a FidoCredential")
-                return ACSResult(message=BankIDMsg.credential_not_found)
-
-    # Check that the users' verified identity matches the one that was asserted now
-    match_res = proofing.match_identity(user=user, proofing_method=args.proofing_method)
-    if match_res.error is not None:
-        return ACSResult(message=match_res.error)
-
-    if not match_res.matched:
-        # Matching external mfa authentication with user nin failed, bail
-        current_app.stats.count(name=f"verify_credential_{args.proofing_method.method}_identity_not_matching")
-        return ACSResult(message=BankIDMsg.identity_not_matching)
-
-    loa = None
-    if parsed.info.authn_context is not None:
-        loa = current_app.conf.authn_context_loa_map.get(parsed.info.authn_context)
-
-    verify_result = proofing.verify_credential(user=user, credential=credential, loa=loa)
-    if verify_result.error is not None:
-        return ACSResult(message=verify_result.error)
-
-    current_app.stats.count(name="fido_token_verified")
-    current_app.stats.count(name=f"verify_credential_{args.proofing_method.method}_success")
-
-    return ACSResult(success=True, message=BankIDMsg.credential_verify_success)
 
 
 @acs_action(BankIDAcsAction.mfa_authenticate)
 def mfa_authenticate_action(args: ACSArgs) -> ACSResult:
-    """
-    Authenticate a user using Use a Sweden Connect federation IdP assertion.
-
-    NOTE: While this code looks up the user from session.common.eppn, it doesn't require the user
-          to be already logged in, so it can't use the @require_user decorator.
-
-    :param args: ACS action arguments
-
-    :return: ACS action result
-    """
-    if not isinstance(args.proofing_method, ProofingMethodSAML):
-        return ACSResult(message=BankIDMsg.method_not_available)
-
-    if ret := common_saml_checks(args=args):
-        return ret
-
-    # Get user from central database
-    user = current_app.central_userdb.get_user_by_eppn(session.mfa_action.eppn)
-
-    parsed = args.proofing_method.parse_session_info(args.session_info, backdoor=args.backdoor)
-    if parsed.error:
-        return ACSResult(message=parsed.error)
-
-    if not isinstance(parsed.info, BaseSessionInfo):
-        raise RuntimeError(f"unexpected parsed.info type: {type(parsed.info).__name__}")
-
-    proofing = get_proofing_functions(
-        session_info=parsed.info, app_name=current_app.conf.app_name, config=current_app.conf, backdoor=args.backdoor
+    """Authenticate a user using a Sweden Connect federation IdP assertion."""
+    result = run_mfa_authenticate(
+        args,
+        common_saml_checks=common_saml_checks,
+        get_proofing_functions=get_proofing_functions,
+        get_user=lambda: current_app.central_userdb.get_user_by_eppn(session.mfa_action.eppn),
+        method_not_available_msg=BankIDMsg.method_not_available,
+        identity_not_matching_msg=BankIDMsg.identity_not_matching,
+        mfa_authn_success_msg=BankIDMsg.mfa_authn_success,
+        app=current_app,
     )
+    if result.success:
+        assert args.proofing_method is not None
+        parsed = args.proofing_method.parse_session_info(args.session_info, backdoor=args.backdoor)
+        assert isinstance(parsed.info, BaseSessionInfo)
+        current_app.stats.count(name=f"mfa_auth_{parsed.info.issuer}_success")
+    return result
 
-    # Check that a verified NIN is equal to the asserted attribute personalIdentityNumber
-    match_res = proofing.match_identity(user=user, proofing_method=args.proofing_method)
-    current_app.logger.debug(f"MFA authentication identity matching result: {match_res}")
-    if match_res.error is not None:
-        return ACSResult(message=match_res.error)
 
-    if not match_res.matched:
-        # Matching external mfa authentication with user nin failed, bail
-        current_app.stats.count(name=f"mfa_auth_{args.proofing_method.method}_identity_not_matching")
-        return ACSResult(message=BankIDMsg.identity_not_matching)
+@acs_action(BankIDAcsAction.mfa_register)
+def mfa_register_action(args: ACSArgs) -> ACSResult:
+    """Parse the external MFA assertion for a signup-flow authn and persist
+    identity + LoA on the SP_AuthnRequest.
 
-    current_app.stats.count(name="mfa_auth_success")
-    current_app.stats.count(name=f"mfa_auth_{args.proofing_method.method}_success")
-    current_app.stats.count(name=f"mfa_auth_{parsed.info.issuer}_success")
+    No user exists yet, no DB write, no proofing log.
+    """
+    parsed = parse_mfa_register_args(
+        args,
+        common_saml_checks=common_saml_checks,
+        get_proofing_functions=get_proofing_functions,
+        method_not_available_msg=BankIDMsg.method_not_available,
+        app=current_app,
+    )
+    if isinstance(parsed, ACSResult):
+        return parsed
+    assert isinstance(parsed, MfaRegisterParsed)  # type narrowing
+
+    match parsed.session_info:
+        case BankIDSessionInfo():
+            nin = parsed.session_info.attributes.nin
+            args.authn_req.external_mfa_signup_identity = ExternalMfaSignupIdentity(
+                given_name=parsed.session_info.attributes.given_name,
+                surname=parsed.session_info.attributes.surname,
+                nin=nin,
+                framework=parsed.framework,
+                loa=parsed.loa,
+            )
+        case _:
+            current_app.logger.error(f"Unsupported session info type: {type(parsed.session_info)}")
+            return ACSResult(message=BankIDMsg.method_not_available)
+
     return ACSResult(success=True, message=BankIDMsg.mfa_authn_success)

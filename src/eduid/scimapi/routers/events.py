@@ -37,9 +37,7 @@ async def on_get(req: ScimApiRequest, resp: Response, scim_id: str | None = None
 
 
 @events_router.post("/", response_model_exclude_none=True)
-async def on_post(
-    req: ScimApiRequest, resp: Response, create_request: EventCreateRequest
-) -> EventResponse:
+async def on_post(req: ScimApiRequest, resp: Response, create_request: EventCreateRequest) -> EventResponse:
     """
     POST /Events  HTTP/1.1
     Host: example.com
@@ -114,8 +112,6 @@ async def on_post(
         version=1, data={"location": req.app.context.resource_url(SCIMResourceType.EVENT, event.scim_id)}
     )
 
-    req.app.context.notification_relay.notify(
-        data_owner=data_owner, message=message, context=req.app.context
-    )
+    req.app.context.notification_relay.notify(data_owner=data_owner, message=message, context=req.app.context)
 
     return db_event_to_response(req, resp, event)

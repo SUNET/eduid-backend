@@ -141,7 +141,9 @@ async def reset_password(
     new_password = generate_password()
     presentable_password = make_presentable_password(new_password)
     try:
-        managed_account = get_user(context=request.app.context, eppn=eppn, data_owner=request.context.require_data_owner())
+        managed_account = get_user(
+            context=request.app.context, eppn=eppn, data_owner=request.context.require_data_owner()
+        )
         replace_password(context=request.app.context, eppn=eppn, new_password=new_password)
 
         add_api_event(

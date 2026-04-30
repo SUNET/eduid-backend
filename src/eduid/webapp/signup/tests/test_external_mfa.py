@@ -1,0 +1,1151 @@
+import json
+import logging
+from collections.abc import Mapping
+from datetime import UTC, date, datetime, timedelta
+from typing import Any
+
+import pytest
+from fido2.webauthn import AuthenticatorAttachment
+from fido_mds.models.webauthn import AttestationFormat
+from jwcrypto.jwk import JWK
+from werkzeug.test import TestResponse
+
+from eduid.common.config.base import FrontendAction
+from eduid.common.misc.timeutil import utc_now
+from eduid.userdb.credentials import Webauthn
+from eduid.userdb.credentials.external import (
+    BankIDCredential,
+    EidasCredential,
+    FrejaCredential,
+    SwedenConnectCredential,
+    TrustFramework,
+)
+from eduid.userdb.identity import IdentityProofingMethod, PridPersistence
+from eduid.webapp.common.session.namespaces import (
+    AuthnRequestRef,
+    ExternalMfaSignupIdentity,
+    OIDCState,
+    RP_AuthnRequest,
+    SP_AuthnRequest,
+    WebauthnCredential,
+)
+from eduid.webapp.signup.app import SignupApp, signup_init_app
+from eduid.webapp.signup.helpers import SignupMsg, existing_user_for_identity
+from eduid.webapp.signup.tests.test_app import BaseSignupTests
+
+logger = logging.getLogger(__name__)
+
+_FINISH_URL = "https://eduid.se/profile/ext-return/{app_name}/{authn_id}"
+
+
+class ExternalMfaSignupTestsBase(BaseSignupTests):
+    def _seed_bankid_authn(
+        self,
+        authn_id: str = "authn-1",
+        nin: str = "198001011234",
+        minutes_ago: int = 0,
+        consumed: bool = False,
+        frontend_action: FrontendAction = FrontendAction.SIGNUP_EXTERNAL_MFA,
+        has_identity: bool = True,
+        error: bool = False,
+        set_authn_instant: bool = True,
+    ) -> None:
+        ident: ExternalMfaSignupIdentity | None = None
+        if has_identity:
+            ident = ExternalMfaSignupIdentity(
+                given_name="Anna",
+                surname="Andersson",
+                date_of_birth=datetime(1980, 1, 1, tzinfo=UTC),
+                nin=nin,
+                framework=TrustFramework.BANKID,
+                loa="loa3",
+            )
+        authn_instant = utc_now() - timedelta(minutes=minutes_ago) if set_authn_instant else None
+        req = SP_AuthnRequest(
+            authn_id=AuthnRequestRef(authn_id),
+            frontend_action=frontend_action,
+            finish_url=_FINISH_URL,
+            consumed=consumed,
+            authn_instant=authn_instant,
+            error=error,
+            external_mfa_signup_identity=ident,
+        )
+        with self.session_cookie_anon(self.browser) as client:
+            with client.session_transaction() as sess:
+                sess.bankid.sp.authns[AuthnRequestRef(authn_id)] = req
+
+    def _seed_freja_eid_authn(
+        self,
+        authn_id: str = "authn-freja-1",
+        nin: str = "198001011234",
+        minutes_ago: int = 0,
+        consumed: bool = False,
+        frontend_action: FrontendAction = FrontendAction.SIGNUP_EXTERNAL_MFA,
+        has_identity: bool = True,
+        error: bool = False,
+    ) -> None:
+        ident: ExternalMfaSignupIdentity | None = None
+        if has_identity:
+            ident = ExternalMfaSignupIdentity(
+                given_name="Britta",
+                surname="Borg",
+                date_of_birth=datetime(1980, 1, 1, tzinfo=UTC),
+                nin=nin,
+                framework=TrustFramework.FREJA,
+                loa="loa3",
+            )
+        req = RP_AuthnRequest(
+            authn_id=OIDCState(authn_id),
+            frontend_action=frontend_action,
+            finish_url=_FINISH_URL,
+            consumed=consumed,
+            authn_instant=utc_now() - timedelta(minutes=minutes_ago),
+            error=error,
+            external_mfa_signup_identity=ident,
+        )
+        with self.session_cookie_anon(self.browser) as client:
+            with client.session_transaction() as sess:
+                sess.freja_eid.rp.authns[OIDCState(authn_id)] = req
+
+    def _seed_freja_eid_foreign_authn(
+        self,
+        authn_id: str = "authn-freja-foreign-1",
+        freja_user_id: str = "unique_freja_foreign_user",
+        country_code: str = "DK",
+        minutes_ago: int = 0,
+        consumed: bool = False,
+        frontend_action: FrontendAction = FrontendAction.SIGNUP_EXTERNAL_MFA,
+        has_identity: bool = True,
+        error: bool = False,
+    ) -> None:
+        from eduid.userdb.identity import FrejaLoaLevel, FrejaRegistrationLevel
+
+        ident: ExternalMfaSignupIdentity | None = None
+        if has_identity:
+            ident = ExternalMfaSignupIdentity(
+                given_name="Frida",
+                surname="Fredriksen",
+                date_of_birth=datetime(1985, 3, 15, tzinfo=UTC),
+                freja_user_id=freja_user_id,
+                freja_personal_identity_number="123456789",
+                country_code=country_code,
+                freja_registration_level=FrejaRegistrationLevel.PLUS,
+                freja_loa_level=FrejaLoaLevel.LOA3_NR,
+                framework=TrustFramework.FREJA,
+                loa="freja-loa3_nr",
+            )
+        req = RP_AuthnRequest(
+            authn_id=OIDCState(authn_id),
+            frontend_action=frontend_action,
+            finish_url=_FINISH_URL,
+            consumed=consumed,
+            authn_instant=utc_now() - timedelta(minutes=minutes_ago),
+            error=error,
+            external_mfa_signup_identity=ident,
+        )
+        with self.session_cookie_anon(self.browser) as client:
+            with client.session_transaction() as sess:
+                sess.freja_eid.rp.authns[OIDCState(authn_id)] = req
+
+    def _call_external_mfa_register(self, app_name: str, authn_id: str) -> TestResponse:
+        with self.session_cookie_anon(self.browser) as client:
+            with client.session_transaction() as sess:
+                csrf_token = sess.get_csrf_token()
+            data = {"app_name": app_name, "authn_id": authn_id, "csrf_token": csrf_token}
+            return client.post(
+                "/external-mfa-register",
+                data=json.dumps(data),
+                content_type=self.content_type_json,
+            )
+
+
+class ExternalMfaSignupTests(ExternalMfaSignupTestsBase):
+    """Tests for the /external-mfa-register endpoint."""
+
+    def load_app(self, config: Mapping[str, Any]) -> SignupApp:
+        """
+        Called from the parent class, so we can provide the appropriate flask
+        app for this test case.
+        """
+        return signup_init_app(name="signup", test_config=config)
+
+    @pytest.fixture(scope="class")
+    def update_config(self) -> dict[str, Any]:
+        config = self._get_base_config()
+        config.update(
+            {
+                "available_languages": {"en": "English", "sv": "Svenska"},
+                "signup_url": "https://localhost/",
+                "dashboard_url": "https://localhost/",
+                "development": "DEBUG",
+                "application_root": "/",
+                "log_level": "DEBUG",
+                "password_length": 10,
+                "vccs_url": "http://turq:13085/",
+                "default_finish_url": "https://www.eduid.se/",
+                "captcha_max_bad_attempts": 3,
+                "environment": "dev",
+                "fido2_rp_id": "eduid.docker",
+                "scim_api_url": "http://localhost/scim/",
+                "gnap_auth_data": {
+                    "authn_server_url": "http://localhost/auth/",
+                    "key_name": "app_name",
+                    "client_jwk": JWK.generate(kid="testkey", kty="EC", size=256).export(as_dict=True),
+                },
+            }
+        )
+        return config
+
+    # ------------------------------------------------------------------
+    # Happy path
+    # ------------------------------------------------------------------
+
+    def test_ok(self) -> None:
+        """A valid bankid authn is accepted and stored in the signup session."""
+        self._seed_bankid_authn()
+        response = self._call_external_mfa_register("bankid", "authn-1")
+        assert response.status_code == 200
+        state = self.get_response_payload(response)["state"]
+        assert state["external_mfa"]["completed"] is True
+        assert state["external_mfa"]["app_name"] == "bankid"
+        assert state["external_mfa"]["given_name"] == "Anna"
+        assert state["external_mfa"]["surname"] == "Andersson"
+        assert state["external_mfa"]["masked_nin"] == "198001**-****"
+        # verify session was updated
+        with self.session_cookie_anon(self.browser) as client:
+            with client.session_transaction() as sess:
+                assert sess.signup.external_mfa is not None
+                assert sess.signup.external_mfa.nin == "198001011234"
+                assert sess.bankid.sp.authns[AuthnRequestRef("authn-1")].consumed is True
+
+    def test_ok_freja_eid(self) -> None:
+        """A valid freja_eid authn (RP_AuthnRequest) is accepted."""
+        self._seed_freja_eid_authn()
+        response = self._call_external_mfa_register("freja_eid", "authn-freja-1")
+        assert response.status_code == 200
+        state = self.get_response_payload(response)["state"]
+        assert state["external_mfa"]["completed"] is True
+        assert state["external_mfa"]["app_name"] == "freja_eid"
+        assert state["external_mfa"]["given_name"] == "Britta"
+        assert state["external_mfa"]["masked_nin"] == "198001**-****"
+
+    def test_ok_freja_eid_foreign_passport(self) -> None:
+        """A valid freja_eid authn with foreign passport (no NIN) is accepted."""
+        self._seed_freja_eid_foreign_authn()
+        response = self._call_external_mfa_register("freja_eid", "authn-freja-foreign-1")
+        assert response.status_code == 200
+        state = self.get_response_payload(response)["state"]
+        assert state["external_mfa"]["completed"] is True
+        assert state["external_mfa"]["app_name"] == "freja_eid"
+        assert state["external_mfa"]["given_name"] == "Frida"
+        assert state["external_mfa"]["masked_nin"] is None
+        assert state["external_mfa"]["country_code"] == "DK"
+        with self.session_cookie_anon(self.browser) as client:
+            with client.session_transaction() as sess:
+                assert sess.signup.external_mfa is not None
+                assert sess.signup.external_mfa.freja_user_id == "unique_freja_foreign_user"
+                assert sess.signup.external_mfa.freja_personal_identity_number == "123456789"
+                assert sess.signup.external_mfa.nin is None
+
+    # ------------------------------------------------------------------
+    # Error cases
+    # ------------------------------------------------------------------
+
+    def test_app_unsupported(self) -> None:
+        response = self._call_external_mfa_register("other", "authn-1")
+        self._check_api_response(
+            response,
+            status=200,
+            type_="POST_SIGNUP_EXTERNAL_MFA_REGISTER_FAIL",
+            message=SignupMsg.external_mfa_not_found,
+        )
+
+    def test_authn_missing(self) -> None:
+        response = self._call_external_mfa_register("bankid", "does-not-exist")
+        self._check_api_response(
+            response,
+            status=200,
+            type_="POST_SIGNUP_EXTERNAL_MFA_REGISTER_FAIL",
+            message=SignupMsg.external_mfa_not_found,
+        )
+
+    def test_wrong_action(self) -> None:
+        self._seed_bankid_authn(frontend_action=FrontendAction.LOGIN_MFA_AUTHN)
+        response = self._call_external_mfa_register("bankid", "authn-1")
+        self._check_api_response(
+            response,
+            status=200,
+            type_="POST_SIGNUP_EXTERNAL_MFA_REGISTER_FAIL",
+            message=SignupMsg.external_mfa_wrong_action,
+        )
+
+    def test_error_flagged(self) -> None:
+        self._seed_bankid_authn(error=True)
+        response = self._call_external_mfa_register("bankid", "authn-1")
+        self._check_api_response(
+            response,
+            status=200,
+            type_="POST_SIGNUP_EXTERNAL_MFA_REGISTER_FAIL",
+            message=SignupMsg.external_mfa_not_verified,
+        )
+
+    def test_missing_identity(self) -> None:
+        self._seed_bankid_authn(has_identity=False)
+        response = self._call_external_mfa_register("bankid", "authn-1")
+        self._check_api_response(
+            response,
+            status=200,
+            type_="POST_SIGNUP_EXTERNAL_MFA_REGISTER_FAIL",
+            message=SignupMsg.external_mfa_not_verified,
+        )
+
+    def test_too_old(self) -> None:
+        self._seed_bankid_authn(minutes_ago=6)
+        response = self._call_external_mfa_register("bankid", "authn-1")
+        self._check_api_response(
+            response,
+            status=200,
+            type_="POST_SIGNUP_EXTERNAL_MFA_REGISTER_FAIL",
+            message=SignupMsg.external_mfa_too_old,
+        )
+
+    def test_already_consumed(self) -> None:
+        self._seed_bankid_authn(consumed=True)
+        response = self._call_external_mfa_register("bankid", "authn-1")
+        self._check_api_response(
+            response,
+            status=200,
+            type_="POST_SIGNUP_EXTERNAL_MFA_REGISTER_FAIL",
+            message=SignupMsg.external_mfa_already_consumed,
+        )
+
+    def test_user_already_created(self) -> None:
+        self._seed_bankid_authn()
+        with self.session_cookie_anon(self.browser) as client:
+            with client.session_transaction() as sess:
+                sess.signup.user_created = True
+        response = self._call_external_mfa_register("bankid", "authn-1")
+        self._check_api_response(
+            response,
+            status=200,
+            type_="POST_SIGNUP_EXTERNAL_MFA_REGISTER_FAIL",
+            message=SignupMsg.user_already_exists,
+        )
+
+    def test_no_authn_instant(self) -> None:
+        """An authn without authn_instant is rejected as not verified."""
+        self._seed_bankid_authn(set_authn_instant=False)
+        response = self._call_external_mfa_register("bankid", "authn-1")
+        self._check_api_response(
+            response,
+            status=200,
+            type_="POST_SIGNUP_EXTERNAL_MFA_REGISTER_FAIL",
+            message=SignupMsg.external_mfa_not_verified,
+        )
+
+    def _seed_bankid_authn_with_identity(self, ident: ExternalMfaSignupIdentity, authn_id: str = "authn-1") -> None:
+        req = SP_AuthnRequest(
+            authn_id=AuthnRequestRef(authn_id),
+            frontend_action=FrontendAction.SIGNUP_EXTERNAL_MFA,
+            finish_url=_FINISH_URL,
+            consumed=False,
+            authn_instant=utc_now(),
+            error=False,
+            external_mfa_signup_identity=ident,
+        )
+        with self.session_cookie_anon(self.browser) as client:
+            with client.session_transaction() as sess:
+                sess.bankid.sp.authns[AuthnRequestRef(authn_id)] = req
+
+    def test_identity_missing_discriminator(self) -> None:
+        """Identity with neither nin, eidas_prid, nor freja_user_id is rejected as not verified."""
+        ident = ExternalMfaSignupIdentity(
+            given_name="Anna",
+            surname="Andersson",
+            date_of_birth=date(1980, 1, 1),
+            framework=TrustFramework.BANKID,
+            loa="loa3",
+        )
+        self._seed_bankid_authn_with_identity(ident)
+        response = self._call_external_mfa_register("bankid", "authn-1")
+        self._check_api_response(
+            response,
+            status=200,
+            type_="POST_SIGNUP_EXTERNAL_MFA_REGISTER_FAIL",
+            message=SignupMsg.external_mfa_not_verified,
+        )
+        with self.session_cookie_anon(self.browser) as client:
+            with client.session_transaction() as sess:
+                assert sess.signup.external_mfa is None
+                assert sess.bankid.sp.authns[AuthnRequestRef("authn-1")].consumed is False
+
+    def test_identity_with_both_discriminators(self) -> None:
+        """Identity with both nin and eidas_prid is rejected (ambiguous)."""
+        from eduid.userdb.identity import PridPersistence as _PridPersistence
+
+        ident = ExternalMfaSignupIdentity(
+            given_name="Anna",
+            surname="Andersson",
+            date_of_birth=date(1980, 1, 1),
+            nin="198001011234",
+            eidas_prid="DE:abc",
+            eidas_prid_persistence=_PridPersistence.A,
+            country_code="DE",
+            framework=TrustFramework.EIDAS,
+            loa="eidas-nf-sub",
+        )
+        self._seed_bankid_authn_with_identity(ident)
+        response = self._call_external_mfa_register("bankid", "authn-1")
+        self._check_api_response(
+            response,
+            status=200,
+            type_="POST_SIGNUP_EXTERNAL_MFA_REGISTER_FAIL",
+            message=SignupMsg.external_mfa_not_verified,
+        )
+
+    def test_identity_prid_missing_country_code(self) -> None:
+        """Identity with eidas_prid but no country_code is rejected."""
+        from eduid.userdb.identity import PridPersistence as _PridPersistence
+
+        ident = ExternalMfaSignupIdentity(
+            given_name="Diana",
+            surname="Diaz",
+            date_of_birth=date(1990, 6, 15),
+            eidas_prid="DE:abc",
+            eidas_prid_persistence=_PridPersistence.A,
+            country_code=None,
+            framework=TrustFramework.EIDAS,
+            loa="eidas-nf-sub",
+        )
+        self._seed_bankid_authn_with_identity(ident)
+        response = self._call_external_mfa_register("bankid", "authn-1")
+        self._check_api_response(
+            response,
+            status=200,
+            type_="POST_SIGNUP_EXTERNAL_MFA_REGISTER_FAIL",
+            message=SignupMsg.external_mfa_not_verified,
+        )
+
+    def _seed_samleid_authn(
+        self,
+        authn_id: str = "authn-samleid-1",
+        nin: str = "198001011234",
+        framework: TrustFramework = TrustFramework.BANKID,
+        minutes_ago: int = 0,
+        consumed: bool = False,
+        frontend_action: FrontendAction = FrontendAction.SIGNUP_EXTERNAL_MFA,
+        has_identity: bool = True,
+        error: bool = False,
+        set_authn_instant: bool = True,
+    ) -> None:
+        ident: ExternalMfaSignupIdentity | None = None
+        if has_identity:
+            ident = ExternalMfaSignupIdentity(
+                given_name="Signe",
+                surname="Svensson",
+                date_of_birth=date(1980, 1, 1),
+                nin=nin,
+                framework=framework,
+                loa="loa3",
+            )
+        authn_instant = utc_now() - timedelta(minutes=minutes_ago) if set_authn_instant else None
+        req = SP_AuthnRequest(
+            authn_id=AuthnRequestRef(authn_id),
+            frontend_action=frontend_action,
+            finish_url=_FINISH_URL,
+            consumed=consumed,
+            authn_instant=authn_instant,
+            error=error,
+            external_mfa_signup_identity=ident,
+        )
+        with self.session_cookie_anon(self.browser) as client:
+            with client.session_transaction() as sess:
+                sess.samleid.sp.authns[AuthnRequestRef(authn_id)] = req
+
+    def _seed_eidas_foreign_authn(
+        self,
+        authn_id: str = "authn-eidas-1",
+        prid: str = "DE:abc",
+        country_code: str = "DE",
+        minutes_ago: int = 0,
+        consumed: bool = False,
+        frontend_action: FrontendAction = FrontendAction.SIGNUP_EXTERNAL_MFA,
+        has_identity: bool = True,
+        error: bool = False,
+        prid_persistence: PridPersistence | None = None,
+    ) -> None:
+        ident: ExternalMfaSignupIdentity | None = None
+        if has_identity:
+            ident = ExternalMfaSignupIdentity(
+                given_name="Diana",
+                surname="Diaz",
+                date_of_birth=date(1990, 6, 15),
+                eidas_prid=prid,
+                eidas_prid_persistence=prid_persistence or PridPersistence.A,
+                country_code=country_code,
+                framework=TrustFramework.EIDAS,
+                loa="eidas-nf-sub",
+            )
+        req = SP_AuthnRequest(
+            authn_id=AuthnRequestRef(authn_id),
+            frontend_action=frontend_action,
+            finish_url=_FINISH_URL,
+            consumed=consumed,
+            authn_instant=utc_now() - timedelta(minutes=minutes_ago),
+            error=error,
+            external_mfa_signup_identity=ident,
+        )
+        with self.session_cookie_anon(self.browser) as client:
+            with client.session_transaction() as sess:
+                sess.eidas.sp.authns[AuthnRequestRef(authn_id)] = req
+
+    # ------------------------------------------------------------------
+    # Collision checks
+    # ------------------------------------------------------------------
+
+    def test_nin_collision(self) -> None:
+        """Signup is hard-blocked when NIN already belongs to an existing verified user.
+
+        The test user (hubba-bubba / new_user_example) already has a verified NIN
+        of 197801011234, so we seed the authn with that same NIN to trigger the
+        collision path without needing to modify the user.
+        """
+        # Verify the test user actually has the NIN we will collide against
+        existing = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
+        assert existing is not None
+        assert existing.identities.nin is not None
+        collision_nin = existing.identities.nin.number  # "197801011234"
+
+        self._seed_bankid_authn(nin=collision_nin)
+        response = self._call_external_mfa_register("bankid", "authn-1")
+        self._check_api_response(
+            response,
+            status=200,
+            type_="POST_SIGNUP_EXTERNAL_MFA_REGISTER_FAIL",
+            message=SignupMsg.identity_already_registered,
+        )
+
+        with self.session_cookie_anon(self.browser) as client:
+            with client.session_transaction() as sess:
+                # collision => nothing stored, nothing consumed
+                assert sess.signup.external_mfa is None
+                assert sess.bankid.sp.authns[AuthnRequestRef("authn-1")].consumed is False
+
+    def test_prid_collision(self) -> None:
+        """Signup is hard-blocked when eIDAS PRID already belongs to an existing verified user.
+
+        The test user (hubba-bubba / new_user_example) already has a verified eIDAS
+        identity with PRID unique/prid/string/1, so we seed the authn with that same
+        PRID to trigger the collision path.
+        """
+        existing = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
+        assert existing is not None
+        eidas_ident = existing.identities.eidas
+        assert eidas_ident is not None
+        collision_prid = eidas_ident.prid  # "unique/prid/string/1"
+
+        self._seed_eidas_foreign_authn(prid=collision_prid, country_code="DE")
+        response = self._call_external_mfa_register("eidas", "authn-eidas-1")
+        self._check_api_response(
+            response,
+            status=200,
+            type_="POST_SIGNUP_EXTERNAL_MFA_REGISTER_FAIL",
+            message=SignupMsg.identity_already_registered,
+        )
+
+    def test_collision_check_skipped_when_no_identity_fields(self) -> None:
+        """Helper returns None when no NIN, PRID, or Freja user_id is present."""
+        assert existing_user_for_identity(nin=None, eidas_prid=None, freja_user_id=None) is None
+
+    def test_prid_collision_via_locked_identity(self) -> None:
+        """Signup is blocked when the PRID is on another user's locked_identity (rotated PRID case)."""
+        from eduid.userdb.identity import EIDASIdentity, EIDASLoa, PridPersistence
+
+        eppn = self.test_user_eppn
+        user = self.app.central_userdb.get_user_by_eppn(eppn)
+        assert user is not None
+        old_prid = "DE:rotated-old-prid"
+        user.locked_identity.add(
+            EIDASIdentity(
+                prid=old_prid,
+                prid_persistence=PridPersistence.B,
+                loa=EIDASLoa.NF_SUBSTANTIAL,
+                date_of_birth=datetime(1990, 6, 15, tzinfo=UTC),
+                country_code="DE",
+                created_by="test",
+                is_verified=True,
+            )
+        )
+        self.app.central_userdb.save(user)
+
+        self._seed_eidas_foreign_authn(prid=old_prid, country_code="DE")
+        response = self._call_external_mfa_register("eidas", "authn-eidas-1")
+        self._check_api_response(
+            response,
+            status=200,
+            type_="POST_SIGNUP_EXTERNAL_MFA_REGISTER_FAIL",
+            message=SignupMsg.identity_already_registered,
+        )
+
+    def test_prid_persistence_b_without_match_logs_warning(self) -> None:
+        """A persistence-B PRID with no exact or locked match is allowed but a warning is logged."""
+        warning_spy = self.mocker.spy(self.app.logger, "warning")
+
+        self._seed_eidas_foreign_authn(prid="DE:novel-b-prid", country_code="DE", prid_persistence=PridPersistence.B)
+        response = self._call_external_mfa_register("eidas", "authn-eidas-1")
+        assert response.status_code == 200
+        with self.session_cookie_anon(self.browser) as client:
+            with client.session_transaction() as sess:
+                assert sess.signup.external_mfa is not None
+                assert sess.signup.external_mfa.eidas_prid == "DE:novel-b-prid"
+        warning_messages = [call.args[0] for call in warning_spy.call_args_list if call.args]
+        assert any("persistence" in msg and "rotated" in msg for msg in warning_messages), (
+            f"Expected persistence-rotated warning: {warning_messages}"
+        )
+
+    def test_freja_user_id_collision(self) -> None:
+        """Signup is blocked when Freja user_id already belongs to an existing user."""
+        from eduid.userdb.identity import FrejaIdentity, FrejaLoaLevel, FrejaRegistrationLevel
+
+        # Give the existing test user a Freja identity with the same user_id we'll try to sign up with
+        existing = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
+        assert existing is not None
+        existing.identities.add(
+            FrejaIdentity(
+                user_id="unique_freja_foreign_user",
+                country_code="DK",
+                date_of_birth=datetime(1985, 3, 15, tzinfo=UTC),
+                registration_level=FrejaRegistrationLevel.PLUS,
+                loa_level=FrejaLoaLevel.LOA3_NR,
+                created_by="test",
+                is_verified=True,
+            )
+        )
+        self.app.central_userdb.save(existing)
+
+        self._seed_freja_eid_foreign_authn(freja_user_id="unique_freja_foreign_user")
+        response = self._call_external_mfa_register("freja_eid", "authn-freja-foreign-1")
+        self._check_api_response(
+            response,
+            status=200,
+            type_="POST_SIGNUP_EXTERNAL_MFA_REGISTER_FAIL",
+            message=SignupMsg.identity_already_registered,
+        )
+
+    # ------------------------------------------------------------------
+    # Clear external MFA state
+    # ------------------------------------------------------------------
+
+    def _call_external_mfa_clear(self) -> TestResponse:
+        with self.session_cookie_anon(self.browser) as client:
+            with client.session_transaction() as sess:
+                csrf_token = sess.get_csrf_token()
+            data = {"csrf_token": csrf_token}
+            return client.post(
+                "/external-mfa-clear",
+                data=json.dumps(data),
+                content_type=self.content_type_json,
+            )
+
+    def test_external_mfa_clear_ok(self) -> None:
+        self._seed_bankid_authn()
+        # Seed the state first
+        resp = self._call_external_mfa_register("bankid", "authn-1")
+        assert resp.status_code == 200
+        # Now clear it
+        resp = self._call_external_mfa_clear()
+        assert resp.status_code == 200
+        state = self.get_response_payload(resp)["state"]
+        assert state["external_mfa"] is None
+        with self.session_cookie_anon(self.browser) as client:
+            with client.session_transaction() as sess:
+                assert sess.signup.external_mfa is None
+
+    def test_external_mfa_clear_is_idempotent(self) -> None:
+        # Clearing when nothing is stored should still succeed
+        resp = self._call_external_mfa_clear()
+        assert resp.status_code == 200
+        state = self.get_response_payload(resp)["state"]
+        assert state["external_mfa"] is None
+
+    def test_external_mfa_clear_rejected_after_user_created(self) -> None:
+        self._seed_bankid_authn()
+        self._call_external_mfa_register("bankid", "authn-1")
+        with self.session_cookie_anon(self.browser) as client:
+            with client.session_transaction() as sess:
+                sess.signup.user_created = True
+        resp = self._call_external_mfa_clear()
+        payload = self.get_response_payload(resp)
+        assert payload["message"] == SignupMsg.user_already_exists.value
+
+    # ------------------------------------------------------------------
+    # create-user with external MFA — happy path tests
+    # ------------------------------------------------------------------
+
+    def test_create_user_with_external_mfa_bankid(self) -> None:
+        """A new user created via the BankID external-MFA flow gets a verified NIN and BankIDCredential."""
+        self._seed_bankid_authn(nin="198001011234", authn_id="authn-1")
+        self._call_external_mfa_register("bankid", "authn-1")
+
+        # Complete the remaining signup prerequisites via the session shortcut
+        self._prepare_for_create_user(
+            given_name="Anna",
+            surname="Andersson",
+            email="anna.andersson@example.com",
+        )
+
+        result = self._create_user()
+        assert result.response.status_code == 200
+
+        # Retrieve the eppn from the session after user creation
+        with self.session_cookie_anon(self.browser) as client:
+            with client.session_transaction() as sess:
+                eppn = sess.common.eppn
+        assert eppn is not None
+
+        user = self.app.central_userdb.get_user_by_eppn(eppn)
+        assert user is not None
+
+        # Verified NIN must be present
+        assert user.identities.nin is not None
+        assert user.identities.nin.number == "198001011234"
+        assert user.identities.nin.is_verified is True
+
+        # Exactly one BankIDCredential
+        bankid_creds = [c for c in user.credentials.to_list() if isinstance(c, BankIDCredential)]
+        assert len(bankid_creds) == 1
+        assert bankid_creds[0].level == "loa3"
+
+        # Proofing log must have an entry for this eppn
+        log_entries = list(self.app.proofing_log._coll.find({"eduPersonPrincipalName": eppn}))
+        external_mfa_entries = [e for e in log_entries if e.get("proofing_method") == "bankid"]
+        assert len(external_mfa_entries) == 1
+        assert external_mfa_entries[0]["nin"] == "198001011234"
+
+    def test_create_user_with_external_mfa_eidas_prid(self) -> None:
+        """A new user created via the eIDAS external-MFA flow gets a verified EIDASIdentity and EidasCredential."""
+        self._seed_eidas_foreign_authn(
+            prid="DE:abc123",
+            country_code="DE",
+            authn_id="authn-eidas-1",
+        )
+        self._call_external_mfa_register("eidas", "authn-eidas-1")
+
+        self._prepare_for_create_user(
+            given_name="Diana",
+            surname="Diaz",
+            email="diana.diaz@example.com",
+        )
+
+        result = self._create_user()
+        assert result.response.status_code == 200
+
+        # Retrieve the eppn from the session after user creation
+        with self.session_cookie_anon(self.browser) as client:
+            with client.session_transaction() as sess:
+                eppn = sess.common.eppn
+        assert eppn is not None
+
+        user = self.app.central_userdb.get_user_by_eppn(eppn)
+        assert user is not None
+
+        # Verified EIDASIdentity must be present
+        assert user.identities.eidas is not None
+        assert user.identities.eidas.prid == "DE:abc123"
+        assert user.identities.eidas.country_code == "DE"
+        assert user.identities.eidas.is_verified is True
+        assert user.identities.eidas.proofing_method == IdentityProofingMethod.SWEDEN_CONNECT
+        assert user.identities.eidas.proofing_version == self.app.conf.foreign_eid_proofing_version
+
+        # Exactly one EidasCredential
+        eidas_creds = [c for c in user.credentials.to_list() if isinstance(c, EidasCredential)]
+        assert len(eidas_creds) == 1
+        assert eidas_creds[0].level == "eidas-nf-sub"
+
+        # Proofing log must have an entry for this eppn
+        log_entries = list(self.app.proofing_log._coll.find({"eduPersonPrincipalName": eppn}))
+        external_mfa_entries = [e for e in log_entries if e.get("proofing_method") == "eidas"]
+        assert len(external_mfa_entries) == 1
+        assert external_mfa_entries[0]["country_code"] == "DE"
+
+    def test_create_user_with_external_mfa_freja_foreign(self) -> None:
+        """A new user created via Freja eID foreign passport gets a verified FrejaIdentity and FrejaCredential."""
+        self._seed_freja_eid_foreign_authn(
+            freja_user_id="freja_foreign_signup_user",
+            country_code="DK",
+            authn_id="authn-freja-foreign-1",
+        )
+        self._call_external_mfa_register("freja_eid", "authn-freja-foreign-1")
+
+        self._prepare_for_create_user(
+            given_name="Frida",
+            surname="Fredriksen",
+            email="frida.fredriksen@example.com",
+        )
+
+        result = self._create_user()
+        assert result.response.status_code == 200
+
+        # Retrieve the eppn from the session after user creation
+        with self.session_cookie_anon(self.browser) as client:
+            with client.session_transaction() as sess:
+                eppn = sess.common.eppn
+        assert eppn is not None
+
+        user = self.app.central_userdb.get_user_by_eppn(eppn)
+        assert user is not None
+
+        # Verified FrejaIdentity must be present
+        assert user.identities.freja is not None
+        assert user.identities.freja.user_id == "freja_foreign_signup_user"
+        assert user.identities.freja.personal_identity_number == "123456789"
+        assert user.identities.freja.country_code == "DK"
+        assert user.identities.freja.is_verified is True
+        assert user.identities.freja.proofing_method == IdentityProofingMethod.FREJA_EID
+        assert user.identities.freja.proofing_version == self.app.conf.freja_eid_proofing_version
+
+        # NIN must NOT be present
+        assert user.identities.nin is None
+
+        # Exactly one FrejaCredential
+        freja_creds = [c for c in user.credentials.to_list() if isinstance(c, FrejaCredential)]
+        assert len(freja_creds) == 1
+        assert freja_creds[0].level == "freja-loa3_nr"
+
+        # Proofing log must have an entry for this eppn
+        log_entries = list(self.app.proofing_log._coll.find({"eduPersonPrincipalName": eppn}))
+        external_mfa_entries = [e for e in log_entries if e.get("proofing_method") == "freja_eid"]
+        assert len(external_mfa_entries) == 1
+        assert external_mfa_entries[0]["country_code"] == "DK"
+
+    # ------------------------------------------------------------------
+    # Parametrized NIN-based create-user variants
+    # ------------------------------------------------------------------
+
+    @pytest.mark.parametrize(
+        ("app_name", "framework", "credential_class", "proofing_version_attr", "identity_proofing_method"),
+        [
+            # bankid SP — TrustFramework.BANKID → BankIDCredential
+            (
+                "bankid",
+                TrustFramework.BANKID,
+                BankIDCredential,
+                "bankid_proofing_version",
+                IdentityProofingMethod.BANKID,
+            ),
+            # samleid SP with bankid-style NIN — same credential type as bankid
+            (
+                "samleid",
+                TrustFramework.BANKID,
+                BankIDCredential,
+                "bankid_proofing_version",
+                IdentityProofingMethod.BANKID,
+            ),
+            # samleid SP with Swedish Freja (SwedenConnect) NIN
+            (
+                "samleid",
+                TrustFramework.SWECONN,
+                SwedenConnectCredential,
+                "freja_proofing_version",
+                IdentityProofingMethod.SWEDEN_CONNECT,
+            ),
+            # freja_eid RP — TrustFramework.FREJA → FrejaCredential
+            (
+                "freja_eid",
+                TrustFramework.FREJA,
+                FrejaCredential,
+                "freja_eid_proofing_version",
+                IdentityProofingMethod.FREJA_EID,
+            ),
+        ],
+    )
+    def test_create_user_with_external_mfa_nin(
+        self,
+        app_name: str,
+        framework: TrustFramework,
+        credential_class: type[BankIDCredential | SwedenConnectCredential | FrejaCredential | EidasCredential],
+        proofing_version_attr: str,
+        identity_proofing_method: IdentityProofingMethod,
+    ) -> None:
+        """Parametrized NIN-based create-user test covering bankid, samleid (BANKID + SWECONN), and freja_eid."""
+        nin = "198001011234"
+        authn_id = f"authn-{app_name}-1"
+        email = f"test.{app_name}.{framework.value}@example.com"
+
+        # Seed the appropriate authn into the correct session namespace
+        if app_name == "bankid":
+            self._seed_bankid_authn(nin=nin, authn_id=authn_id)
+        elif app_name == "samleid":
+            self._seed_samleid_authn(nin=nin, authn_id=authn_id, framework=framework)
+        elif app_name == "freja_eid":
+            self._seed_freja_eid_authn(nin=nin, authn_id=authn_id)
+        else:
+            raise ValueError(f"Unexpected app_name: {app_name}")
+
+        self._call_external_mfa_register(app_name, authn_id)
+        self._prepare_for_create_user(given_name="Test", surname="Testsson", email=email)
+
+        result = self._create_user()
+        assert result.response.status_code == 200
+
+        # Retrieve eppn from session
+        with self.session_cookie_anon(self.browser) as client:
+            with client.session_transaction() as sess:
+                eppn = sess.common.eppn
+        assert eppn is not None
+
+        user = self.app.central_userdb.get_user_by_eppn(eppn)
+        assert user is not None
+
+        # Verified NIN must be present
+        assert user.identities.nin is not None
+        assert user.identities.nin.number == nin
+        assert user.identities.nin.is_verified is True
+
+        # Identity must carry the correct proofing_method/proofing_version so the
+        # IdP DIGG LoA 2 check accepts it.
+        expected_version: Any = getattr(self.app.conf, proofing_version_attr)
+        assert user.identities.nin.proofing_method == identity_proofing_method
+        assert user.identities.nin.proofing_version == expected_version
+
+        # Exactly one credential of the expected subclass at loa3
+        matching_creds = [c for c in user.credentials.to_list() if isinstance(c, credential_class)]
+        assert len(matching_creds) == 1
+        assert matching_creds[0].level == "loa3"
+
+        # Proofing log entry with correct proofing_method and proofing_version
+        log_entries = list(self.app.proofing_log._coll.find({"eduPersonPrincipalName": eppn}))
+        external_mfa_entries = [e for e in log_entries if e.get("proofing_method") == app_name]
+        assert len(external_mfa_entries) == 1
+        assert external_mfa_entries[0]["nin"] == nin
+        assert external_mfa_entries[0]["proofing_version"] == expected_version
+
+    # ------------------------------------------------------------------
+    # Re-validation of external MFA at /create-user time
+    # ------------------------------------------------------------------
+
+    def test_create_user_rejects_stale_external_mfa(self) -> None:
+        """External MFA stored long before /create-user is rejected as too old."""
+        self._seed_bankid_authn(nin="198001011234", authn_id="authn-1")
+        self._call_external_mfa_register("bankid", "authn-1")
+
+        # Rewind authn_instant on the stored external_mfa past max_age
+        max_age = self.app.conf.frontend_action_authn_parameters[FrontendAction.SIGNUP_EXTERNAL_MFA].max_age
+        with self.session_cookie_anon(self.browser) as client:
+            with client.session_transaction() as sess:
+                assert sess.signup.external_mfa is not None
+                sess.signup.external_mfa.authn_instant = utc_now() - max_age - timedelta(seconds=1)
+
+        self._prepare_for_create_user(
+            given_name="Anna",
+            surname="Andersson",
+            email="anna.andersson@example.com",
+        )
+
+        result = self._create_user(expect_success=False)
+        payload = self.get_response_payload(result.response)
+        assert payload["message"] == SignupMsg.external_mfa_too_old.value
+
+        # external_mfa was cleared; user was not created
+        with self.session_cookie_anon(self.browser) as client:
+            with client.session_transaction() as sess:
+                assert sess.signup.external_mfa is None
+                assert sess.signup.user_created is False
+
+    def test_create_user_rejects_identity_registered_since(self) -> None:
+        """Identity that becomes taken between /external-mfa-register and /create-user
+        is rejected at /create-user time."""
+        self._seed_bankid_authn(nin="198001011234", authn_id="authn-1")
+        self._call_external_mfa_register("bankid", "authn-1")
+
+        # Simulate race: between the register call and /create-user, someone else
+        # signed up with this NIN. Point the stored NIN at an existing verified user.
+        existing = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
+        assert existing is not None
+        assert existing.identities.nin is not None
+        with self.session_cookie_anon(self.browser) as client:
+            with client.session_transaction() as sess:
+                assert sess.signup.external_mfa is not None
+                sess.signup.external_mfa.nin = existing.identities.nin.number
+
+        self._prepare_for_create_user(
+            given_name="Anna",
+            surname="Andersson",
+            email="anna.andersson@example.com",
+        )
+
+        result = self._create_user(expect_success=False)
+        payload = self.get_response_payload(result.response)
+        assert payload["message"] == SignupMsg.identity_already_registered.value
+
+        with self.session_cookie_anon(self.browser) as client:
+            with client.session_transaction() as sess:
+                assert sess.signup.external_mfa is None
+                assert sess.signup.user_created is False
+
+
+class ExternalMfaWebauthnVerificationTests(ExternalMfaSignupTestsBase):
+    """Tests for webauthn credential verification via external MFA during signup."""
+
+    def load_app(self, config: Mapping[str, Any]) -> SignupApp:
+        """
+        Called from the parent class, so we can provide the appropriate flask
+        app for this test case.
+        """
+        return signup_init_app(name="signup", test_config=config)
+
+    @pytest.fixture(scope="class")
+    def update_config(self) -> dict[str, Any]:
+        config = self._get_base_config()
+        config.update(
+            {
+                "available_languages": {"en": "English", "sv": "Svenska"},
+                "signup_url": "https://localhost/",
+                "dashboard_url": "https://localhost/",
+                "development": "DEBUG",
+                "application_root": "/",
+                "log_level": "DEBUG",
+                "password_length": 10,
+                "vccs_url": "http://turq:13085/",
+                "default_finish_url": "https://www.eduid.se/",
+                "captcha_max_bad_attempts": 3,
+                "environment": "dev",
+                "fido2_rp_id": "eduid.docker",
+                "scim_api_url": "http://localhost/scim/",
+                "gnap_auth_data": {
+                    "authn_server_url": "http://localhost/auth/",
+                    "key_name": "app_name",
+                    "client_jwk": JWK.generate(kid="testkey", kty="EC", size=256).export(as_dict=True),
+                },
+                # Use a shorter credential verify max age so we can test staleness
+                # without hitting the external MFA max_age check (default 5 min)
+                "credential_verify_max_age": timedelta(minutes=2),
+            }
+        )
+        return config
+
+    def _set_webauthn_in_session(self, registered_at: datetime | None = None) -> None:
+        """Store a fake webauthn credential in the signup session."""
+        with self.session_cookie_anon(self.browser) as client:
+            with client.session_transaction() as sess:
+                sess.signup.credentials.webauthn = WebauthnCredential(
+                    credential_data="dGVzdC1jcmVkZW50aWFsLWRhdGE",
+                    keyhandle="test-keyhandle",
+                    authenticator=AuthenticatorAttachment.CROSS_PLATFORM,
+                    authenticator_id="test-authenticator-id",
+                    attestation_format=AttestationFormat.NONE,
+                    description="test security key",
+                    is_discoverable=True,
+                    registered_at=registered_at,
+                )
+                sess.signup.credentials.completed = True
+
+    def _get_user_webauthn_credentials(self, eppn: str) -> list[Webauthn]:
+        user = self.app.central_userdb.get_user_by_eppn(eppn)
+        assert user is not None
+        return [c for c in user.credentials.to_list() if isinstance(c, Webauthn)]
+
+    def test_webauthn_verified_with_fresh_external_mfa(self) -> None:
+        """Webauthn credential is verified when both it and external MFA are fresh."""
+        self._seed_bankid_authn(nin="198001011234", authn_id="authn-1")
+        self._call_external_mfa_register("bankid", "authn-1")
+        self._set_webauthn_in_session(registered_at=utc_now())
+
+        self._prepare_for_create_user(
+            given_name="Anna",
+            surname="Andersson",
+            email="anna.webauthn@example.com",
+        )
+
+        self._create_user(data={"use_webauthn": True})
+
+        with self.session_cookie_anon(self.browser) as client:
+            with client.session_transaction() as sess:
+                eppn = sess.common.eppn
+        assert eppn is not None
+
+        webauthn_creds = self._get_user_webauthn_credentials(eppn)
+        assert len(webauthn_creds) == 1
+        assert webauthn_creds[0].is_verified is True
+        assert webauthn_creds[0].proofing_method == self.app.conf.security_key_proofing_method
+        assert webauthn_creds[0].proofing_version == self.app.conf.security_key_proofing_version
+
+        # Proofing log should have a credential verification entry
+        log_entries = list(self.app.proofing_log._coll.find({"eduPersonPrincipalName": eppn}))
+        # There should be entries for: email, identity proofing, and credential verification
+        assert len(log_entries) >= 3
+
+    def test_webauthn_not_verified_stale_external_mfa(self) -> None:
+        """Webauthn credential stays unverified when external MFA authn_instant is too old."""
+        self._seed_bankid_authn(nin="198001011234", authn_id="authn-1")
+        self._call_external_mfa_register("bankid", "authn-1")
+
+        # Override authn_instant to be older than credential_verify_max_age (2 min)
+        # but within the external MFA max_age (5 min)
+        with self.session_cookie_anon(self.browser) as client:
+            with client.session_transaction() as sess:
+                assert sess.signup.external_mfa is not None
+                sess.signup.external_mfa.authn_instant = utc_now() - timedelta(minutes=3)
+
+        self._set_webauthn_in_session(registered_at=utc_now())
+
+        self._prepare_for_create_user(
+            given_name="Anna",
+            surname="Andersson",
+            email="anna.stale@example.com",
+        )
+
+        self._create_user(data={"use_webauthn": True})
+
+        with self.session_cookie_anon(self.browser) as client:
+            with client.session_transaction() as sess:
+                eppn = sess.common.eppn
+        assert eppn is not None
+
+        webauthn_creds = self._get_user_webauthn_credentials(eppn)
+        assert len(webauthn_creds) == 1
+        assert webauthn_creds[0].is_verified is False
+
+    def test_webauthn_not_verified_stale_registration(self) -> None:
+        """Webauthn credential stays unverified when it was registered too long ago."""
+        self._seed_bankid_authn(nin="198001011234", authn_id="authn-1")
+        self._call_external_mfa_register("bankid", "authn-1")
+        self._set_webauthn_in_session(registered_at=utc_now() - timedelta(minutes=3))
+
+        self._prepare_for_create_user(
+            given_name="Anna",
+            surname="Andersson",
+            email="anna.stale-key@example.com",
+        )
+
+        self._create_user(data={"use_webauthn": True})
+
+        with self.session_cookie_anon(self.browser) as client:
+            with client.session_transaction() as sess:
+                eppn = sess.common.eppn
+        assert eppn is not None
+
+        webauthn_creds = self._get_user_webauthn_credentials(eppn)
+        assert len(webauthn_creds) == 1
+        assert webauthn_creds[0].is_verified is False
+
+    def test_webauthn_not_verified_no_external_mfa(self) -> None:
+        """Webauthn credential stays unverified when no external MFA is present."""
+        self._set_webauthn_in_session()
+
+        self._prepare_for_create_user(
+            given_name="Anna",
+            surname="Andersson",
+            email="anna.noext@example.com",
+        )
+
+        self._create_user(data={"use_webauthn": True})
+
+        with self.session_cookie_anon(self.browser) as client:
+            with client.session_transaction() as sess:
+                eppn = sess.common.eppn
+        assert eppn is not None
+
+        webauthn_creds = self._get_user_webauthn_credentials(eppn)
+        assert len(webauthn_creds) == 1
+        assert webauthn_creds[0].is_verified is False
