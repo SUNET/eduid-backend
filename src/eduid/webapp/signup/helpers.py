@@ -372,6 +372,68 @@ def record_email_address(signup_user: SignupUser, email: str) -> None:
     current_app.stats.count(name="mail_verified")
 
 
+def record_user_identity(signup_user: SignupUser, external_mfa: SignupExternalMfa) -> None:
+    signup_user.credentials.add(
+        build_external_credential(
+            framework=external_mfa.framework,
+            loa=external_mfa.loa,
+            created_by=current_app.conf.app_name,
+        )
+    )
+    identity_proofing_method = _identity_proofing_method_for_framework(external_mfa.framework)
+    identity_proofing_version = _proofing_version_for_framework(external_mfa.framework)
+    if external_mfa.nin:
+        signup_user.identities.add(
+            NinIdentity(
+                number=external_mfa.nin,
+                date_of_birth=external_mfa.date_of_birth,
+                created_by=current_app.conf.app_name,
+                is_verified=True,
+                verified_by=current_app.conf.app_name,
+                verified_ts=utc_now(),
+                proofing_method=identity_proofing_method,
+                proofing_version=identity_proofing_version,
+            )
+        )
+    elif external_mfa.eidas_prid and external_mfa.eidas_prid_persistence:
+        signup_user.identities.add(
+            EIDASIdentity(
+                prid=external_mfa.eidas_prid,
+                prid_persistence=external_mfa.eidas_prid_persistence,
+                loa=EIDASLoa(external_mfa.loa),
+                date_of_birth=external_mfa.date_of_birth,
+                country_code=external_mfa.country_code,
+                created_by=current_app.conf.app_name,
+                is_verified=True,
+                verified_by=current_app.conf.app_name,
+                verified_ts=utc_now(),
+                proofing_method=identity_proofing_method,
+                proofing_version=identity_proofing_version,
+            )
+        )
+    elif external_mfa.freja_user_id:
+        assert external_mfa.freja_registration_level is not None  # please mypy
+        assert external_mfa.freja_loa_level is not None  # please mypy
+        signup_user.identities.add(
+            FrejaIdentity(
+                user_id=external_mfa.freja_user_id,
+                country_code=external_mfa.country_code,
+                date_of_birth=external_mfa.date_of_birth,
+                personal_identity_number=external_mfa.freja_personal_identity_number,
+                registration_level=external_mfa.freja_registration_level,
+                loa_level=external_mfa.freja_loa_level,
+                created_by=current_app.conf.app_name,
+                is_verified=True,
+                verified_by=current_app.conf.app_name,
+                verified_ts=utc_now(),
+                proofing_method=identity_proofing_method,
+                proofing_version=identity_proofing_version,
+            )
+        )
+    else:
+        raise RuntimeError("SignupExternalMfa has neither nin, eidas_prid, nor freja_user_id")
+
+
 def complete_and_update_invite(user: User, invite_code: str) -> None:
     signup_user = SignupUser.from_user(user, current_app.private_userdb)
     invite = current_app.invite_db.get_invite_by_invite_code(invite_code)
