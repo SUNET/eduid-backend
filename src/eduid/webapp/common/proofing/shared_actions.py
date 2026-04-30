@@ -9,8 +9,7 @@ import logging
 from collections.abc import Callable
 from typing import Any
 
-from pydantic import BaseModel
-
+from eduid.common.models.saml_models import BaseSessionInfo
 from eduid.userdb import User
 from eduid.userdb.credentials.fido import FidoCredential
 from eduid.webapp.common.api.app import EduIDBaseApp
@@ -19,9 +18,11 @@ from eduid.webapp.common.authn.acs_registry import ACSArgs, ACSResult
 from eduid.webapp.common.authn.utils import check_reauthn
 from eduid.webapp.common.proofing.base import ProofingFunctions
 from eduid.webapp.common.proofing.messages import ProofingMsg
-from eduid.webapp.common.proofing.methods import ProofingMethodSAML
+from eduid.webapp.common.proofing.methods import ProofingMethod, ProofingMethodSAML
 from eduid.webapp.common.proofing.saml_helpers import is_required_loa, is_valid_authn_instant
 from eduid.webapp.common.session.namespaces import RP_AuthnRequest, SP_AuthnRequest
+from eduid.webapp.freja_eid.helpers import FrejaEIDDocumentUserInfo
+from eduid.webapp.svipe_id.helpers import SvipeDocumentUserInfo
 
 logger = logging.getLogger(__name__)
 
@@ -31,6 +32,7 @@ def run_common_saml_checks(
     *,
     authn_context_mismatch_msg: TranslatableMsg,
     authn_instant_too_old_msg: TranslatableMsg,
+    method_not_available: TranslatableMsg,
     loa_authn_context_map: dict[str, str],
 ) -> ACSResult | None:
     """Shared SAML validation: LoA check and authn instant freshness.
@@ -38,10 +40,13 @@ def run_common_saml_checks(
     :param args: ACS action arguments
     :param authn_context_mismatch_msg: App-specific error message for LoA mismatch
     :param authn_instant_too_old_msg: App-specific error message for stale authn
+    :param method_not_available: App-specific error message
     :param loa_authn_context_map: Config mapping LoA names to authn context URIs
     :returns: ACSResult with error if validation fails, None on success
     """
-    assert isinstance(args.proofing_method, ProofingMethodSAML)  # please mypy
+    if not isinstance(args.proofing_method, ProofingMethodSAML):
+        return ACSResult(message=method_not_available)
+
     if not is_required_loa(args.session_info, args.proofing_method.required_loa, loa_authn_context_map):
         logger.error("SAML response did not meet required LOA")
         args.authn_req.error = True
@@ -71,7 +76,7 @@ def run_verify_identity(
 
     Pass ``None`` for ``common_saml_checks`` when the webapp is OIDC-based.
     """
-    if not args.proofing_method:
+    if not isinstance(args.proofing_method, ProofingMethod):
         return ACSResult(message=method_not_available_msg)
 
     if common_saml_checks is not None:
@@ -82,7 +87,8 @@ def run_verify_identity(
     if parsed.error:
         return ACSResult(message=parsed.error)
 
-    assert isinstance(parsed.info, BaseModel)
+    if not isinstance(parsed.info, (BaseSessionInfo, FrejaEIDDocumentUserInfo, SvipeDocumentUserInfo)):
+        raise RuntimeError(f"unexpected parsed.info type: {type(parsed.info).__name__}")
 
     proofing = get_proofing_functions(
         session_info=parsed.info, app_name=app.name, config=app.conf, backdoor=args.backdoor
@@ -128,7 +134,8 @@ def run_verify_credential(
         if ret := common_saml_checks(args):
             return ret
 
-    assert isinstance(args.authn_req, SP_AuthnRequest | RP_AuthnRequest)
+    if not isinstance(args.authn_req, (SP_AuthnRequest, RP_AuthnRequest)):
+        raise RuntimeError(f"unexpected args.authn_req type: {type(args.authn_req).__name__}")
 
     credential = user.credentials.find(args.authn_req.proofing_credential_id)
     if not isinstance(credential, FidoCredential):
@@ -146,7 +153,8 @@ def run_verify_credential(
     if parsed.error:
         return ACSResult(message=parsed.error)
 
-    assert isinstance(parsed.info, BaseModel)
+    if not isinstance(parsed.info, (BaseSessionInfo, FrejaEIDDocumentUserInfo, SvipeDocumentUserInfo)):
+        raise RuntimeError(f"unexpected parsed.info type: {type(parsed.info).__name__}")
 
     proofing = get_proofing_functions(
         session_info=parsed.info, app_name=app.name, config=app.conf, backdoor=args.backdoor
@@ -218,7 +226,8 @@ def run_mfa_authenticate(
     if parsed.error:
         return ACSResult(message=parsed.error)
 
-    assert isinstance(parsed.info, BaseModel)
+    if not isinstance(parsed.info, (BaseSessionInfo, FrejaEIDDocumentUserInfo, SvipeDocumentUserInfo)):
+        raise RuntimeError(f"unexpected parsed.info type: {type(parsed.info).__name__}")
 
     proofing = get_proofing_functions(
         session_info=parsed.info, app_name=app.name, config=app.conf, backdoor=args.backdoor

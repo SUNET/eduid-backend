@@ -28,6 +28,7 @@ def common_saml_checks(args: ACSArgs) -> ACSResult | None:
         args,
         authn_context_mismatch_msg=SamlEidMsg.authn_context_mismatch,
         authn_instant_too_old_msg=SamlEidMsg.authn_instant_too_old,
+        method_not_available=SamlEidMsg.method_not_available,
         loa_authn_context_map=current_app.conf.loa_authn_context_map,
     )
 

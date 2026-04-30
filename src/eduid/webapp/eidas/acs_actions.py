@@ -2,9 +2,7 @@ from datetime import UTC, datetime
 
 from eduid.common.models.saml_models import BaseSessionInfo
 from eduid.userdb import User
-from eduid.userdb.credentials.fido import FidoCredential
 from eduid.webapp.common.api.decorators import require_user
-from eduid.webapp.common.api.messages import AuthnStatusMsg
 from eduid.webapp.common.authn.acs_enums import EidasAcsAction
 from eduid.webapp.common.authn.acs_registry import ACSArgs, ACSResult, acs_action
 from eduid.webapp.common.proofing.mfa_signup import MfaRegisterParsed, parse_mfa_register_args
@@ -30,6 +28,7 @@ def common_saml_checks(args: ACSArgs) -> ACSResult | None:
         args,
         authn_context_mismatch_msg=EidasMsg.authn_context_mismatch,
         authn_instant_too_old_msg=EidasMsg.authn_instant_too_old,
+        method_not_available=EidasMsg.method_not_available,
         loa_authn_context_map=current_app.conf.loa_authn_context_map,
     )
 

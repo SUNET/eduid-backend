@@ -1,11 +1,9 @@
 from eduid.userdb import User
-from eduid.userdb.credentials.fido import FidoCredential
 from eduid.webapp.bankid.app import current_bankid_app as current_app
 from eduid.webapp.bankid.helpers import BankIDMsg
 from eduid.webapp.bankid.proofing import get_proofing_functions
 from eduid.webapp.bankid.saml_session_info import BankIDSessionInfo
 from eduid.webapp.common.api.decorators import require_user
-from eduid.webapp.common.api.messages import AuthnStatusMsg
 from eduid.webapp.common.authn.acs_enums import BankIDAcsAction
 from eduid.webapp.common.authn.acs_registry import ACSArgs, ACSResult, acs_action
 from eduid.webapp.common.proofing.mfa_signup import MfaRegisterParsed, parse_mfa_register_args
@@ -29,6 +27,7 @@ def common_saml_checks(args: ACSArgs) -> ACSResult | None:
         args,
         authn_context_mismatch_msg=BankIDMsg.authn_context_mismatch,
         authn_instant_too_old_msg=BankIDMsg.authn_instant_too_old,
+        method_not_available=BankIDMsg.method_not_available,
         loa_authn_context_map=current_app.conf.loa_authn_context_map,
     )
 

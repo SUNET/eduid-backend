@@ -1,9 +1,7 @@
 from datetime import UTC, datetime
 
 from eduid.userdb import User
-from eduid.userdb.credentials import FidoCredential
 from eduid.webapp.common.api.decorators import require_user
-from eduid.webapp.common.api.messages import AuthnStatusMsg
 from eduid.webapp.common.authn.acs_registry import ACSArgs, ACSResult, acs_action
 from eduid.webapp.common.proofing.mfa_signup import parse_mfa_register_args
 from eduid.webapp.common.proofing.shared_actions import run_mfa_authenticate, run_verify_credential, run_verify_identity
