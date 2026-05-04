@@ -374,7 +374,7 @@ def webauthn_register_complete(
         credential_data=result.credential_data,
         keyhandle=result.keyhandle,
         authenticator=result.authenticator,
-        authenticator_id=str(result.authenticator_info.authenticator_id),
+        authenticator_id=result.authenticator_info.authenticator_id,
         mfa_approved=result.mfa_approved,
         attestation_format=result.authenticator_info.attestation_format,
         description=description,
