@@ -312,7 +312,7 @@ def webauthn_register_begin(authenticator: str) -> FluxData:
         return error_response(message=SignupMsg.name_not_set)
     user_entity = PublicKeyCredentialUserEntity(
         id=bytes(eppn, "utf-8"),
-        name=eppn,
+        name=f"{session.signup.name.given_name} {session.signup.name.surname}",
         display_name=f"{session.signup.name.given_name} {session.signup.name.surname}",
     )
     registration_data, state = server.register_begin(
