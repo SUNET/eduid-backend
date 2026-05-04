@@ -513,8 +513,8 @@ def create_user(use_suggested_password: bool, use_webauthn: bool, custom_passwor
             attestation_format=wn.attestation_format,
         )
         webauthn_authenticator_info = AuthenticatorInformation(
-            authenticator_id=wn.authenticator_id or "",
-            attestation_format=wn.attestation_format or AttestationFormat.NONE,
+            authenticator_id=wn.authenticator_id,
+            attestation_format=wn.attestation_format,
             user_present=wn.user_present,
             user_verified=wn.user_verified,
             user_verification_methods=wn.user_verification_methods,
