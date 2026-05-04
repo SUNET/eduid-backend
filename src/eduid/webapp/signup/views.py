@@ -328,7 +328,8 @@ def webauthn_register_begin(authenticator: str) -> FluxData:
     )
 
     current_app.logger.info("WebAuthn registration begun")
-    current_app.stats.count(name="webauthn_register_begin")
+    if not check_magic_cookie(current_app.conf):  # no stats for automatic tests
+        current_app.stats.count(name="webauthn_register_begin")
 
     return success_response(
         payload={"csrf_token": session.new_csrf_token(), "registration_data": dict(registration_data)}
@@ -386,11 +387,12 @@ def webauthn_register_complete(
     session.signup.credentials.completed = True
 
     current_app.logger.info("WebAuthn registration completed")
-    current_app.stats.count(name="webauthn_register_complete")
-    if result.mfa_approved:
-        current_app.stats.count(name="webauthn_mfa_approved")
-    if result.is_discoverable:
-        current_app.stats.count(name="webauthn_is_discoverable")
+    if not check_magic_cookie(current_app.conf):
+        current_app.stats.count(name="webauthn_register_complete")
+        if result.mfa_approved:
+            current_app.stats.count(name="webauthn_mfa_approved")
+        if result.is_discoverable:
+            current_app.stats.count(name="webauthn_is_discoverable")
 
     return success_response(payload={"state": session.signup.to_dict()})
 
