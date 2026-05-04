@@ -2,7 +2,6 @@ from typing import Any
 from uuid import uuid4
 
 from fido2.webauthn import AuthenticatorAttachment, PublicKeyCredentialUserEntity
-from fido_mds.models.webauthn import AttestationFormat
 from flask import Blueprint, abort, request
 
 from eduid.common.misc.timeutil import utc_now
@@ -384,6 +383,7 @@ def webauthn_register_complete(
         key_protection=result.authenticator_info.key_protection,
         is_discoverable=result.is_discoverable,
     )
+    current_app.logger.debug(f"stored webauthn credential: {session.signup.credentials.webauthn}")
     session.signup.credentials.completed = True
 
     current_app.logger.info("WebAuthn registration completed")
@@ -514,6 +514,8 @@ def create_user(use_suggested_password: bool, use_webauthn: bool, custom_passwor
             webauthn_proofing_version=current_app.conf.webauthn_proofing_version,
             attestation_format=wn.attestation_format,
         )
+        current_app.logger.debug(f"Created webauthn credential: {webauthn_credential}")
+
         webauthn_authenticator_info = AuthenticatorInformation(
             authenticator_id=wn.authenticator_id,
             attestation_format=wn.attestation_format,
