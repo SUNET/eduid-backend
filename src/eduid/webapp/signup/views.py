@@ -2,7 +2,6 @@ from typing import Any
 from uuid import uuid4
 
 from fido2.webauthn import AuthenticatorAttachment, PublicKeyCredentialUserEntity
-from fido_mds.models.webauthn import AttestationFormat
 from flask import Blueprint, abort, request
 
 from eduid.common.misc.timeutil import utc_now
@@ -312,7 +311,7 @@ def webauthn_register_begin(authenticator: str) -> FluxData:
         return error_response(message=SignupMsg.name_not_set)
     user_entity = PublicKeyCredentialUserEntity(
         id=bytes(eppn, "utf-8"),
-        name=eppn,
+        name=f"{session.signup.name.given_name} {session.signup.name.surname}",
         display_name=f"{session.signup.name.given_name} {session.signup.name.surname}",
     )
     registration_data, state = server.register_begin(
@@ -328,7 +327,8 @@ def webauthn_register_begin(authenticator: str) -> FluxData:
     )
 
     current_app.logger.info("WebAuthn registration begun")
-    current_app.stats.count(name="webauthn_register_begin")
+    if not check_magic_cookie(current_app.conf):  # no stats for automatic tests
+        current_app.stats.count(name="webauthn_register_begin")
 
     return success_response(
         payload={"csrf_token": session.new_csrf_token(), "registration_data": dict(registration_data)}
@@ -351,6 +351,7 @@ def webauthn_register_complete(
     reg_state = session.signup.credentials.webauthn_registration
     session.signup.credentials.webauthn_registration = None
 
+    is_backdoor = check_magic_cookie(current_app.conf)
     try:
         result = verify_webauthn_registration(
             response=response,
@@ -361,7 +362,7 @@ def webauthn_register_complete(
             fido_mds=current_app.fido_mds,
             fido_metadata_log=current_app.fido_metadata_log,
             app_name=current_app.conf.app_name,
-            is_backdoor=check_magic_cookie(current_app.conf),
+            is_backdoor=is_backdoor,
             disallowed_status=current_app.conf.webauthn_disallowed_status,
             client_extension_results=client_extension_results,
         )
@@ -373,7 +374,7 @@ def webauthn_register_complete(
         credential_data=result.credential_data,
         keyhandle=result.keyhandle,
         authenticator=result.authenticator,
-        authenticator_id=str(result.authenticator_info.authenticator_id),
+        authenticator_id=result.authenticator_info.authenticator_id,
         mfa_approved=result.mfa_approved,
         attestation_format=result.authenticator_info.attestation_format,
         description=description,
@@ -383,14 +384,16 @@ def webauthn_register_complete(
         key_protection=result.authenticator_info.key_protection,
         is_discoverable=result.is_discoverable,
     )
+    current_app.logger.debug(f"stored webauthn credential: {session.signup.credentials.webauthn}")
     session.signup.credentials.completed = True
 
     current_app.logger.info("WebAuthn registration completed")
-    current_app.stats.count(name="webauthn_register_complete")
-    if result.mfa_approved:
-        current_app.stats.count(name="webauthn_mfa_approved")
-    if result.is_discoverable:
-        current_app.stats.count(name="webauthn_is_discoverable")
+    if not is_backdoor:
+        current_app.stats.count(name="webauthn_register_complete")
+        if result.mfa_approved:
+            current_app.stats.count(name="webauthn_mfa_approved")
+        if result.is_discoverable:
+            current_app.stats.count(name="webauthn_is_discoverable")
 
     return success_response(payload={"state": session.signup.to_dict()})
 
@@ -399,7 +402,7 @@ def webauthn_register_complete(
 @UnmarshalWith(ReturnToAuthRequest)
 @MarshalWith(SignupStatusResponse)
 @require_not_logged_in
-def return_to_auth(ref: str) -> FluxData:
+def return_to_auth(ref: str, service_info: dict[str, dict[str, str]]) -> FluxData:
     """Store a reference to a pending IdP SAML request for resumption after signup."""
     current_app.logger.info("Setting IdP request ref for post-signup auth resumption")
 
@@ -413,6 +416,7 @@ def return_to_auth(ref: str) -> FluxData:
         return error_response(message=SignupMsg.idp_request_ref_not_found)
 
     session.signup.idp_request_ref = request_ref
+    session.signup.idp_service_info = service_info
     current_app.logger.info(f"Stored idp_request_ref: {request_ref}")
     return success_response(payload={"state": session.signup.to_dict()})
 
@@ -512,9 +516,11 @@ def create_user(use_suggested_password: bool, use_webauthn: bool, custom_passwor
             webauthn_proofing_version=current_app.conf.webauthn_proofing_version,
             attestation_format=wn.attestation_format,
         )
+        current_app.logger.debug(f"Created webauthn credential: {webauthn_credential}")
+
         webauthn_authenticator_info = AuthenticatorInformation(
-            authenticator_id=wn.authenticator_id or "",
-            attestation_format=wn.attestation_format or AttestationFormat.NONE,
+            authenticator_id=wn.authenticator_id,
+            attestation_format=wn.attestation_format,
             user_present=wn.user_present,
             user_verified=wn.user_verified,
             user_verification_methods=wn.user_verification_methods,

@@ -6,6 +6,7 @@ from typing import Any
 
 import pytest
 from fido2.webauthn import AuthenticatorAttachment, RegistrationResponse
+from fido_mds.models.webauthn import AttestationFormat
 from jwcrypto.jwk import JWK
 from pytest_mock import MockerFixture
 from werkzeug.test import TestResponse
@@ -49,10 +50,7 @@ CLIENT_DATA_JSON = (
     b"Y2tlciIsImNyb3NzT3JpZ2luIjpmYWxzZX0"
 )
 
-CREDENTIAL_ID = (
-    "31f8974379e65869f9b7caaf28f0e44eead0fdd883e9c545404e351824a6c4cea738613e4ef5b9"
-    "d699fbc4d6bab05117a13cc81875b732e00058027155ced047"
-)
+CREDENTIAL_ID = "vJTDXjICQ2Trzh7rPu_EiPGL0dx1VML9jUdz3H7wZ3aWm8PlIkEI8eDfk5SWXBiRX4c80PaAJ5L2YXMBhk3bSw"
 
 
 class SignupWebauthnTests(EduidAPITestCase[SignupApp]):
@@ -200,7 +198,8 @@ class SignupWebauthnTests(EduidAPITestCase[SignupApp]):
             with client.session_transaction() as sess:
                 sess.signup.credentials.webauthn = WebauthnCredential(
                     credential_data=base64.urlsafe_b64encode(auth_data.credential_data).decode("ascii"),
-                    keyhandle=auth_data.credential_data.credential_id.hex(),
+                    keyhandle=registration.id,
+                    attestation_format=AttestationFormat.NONE,
                     authenticator=AuthenticatorAttachment.CROSS_PLATFORM,
                     authenticator_id="test-authenticator-id",
                     description="test security key",
@@ -496,7 +495,8 @@ class SignupWebauthnTests(EduidAPITestCase[SignupApp]):
             with client.session_transaction() as sess:
                 sess.signup.credentials.webauthn = WebauthnCredential(
                     credential_data=base64.urlsafe_b64encode(auth_data.credential_data).decode("ascii"),
-                    keyhandle=auth_data.credential_data.credential_id.hex(),
+                    keyhandle=registration.id,
+                    attestation_format=AttestationFormat.PACKED,
                     authenticator=AuthenticatorAttachment.CROSS_PLATFORM,
                     authenticator_id="test-authenticator-id",
                     mfa_approved=True,

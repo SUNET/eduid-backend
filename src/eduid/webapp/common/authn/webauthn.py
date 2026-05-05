@@ -328,7 +328,7 @@ def verify_webauthn_registration(
 
     return RegistrationResult(
         credential_data=base64.urlsafe_b64encode(auth_data.credential_data).decode("ascii"),
-        keyhandle=auth_data.credential_data.credential_id.hex(),
+        keyhandle=registration.id,
         authenticator=authenticator,
         authenticator_info=authenticator_info,
         mfa_approved=mfa_approved,

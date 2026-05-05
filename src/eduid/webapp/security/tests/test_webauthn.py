@@ -80,10 +80,7 @@ CLIENT_DATA_JSON = (
     b"Y2tlciIsImNyb3NzT3JpZ2luIjpmYWxzZX0"
 )
 
-CREDENTIAL_ID = (
-    "31f8974379e65869f9b7caaf28f0e44eead0fdd883e9c545404e351824a6c4cea738613e4ef5b9"
-    "d699fbc4d6bab05117a13cc81875b732e00058027155ced047"
-)
+CREDENTIAL_ID = "vJTDXjICQ2Trzh7rPu_EiPGL0dx1VML9jUdz3H7wZ3aWm8PlIkEI8eDfk5SWXBiRX4c80PaAJ5L2YXMBhk3bSw"
 
 # CTAP2 security key
 STATE_2 = {"challenge": "yxHWG+ouoa8MLGSxOJJhM0NtiH5ubK3BPfx+6uE3QkU=", "user_verification": "required"}
@@ -108,10 +105,7 @@ eyJ0eXBlIjoid2ViYXV0aG4uY3JlYXRlIiwiY2hhbGxlbmdlIjoieXhIV0ctb3VvYThNTEdTeE9KSmhN
 biI6Imh0dHBzOi8vaHRtbC5lZHVpZC5kb2NrZXIiLCJjcm9zc09yaWdpbiI6ZmFsc2V9
 """
 
-CREDENTIAL_ID_2 = (
-    "7bad3b59fa16e9e8840e2fd15c026a3c9a7d2877fd7d97c25a3b3158d1a9cba1e14b7c9913915"
-    "f912366c18bd06bc9e903bc779409a8a7c749511e2b44e54c88"
-)
+CREDENTIAL_ID_2 = "5daF3O2VpnZWJkYXKHuYbY8eg_pgUcRpMp96P8QkH6tBawr3hJhB5BvWJnzsYDO-0kK0XxvaN4x7mX6RAS2cKA"
 
 
 class SecurityWebauthnTests(EduidAPITestCase[SecurityApp]):
@@ -164,10 +158,9 @@ class SecurityWebauthnTests(EduidAPITestCase[SecurityApp]):
         auth_data = server.register_complete(state=state, response=registration)
         cred_data = auth_data.credential_data
         assert cred_data is not None  # please mypy
-        cred_id = cred_data.credential_id
 
         credential = Webauthn(
-            keyhandle=cred_id.hex(),
+            keyhandle=registration.id,
             credential_data=base64.urlsafe_b64encode(cred_data).decode("ascii"),
             app_id=self.app.conf.fido2_rp_id,
             description="ctap1 token",
@@ -336,8 +329,8 @@ class SecurityWebauthnTests(EduidAPITestCase[SecurityApp]):
                     data = {
                         "csrf_token": csrf_token,
                         "response": {
-                            "credentialId": CREDENTIAL_ID,
-                            "rawId": CREDENTIAL_ID,
+                            "credentialId": cred_id,
+                            "rawId": cred_id,
                             "response": {
                                 "attestationObject": attestation.decode(),
                                 "clientDataJSON": client_data.decode(),

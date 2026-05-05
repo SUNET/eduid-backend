@@ -7,6 +7,7 @@ from copy import deepcopy
 from datetime import datetime
 from enum import StrEnum, unique
 from typing import Any, NewType, Self, cast
+from uuid import UUID
 
 from fido2.webauthn import AuthenticatorAttachment
 from fido_mds.models.webauthn import AttestationFormat
@@ -160,9 +161,9 @@ class WebauthnCredential(BaseModel):
     credential_data: str  # base64 AttestedCredentialData
     keyhandle: str
     authenticator: AuthenticatorAttachment
-    authenticator_id: str | None = None
+    authenticator_id: UUID | str
     mfa_approved: bool = False
-    attestation_format: AttestationFormat | None = None
+    attestation_format: AttestationFormat
     description: str = ""
     # attestation flags for proofing log
     user_present: bool = True
@@ -192,6 +193,7 @@ class Signup(TimestampedNS):
     captcha: Captcha = Field(default_factory=Captcha)
     credentials: Credentials = Field(default_factory=Credentials)
     idp_request_ref: RequestRef | None = None
+    idp_service_info: dict[str, dict[str, str]] | None = None
 
 
 class Phone(SessionNSBase):
