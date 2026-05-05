@@ -351,6 +351,7 @@ def webauthn_register_complete(
     reg_state = session.signup.credentials.webauthn_registration
     session.signup.credentials.webauthn_registration = None
 
+    is_backdoor = check_magic_cookie(current_app.conf)
     try:
         result = verify_webauthn_registration(
             response=response,
@@ -361,7 +362,7 @@ def webauthn_register_complete(
             fido_mds=current_app.fido_mds,
             fido_metadata_log=current_app.fido_metadata_log,
             app_name=current_app.conf.app_name,
-            is_backdoor=check_magic_cookie(current_app.conf),
+            is_backdoor=is_backdoor,
             disallowed_status=current_app.conf.webauthn_disallowed_status,
             client_extension_results=client_extension_results,
         )
@@ -387,7 +388,7 @@ def webauthn_register_complete(
     session.signup.credentials.completed = True
 
     current_app.logger.info("WebAuthn registration completed")
-    if not check_magic_cookie(current_app.conf):
+    if not is_backdoor:
         current_app.stats.count(name="webauthn_register_complete")
         if result.mfa_approved:
             current_app.stats.count(name="webauthn_mfa_approved")
