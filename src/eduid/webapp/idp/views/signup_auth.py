@@ -106,7 +106,7 @@ def _register_signup_credentials(ticket: LoginContext, user: IdPUser) -> list[Au
     """Register the user's signup credentials on the pending request and return AuthnData for the SSO session."""
     authn_credentials: list[AuthnData] = []
     if session.signup.user_created_at is None:  # checked by caller
-        raise RuntimeError(f"No user_created_at in signup session")
+        raise RuntimeError("No user_created_at in signup session")
 
     for cred in user.credentials.to_list():
         fido_data = None

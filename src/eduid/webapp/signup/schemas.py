@@ -8,7 +8,6 @@ from eduid.webapp.common.api.schemas.email import LowercaseEmail
 from eduid.webapp.common.api.schemas.validators import validate_email
 from eduid.webapp.common.api.utils import time_left
 from eduid.webapp.common.session import session
-from eduid.webapp.common.session.namespaces import EmailVerification
 from eduid.webapp.signup.app import current_signup_app as current_app
 
 __author__ = "lundberg"
