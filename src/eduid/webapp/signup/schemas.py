@@ -8,6 +8,7 @@ from eduid.webapp.common.api.schemas.email import LowercaseEmail
 from eduid.webapp.common.api.schemas.validators import validate_email
 from eduid.webapp.common.api.utils import time_left
 from eduid.webapp.common.session import session
+from eduid.webapp.common.session.namespaces import EmailVerification
 from eduid.webapp.signup.app import current_signup_app as current_app
 
 __author__ = "lundberg"
@@ -52,6 +53,13 @@ class SignupStatusResponse(FluxStandardAction):
                 webauthn_is_discoverable = fields.Boolean(required=True, dump_default=False)
                 webauthn_description = fields.String(required=True, dump_default=None)
 
+            class ServiceInfo(EduidSchema):
+                class DisplayName(EduidSchema):
+                    en = fields.String(required=False)
+                    sv = fields.String(required=False)
+
+                display_name = fields.Nested(DisplayName, required=False)
+
             already_signed_up = fields.Boolean(required=True)
             name = fields.Nested(Name, required=True)
             email = fields.Nested(EmailVerification, required=True)
@@ -61,7 +69,7 @@ class SignupStatusResponse(FluxStandardAction):
             credentials = fields.Nested(Credentials, required=True)
             user_created = fields.Boolean(required=True)
             idp_request_ref = fields.String(required=False, load_default=None)
-            idp_service_info = fields.String(required=False, load_default=None)
+            idp_service_info = fields.Nested(nested=ServiceInfo, required=False, load_default=None)
 
         state = fields.Nested(State, required=True)
 
