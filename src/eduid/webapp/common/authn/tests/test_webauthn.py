@@ -6,6 +6,7 @@ Webauthn.key = sha256(keyhandle + credential_data).
 """
 
 import base64
+from typing import Any
 from unittest.mock import MagicMock
 
 import pytest
@@ -56,7 +57,7 @@ CREDENTIAL_ID_HEX = (
 )
 
 
-def _make_response(credential_id: str = CREDENTIAL_ID_B64URL) -> dict:
+def _make_response(credential_id: str = CREDENTIAL_ID_B64URL) -> dict[str, Any]:
     return {
         "credentialId": credential_id,
         "rawId": credential_id,
@@ -67,18 +68,18 @@ def _make_response(credential_id: str = CREDENTIAL_ID_B64URL) -> dict:
     }
 
 
-def _register(**kwargs) -> RegistrationResult:
-    defaults = dict(
-        response=_make_response(),
-        webauthn_state=STATE,
-        authenticator=AuthenticatorAttachment.CROSS_PLATFORM,
-        rp_id="eduid.docker",
-        rp_name="eduID",
-        fido_mds=MagicMock(),
-        fido_metadata_log=MagicMock(),
-        app_name="testing",
-        is_backdoor=True,
-    )
+def _register(**kwargs: Any) -> RegistrationResult:
+    defaults: dict[str, Any] = {
+        "response": _make_response(),
+        "webauthn_state": STATE,
+        "authenticator": AuthenticatorAttachment.CROSS_PLATFORM,
+        "rp_id": "eduid.docker",
+        "rp_name": "eduID",
+        "fido_mds": MagicMock(),
+        "fido_metadata_log": MagicMock(),
+        "app_name": "testing",
+        "is_backdoor": True,
+    }
     defaults.update(kwargs)
     return verify_webauthn_registration(**defaults)
 
