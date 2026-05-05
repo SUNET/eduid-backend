@@ -401,7 +401,7 @@ def webauthn_register_complete(
 @UnmarshalWith(ReturnToAuthRequest)
 @MarshalWith(SignupStatusResponse)
 @require_not_logged_in
-def return_to_auth(ref: str) -> FluxData:
+def return_to_auth(ref: str, service_info: dict[str, dict[str, str]]) -> FluxData:
     """Store a reference to a pending IdP SAML request for resumption after signup."""
     current_app.logger.info("Setting IdP request ref for post-signup auth resumption")
 
@@ -415,6 +415,7 @@ def return_to_auth(ref: str) -> FluxData:
         return error_response(message=SignupMsg.idp_request_ref_not_found)
 
     session.signup.idp_request_ref = request_ref
+    session.signup.idp_service_info = service_info
     current_app.logger.info(f"Stored idp_request_ref: {request_ref}")
     return success_response(payload={"state": session.signup.to_dict()})
 

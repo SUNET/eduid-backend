@@ -61,6 +61,7 @@ class SignupStatusResponse(FluxStandardAction):
             credentials = fields.Nested(Credentials, required=True)
             user_created = fields.Boolean(required=True)
             idp_request_ref = fields.String(required=False, load_default=None)
+            idp_service_info = fields.String(required=False, load_default=None)
 
         state = fields.Nested(State, required=True)
 
@@ -186,3 +187,4 @@ class WebauthnRegisterCompleteRequest(EduidSchema, CSRFRequestMixin):
 
 class ReturnToAuthRequest(EduidSchema, CSRFRequestMixin):
     ref = fields.String(required=True)
+    service_info = fields.Dict(required=True)
