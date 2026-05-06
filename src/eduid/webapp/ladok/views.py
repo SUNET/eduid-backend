@@ -49,7 +49,6 @@ def link_user(user: User, ladok_name: str) -> FluxData:
     if current_app.conf.environment is EduidEnvironment.dev or check_magic_cookie(current_app.conf):
         return link_user_backdoor(user=user, ladok_name=ladok_name)
 
-    assert user.identities.nin is not None  # please mypy
     try:
         ladok_info = current_app.ladok_client.get_user_info(ladok_name=ladok_name, nin=user.identities.nin.number)
     except LadokClientException:

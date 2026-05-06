@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING, cast
 import redis
 from flask import current_app as flask_current_app
 
-from eduid.common.config.base import EduIDBaseAppConfig, RedisConfigMixin, VCCSConfigMixin
+from eduid.common.config.base import RedisConfigMixin, VCCSConfigMixin
 from eduid.common.misc.timeutil import utc_now
 from eduid.common.rpc.am_relay import AmRelay
 from eduid.common.rpc.lookup_mobile_relay import LookupMobileRelay
@@ -27,7 +27,6 @@ def get_current_app() -> EduIDBaseApp:
     from eduid.webapp.common.api.app import EduIDBaseApp
 
     _app = cast(EduIDBaseApp, flask_current_app)
-    assert isinstance(_app.conf, EduIDBaseAppConfig)
     return _app
 
 

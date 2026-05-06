@@ -123,8 +123,6 @@ class IdPAuthn:
         self.userdb = userdb
         self.managed_account_db = managed_account_db
         self.auth_client = get_vccs_client(config.vccs_url)
-        # already checked with isinstance in app init
-        assert config.mongo_uri is not None
         self.authn_store = AuthnInfoStore(uri=config.mongo_uri)
 
     @property
