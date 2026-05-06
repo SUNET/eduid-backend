@@ -574,7 +574,6 @@ class SSO(Service):
         :param ticket: State for this request
         :return: pysaml2 response creation data
         """
-        assert isinstance(ticket, LoginContext)
         current_app.logger.debug(f"Validate login request :\n{ticket}")
         current_app.logger.debug(f"AuthnRequest from ticket: {ticket.saml_req!r}")
         return ticket.saml_req.get_response_args(ticket.request_ref, current_app.conf)

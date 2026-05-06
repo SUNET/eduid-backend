@@ -175,7 +175,6 @@ def authn_callback(user: User) -> WerkzeugResponse:
         )
 
     formatted_finish_url = authn_req.formatted_finish_url(app_name=current_app.conf.app_name)
-    assert formatted_finish_url  # please type checking
 
     try:
         token_response = current_app.oidc_client.svipe.authorize_access_token()
