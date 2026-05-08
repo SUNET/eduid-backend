@@ -113,7 +113,8 @@ def check_mongo() -> bool:
 def check_redis() -> bool:
     current_app = get_current_app()
     _conf = current_app.conf
-    assert isinstance(_conf, RedisConfigMixin)
+    if not isinstance(_conf, RedisConfigMixin):
+        raise RuntimeError(f"app.conf does not implement RedisConfigMixin: {type(_conf).__name__}")
     pool = get_redis_pool(_conf.redis_config)
     client = redis.StrictRedis(connection_pool=pool)
     try:

@@ -45,7 +45,8 @@ def check_skv_users(context: Context) -> None:
 
     context.stats.count("skv_users_checked")
     context.logger.debug(f"Checking if user with eppn {user.eppn} should be terminated")
-    assert user.identities.nin is not None  # Please mypy
+    if user.identities.nin is None:
+        raise RuntimeError("user.identities.nin not set when expected for skv check")
     try:
         navet_data: NavetData = context.msg_relay.get_all_navet_data(
             nin=user.identities.nin.number, allow_deregistered=True
@@ -70,7 +71,8 @@ def check_user_deregistered(context: Context, user: CleanerQueueUser, navet_data
         return False
 
     cause = navet_data.person.deregistration_information.cause_code
-    assert cause is not None  # Please mypy
+    if cause is None:
+        raise RuntimeError("deregistration cause_code missing for deregistered person")
 
     if cause in context.config.skv.termination_cause_codes:
         context.logger.info(f"User with eppn {user.eppn} should be terminated, cause: {cause.value} ({cause.name})")
@@ -118,7 +120,8 @@ def check_user_official_name(context: Context, queue_user: CleanerQueueUser, nav
         official_address=navet_data.person.postal_addresses.official_address,
     )
 
-    assert user.identities.nin is not None  #  please mypy
+    if user.identities.nin is None:
+        raise RuntimeError("user.identities.nin not set when expected for skv check")
     # Create a proofing log entry
     proofing_log_entry = NameUpdateProofing(
         created_by="job_runner_skv",

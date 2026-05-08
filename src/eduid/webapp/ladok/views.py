@@ -69,7 +69,8 @@ def link_user(user: User, ladok_name: str) -> FluxData:
         verified_by="eduid-ladok",
     )
     proofing_user.ladok = ladok_data
-    assert proofing_user.identities.nin is not None  # please mypy
+    if proofing_user.identities.nin is None:
+        raise RuntimeError("proofing_user.identities.nin not set when expected for ladok view")
     proofing_log_entry = LadokProofing(
         eppn=proofing_user.eppn,
         nin=proofing_user.identities.nin.number,

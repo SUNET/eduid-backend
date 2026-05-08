@@ -11,7 +11,8 @@ __author__ = "lundberg"
 
 def get_user_locale() -> str | None:
     app = current_app
-    assert isinstance(app, EduIDBaseApp)
+    if not isinstance(app, EduIDBaseApp):
+        raise RuntimeError(f"unexpected current_app type: {type(app).__name__}")
     lang: str | None  # mypy 0.910 needs this
     # if a user is logged in, use the locale from the user settings
     if session.common.preferred_language is not None:

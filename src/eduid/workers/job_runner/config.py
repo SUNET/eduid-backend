@@ -37,7 +37,8 @@ class JobCronConfig(BaseModel):
     def at_least_one_datetime_value(cls, data: dict[str, Any]) -> dict[str, Any]:
         if isinstance(data, dict):
             need_one_of = ["year", "month", "day", "week", "day_of_week", "hour", "minute", "second"]
-            assert len(data.keys() & need_one_of), f"At least one of {need_one_of} must be set"
+            if not data.keys() & need_one_of:
+                raise ValueError(f"At least one of {need_one_of} must be set")
         return data
 
 

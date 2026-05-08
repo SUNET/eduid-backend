@@ -176,9 +176,8 @@ def _authn(
 
     proofing_method = get_proofing_method(method, _frontend_action, current_app.conf)
     current_app.logger.debug(f"Proofing method: {proofing_method}")
-    if not proofing_method:
+    if not isinstance(proofing_method, ProofingMethodSAML):
         return AuthnResult(error=BankIDMsg.method_not_available)
-    assert isinstance(proofing_method, ProofingMethodSAML)  # please mypy
 
     idp = proofing_method.idp
 
@@ -282,7 +281,8 @@ def assertion_consumer_service() -> WerkzeugResponse:
     formatted_finish_url = proofing_method.formatted_finish_url(
         app_name=current_app.conf.app_name, authn_id=assertion.authn_req_ref
     )
-    assert formatted_finish_url  # please type checking
+    if formatted_finish_url is None:
+        raise RuntimeError("formatted_finish_url is None — finish_url config likely empty")
 
     # assertion checks out try to do the action
     action = get_action(default_action=None, authndata=assertion.authn_data)
