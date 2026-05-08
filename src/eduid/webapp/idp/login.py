@@ -296,7 +296,8 @@ class SSO(Service):
         except AttributeError:
             current_app.logger.debug(f"Asserting AuthnContext {authn_info} (none requested)")
 
-        assert self.sso_session  # please mypy
+        if self.sso_session is None:
+            raise RuntimeError("sso_session not set when expected during login response")
         attributes = self.gather_attributes(response_authn=authn_info, resp_args=resp_args, user=user, ticket=ticket)
         missing_attributes = self.get_missing_attributes(ticket=ticket, attributes=attributes)
         saml_response = self._make_saml_response(
