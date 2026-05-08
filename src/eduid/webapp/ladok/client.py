@@ -114,7 +114,8 @@ class LadokClient:
         if universities_response.error is not None:
             logger.error(f"endpoint {endpoint} returned error: {universities_response.error}")
             raise LadokClientException("could not load universities")
-        assert universities_response.data is not None  # please mypy
+        if universities_response.data is None:
+            raise LadokClientException("universities response had no data and no error")
         return universities_response.data
 
     def get_user_info(self, ladok_name: str, nin: str) -> LadokUserInfo | None:
