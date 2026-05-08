@@ -119,6 +119,7 @@ select = [
   "PL",
   "PT",
   "RUF",
+  "S101",
   "SIM",
   "UP",
   "W",
@@ -160,7 +161,10 @@ eduid = ["ndnkdf"]
 
 [tool.ruff.lint.per-file-ignores]
 "**/test_*.py" = ["PLR2004"] # magic-value-comparison - allow magic numbers in tests
-"**/test*.py" = ["SIM117"] # multiple-with-statements - combined session_transaction() calls break tests
+"**/test*.py" = [
+  "SIM117", # multiple-with-statements - combined session_transaction() calls break tests
+  "S101" # assert - assert statements are used in tests
+  ] 
 # "src/eduid/scimapi/**" = ["A001", "A002"] # builtin shadowing - filter is core concept of scim and builtin is not used
 "src/eduid/webapp/common/authn/vccs.py" = ["PLR2004"] # magic-value-comparison - allow magic numbers for password version
 
