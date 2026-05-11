@@ -240,11 +240,9 @@ def create_and_sync_user(
     record_email_address(signup_user=signup_user, email=email)
 
     # TODO: add_password needs to understand that signup_user is a descendant from User
-    if generated_password is not None or custom_password is not None:
+    password = custom_password or generated_password
+    if password is not None:
         is_generated = custom_password is None
-        password = custom_password or generated_password
-        if password is None:
-            raise RuntimeError("password not set after generated/custom password check")
 
         if not add_password(
             signup_user,
