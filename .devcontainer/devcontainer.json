@@ -6,7 +6,6 @@
 	"customizations": {
 		"vscode": {
 			"settings": {
-				"python.defaultInterpreterPath": "/usr/local/bin/python",
 				"cSpell.language": "en-GB,en,sv"
 			},
 			"extensions": [
@@ -22,9 +21,8 @@
 			]
 		}
 	},
-	"postCreateCommand": "make vscode",
+	"postCreateCommand": "make bootstrap",
 	"mounts": [
-		"type=bind,source=${localWorkspaceFolder}/../pysaml2,target=/workspaces/pysaml2",
 		"type=bind,source=/var/run/docker.sock,target=/var/run/docker.sock"
 	],
 	"remoteUser": "vscode",
