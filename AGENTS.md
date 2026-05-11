@@ -28,16 +28,16 @@ Key technologies: Flask, FastAPI, Pydantic v2, MongoDB, Neo4j, Redis, Celery, SA
 make test
 
 # Run a single test file
-PYTHONPATH=src pytest -vvv src/eduid/webapp/freja_eid/tests/test_app.py
+pytest -vvv src/eduid/webapp/freja_eid/tests/test_app.py
 
 # Run a specific test class
-PYTHONPATH=src pytest -vvv src/eduid/webapp/freja_eid/tests/test_app.py::FrejaEIDTests
+pytest -vvv src/eduid/webapp/freja_eid/tests/test_app.py::FrejaEIDTests
 
 # Run a specific test method
-PYTHONPATH=src pytest -vvv src/eduid/webapp/freja_eid/tests/test_app.py::FrejaEIDTests::test_app_starts
+pytest -vvv src/eduid/webapp/freja_eid/tests/test_app.py::FrejaEIDTests::test_app_starts
 
 # Run tests matching a pattern
-PYTHONPATH=src pytest -vvv -k "test_verify" src/eduid/webapp/freja_eid/tests/
+pytest -vvv -k "test_verify" src/eduid/webapp/freja_eid/tests/
 ```
 
 Tests require Docker services (MongoDB, Redis, Neo4j, SMTP). Tests auto-start containers as needed.
@@ -73,6 +73,7 @@ Dependency metadata is also centralized in [pyproject.toml](pyproject.toml). The
 remain the install artifacts used by CI and local setup, while `requirements/*.in` has been removed.
 It will never be necessary to build a package out of this repo; [pyproject.toml](pyproject.toml) is used here as the
 source of truth for dependency and tool metadata.
+The repo is installed into `.venv` in editable mode only so imports, IDEs, and type checkers resolve code consistently without `PYTHONPATH=src`.
 
 ### Dependency Updates
 
