@@ -1,8 +1,12 @@
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "eduid-backend"
 dynamic = ["version"]
 license = { file = "LICENSE" }
-requires-python = ">=3.13"
+requires-python = "==3.13.*"
 dependencies = [
   "Babel",
   "Pillow",
@@ -39,7 +43,7 @@ dependencies = [
   "pyXMLSecurity[PKCS11]",
   "pydantic",
   "pymongo",
-  "pysaml2==7.5.2+sunet4",
+  "pysaml2==7.5.2+sunet4", # Resolved from the SUNET package index (see requirements/Makefile).
   "pysmscom",
   "python-dateutil",
   "python-jose",
@@ -93,9 +97,22 @@ test = [
   "ruff",
 ]
 
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["eduid*"]
+
+[tool.setuptools.package-data]
+eduid = ["py.typed"]
+
 [tool.ruff]
 line-length = 120 # Set the maximum line length to 120.
 target-version = "py313"
+
+[tool.ruff.per-file-target-version]
+"scripts/python_requires_helper.py" = "py37"
 
 [tool.ruff.lint]
 select = [
