@@ -93,6 +93,60 @@ def test_select_python_uses_highest_compatible_version(
     assert capsys.readouterr().out.strip() == "/usr/bin/python3.13"
 
 
+def test_select_python_fails_when_no_compatible_interpreter_exists(
+    helper_module: ModuleType, mocker: MockerFixture
+) -> None:
+    # `BOOTSTRAP_PYTHON` is empty when no interpreter matches. The Makefile's
+    # non-uv fallback paths depend on the helper failing clearly in that case.
+    mocker.patch.object(helper_module, "_candidate_executables", return_value=[])
+
+    with pytest.raises(SystemExit, match=r"No installed Python matches requires-python: >=3.13,<3.14"):
+        helper_module.select_python(">=3.13,<3.14")
+
+
+def test_check_python_from_pyproject_reports_version_match(helper_module: ModuleType, mocker: MockerFixture) -> None:
+    # `bootstrap_venv` calls `check-from-pyproject` before the plain `venv`
+    # fallback branches, so the pyproject wrapper must delegate predictably.
+    mocker.patch.object(helper_module, "_read_requires_python", return_value="==3.13.*")
+    check_python = mocker.patch.object(helper_module, "check_python", return_value=0)
+
+    result = helper_module.check_python_from_pyproject("pyproject.toml")
+
+    assert result == 0
+    check_python.assert_called_once_with("==3.13.*")
+
+
+def test_python_minor_series_requires_single_pinned_minor(helper_module: ModuleType) -> None:
+    # `BOOTSTRAP_PYTHON_MINOR` still needs a concrete baseline. Specs that only
+    # declare an upper bound do not identify a usable bootstrap target.
+    with pytest.raises(SystemExit, match="Could not derive a concrete Python minor release from requires-python"):
+        helper_module.python_minor_series("<3.13")
+
+
+def test_python_minor_series_accepts_lower_bound_baseline(helper_module: ModuleType) -> None:
+    # A future repo policy such as `>=3.13` should not require helper changes.
+    assert helper_module.python_minor_series(">=3.13") == "3.13"
+
+
+def test_python_minor_series_accepts_supported_range(helper_module: ModuleType) -> None:
+    # Common support windows should still collapse to one concrete bootstrap
+    # minor without forcing the Makefile contract to change.
+    assert helper_module.python_minor_series(">=3.13,<3.15") == "3.13"
+
+
+def test_python_minor_series_from_pyproject_prints_pinned_minor(
+    helper_module: ModuleType, mocker: MockerFixture, capsys: pytest.CaptureFixture[str]
+) -> None:
+    # This is the direct contract behind:
+    #   BOOTSTRAP_PYTHON_MINOR := $(... minor-from-pyproject ...)
+    mocker.patch.object(helper_module, "_read_requires_python", return_value="==3.13.*")
+
+    result = helper_module.python_minor_series_from_pyproject("pyproject.toml")
+
+    assert result == 0
+    assert capsys.readouterr().out.strip() == "3.13"
+
+
 def test_main_dispatches_to_selected_handler(helper_module: ModuleType, mocker: MockerFixture) -> None:
     # `bootstrap_venv` calls the helper through its small CLI surface, so this
     # test locks down the `select-from-pyproject` command routing used by Make.
@@ -102,3 +156,14 @@ def test_main_dispatches_to_selected_handler(helper_module: ModuleType, mocker: 
 
     assert result == 0
     select_from_pyproject.assert_called_once_with("pyproject.toml")
+
+
+def test_main_dispatches_minor_from_pyproject(helper_module: ModuleType, mocker: MockerFixture) -> None:
+    # `BOOTSTRAP_PYTHON_MINOR` is sourced through the helper CLI, so keep the
+    # command routing explicit and stable.
+    minor_from_pyproject = mocker.patch.object(helper_module, "python_minor_series_from_pyproject", return_value=0)
+
+    result = helper_module.main(["python_requires_helper.py", "minor-from-pyproject", "pyproject.toml"])
+
+    assert result == 0
+    minor_from_pyproject.assert_called_once_with("pyproject.toml")

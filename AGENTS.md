@@ -93,6 +93,21 @@ make update_deps
 This regenerates the compiled lockfiles in `requirements/*.txt` from [pyproject.toml](pyproject.toml) using the
 profiles and groups defined there.
 
+### Bootstrap Contract
+
+The Python bootstrap contract is shared across:
+
+- [Makefile](Makefile)
+- [scripts/python_requires_helper.py](scripts/python_requires_helper.py)
+- [scripts/tests/test_python_requires_helper.py](scripts/tests/test_python_requires_helper.py)
+
+These files must be treated as a coupled unit.
+
+- Changes to the bootstrap decision flow in [Makefile](Makefile) must be kept consistent with the helper commands and semantics in [scripts/python_requires_helper.py](scripts/python_requires_helper.py).
+- Changes to helper command names, helper output, helper failure modes, or `requires-python` interpretation in [scripts/python_requires_helper.py](scripts/python_requires_helper.py) must be reflected in [Makefile](Makefile).
+- [scripts/tests/test_python_requires_helper.py](scripts/tests/test_python_requires_helper.py) must cover the helper behaviors that [Makefile](Makefile) depends on, including current bootstrap branches and command-entry expectations.
+- If [Makefile](Makefile) starts relying on a new helper path or a new `requires-python` interpretation rule, the corresponding focused tests in [scripts/tests/test_python_requires_helper.py](scripts/tests/test_python_requires_helper.py) must be added or updated in the same change.
+
 ## Code Style Guidelines
 
 ### Import Ordering

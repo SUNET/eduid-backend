@@ -40,7 +40,8 @@ if TYPE_CHECKING:
 
 COMMAND_ARGC = 3
 PROBE_TIMEOUT_SECONDS = 5
-EXACT_MINOR_RE = re.compile(r"^\s*==\s*(\d+\.\d+)(?:\.\*|\.\d+)?\s*$")
+MINOR_TOKEN_RE = re.compile(r"(\d+)\.(\d+)")
+MINOR_SERIES_SEARCH_LIMIT = 24
 
 
 @lru_cache(maxsize=1)
@@ -128,14 +129,37 @@ def _read_requires_python(pyproject_path: str) -> str:
     return requires_python
 
 
+def _increment_minor(major: int, minor: int, steps: int) -> tuple[int, int]:
+    total_minors = major * 100 + minor + steps
+    return divmod(total_minors, 100)
+
+
+def _minor_series_matches(specifier: str, major: int, minor: int) -> bool:
+    spec = _make_specifier_set(specifier)
+    # We need a concrete minor for `uv venv --python X.Y`, not a single patch.
+    # Treat the series as compatible when either the floor or a high patch in
+    # that minor satisfies the specifier.
+    return _make_version(f"{major}.{minor}.0") in spec or _make_version(f"{major}.{minor}.999999") in spec
+
+
 def python_minor_series(specifier: str) -> str:
-    match = EXACT_MINOR_RE.fullmatch(specifier)
-    if match is None:
+    anchors = [(int(major), int(minor)) for major, minor in MINOR_TOKEN_RE.findall(specifier)]
+    if not anchors:
         raise SystemExit(
-            "requires-python must pin a single Python minor release, such as ==3.13.*,"
-            " to derive a concrete bootstrap runtime"
+            "Could not derive a concrete Python minor release from requires-python;"
+            " use a specifier with an explicit Python version baseline"
         )
-    return match.group(1)
+
+    start_major, start_minor = min(anchors)
+    for offset in range(MINOR_SERIES_SEARCH_LIMIT):
+        major, minor = _increment_minor(start_major, start_minor, offset)
+        if _minor_series_matches(specifier, major, minor):
+            return f"{major}.{minor}"
+
+    raise SystemExit(
+        "Could not derive a concrete Python minor release from requires-python;"
+        " prefer a specifier with an explicit lower-bound baseline, such as >=3.13 or ==3.13.*"
+    )
 
 
 def _candidate_executables() -> List[str]:
