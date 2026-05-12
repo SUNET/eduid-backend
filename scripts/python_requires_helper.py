@@ -40,6 +40,7 @@ if TYPE_CHECKING:
 
 COMMAND_ARGC = 3
 PROBE_TIMEOUT_SECONDS = 5
+EXACT_MINOR_RE = re.compile(r"^\s*==\s*(\d+\.\d+)(?:\.\*|\.\d+)?\s*$")
 
 
 @lru_cache(maxsize=1)
@@ -125,6 +126,16 @@ def _read_requires_python(pyproject_path: str) -> str:
     if not isinstance(requires_python, str):
         raise SystemExit(f"Could not find requires-python in [project]: {pyproject_path}")
     return requires_python
+
+
+def python_minor_series(specifier: str) -> str:
+    match = EXACT_MINOR_RE.fullmatch(specifier)
+    if match is None:
+        raise SystemExit(
+            "requires-python must pin a single Python minor release, such as ==3.13.*,"
+            " to derive a concrete bootstrap runtime"
+        )
+    return match.group(1)
 
 
 def _candidate_executables() -> List[str]:
@@ -223,6 +234,11 @@ def check_python_from_pyproject(pyproject_path: str) -> int:
     return check_python(_read_requires_python(pyproject_path))
 
 
+def python_minor_series_from_pyproject(pyproject_path: str) -> int:
+    print(python_minor_series(_read_requires_python(pyproject_path)))
+    return 0
+
+
 def main(argv: List[str]) -> int:
     # Keep the CLI small and explicit since Make invokes these entrypoints
     # directly.
@@ -231,11 +247,12 @@ def main(argv: List[str]) -> int:
         "check": check_python,
         "select-from-pyproject": select_python_from_pyproject,
         "check-from-pyproject": check_python_from_pyproject,
+        "minor-from-pyproject": python_minor_series_from_pyproject,
     }
     if len(argv) != COMMAND_ARGC or argv[1] not in commands:
         print(
             "Usage: python_requires_helper.py {select|check} <requires-python>"
-            " | {select-from-pyproject|check-from-pyproject} <pyproject.toml>",
+            " | {select-from-pyproject|check-from-pyproject|minor-from-pyproject} <pyproject.toml>",
             file=sys.stderr,
         )
         return 2

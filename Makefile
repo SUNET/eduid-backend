@@ -12,6 +12,9 @@ PYTHON_FOR_PARSE := $(strip $(shell if command -v python3 >/dev/null; then print
 # The helper returns the exact executable path it probed, which avoids guessing
 # names like python3.13 from a discovered version.
 BOOTSTRAP_PYTHON := $(strip $(shell $(PYTHON_FOR_PARSE) $(PYTHON_REQUIRES_HELPER) select-from-pyproject $(TOPDIR)/pyproject.toml))
+# When requires-python pins a single minor release, uv can provision it even if
+# no compatible interpreter is installed yet.
+BOOTSTRAP_PYTHON_MINOR := $(strip $(shell $(PYTHON_FOR_PARSE) $(PYTHON_REQUIRES_HELPER) minor-from-pyproject $(TOPDIR)/pyproject.toml 2>/dev/null))
 
 # Keep the virtualenv path overridable so local setups and CI can share targets.
 VENV ?= .venv
@@ -29,8 +32,8 @@ test:
 #
 # Resolution order:
 # 1. Ask the helper to pick the best compatible interpreter already visible on PATH.
-# 2. If uv is installed, hand that exact interpreter path to uv so it can create
-#    the environment directly.
+# 2. If uv is installed and no compatible interpreter is present, derive the
+#    pinned Python minor release from pyproject.toml and let uv provision it.
 # 3. Otherwise, re-check the selected executable immediately before use and build
 #    the venv with the standard library venv module.
 # 4. As a final fallback, try the generic python3/python launchers, but only if
@@ -39,10 +42,18 @@ test:
 # The extra re-checks keep bootstrap conservative if PATH contents or pyproject
 # change between Make variable expansion and target execution.
 bootstrap_venv:
-	@test -n "$(BOOTSTRAP_PYTHON)" || { echo "Could not find a compatible installed Python for requires-python in pyproject.toml" >&2; exit 1; }
 	@if command -v uv >/dev/null; then \
-		echo "Creating $(VENV) with uv using Python $(BOOTSTRAP_PYTHON)"; \
-		uv venv --python "$(BOOTSTRAP_PYTHON)" $(VENV); \
+		if test -n "$(BOOTSTRAP_PYTHON)"; then \
+			echo "Creating $(VENV) with uv using Python $(BOOTSTRAP_PYTHON)"; \
+			uv venv --python "$(BOOTSTRAP_PYTHON)" $(VENV); \
+		elif test -n "$(BOOTSTRAP_PYTHON_MINOR)"; then \
+			echo "Creating $(VENV) with uv using Python $(BOOTSTRAP_PYTHON_MINOR) from pyproject.toml"; \
+			uv python install "$(BOOTSTRAP_PYTHON_MINOR)"; \
+			uv venv --python "$(BOOTSTRAP_PYTHON_MINOR)" $(VENV); \
+		else \
+			echo "Could not derive a concrete Python minor release from requires-python in pyproject.toml for uv provisioning" >&2; \
+			exit 1; \
+		fi; \
 	elif test -x "$(BOOTSTRAP_PYTHON)" && "$(BOOTSTRAP_PYTHON)" $(PYTHON_REQUIRES_HELPER) check-from-pyproject $(TOPDIR)/pyproject.toml >/dev/null; then \
 		echo "Creating $(VENV) with $(BOOTSTRAP_PYTHON)"; \
 		"$(BOOTSTRAP_PYTHON)" -m venv $(VENV); \

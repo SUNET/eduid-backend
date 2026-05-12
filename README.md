@@ -1,6 +1,6 @@
 # eduID Backend
 
-eduID Backend is a Python 3.13 monorepo for Swedish federated identity management.
+eduID Backend is a Python monorepo for Swedish federated identity management.
 It contains Flask web applications, FastAPI services, Celery workers, SATOSA plugins, and shared libraries.
 
 This repository is configured for development convenience.
@@ -20,7 +20,7 @@ That makes shells, IDEs, tests, and type checkers resolve imports through the ac
 
 - A Unix-like environment or devcontainer
 - Docker, for the test suite and local service dependencies
-- Python 3.13 locally, or `uv` if your host OS does not provide Python 3.13
+- A local Python interpreter compatible with `project.requires-python` in `pyproject.toml`, or `uv`
 
 ### Quick Start
 
@@ -34,12 +34,12 @@ What this does:
 
 - Creates `.venv`
 - Reads the required Python version from `pyproject.toml`
-- Uses `uv` to provision Python 3.13 automatically when available
+- Uses `uv` to provision the Python minor pinned in `pyproject.toml` automatically when available
 - Falls back to a compatible local `python3` or `python`
 - Installs the locked dependencies from `requirements/test_requirements.txt`
 - Installs the repo itself into `.venv` with `pip install -e .`
 
-If your machine does not already have Python 3.13, install `uv` and rerun `make bootstrap`.
+If your machine does not already have a compatible Python interpreter, install `uv` and rerun `make bootstrap`.
 
 For a detailed explanation of the bootstrap flow, see
 [doc/python-bootstrap.md](doc/python-bootstrap.md).

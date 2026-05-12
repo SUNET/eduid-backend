@@ -11,7 +11,7 @@ Unless noted otherwise, code snippets in this document are illustrative and may 
 
 ## Project Overview
 
-eduID Backend is a Python 3.13 monorepo for Swedish federated identity management:
+eduID Backend is a Python monorepo for Swedish federated identity management:
 - **Flask web apps** (identity proofing, authentication, user management)
 - **FastAPI APIs** (SCIM, MACC)
 - **Celery workers** (background tasks)
@@ -368,7 +368,7 @@ src/eduid/
 
 - Configuration lives in [pyproject.toml](pyproject.toml)
 - Line length: 120 characters
-- Target: Python 3.13
+- Target: the Python baseline declared in [pyproject.toml](pyproject.toml)
 - Key rules: ANN, ASYNC, E, F, I (Ruff import sorting, replacing standalone isort), PERF, UP (pyupgrade)
 - Magic numbers allowed in test files (PLR2004 ignored)
 

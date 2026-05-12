@@ -34,7 +34,7 @@ The bootstrap-related variables near the top of `Makefile` are:
 - `VENV_PYTHON`: the Python executable inside the created virtualenv.
 
 Returning an executable path instead of a version string avoids reconstructing
-names such as `python3.13` from a discovered interpreter.
+versioned executable names from a discovered interpreter.
 
 ## bootstrap_venv target
 
@@ -80,7 +80,7 @@ can all use consistently via `.venv/bin/python`.
 newer. That lower minimum lets it run before the target project interpreter has
 been provisioned.
 
-The helper supports four commands:
+The helper supports five commands:
 
 - `select <requires-python>`: print the best compatible interpreter path found
   on `PATH`.
@@ -90,6 +90,9 @@ The helper supports four commands:
   from the given file, then behave like `select`.
 - `check-from-pyproject <pyproject.toml>`: read `[project].requires-python`
   from the given file, then behave like `check`.
+- `minor-from-pyproject <pyproject.toml>`: read `[project].requires-python`
+  from the given file and print the pinned Python minor release used for `uv`
+  provisioning.
 
 Internally, the helper:
 
