@@ -24,7 +24,7 @@ from eduid.webapp.common.authn.cache import OutstandingQueriesCache
 from eduid.webapp.common.proofing.messages import ProofingMsg
 from eduid.webapp.common.proofing.testing import ProofingTests
 from eduid.webapp.common.session.eduid_session import EduidSession
-from eduid.webapp.common.session.namespaces import AuthnRequestRef
+from eduid.webapp.common.session.namespaces import AuthnRequestRef, ExternalMfaSignupBankIDIdentity
 
 __author__ = "lundberg"
 
@@ -1077,11 +1077,10 @@ class BankIDTests(ProofingTests[BankIDApp]):
                 assert sess.common.eppn is None
                 authn = sess.bankid.sp.authns[authn_ref]
                 ident = authn.external_mfa_signup_identity
-                assert ident is not None
+                assert isinstance(ident, ExternalMfaSignupBankIDIdentity), f"ident is type {type(ident)}"
                 # Values come from the SAML template, not from the user DB
                 assert ident.given_name == "Ûlla"
                 assert ident.surname == "Älm"
                 assert ident.nin == self.test_user_nin.number
-                assert ident.date_of_birth is None
                 assert ident.framework == TrustFramework.BANKID
                 assert ident.loa == "uncertified-loa3"

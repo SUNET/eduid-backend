@@ -30,7 +30,13 @@ from eduid.webapp.common.authn.cache import OutstandingQueriesCache
 from eduid.webapp.common.proofing.messages import ProofingMsg
 from eduid.webapp.common.proofing.testing import ProofingTests
 from eduid.webapp.common.session.eduid_session import EduidSession
-from eduid.webapp.common.session.namespaces import AuthnRequestRef, SP_AuthnRequest
+from eduid.webapp.common.session.namespaces import (
+    AuthnRequestRef,
+    ExternalMfaSignupBankIDIdentity,
+    ExternalMfaSignupEIDASIdentity,
+    ExternalMfaSignupSwedenConnectIdentity,
+    SP_AuthnRequest,
+)
 from eduid.webapp.samleid.app import SamlEidApp, init_samleid_app
 from eduid.webapp.samleid.helpers import SamlEidMsg
 
@@ -1812,11 +1818,11 @@ class NINMethodTests(SamlEidTests):
                 assert sess.common.eppn is None
                 authn = sess.samleid.sp.authns[authn_ref]
                 ident = authn.external_mfa_signup_identity
+                assert isinstance(ident, ExternalMfaSignupSwedenConnectIdentity)
                 assert ident is not None
                 assert ident.given_name == "Ûlla"
                 assert ident.surname == "Älm"
                 assert ident.nin == self.test_user_nin.number
-                assert ident.date_of_birth == datetime.datetime(1978, 1, 1, tzinfo=datetime.UTC)
                 assert ident.framework == TrustFramework.SWECONN
                 assert ident.loa == "loa3"
 
@@ -1860,11 +1866,11 @@ class NINMethodTests(SamlEidTests):
                 assert sess.common.eppn is None
                 authn = sess.samleid.sp.authns[authn_ref]
                 ident = authn.external_mfa_signup_identity
+                assert isinstance(ident, ExternalMfaSignupBankIDIdentity)
                 assert ident is not None
                 assert ident.given_name == "Ûlla"
                 assert ident.surname == "Älm"
                 assert ident.nin == self.test_user_nin.number
-                assert ident.date_of_birth is None
                 assert ident.framework == TrustFramework.BANKID
                 assert ident.loa == "uncertified-loa3"
 
@@ -2252,12 +2258,12 @@ class EidasMethodTests(SamlEidTests):
                 assert sess.common.eppn is None
                 authn = sess.samleid.sp.authns[authn_ref]
                 ident = authn.external_mfa_signup_identity
+                assert isinstance(ident, ExternalMfaSignupEIDASIdentity)
                 assert ident is not None
                 assert ident.given_name == "Javier"
                 assert ident.surname == "Garcia"
-                assert ident.nin is None
-                assert ident.eidas_prid == self.test_user_eidas.unique_value
-                assert ident.eidas_prid_persistence == self.test_user_eidas.prid_persistence
+                assert ident.prid == self.test_user_eidas.unique_value
+                assert ident.prid_persistence == self.test_user_eidas.prid_persistence
                 assert ident.country_code == self.test_user_eidas.country_code
                 assert ident.date_of_birth == datetime.datetime(1964, 12, 31, tzinfo=datetime.UTC)
                 assert ident.framework == TrustFramework.EIDAS

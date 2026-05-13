@@ -25,6 +25,12 @@ from eduid.userdb.signup.invite import InvitePhoneNumber, SCIMReference
 from eduid.webapp.common.api.exceptions import ProofingLogFailure
 from eduid.webapp.common.api.messages import CommonMsg, TranslatableMsg
 from eduid.webapp.common.api.testing import EduidAPITestCase
+from eduid.webapp.common.proofing.methods import ProofingMethods
+from eduid.webapp.common.session.namespaces import (
+    AuthnRequestRef,
+    ExternalMfaSignupEIDASIdentity,
+    ExternalMfaSignupSwedenConnectIdentity,
+)
 from eduid.webapp.signup.app import SignupApp, signup_init_app
 from eduid.webapp.signup.helpers import SignupMsg
 
@@ -1701,17 +1707,23 @@ class SignupTests(BaseSignupTests):
 
         with self.session_cookie(self.browser, eppn=None) as client:
             with client.session_transaction() as sess:
-                sess.signup.external_mfa = SignupExternalMfa(
-                    completed=True,
-                    app_name="bankid",
-                    authn_id="test-authn-id",
+                ident = ExternalMfaSignupSwedenConnectIdentity(
+                    authn_context_class="authn context class",
                     framework=TrustFramework.SWECONN,
-                    loa="http://id.elegnamnden.se/loa/1.0/loa3",
                     given_name="Test",
-                    surname="Testsson",
-                    date_of_birth=datetime(1980, 1, 1, tzinfo=UTC),
-                    authn_instant=utc_now(),
+                    issuer="sweden connect",
+                    loa="http://id.elegnamden.se/loa/1.0/loa3",
                     nin="198001011234",
+                    surname="Testsson",
+                )
+                sess.signup.external_mfa = SignupExternalMfa(
+                    app_name=self.app.name,
+                    authn_id=AuthnRequestRef("test-authn-id"),
+                    authn_instant=utc_now(),
+                    completed=True,
+                    ident=ident,
+                    loa="http://id.elegnamnden.se/loa/1.0/loa3",
+                    method=ProofingMethods.BANKID.value,
                 )
             with self.app.test_request_context():
                 endpoint = url_for("signup.get_state")
@@ -1721,10 +1733,9 @@ class SignupTests(BaseSignupTests):
         state = self.get_response_payload(response)["state"]
         ext = state["external_mfa"]
         assert ext["completed"] is True
-        assert ext["app_name"] == "bankid"
+        assert ext["app_name"] == self.app.name
         assert ext["given_name"] == "Test"
         assert ext["surname"] == "Testsson"
-        assert ext["date_of_birth"] == "1980-01-01"
         assert ext["masked_nin"] == "198001**-****"
         assert ext["country_code"] is None
 
@@ -1737,19 +1748,28 @@ class SignupTests(BaseSignupTests):
 
         with self.session_cookie(self.browser, eppn=None) as client:
             with client.session_transaction() as sess:
-                sess.signup.external_mfa = SignupExternalMfa(
-                    completed=True,
-                    app_name="eidas",
-                    authn_id="test-eidas-id",
+                ident = ExternalMfaSignupEIDASIdentity(
                     framework=TrustFramework.EIDAS,
-                    loa="http://eidas.europa.eu/LoA/high",
                     given_name="Greta",
                     surname="Müller",
                     date_of_birth=datetime(1990, 6, 15, tzinfo=UTC),
-                    authn_instant=utc_now(),
-                    eidas_prid="DE/SE/12345",
-                    eidas_prid_persistence=PridPersistence.A,
+                    prid="DE/SE/12345",
+                    prid_persistence=PridPersistence.A,
                     country_code="DE",
+                    eidas_person_identifier="eidas_person_identifier",
+                    transaction_id="transaction_id",
+                    issuer="eidas_issuer",
+                    loa="eidas_sub",
+                    authn_context_class="authn_context_class",
+                )
+                sess.signup.external_mfa = SignupExternalMfa(
+                    completed=True,
+                    app_name=self.app.name,
+                    method=ProofingMethods.EIDAS.value,
+                    authn_id=AuthnRequestRef("test-eidas-id"),
+                    loa="http://eidas.europa.eu/LoA/high",
+                    authn_instant=utc_now(),
+                    ident=ident,
                 )
             with self.app.test_request_context():
                 endpoint = url_for("signup.get_state")
@@ -1759,7 +1779,7 @@ class SignupTests(BaseSignupTests):
         state = self.get_response_payload(response)["state"]
         ext = state["external_mfa"]
         assert ext["completed"] is True
-        assert ext["app_name"] == "eidas"
+        assert ext["app_name"] == self.app.name
         assert ext["given_name"] == "Greta"
         assert ext["surname"] == "Müller"
         assert ext["date_of_birth"] == "1990-06-15"
@@ -1768,7 +1788,6 @@ class SignupTests(BaseSignupTests):
 
     def test_external_mfa_raw_nin_does_not_leak(self) -> None:
         """The raw NIN must not appear anywhere in the response body."""
-        from datetime import date
 
         from eduid.userdb.credentials.external import TrustFramework
         from eduid.webapp.common.session.namespaces import SignupExternalMfa
@@ -1777,16 +1796,22 @@ class SignupTests(BaseSignupTests):
 
         with self.session_cookie(self.browser, eppn=None) as client:
             with client.session_transaction() as sess:
-                sess.signup.external_mfa = SignupExternalMfa(
-                    app_name="bankid",
-                    authn_id="test-authn-id",
+                ident = ExternalMfaSignupSwedenConnectIdentity(
                     framework=TrustFramework.SWECONN,
-                    loa="http://id.elegnamnden.se/loa/1.0/loa3",
                     given_name="Test",
                     surname="Testsson",
-                    date_of_birth=date(1980, 1, 1),
-                    authn_instant=utc_now(),
                     nin=raw_nin,
+                    issuer="sweden connect",
+                    loa="loa3",
+                    authn_context_class="authn context class",
+                )
+                sess.signup.external_mfa = SignupExternalMfa(
+                    app_name=self.app.name,
+                    method=ProofingMethods.BANKID.value,
+                    authn_id="test-authn-id",
+                    loa="http://id.elegnamnden.se/loa/1.0/loa3",
+                    authn_instant=utc_now(),
+                    ident=ident,
                 )
             with self.app.test_request_context():
                 endpoint = url_for("signup.get_state")

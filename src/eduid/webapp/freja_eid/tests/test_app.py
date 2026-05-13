@@ -24,6 +24,10 @@ from eduid.userdb.identity import (
 from eduid.webapp.common.api.messages import AuthnStatusMsg, CommonMsg
 from eduid.webapp.common.proofing.messages import ProofingMsg
 from eduid.webapp.common.proofing.testing import ProofingTests
+from eduid.webapp.common.session.namespaces import (
+    ExternalMfaSignupFrejaEIDForeignIdentity,
+    ExternalMfaSignupFrejaEIDIdentity,
+)
 from eduid.webapp.freja_eid.app import FrejaEIDApp, freja_eid_init_app
 from eduid.webapp.freja_eid.helpers import (
     FrejaDocument,
@@ -197,7 +201,6 @@ class FrejaEIDTests(ProofingTests[FrejaEIDApp]):
             userinfo_expires = now + timedelta(minutes=5)
         if document_expires is None:
             document_expires = now + timedelta(days=1095)  # 3 years
-
         return FrejaEIDDocumentUserInfo(
             aud="test",
             exp=int(userinfo_expires.timestamp()),
@@ -1374,7 +1377,7 @@ class FrejaEIDTests(ProofingTests[FrejaEIDApp]):
                 authn = sess.freja_eid.rp.authns.get(OIDCState(state))
                 assert authn is not None
                 ident = authn.external_mfa_signup_identity
-                assert ident is not None
+                assert isinstance(ident, ExternalMfaSignupFrejaEIDIdentity)
                 assert ident.given_name == "Test"
                 assert ident.surname == "Testsson"
                 assert ident.nin == "197801011234"
@@ -1463,12 +1466,11 @@ class FrejaEIDTests(ProofingTests[FrejaEIDApp]):
                 assert authn is not None
                 assert authn.error is not True
                 ident = authn.external_mfa_signup_identity
-                assert ident is not None
-                assert ident.nin is None
-                assert ident.freja_user_id == "unique_freja_eid"
+                assert isinstance(ident, ExternalMfaSignupFrejaEIDForeignIdentity)
+                assert ident.user_id == "unique_freja_eid"
                 assert ident.country_code == "DK"
-                assert ident.freja_registration_level == FrejaRegistrationLevel.PLUS
-                assert ident.freja_loa_level == FrejaLoaLevel.LOA3_NR
+                assert ident.registration_level == FrejaRegistrationLevel.PLUS
+                assert ident.loa_level == FrejaLoaLevel.LOA3_NR
                 assert ident.given_name == "Test"
                 assert ident.surname == "Testsson"
                 assert ident.date_of_birth == datetime(1901, 2, 3, tzinfo=UTC)

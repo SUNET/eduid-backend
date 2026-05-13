@@ -1,7 +1,7 @@
 import json
 import logging
 from collections.abc import Mapping
-from datetime import UTC, date, datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 import pytest
@@ -20,17 +20,23 @@ from eduid.userdb.credentials.external import (
     SwedenConnectCredential,
     TrustFramework,
 )
-from eduid.userdb.identity import IdentityProofingMethod, PridPersistence
+from eduid.userdb.identity import FrejaLoaLevel, FrejaRegistrationLevel, IdentityProofingMethod, PridPersistence
+from eduid.webapp.common.proofing.methods import ProofingMethods
 from eduid.webapp.common.session.namespaces import (
     AuthnRequestRef,
+    ExternalMfaSignupBankIDIdentity,
+    ExternalMfaSignupEIDASIdentity,
+    ExternalMfaSignupFrejaEIDForeignIdentity,
+    ExternalMfaSignupFrejaEIDIdentity,
     ExternalMfaSignupIdentity,
+    ExternalMfaSignupSwedenConnectIdentity,
     OIDCState,
     RP_AuthnRequest,
     SP_AuthnRequest,
     WebauthnCredential,
 )
 from eduid.webapp.signup.app import SignupApp, signup_init_app
-from eduid.webapp.signup.helpers import SignupMsg, existing_user_for_identity
+from eduid.webapp.signup.helpers import SignupMsg
 from eduid.webapp.signup.tests.test_app import BaseSignupTests
 
 logger = logging.getLogger(__name__)
@@ -50,19 +56,21 @@ class ExternalMfaSignupTestsBase(BaseSignupTests):
         error: bool = False,
         set_authn_instant: bool = True,
     ) -> None:
-        ident: ExternalMfaSignupIdentity | None = None
+        ident: ExternalMfaSignupBankIDIdentity | None = None
         if has_identity:
-            ident = ExternalMfaSignupIdentity(
+            ident = ExternalMfaSignupBankIDIdentity(
                 given_name="Anna",
                 surname="Andersson",
-                date_of_birth=datetime(1980, 1, 1, tzinfo=UTC),
                 nin=nin,
                 framework=TrustFramework.BANKID,
-                loa="loa3",
+                loa="uncertified-loa3",
+                issuer="BankID",
+                transaction_id="test_transaction_id",
             )
         authn_instant = utc_now() - timedelta(minutes=minutes_ago) if set_authn_instant else None
         req = SP_AuthnRequest(
             authn_id=AuthnRequestRef(authn_id),
+            method=ProofingMethods.BANKID.value,
             frontend_action=frontend_action,
             finish_url=_FINISH_URL,
             consumed=consumed,
@@ -84,18 +92,26 @@ class ExternalMfaSignupTestsBase(BaseSignupTests):
         has_identity: bool = True,
         error: bool = False,
     ) -> None:
-        ident: ExternalMfaSignupIdentity | None = None
+        ident: ExternalMfaSignupFrejaEIDIdentity | None = None
         if has_identity:
-            ident = ExternalMfaSignupIdentity(
+            ident = ExternalMfaSignupFrejaEIDIdentity(
                 given_name="Britta",
                 surname="Borg",
                 date_of_birth=datetime(1980, 1, 1, tzinfo=UTC),
                 nin=nin,
                 framework=TrustFramework.FREJA,
                 loa="loa3",
+                issuer="FrejaEID",
+                document_type="Passport",
+                document_number="123456789",
+                loa_level=FrejaLoaLevel.LOA3,
+                registration_level=FrejaRegistrationLevel.PLUS,
+                user_id="unique_freja_user",
+                transaction_id="test_transaction_id",
             )
         req = RP_AuthnRequest(
             authn_id=OIDCState(authn_id),
+            method=ProofingMethods.FREJA_EID.value,
             frontend_action=frontend_action,
             finish_url=_FINISH_URL,
             consumed=consumed,
@@ -120,22 +136,28 @@ class ExternalMfaSignupTestsBase(BaseSignupTests):
     ) -> None:
         from eduid.userdb.identity import FrejaLoaLevel, FrejaRegistrationLevel
 
-        ident: ExternalMfaSignupIdentity | None = None
+        ident: ExternalMfaSignupFrejaEIDForeignIdentity | None = None
         if has_identity:
-            ident = ExternalMfaSignupIdentity(
-                given_name="Frida",
-                surname="Fredriksen",
-                date_of_birth=datetime(1985, 3, 15, tzinfo=UTC),
-                freja_user_id=freja_user_id,
-                freja_personal_identity_number="123456789",
+            ident = ExternalMfaSignupFrejaEIDForeignIdentity(
                 country_code=country_code,
-                freja_registration_level=FrejaRegistrationLevel.PLUS,
-                freja_loa_level=FrejaLoaLevel.LOA3_NR,
+                date_of_birth=datetime(1985, 3, 15, tzinfo=UTC),
+                document_number="123456789",
+                document_type="passport",
                 framework=TrustFramework.FREJA,
+                given_name="Frida",
+                issuer="freja eid",
+                issuing_country="DK",
                 loa="freja-loa3_nr",
+                loa_level=FrejaLoaLevel.LOA3_NR,
+                personal_identity_number="123456789",
+                registration_level=FrejaRegistrationLevel.PLUS,
+                surname="Fredriksen",
+                transaction_id="test_transaction_id",
+                user_id=freja_user_id,
             )
         req = RP_AuthnRequest(
             authn_id=OIDCState(authn_id),
+            method=ProofingMethods.FREJA_EID.value,
             frontend_action=frontend_action,
             finish_url=_FINISH_URL,
             consumed=consumed,
@@ -215,7 +237,8 @@ class ExternalMfaSignupTests(ExternalMfaSignupTestsBase):
         with self.session_cookie_anon(self.browser) as client:
             with client.session_transaction() as sess:
                 assert sess.signup.external_mfa is not None
-                assert sess.signup.external_mfa.nin == "198001011234"
+                assert isinstance(sess.signup.external_mfa.ident, ExternalMfaSignupBankIDIdentity)
+                assert sess.signup.external_mfa.ident.nin == "198001011234"
                 assert sess.bankid.sp.authns[AuthnRequestRef("authn-1")].consumed is True
 
     def test_ok_freja_eid(self) -> None:
@@ -243,9 +266,9 @@ class ExternalMfaSignupTests(ExternalMfaSignupTestsBase):
         with self.session_cookie_anon(self.browser) as client:
             with client.session_transaction() as sess:
                 assert sess.signup.external_mfa is not None
-                assert sess.signup.external_mfa.freja_user_id == "unique_freja_foreign_user"
-                assert sess.signup.external_mfa.freja_personal_identity_number == "123456789"
-                assert sess.signup.external_mfa.nin is None
+                assert isinstance(sess.signup.external_mfa.ident, ExternalMfaSignupFrejaEIDForeignIdentity)
+                assert sess.signup.external_mfa.ident.user_id == "unique_freja_foreign_user"
+                assert sess.signup.external_mfa.ident.personal_identity_number == "123456789"
 
     # ------------------------------------------------------------------
     # Error cases
@@ -346,6 +369,7 @@ class ExternalMfaSignupTests(ExternalMfaSignupTestsBase):
     def _seed_bankid_authn_with_identity(self, ident: ExternalMfaSignupIdentity, authn_id: str = "authn-1") -> None:
         req = SP_AuthnRequest(
             authn_id=AuthnRequestRef(authn_id),
+            method=ProofingMethods.BANKID.value,
             frontend_action=FrontendAction.SIGNUP_EXTERNAL_MFA,
             finish_url=_FINISH_URL,
             consumed=False,
@@ -356,75 +380,6 @@ class ExternalMfaSignupTests(ExternalMfaSignupTestsBase):
         with self.session_cookie_anon(self.browser) as client:
             with client.session_transaction() as sess:
                 sess.bankid.sp.authns[AuthnRequestRef(authn_id)] = req
-
-    def test_identity_missing_discriminator(self) -> None:
-        """Identity with neither nin, eidas_prid, nor freja_user_id is rejected as not verified."""
-        ident = ExternalMfaSignupIdentity(
-            given_name="Anna",
-            surname="Andersson",
-            date_of_birth=date(1980, 1, 1),
-            framework=TrustFramework.BANKID,
-            loa="loa3",
-        )
-        self._seed_bankid_authn_with_identity(ident)
-        response = self._call_external_mfa_register("bankid", "authn-1")
-        self._check_api_response(
-            response,
-            status=200,
-            type_="POST_SIGNUP_EXTERNAL_MFA_REGISTER_FAIL",
-            message=SignupMsg.external_mfa_not_verified,
-        )
-        with self.session_cookie_anon(self.browser) as client:
-            with client.session_transaction() as sess:
-                assert sess.signup.external_mfa is None
-                assert sess.bankid.sp.authns[AuthnRequestRef("authn-1")].consumed is False
-
-    def test_identity_with_both_discriminators(self) -> None:
-        """Identity with both nin and eidas_prid is rejected (ambiguous)."""
-        from eduid.userdb.identity import PridPersistence as _PridPersistence
-
-        ident = ExternalMfaSignupIdentity(
-            given_name="Anna",
-            surname="Andersson",
-            date_of_birth=date(1980, 1, 1),
-            nin="198001011234",
-            eidas_prid="DE:abc",
-            eidas_prid_persistence=_PridPersistence.A,
-            country_code="DE",
-            framework=TrustFramework.EIDAS,
-            loa="eidas-nf-sub",
-        )
-        self._seed_bankid_authn_with_identity(ident)
-        response = self._call_external_mfa_register("bankid", "authn-1")
-        self._check_api_response(
-            response,
-            status=200,
-            type_="POST_SIGNUP_EXTERNAL_MFA_REGISTER_FAIL",
-            message=SignupMsg.external_mfa_not_verified,
-        )
-
-    def test_identity_prid_missing_country_code(self) -> None:
-        """Identity with eidas_prid but no country_code is rejected."""
-        from eduid.userdb.identity import PridPersistence as _PridPersistence
-
-        ident = ExternalMfaSignupIdentity(
-            given_name="Diana",
-            surname="Diaz",
-            date_of_birth=date(1990, 6, 15),
-            eidas_prid="DE:abc",
-            eidas_prid_persistence=_PridPersistence.A,
-            country_code=None,
-            framework=TrustFramework.EIDAS,
-            loa="eidas-nf-sub",
-        )
-        self._seed_bankid_authn_with_identity(ident)
-        response = self._call_external_mfa_register("bankid", "authn-1")
-        self._check_api_response(
-            response,
-            status=200,
-            type_="POST_SIGNUP_EXTERNAL_MFA_REGISTER_FAIL",
-            message=SignupMsg.external_mfa_not_verified,
-        )
 
     def _seed_samleid_authn(
         self,
@@ -438,19 +393,36 @@ class ExternalMfaSignupTests(ExternalMfaSignupTestsBase):
         error: bool = False,
         set_authn_instant: bool = True,
     ) -> None:
-        ident: ExternalMfaSignupIdentity | None = None
+        ident: ExternalMfaSignupBankIDIdentity | ExternalMfaSignupSwedenConnectIdentity | None = None
         if has_identity:
-            ident = ExternalMfaSignupIdentity(
-                given_name="Signe",
-                surname="Svensson",
-                date_of_birth=date(1980, 1, 1),
-                nin=nin,
-                framework=framework,
-                loa="loa3",
-            )
+            match framework:
+                case TrustFramework.BANKID:
+                    ident = ExternalMfaSignupBankIDIdentity(
+                        framework=framework,
+                        given_name="Signe",
+                        issuer="bankid",
+                        loa="uncertified-loa3",
+                        nin=nin,
+                        surname="Svensson",
+                        transaction_id="test-transaction-id",
+                    )
+                case TrustFramework.SWECONN:
+                    ident = ExternalMfaSignupSwedenConnectIdentity(
+                        framework=framework,
+                        given_name="Signe",
+                        issuer="swedenconnect",
+                        loa="loa3",
+                        nin=nin,
+                        surname="Svensson",
+                        authn_context_class="authn_context_class",
+                    )
+                case _:
+                    raise NotImplementedError(f"TrustFramework {framework} is not supported")
+
         authn_instant = utc_now() - timedelta(minutes=minutes_ago) if set_authn_instant else None
         req = SP_AuthnRequest(
             authn_id=AuthnRequestRef(authn_id),
+            method=ProofingMethods.BANKID.value,
             frontend_action=frontend_action,
             finish_url=_FINISH_URL,
             consumed=consumed,
@@ -461,6 +433,41 @@ class ExternalMfaSignupTests(ExternalMfaSignupTestsBase):
         with self.session_cookie_anon(self.browser) as client:
             with client.session_transaction() as sess:
                 sess.samleid.sp.authns[AuthnRequestRef(authn_id)] = req
+
+    def _seed_eidas_authn(
+        self,
+        authn_id: str = "authn-eidas-1",
+        nin: str = "198001011234",
+        minutes_ago: int = 0,
+        consumed: bool = False,
+        frontend_action: FrontendAction = FrontendAction.SIGNUP_EXTERNAL_MFA,
+        has_identity: bool = True,
+        error: bool = False,
+    ) -> None:
+        ident: ExternalMfaSignupSwedenConnectIdentity | None = None
+        if has_identity:
+            ident = ExternalMfaSignupSwedenConnectIdentity(
+                framework=TrustFramework.SWECONN,
+                given_name="Signe",
+                issuer="bankid",
+                loa="loa3",
+                nin=nin,
+                surname="Svensson",
+                authn_context_class="authn-context-class",
+            )
+        req = SP_AuthnRequest(
+            authn_id=AuthnRequestRef(authn_id),
+            method=ProofingMethods.EIDAS.value,
+            frontend_action=frontend_action,
+            finish_url=_FINISH_URL,
+            consumed=consumed,
+            authn_instant=utc_now() - timedelta(minutes=minutes_ago),
+            error=error,
+            external_mfa_signup_identity=ident,
+        )
+        with self.session_cookie_anon(self.browser) as client:
+            with client.session_transaction() as sess:
+                sess.eidas.sp.authns[AuthnRequestRef(authn_id)] = req
 
     def _seed_eidas_foreign_authn(
         self,
@@ -474,20 +481,25 @@ class ExternalMfaSignupTests(ExternalMfaSignupTestsBase):
         error: bool = False,
         prid_persistence: PridPersistence | None = None,
     ) -> None:
-        ident: ExternalMfaSignupIdentity | None = None
+        ident: ExternalMfaSignupEIDASIdentity | None = None
         if has_identity:
-            ident = ExternalMfaSignupIdentity(
+            ident = ExternalMfaSignupEIDASIdentity(
                 given_name="Diana",
                 surname="Diaz",
-                date_of_birth=date(1990, 6, 15),
-                eidas_prid=prid,
-                eidas_prid_persistence=prid_persistence or PridPersistence.A,
+                date_of_birth=datetime(1990, 6, 15, tzinfo=UTC),
+                prid=prid,
+                prid_persistence=prid_persistence or PridPersistence.A,
                 country_code=country_code,
                 framework=TrustFramework.EIDAS,
                 loa="eidas-nf-sub",
+                authn_context_class="authn_context_class",
+                eidas_person_identifier="eidas_person_identifier",
+                issuer="eidas_issuer",
+                transaction_id="transaction_id",
             )
         req = SP_AuthnRequest(
             authn_id=AuthnRequestRef(authn_id),
+            method=ProofingMethods.EIDAS.value,
             frontend_action=frontend_action,
             finish_url=_FINISH_URL,
             consumed=consumed,
@@ -553,10 +565,6 @@ class ExternalMfaSignupTests(ExternalMfaSignupTestsBase):
             message=SignupMsg.identity_already_registered,
         )
 
-    def test_collision_check_skipped_when_no_identity_fields(self) -> None:
-        """Helper returns None when no NIN, PRID, or Freja user_id is present."""
-        assert existing_user_for_identity(nin=None, eidas_prid=None, freja_user_id=None) is None
-
     def test_prid_collision_via_locked_identity(self) -> None:
         """Signup is blocked when the PRID is on another user's locked_identity (rotated PRID case)."""
         from eduid.userdb.identity import EIDASIdentity, EIDASLoa, PridPersistence
@@ -597,7 +605,8 @@ class ExternalMfaSignupTests(ExternalMfaSignupTestsBase):
         with self.session_cookie_anon(self.browser) as client:
             with client.session_transaction() as sess:
                 assert sess.signup.external_mfa is not None
-                assert sess.signup.external_mfa.eidas_prid == "DE:novel-b-prid"
+                assert isinstance(sess.signup.external_mfa.ident, ExternalMfaSignupEIDASIdentity)
+                assert sess.signup.external_mfa.ident.prid == "DE:novel-b-prid"
         warning_messages = [call.args[0] for call in warning_spy.call_args_list if call.args]
         assert any("persistence" in msg and "rotated" in msg for msg in warning_messages), (
             f"Expected persistence-rotated warning: {warning_messages}"
@@ -714,7 +723,7 @@ class ExternalMfaSignupTests(ExternalMfaSignupTestsBase):
         # Exactly one BankIDCredential
         bankid_creds = [c for c in user.credentials.to_list() if isinstance(c, BankIDCredential)]
         assert len(bankid_creds) == 1
-        assert bankid_creds[0].level == "loa3"
+        assert bankid_creds[0].level == "uncertified-loa3"
 
         # Proofing log must have an entry for this eppn
         log_entries = list(self.app.proofing_log._coll.find({"eduPersonPrincipalName": eppn}))
@@ -764,7 +773,7 @@ class ExternalMfaSignupTests(ExternalMfaSignupTestsBase):
 
         # Proofing log must have an entry for this eppn
         log_entries = list(self.app.proofing_log._coll.find({"eduPersonPrincipalName": eppn}))
-        external_mfa_entries = [e for e in log_entries if e.get("proofing_method") == "eidas"]
+        external_mfa_entries = [e for e in log_entries if e.get("proofing_method") == "swedenconnect"]
         assert len(external_mfa_entries) == 1
         assert external_mfa_entries[0]["country_code"] == "DE"
 
@@ -833,6 +842,14 @@ class ExternalMfaSignupTests(ExternalMfaSignupTestsBase):
                 "bankid_proofing_version",
                 IdentityProofingMethod.BANKID,
             ),
+            # eidas SP — TrustFramework.SWECON → SwedenConnectCredential
+            (
+                "eidas",
+                TrustFramework.SWECONN,
+                SwedenConnectCredential,
+                "freja_proofing_version",
+                IdentityProofingMethod.SWEDEN_CONNECT,
+            ),
             # samleid SP with bankid-style NIN — same credential type as bankid
             (
                 "samleid",
@@ -875,6 +892,8 @@ class ExternalMfaSignupTests(ExternalMfaSignupTestsBase):
         # Seed the appropriate authn into the correct session namespace
         if app_name == "bankid":
             self._seed_bankid_authn(nin=nin, authn_id=authn_id)
+        elif app_name == "eidas":
+            self._seed_eidas_authn(nin=nin, authn_id=authn_id)
         elif app_name == "samleid":
             self._seed_samleid_authn(nin=nin, authn_id=authn_id, framework=framework)
         elif app_name == "freja_eid":
@@ -911,11 +930,18 @@ class ExternalMfaSignupTests(ExternalMfaSignupTestsBase):
         # Exactly one credential of the expected subclass at loa3
         matching_creds = [c for c in user.credentials.to_list() if isinstance(c, credential_class)]
         assert len(matching_creds) == 1
-        assert matching_creds[0].level == "loa3"
+        match framework:
+            case TrustFramework.SWECONN | TrustFramework.FREJA:
+                _match_loa = "loa3"
+            case TrustFramework.BANKID:
+                _match_loa = "uncertified-loa3"
+            case _:
+                raise NotImplementedError(f"Unexpected framework: {framework}")
+        assert matching_creds[0].level == _match_loa
 
         # Proofing log entry with correct proofing_method and proofing_version
         log_entries = list(self.app.proofing_log._coll.find({"eduPersonPrincipalName": eppn}))
-        external_mfa_entries = [e for e in log_entries if e.get("proofing_method") == app_name]
+        external_mfa_entries = [e for e in log_entries if e.get("proofing_method") == identity_proofing_method.value]
         assert len(external_mfa_entries) == 1
         assert external_mfa_entries[0]["nin"] == nin
         assert external_mfa_entries[0]["proofing_version"] == expected_version
@@ -966,7 +992,8 @@ class ExternalMfaSignupTests(ExternalMfaSignupTestsBase):
         with self.session_cookie_anon(self.browser) as client:
             with client.session_transaction() as sess:
                 assert sess.signup.external_mfa is not None
-                sess.signup.external_mfa.nin = existing.identities.nin.number
+                assert isinstance(sess.signup.external_mfa.ident, ExternalMfaSignupBankIDIdentity)
+                sess.signup.external_mfa.ident.nin = existing.identities.nin.number
 
         self._prepare_for_create_user(
             given_name="Anna",
