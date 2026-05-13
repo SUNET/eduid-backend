@@ -97,7 +97,7 @@ def identity_proofing_version_for_framework(framework: TrustFramework) -> str:
 
 
 def _credential_proofing_version_for_identity(identity: ExternalMfaSignupIdentity) -> str:
-    """Return the configured proofing version string for the given TrustFramework."""
+    """Return the configured credential proofing version string for the given identity type."""
     match identity:
         case ExternalMfaSignupSwedenConnectIdentity() | ExternalMfaSignupBankIDIdentity():
             return current_app.conf.security_key_proofing_version

@@ -208,8 +208,8 @@ def run_mfa_authenticate(
     """Shared MFA authentication action logic.
 
     Emits ``mfa_auth_success`` and ``mfa_auth_{method}_success`` stats on success.
-    The issuer-specific stat (``mfa_auth_{issuer}_success``) must be emitted by the
-    caller since the issuer source is protocol-specific (SAML issuer vs OIDC static).
+    For SAML-based flows (BaseSessionInfo), also emits ``mfa_auth_{issuer}_success``.
+    OIDC-based callers (e.g. Freja eID) must emit the issuer-specific stat themselves.
 
     :param get_user: Callable returning the user (typically from session.mfa_action.eppn).
     """

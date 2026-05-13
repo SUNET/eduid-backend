@@ -159,7 +159,7 @@ def samleid_mfa_register_action(args: ACSArgs) -> ACSResult:
         case ForeignEidSessionInfo():
             if parsed.session_info.authn_context is None:
                 current_app.logger.debug(f"{parsed.session_info=}")
-                raise RuntimeError("No authn context found for NinSessionInfo")
+                raise RuntimeError("No authn context found for ForeignEidSessionInfo")
             args.authn_req.external_mfa_signup_identity = ExternalMfaSignupEIDASIdentity(
                 authn_context_class=parsed.session_info.authn_context,
                 country_code=parsed.session_info.attributes.country_code,

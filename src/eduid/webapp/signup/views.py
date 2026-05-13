@@ -85,7 +85,7 @@ def get_state() -> FluxData:
 @require_not_logged_in
 def register_email(given_name: str, surname: str, email: str) -> FluxData:
     """
-    Register a with new email address.
+    Register with a new email address.
     """
     current_app.logger.info("Registering email")
     current_app.logger.debug(f"email address: {email}")
