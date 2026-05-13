@@ -24,9 +24,13 @@ from eduid.webapp.common.authn.webauthn import (
 )
 from eduid.webapp.common.session import session
 from eduid.webapp.common.session.namespaces import (
+    AuthnRequestRef,
     LoginApplication,
+    OIDCState,
     RequestRef,
+    RP_AuthnRequest,
     SignupExternalMfa,
+    SP_AuthnRequest,
     WebauthnCredential,
     WebauthnRegistration,
 )
@@ -449,38 +453,33 @@ def external_mfa_register(app_name: str, authn_id: str) -> FluxData:
         return error_response(message=err)
 
     ident = authn.external_mfa_signup_identity
-    assert ident is not None  # validated above
-    if (
-        existing_user_for_identity(
-            nin=ident.nin,
-            eidas_prid=ident.eidas_prid,
-            prid_persistence=ident.eidas_prid_persistence,
-            freja_user_id=ident.freja_user_id,
-        )
-        is not None
-    ):
+    if ident is None:
+        raise RuntimeError("No external MFA signup identity")
+
+    if existing_user_for_identity(ident=ident) is not None:
         current_app.logger.info(f"External MFA signup blocked: identity already registered ({app_name})")
         return error_response(message=SignupMsg.identity_already_registered)
 
-    assert authn.authn_instant is not None  # validated above
+    _authn_id: AuthnRequestRef | OIDCState
+    match authn:
+        case SP_AuthnRequest():
+            _authn_id = AuthnRequestRef(authn_id)
+        case RP_AuthnRequest():
+            _authn_id = OIDCState(authn_id)
+
+    if authn.authn_instant is None or authn.method is None:
+        current_app.logger.debug(f"{authn.authn_instant=}")
+        current_app.logger.debug(f"{authn.method=}")
+        raise RuntimeError("Missing data for external mfa registration")
+
     session.signup.external_mfa = SignupExternalMfa(
         completed=True,
         app_name=app_name,
-        authn_id=str(authn_id),
-        framework=ident.framework,
+        method=authn.method,
+        authn_id=_authn_id,
         loa=ident.loa,
-        given_name=ident.given_name,
-        surname=ident.surname,
-        date_of_birth=ident.date_of_birth,
         authn_instant=authn.authn_instant,
-        nin=ident.nin,
-        eidas_prid=ident.eidas_prid,
-        eidas_prid_persistence=ident.eidas_prid_persistence,
-        country_code=ident.country_code,
-        freja_user_id=ident.freja_user_id,
-        freja_registration_level=ident.freja_registration_level,
-        freja_loa_level=ident.freja_loa_level,
-        freja_personal_identity_number=ident.freja_personal_identity_number,
+        ident=ident,
     )
     authn.consumed = True
 
@@ -563,15 +562,7 @@ def _check_external_mfa_still_valid() -> FluxData | None:
         current_app.logger.info("External MFA signup blocked: authn too old at create-user time")
         session.signup.external_mfa = None
         return error_response(message=SignupMsg.external_mfa_too_old)
-    if (
-        existing_user_for_identity(
-            nin=ext.nin,
-            eidas_prid=ext.eidas_prid,
-            prid_persistence=ext.eidas_prid_persistence,
-            freja_user_id=ext.freja_user_id,
-        )
-        is not None
-    ):
+    if existing_user_for_identity(ext.ident) is not None:
         current_app.logger.info(
             "External MFA signup blocked: identity registered between /external-mfa-register and /create-user"
         )

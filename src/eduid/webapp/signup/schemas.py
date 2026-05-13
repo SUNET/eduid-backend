@@ -133,9 +133,15 @@ class SignupStatusResponse(FluxStandardAction):
     @pre_dump
     def set_external_mfa(self, out_data: dict[str, Any], **kwargs: Any) -> dict[str, Any]:
         if ext := out_data.get("payload", {}).get("state", {}).get("external_mfa"):
-            if nin := ext.get("nin"):
-                masked_nin = f"{nin[:6]}**-****"
-                ext["masked_nin"] = masked_nin
+            if ident := ext.get("ident"):
+                ext["given_name"] = ident.get("given_name")
+                ext["surname"] = ident.get("surname")
+                ext["date_of_birth"] = ident.get("date_of_birth")
+                ext["country_code"] = ident.get("country_code")
+                ext["masked_nin"] = None
+                if nin := ident.get("nin"):
+                    masked_nin = f"{nin[:6]}**-****"
+                    ext["masked_nin"] = masked_nin
         return out_data
 
 

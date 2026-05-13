@@ -6,7 +6,7 @@ from eduid.webapp.bankid.saml_session_info import BankIDSessionInfo
 from eduid.webapp.common.api.decorators import require_user
 from eduid.webapp.common.authn.acs_enums import BankIDAcsAction
 from eduid.webapp.common.authn.acs_registry import ACSArgs, ACSResult, acs_action
-from eduid.webapp.common.proofing.mfa_signup import MfaRegisterParsed, parse_mfa_register_args
+from eduid.webapp.common.proofing.mfa_signup import parse_mfa_register_args
 from eduid.webapp.common.proofing.shared_actions import (
     run_common_saml_checks,
     run_mfa_authenticate,
@@ -14,7 +14,7 @@ from eduid.webapp.common.proofing.shared_actions import (
     run_verify_identity,
 )
 from eduid.webapp.common.session import session
-from eduid.webapp.common.session.namespaces import ExternalMfaSignupIdentity
+from eduid.webapp.common.session.namespaces import ExternalMfaSignupBankIDIdentity
 
 __author__ = "lundberg"
 
@@ -101,17 +101,17 @@ def mfa_register_action(args: ACSArgs) -> ACSResult:
     )
     if isinstance(parsed, ACSResult):
         return parsed
-    assert isinstance(parsed, MfaRegisterParsed)  # type narrowing
 
     match parsed.session_info:
         case BankIDSessionInfo():
-            nin = parsed.session_info.attributes.nin
-            args.authn_req.external_mfa_signup_identity = ExternalMfaSignupIdentity(
+            args.authn_req.external_mfa_signup_identity = ExternalMfaSignupBankIDIdentity(
                 given_name=parsed.session_info.attributes.given_name,
                 surname=parsed.session_info.attributes.surname,
-                nin=nin,
+                nin=parsed.session_info.attributes.nin,
+                transaction_id=parsed.session_info.attributes.transaction_id,
                 framework=parsed.framework,
                 loa=parsed.loa,
+                issuer=parsed.session_info.issuer,
             )
         case _:
             current_app.logger.error(f"Unsupported session info type: {type(parsed.session_info)}")

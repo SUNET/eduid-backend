@@ -13,7 +13,11 @@ from eduid.webapp.common.proofing.shared_actions import (
     run_verify_identity,
 )
 from eduid.webapp.common.session import session
-from eduid.webapp.common.session.namespaces import ExternalMfaSignupIdentity
+from eduid.webapp.common.session.namespaces import (
+    ExternalMfaSignupBankIDIdentity,
+    ExternalMfaSignupEIDASIdentity,
+    ExternalMfaSignupSwedenConnectIdentity,
+)
 from eduid.webapp.samleid.app import current_samleid_app as current_app
 from eduid.webapp.samleid.helpers import SamlEidMsg
 from eduid.webapp.samleid.proofing import get_proofing_functions
@@ -147,37 +151,47 @@ def samleid_mfa_register_action(args: ACSArgs) -> ACSResult:
 
     match parsed.session_info:
         case NinSessionInfo():
-            args.authn_req.external_mfa_signup_identity = ExternalMfaSignupIdentity(
-                given_name=parsed.session_info.attributes.given_name,
-                surname=parsed.session_info.attributes.surname,
-                date_of_birth=datetime.combine(
-                    parsed.session_info.attributes.date_of_birth, datetime.min.time(), tzinfo=UTC
-                ),
-                nin=parsed.session_info.attributes.nin,
+            if parsed.session_info.authn_context is None:
+                current_app.logger.debug(f"{parsed.session_info=}")
+                raise RuntimeError("No authn context found for NinSessionInfo")
+            args.authn_req.external_mfa_signup_identity = ExternalMfaSignupSwedenConnectIdentity(
+                authn_context_class=parsed.session_info.authn_context,
                 framework=parsed.framework,
+                given_name=parsed.session_info.attributes.given_name,
+                issuer=parsed.session_info.issuer,
                 loa=parsed.loa,
+                nin=parsed.session_info.attributes.nin,
+                surname=parsed.session_info.attributes.surname,
             )
         case ForeignEidSessionInfo():
-            args.authn_req.external_mfa_signup_identity = ExternalMfaSignupIdentity(
-                given_name=parsed.session_info.attributes.given_name,
-                surname=parsed.session_info.attributes.surname,
+            if parsed.session_info.authn_context is None:
+                current_app.logger.debug(f"{parsed.session_info=}")
+                raise RuntimeError("No authn context found for NinSessionInfo")
+            args.authn_req.external_mfa_signup_identity = ExternalMfaSignupEIDASIdentity(
+                authn_context_class=parsed.session_info.authn_context,
+                country_code=parsed.session_info.attributes.country_code,
                 date_of_birth=datetime.combine(
                     parsed.session_info.attributes.date_of_birth, datetime.min.time(), tzinfo=UTC
                 ),
-                eidas_prid=parsed.session_info.attributes.prid,
-                eidas_prid_persistence=parsed.session_info.attributes.prid_persistence,
-                country_code=parsed.session_info.attributes.country_code,
+                eidas_person_identifier=parsed.session_info.attributes.eidas_person_identifier,
+                prid=parsed.session_info.attributes.prid,
+                prid_persistence=parsed.session_info.attributes.prid_persistence,
                 framework=parsed.framework,
+                given_name=parsed.session_info.attributes.given_name,
+                issuer=parsed.session_info.issuer,
                 loa=parsed.loa,
+                surname=parsed.session_info.attributes.surname,
+                transaction_id=parsed.session_info.attributes.transaction_identifier,
             )
         case BankIDSessionInfo():
-            nin = parsed.session_info.attributes.nin
-            args.authn_req.external_mfa_signup_identity = ExternalMfaSignupIdentity(
+            args.authn_req.external_mfa_signup_identity = ExternalMfaSignupBankIDIdentity(
                 given_name=parsed.session_info.attributes.given_name,
                 surname=parsed.session_info.attributes.surname,
-                nin=nin,
+                nin=parsed.session_info.attributes.nin,
+                transaction_id=parsed.session_info.attributes.transaction_id,
                 framework=parsed.framework,
                 loa=parsed.loa,
+                issuer=parsed.session_info.issuer,
             )
         case _:
             current_app.logger.error(f"Unsupported session info type: {type(parsed.session_info)}")

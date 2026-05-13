@@ -187,23 +187,19 @@ class Credentials(SessionNSBase):
 class SignupExternalMfa(BaseModel):
     completed: bool = False
     app_name: str  # "eidas" | "bankid" | "freja_eid" | "samleid"
-    authn_id: str  # AuthnRequestRef | OIDCState — both are str NewTypes
-    framework: TrustFramework
+    method: str  # "eidas" | "freja" | "bankid" | "freja_eid"
+    authn_id: AuthnRequestRef | OIDCState
     loa: str
-    given_name: str
-    surname: str
-    date_of_birth: datetime | None = None
     # authn_instant of the underlying external authn — used to re-check freshness
     # at /create-user time so a stale authn can't be used to finish signup.
     authn_instant: datetime
-    nin: str | None = None
-    eidas_prid: str | None = None
-    eidas_prid_persistence: PridPersistence | None = None
-    country_code: str | None = None
-    freja_user_id: str | None = None
-    freja_registration_level: FrejaRegistrationLevel | None = None
-    freja_loa_level: FrejaLoaLevel | None = None
-    freja_personal_identity_number: str | None = None
+    ident: (
+        ExternalMfaSignupBankIDIdentity
+        | ExternalMfaSignupEIDASIdentity
+        | ExternalMfaSignupFrejaEIDIdentity
+        | ExternalMfaSignupFrejaEIDForeignIdentity
+        | ExternalMfaSignupSwedenConnectIdentity
+    )
 
 
 class Signup(TimestampedNS):
@@ -260,6 +256,65 @@ class IdP_Namespace(TimestampedNS):
         self.pending_requests[request_ref].credentials_used[credential.key] = authn_data
 
 
+class ExternalMfaSignupIdentity(BaseModel, ABC):
+    """Identity + LoA parsed from a signup-flow external MFA authn.
+
+    Populated by the ``mfa_register`` ACS action in each external MFA webapp and read
+    by the signup backend at /external-mfa-register time.
+    """
+
+    given_name: str
+    surname: str
+    issuer: str
+    # credential metadata
+    framework: TrustFramework
+    loa: str
+
+
+class ExternalMfaSignupBankIDIdentity(ExternalMfaSignupIdentity):
+    nin: str
+    transaction_id: str
+
+
+class ExternalMfaSignupEIDASIdentity(ExternalMfaSignupIdentity):
+    authn_context_class: str
+    country_code: str
+    date_of_birth: datetime
+    eidas_person_identifier: str
+    prid: str
+    prid_persistence: PridPersistence
+    transaction_id: str
+
+
+class ExternalMfaSignupFrejaEIDIdentity(ExternalMfaSignupIdentity):
+    date_of_birth: datetime
+    document_number: str
+    document_type: str
+    loa_level: FrejaLoaLevel
+    registration_level: FrejaRegistrationLevel
+    user_id: str
+    nin: str
+    transaction_id: str
+
+
+class ExternalMfaSignupFrejaEIDForeignIdentity(ExternalMfaSignupIdentity):
+    country_code: str
+    date_of_birth: datetime
+    personal_identity_number: str
+    document_number: str
+    document_type: str
+    issuing_country: str
+    loa_level: FrejaLoaLevel
+    registration_level: FrejaRegistrationLevel
+    user_id: str
+    transaction_id: str
+
+
+class ExternalMfaSignupSwedenConnectIdentity(ExternalMfaSignupIdentity):
+    nin: str
+    authn_context_class: str
+
+
 class BaseAuthnRequest(BaseModel, ABC):
     frontend_action: FrontendAction  # what action frontend is performing
     frontend_state: str | None = None  # opaque data from frontend, returned in /status
@@ -275,30 +330,6 @@ class BaseAuthnRequest(BaseModel, ABC):
     consumed: bool = False  # an operation that requires a new authentication has used this one already
 
 
-class ExternalMfaSignupIdentity(BaseModel):
-    """Identity + LoA parsed from a signup-flow external MFA authn.
-
-    Populated by the ``mfa_register`` ACS action in each external MFA webapp and read
-    by the signup backend at /external-mfa-register time.
-    """
-
-    given_name: str
-    surname: str
-    date_of_birth: datetime | None = None
-    # exactly one of these identity discriminators is set; the rest stay None
-    nin: str | None = None
-    eidas_prid: str | None = None
-    eidas_prid_persistence: PridPersistence | None = None
-    country_code: str | None = None
-    freja_user_id: str | None = None
-    freja_registration_level: FrejaRegistrationLevel | None = None
-    freja_loa_level: FrejaLoaLevel | None = None
-    freja_personal_identity_number: str | None = None
-    # credential metadata
-    framework: TrustFramework
-    loa: str
-
-
 class SP_AuthnRequest(BaseAuthnRequest):
     authn_id: AuthnRequestRef = Field(default_factory=lambda: AuthnRequestRef(uuid4_str()))
     credentials_used: list[ElementKey] = Field(default_factory=list)
@@ -306,7 +337,9 @@ class SP_AuthnRequest(BaseAuthnRequest):
     req_authn_ctx: list[str] = Field(default_factory=list)
     # the authentication contexts asserted for this authentication
     asserted_authn_ctx: EduidAuthnContextClass | None = None
-    external_mfa_signup_identity: ExternalMfaSignupIdentity | None = None
+    external_mfa_signup_identity: (
+        ExternalMfaSignupBankIDIdentity | ExternalMfaSignupEIDASIdentity | ExternalMfaSignupSwedenConnectIdentity | None
+    ) = None
 
     def formatted_finish_url(self, app_name: str) -> str:
         return self.finish_url.format(app_name=app_name, authn_id=self.authn_id)
@@ -362,7 +395,9 @@ class AuthnNamespace(SessionNSBase):
 
 class RP_AuthnRequest(BaseAuthnRequest):
     authn_id: OIDCState
-    external_mfa_signup_identity: ExternalMfaSignupIdentity | None = None
+    external_mfa_signup_identity: (
+        ExternalMfaSignupFrejaEIDIdentity | ExternalMfaSignupFrejaEIDForeignIdentity | None
+    ) = None
 
     def formatted_finish_url(self, app_name: str) -> str:
         return self.finish_url.format(app_name=app_name, authn_id=self.authn_id)
