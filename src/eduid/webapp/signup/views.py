@@ -43,15 +43,14 @@ from eduid.webapp.signup.helpers import (
     check_email_status,
     complete_and_update_invite,
     create_and_sync_user,
-    existing_user_for_identity,
     get_eppn,
     get_webauthn_credential_data,
     is_email_verification_expired,
     is_valid_custom_password,
-    lookup_external_mfa_authn,
     send_signup_mail,
     validate_external_mfa_authn,
 )
+from eduid.webapp.signup.proofing import existing_user_for_identity, lookup_external_mfa_authn
 from eduid.webapp.signup.schemas import (
     AcceptTouRequest,
     CreateUserRequest,
