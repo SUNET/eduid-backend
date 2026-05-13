@@ -61,6 +61,13 @@ class SignupStatusResponse(FluxStandardAction):
                 masked_nin = fields.String(required=True, dump_default=None)
                 country_code = fields.String(required=True, dump_default=None)
 
+            class ServiceInfo(EduidSchema):
+                class DisplayName(EduidSchema):
+                    en = fields.String(required=False)
+                    sv = fields.String(required=False)
+
+                display_name = fields.Nested(DisplayName, required=False)
+
             already_signed_up = fields.Boolean(required=True)
             name = fields.Nested(Name, required=True)
             email = fields.Nested(EmailVerification, required=True)
@@ -71,6 +78,7 @@ class SignupStatusResponse(FluxStandardAction):
             external_mfa = fields.Nested(ExternalMfa, required=True)
             user_created = fields.Boolean(required=True)
             idp_request_ref = fields.String(required=False, load_default=None)
+            idp_service_info = fields.Nested(nested=ServiceInfo, required=False, load_default=None)
 
         state = fields.Nested(State, required=True)
 
@@ -210,6 +218,7 @@ class WebauthnRegisterCompleteRequest(EduidSchema, CSRFRequestMixin):
 
 class ReturnToAuthRequest(EduidSchema, CSRFRequestMixin):
     ref = fields.String(required=True)
+    service_info = fields.Dict(required=True)
 
 
 class ExternalMfaRegisterRequest(EduidSchema, CSRFRequestMixin):

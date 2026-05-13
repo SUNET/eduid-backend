@@ -408,7 +408,8 @@ class SessionFactory(SessionInterface):
         # avoid circular import
         from eduid.webapp.common.api.app import EduIDBaseApp
 
-        assert isinstance(app, EduIDBaseApp), "app is not an EduIDBaseApp"
+        if not isinstance(app, EduIDBaseApp):
+            raise RuntimeError(f"app is not an EduIDBaseApp: {type(app).__name__}")
         # Load token from cookie
         _conf = get_from_current_app("conf", EduIDBaseAppConfig)
         cookie_name = _conf.flask.session_cookie_name
@@ -464,8 +465,10 @@ class SessionFactory(SessionInterface):
         # avoid circular import
         from eduid.webapp.common.api.app import EduIDBaseApp
 
-        assert isinstance(app, EduIDBaseApp), "app is not an EduIDBaseApp"
-        assert isinstance(session, EduidSession), "session is not an EduidSession"
+        if not isinstance(app, EduIDBaseApp):
+            raise RuntimeError(f"app is not an EduIDBaseApp: {type(app).__name__}")
+        if not isinstance(session, EduidSession):
+            raise RuntimeError(f"session is not an EduidSession: {type(session).__name__}")
         if session is None:
             # Do not try to save the session and set the cookie if the session is not initialized
             # We have seen this happen...

@@ -1,6 +1,5 @@
 from datetime import UTC, datetime
 
-from eduid.common.models.saml_models import BaseSessionInfo
 from eduid.userdb import User
 from eduid.webapp.common.api.decorators import require_user
 from eduid.webapp.common.authn.acs_enums import EidasAcsAction
@@ -81,11 +80,6 @@ def mfa_authenticate_action(args: ACSArgs) -> ACSResult:
         mfa_authn_success_msg=EidasMsg.mfa_authn_success,
         app=current_app,
     )
-    if result.success:
-        assert args.proofing_method is not None
-        parsed = args.proofing_method.parse_session_info(args.session_info, backdoor=args.backdoor)
-        assert isinstance(parsed.info, BaseSessionInfo)
-        current_app.stats.count(name=f"mfa_auth_{parsed.info.issuer}_success")
     return result
 
 

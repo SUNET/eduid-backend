@@ -128,8 +128,8 @@ def verify_nin_for_user(
     if proofing_user.identities.nin is None:
         proofing_user = add_nin_to_user(user=proofing_user, proofing_state=proofing_state)
 
-    # please mypy
-    assert proofing_user.identities.nin is not None
+    if proofing_user.identities.nin is None:
+        raise RuntimeError("proofing_user.identities.nin not set after add_nin_to_user")
 
     # Check if the NIN is already verified
     if proofing_user.identities.nin.is_verified:
@@ -241,8 +241,8 @@ def get_proofing_log_navet_data(nin: str) -> ProofingNavetData:
         navet_data.person.is_deregistered()
         and navet_data.person.deregistration_information.cause_code is not DeregisteredCauseCode.EMIGRATED
     ):
-        # please type checking
-        assert navet_data.person.deregistration_information.cause_code is not None
+        if navet_data.person.deregistration_information.cause_code is None:
+            raise RuntimeError("deregistration cause_code missing for deregistered person")
         raise NoNavetData(
             f"Person deregistered with code {navet_data.person.deregistration_information.cause_code.value}"
         )

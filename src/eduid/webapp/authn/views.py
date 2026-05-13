@@ -37,7 +37,7 @@ from eduid.webapp.common.session import session
 from eduid.webapp.common.session.eduid_session import EduidSession
 from eduid.webapp.common.session.namespaces import AuthnRequestRef, SP_AuthnRequest
 
-assert acs_actions  # make sure nothing optimises away the import of this, as it is needed to execute @acs_actions
+_ = acs_actions  # keep import side-effect: registers @acs_action handlers
 
 authn_views = Blueprint("authn", __name__, url_prefix="")
 
@@ -75,7 +75,8 @@ def support_authenticate() -> WerkzeugResponse:
         finish_url=authn_params.finish_url,
     )
     result = _authn(sp_authn=sp_authn, idp=_get_idp(), authn_params=authn_params)
-    assert result.url is not None  # please mypy
+    if result.url is None:
+        raise RuntimeError("_authn returned no url")
     return redirect(location=result.url, code=302)
 
 
@@ -140,7 +141,8 @@ def _get_idp() -> str:
         raise RuntimeError("Unknown SAML2 idp config")
     # For now, we will only ever use the single configured IdP
     idp = next(iter(_configured_idps.keys()))
-    assert isinstance(idp, str)
+    if not isinstance(idp, str):
+        raise RuntimeError(f"unexpected idp key type: {type(idp).__name__}")
     return idp
 
 
@@ -208,7 +210,8 @@ def assertion_consumer_service() -> WerkzeugResponse:
     result = action(args)
     current_app.logger.debug(f"ACS action result: {result}")
 
-    assert isinstance(args.authn_req, SP_AuthnRequest)  # please mypy
+    if not isinstance(args.authn_req, SP_AuthnRequest):
+        raise RuntimeError(f"unexpected authn_req type: {type(args.authn_req).__name__}")
     formatted_finish_url = args.authn_req.formatted_finish_url(app_name=current_app.conf.app_name)
 
     if not result.success:

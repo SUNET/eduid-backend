@@ -74,7 +74,8 @@ def logout(ref: str | None, sso_session: SSOSession | None) -> WerkzeugResponse:
             current_app.logger.debug(f"Will ask frontend to redirect user to {location} for entity ID {_entity_id}")
         else:
             current_app.logger.debug(f"Will retain SAML request in session for entity ID {_entity_id}")
-            assert isinstance(ticket.pending_request, IdP_SAMLPendingRequest)  # please type checking
+            if not isinstance(ticket.pending_request, IdP_SAMLPendingRequest):
+                raise RuntimeError(f"unexpected ticket.pending_request type: {type(ticket.pending_request).__name__}")
             old_saml_req = ticket.pending_request
             _ref = ticket.request_ref
 

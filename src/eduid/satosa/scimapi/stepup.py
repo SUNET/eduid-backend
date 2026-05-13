@@ -536,7 +536,8 @@ class AuthnContext(RequestMicroService):  # type: ignore[misc]
         context: satosa.context.Context,
         data: satosa.internal.InternalData,
     ) -> ProcessReturnType:
-        assert context.state is not None  # please type checking
+        if context.state is None:
+            raise RuntimeError("satosa context.state not set")
         loa_settings = get_loa_settings_for_entity_id(
             EntityId(data.requester), [context.internal_data.get(Context.KEY_METADATA_STORE)], self.mfa
         )

@@ -883,6 +883,7 @@ class SignupTests(BaseSignupTests):
             "tou": {"completed": False, "version": "2016-v1"},
             "user_created": False,
             "idp_request_ref": None,
+            "idp_service_info": None,
         }, f"actual state is {state}"
 
     def test_get_state_initial_logged_in(self) -> None:
@@ -907,6 +908,7 @@ class SignupTests(BaseSignupTests):
             "tou": {"completed": False, "version": "2016-v1"},
             "user_created": False,
             "idp_request_ref": None,
+            "idp_service_info": None,
         }, f"actual state is {state}"
 
     def test_accept_tou(self) -> None:
@@ -1491,6 +1493,7 @@ class SignupTests(BaseSignupTests):
             "tou": {"completed": False, "version": "2016-v1"},
             "user_created": False,
             "idp_request_ref": None,
+            "idp_service_info": None,
         }, f"Actual state {normalised_data(state, exclude_keys=['expires_time_left', 'throttle_time_left', 'sent_at'])}"
 
     def test_complete_invite_new_user(self) -> None:
@@ -1630,6 +1633,7 @@ class SignupTests(BaseSignupTests):
                     )
                     data = {
                         "ref": "test-ref",
+                        "service_info": {"display_name": {"sv": "eduID Sverige"}},
                         "csrf_token": sess.get_csrf_token(),
                     }
 
@@ -1642,6 +1646,7 @@ class SignupTests(BaseSignupTests):
         )
         payload = self.get_response_payload(response)
         assert payload["state"]["idp_request_ref"] == "test-ref"
+        assert payload["state"]["idp_service_info"] == {"display_name": {"sv": "eduID Sverige"}}
 
     def test_return_to_auth_invalid_ref(self) -> None:
         """Call with a ref that doesn't exist in pending_requests."""
@@ -1651,6 +1656,7 @@ class SignupTests(BaseSignupTests):
                 with client.session_transaction() as sess:
                     data = {
                         "ref": "nonexistent-ref",
+                        "service_info": {"display_name": {"sv": "eduID Sverige"}},
                         "csrf_token": sess.get_csrf_token(),
                     }
 
@@ -1679,6 +1685,7 @@ class SignupTests(BaseSignupTests):
                     )
                     data = {
                         "ref": "test-ref",
+                        "service_info": {"display_name": {"sv": "eduID Sverige"}},
                         "csrf_token": sess.get_csrf_token(),
                     }
 

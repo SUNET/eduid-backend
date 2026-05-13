@@ -18,8 +18,6 @@ from eduid.webapp.common.session.namespaces import ExternalMfaSignupBankIDIdenti
 
 __author__ = "lundberg"
 
-from eduid.common.models.saml_models import BaseSessionInfo
-
 
 def common_saml_checks(args: ACSArgs) -> ACSResult | None:
     """Perform common checks for SAML ACS actions."""
@@ -77,11 +75,6 @@ def mfa_authenticate_action(args: ACSArgs) -> ACSResult:
         mfa_authn_success_msg=BankIDMsg.mfa_authn_success,
         app=current_app,
     )
-    if result.success:
-        assert args.proofing_method is not None
-        parsed = args.proofing_method.parse_session_info(args.session_info, backdoor=args.backdoor)
-        assert isinstance(parsed.info, BaseSessionInfo)
-        current_app.stats.count(name=f"mfa_auth_{parsed.info.issuer}_success")
     return result
 
 

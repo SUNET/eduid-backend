@@ -166,7 +166,6 @@ def sanitize_item(
         case str():
             san = Sanitizer()
             try:
-                assert isinstance(data, str)
                 safe_data = san.sanitize_input(data)
                 if safe_data != data:
                     logger.warning("Sanitized input from unsafe characters")

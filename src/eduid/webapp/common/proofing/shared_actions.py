@@ -244,4 +244,7 @@ def run_mfa_authenticate(
 
     app.stats.count(name="mfa_auth_success")
     app.stats.count(name=f"mfa_auth_{args.proofing_method.method}_success")
+    match parsed.info:
+        case BaseSessionInfo():
+            app.stats.count(name=f"mfa_auth_{parsed.info.issuer}_success")
     return ACSResult(success=True, message=mfa_authn_success_msg)

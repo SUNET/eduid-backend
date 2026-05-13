@@ -599,7 +599,8 @@ def is_valid_custom_password(custom_password: str | None) -> bool:
 
 def get_webauthn_credential_data() -> tuple[Webauthn, AuthenticatorInformation]:
     wn = session.signup.credentials.webauthn
-    assert wn is not None  # checked above
+    if wn is None:
+        raise RuntimeError("webauthn credential data not set")
     webauthn_credential = Webauthn(
         keyhandle=wn.keyhandle,
         credential_data=wn.credential_data,

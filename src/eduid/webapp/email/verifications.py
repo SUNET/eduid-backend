@@ -40,7 +40,8 @@ def send_verification_code(email: str, user: User) -> bool:
     if state is None:
         return False
 
-    assert state.verification.verification_code  # please mypy
+    if state.verification.verification_code is None:
+        raise RuntimeError("verification_code not set on freshly created proofing state")
     payload = EduidVerificationEmail(
         email=email,
         verification_code=state.verification.verification_code,
@@ -83,8 +84,8 @@ def verify_mail_address(state: EmailProofingState, proofing_user: ProofingUser) 
         # Adding the phone to the list creates a copy of the element, so we have to 'find' it again
         email = proofing_user.mail_addresses.find(state.verification.email)
 
-    # please mypy, email should be set now
-    assert email
+    if email is None:
+        raise RuntimeError("mail address not found after add")
 
     email.is_verified = True
     if not proofing_user.mail_addresses.primary:

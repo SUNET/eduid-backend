@@ -1,11 +1,10 @@
 from datetime import UTC, datetime
 
-from eduid.common.models.saml_models import BaseSessionInfo
 from eduid.userdb import User
 from eduid.webapp.common.api.decorators import require_user
 from eduid.webapp.common.authn.acs_enums import SamlEidAcsAction
 from eduid.webapp.common.authn.acs_registry import ACSArgs, ACSResult, acs_action
-from eduid.webapp.common.proofing.mfa_signup import MfaRegisterParsed, parse_mfa_register_args
+from eduid.webapp.common.proofing.mfa_signup import parse_mfa_register_args
 from eduid.webapp.common.proofing.shared_actions import (
     run_common_saml_checks,
     run_mfa_authenticate,
@@ -126,11 +125,6 @@ def samleid_mfa_authenticate_action(args: ACSArgs) -> ACSResult:
         mfa_authn_success_msg=SamlEidMsg.mfa_authn_success,
         app=current_app,
     )
-    if result.success:
-        assert args.proofing_method is not None
-        parsed = args.proofing_method.parse_session_info(args.session_info, backdoor=args.backdoor)
-        assert isinstance(parsed.info, BaseSessionInfo)
-        current_app.stats.count(name=f"mfa_auth_{parsed.info.issuer}_success")
     return result
 
 
@@ -147,7 +141,6 @@ def samleid_mfa_register_action(args: ACSArgs) -> ACSResult:
     )
     if isinstance(parsed, ACSResult):
         return parsed
-    assert isinstance(parsed, MfaRegisterParsed)  # type narrowing
 
     match parsed.session_info:
         case NinSessionInfo():

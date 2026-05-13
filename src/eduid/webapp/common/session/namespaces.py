@@ -213,6 +213,7 @@ class Signup(TimestampedNS):
     captcha: Captcha = Field(default_factory=Captcha)
     credentials: Credentials = Field(default_factory=Credentials)
     idp_request_ref: RequestRef | None = None
+    idp_service_info: dict[str, dict[str, str]] | None = None
     external_mfa: SignupExternalMfa | None = None
 
 

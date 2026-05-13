@@ -105,7 +105,8 @@ def signup_auth(ticket: LoginContext, sso_session: SSOSession | None) -> FluxDat
 def _register_signup_credentials(ticket: LoginContext, user: IdPUser) -> list[AuthnData]:
     """Register the user's signup credentials on the pending request and return AuthnData for the SSO session."""
     authn_credentials: list[AuthnData] = []
-    assert session.signup.user_created_at is not None  # checked by caller
+    if session.signup.user_created_at is None:  # checked by caller
+        raise RuntimeError("No user_created_at in signup session")
 
     for cred in user.credentials.to_list():
         fido_data = None
