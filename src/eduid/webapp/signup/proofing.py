@@ -108,7 +108,8 @@ def _credential_proofing_version_for_identity(identity: ExternalMfaSignupIdentit
         case ExternalMfaSignupFrejaEIDForeignIdentity():
             return current_app.conf.security_key_foreign_eid_proofing_version
         case _:
-            raise ValueError(f"Unsupported TrustFramework: {identity}")
+            current_app.logger.exception(f"Unsupported identity type: {identity}")
+            raise ValueError(f"Unsupported external mfa identity: {type(identity)}")
 
 
 def maybe_verify_webauthn_credential(
