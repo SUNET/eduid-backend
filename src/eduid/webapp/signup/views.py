@@ -454,6 +454,8 @@ def external_mfa_register(app_name: str, authn_id: str) -> FluxData:
 
     err = validate_external_mfa_authn(authn)
     if err is not None:
+        current_app.logger.debug(f"{authn=}")
+        current_app.logger.error(f"External MFA authn failed: {err}")
         return error_response(message=err)
 
     ident = authn.external_mfa_signup_identity
