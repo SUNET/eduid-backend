@@ -194,8 +194,8 @@ def authn_callback(user: User) -> WerkzeugResponse:
             "userinfo": dict(userinfo_result),
             "access_token": token_resp["access_token"],
             "token_type": token_resp["token_type"],
-            "expires_in": token_resp["expires_in"],
-            "refresh_token": token_resp["refresh_token"],
+            "expires_in": token_resp.get("expires_in"),
+            "refresh_token": token_resp.get("refresh_token"),
         }
     )
 
