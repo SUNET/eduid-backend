@@ -53,17 +53,15 @@ def build_external_credential(framework: TrustFramework, loa: str, created_by: s
     """Build the appropriate ExternalCredential subclass for the given TrustFramework."""
     match framework:
         case TrustFramework.SWECONN:
-            cred: ExternalCredential = SwedenConnectCredential(level=loa)
+            return SwedenConnectCredential(level=loa, created_by=created_by)
         case TrustFramework.EIDAS:
-            cred = EidasCredential(level=loa)
+            return EidasCredential(level=loa, created_by=created_by)
         case TrustFramework.BANKID:
-            cred = BankIDCredential(level=loa)
+            return BankIDCredential(level=loa, created_by=created_by)
         case TrustFramework.FREJA:
-            cred = FrejaCredential(level=loa)
+            return FrejaCredential(level=loa, created_by=created_by)
         case _:
             raise ValueError(f"Unsupported TrustFramework: {framework}")
-    cred.created_by = created_by
-    return cred
 
 
 def identity_proofing_method_for_framework(framework: TrustFramework) -> IdentityProofingMethod:
