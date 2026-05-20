@@ -25,6 +25,8 @@ class OrcidMsg(TranslatableMsg):
     sub_mismatch = "orc.sub_mismatch"
     # ORCID proofing data saved for user
     authz_success = "orc.authorization_success"
+    # frontend action not supported
+    frontend_action_not_supported = "orc.frontend_action_not_supported"
 
 
 class OrcidUserinfo(BaseModel):

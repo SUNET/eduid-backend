@@ -1,15 +1,9 @@
-from datetime import timedelta
-
 from pydantic import Field
 
-from eduid.common.config.base import AmConfigMixin, EduIDBaseAppConfig, ErrorsConfigMixin
+from eduid.common.config.base import AmConfigMixin, EduIDBaseAppConfig, ErrorsConfigMixin, FrontendActionMixin
 
 
-class OrcidConfig(EduIDBaseAppConfig, AmConfigMixin, ErrorsConfigMixin):
-    """
-    Configuration for the orcid app
-    """
-
+class OrcidConfig(EduIDBaseAppConfig, AmConfigMixin, ErrorsConfigMixin, FrontendActionMixin):
     app_name: str = "orcid"
 
     # OIDC
@@ -21,4 +15,3 @@ class OrcidConfig(EduIDBaseAppConfig, AmConfigMixin, ErrorsConfigMixin):
     )
     userinfo_endpoint_method: str = "GET"
     orcid_verify_redirect_url: str = "/profile/accountlinking"
-    state_db_auto_expire: timedelta | None = timedelta(days=7)
