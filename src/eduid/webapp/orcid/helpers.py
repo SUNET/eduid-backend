@@ -17,8 +17,6 @@ class OrcidMsg(TranslatableMsg):
     already_connected = "orc.already_connected"
     # Authorization error at ORCID
     authz_error = "orc.authorization_fail"
-    # proofing state corresponding to ORCID response not found
-    no_state = "orc.unknown_state"
     # nonce received from ORCID not known
     unknown_nonce = "orc.unknown_nonce"
     # The 'sub' of userinfo does not match 'sub' of ID Token for user
