@@ -325,6 +325,13 @@ class RPAuthnData(BaseModel):
     authlib_cache: dict[str, Any] = Field(default_factory=dict)
     authns: dict[OIDCState, RP_AuthnRequest] = Field(default_factory=dict)
 
+    @field_serializer("authns")
+    def authns_cleanup(self, authns: dict[OIDCState, RP_AuthnRequest]) -> dict[OIDCState, Any]:
+        if len(authns) > MAX_AUTHNS_TO_KEEP:
+            items = sorted(authns.items(), reverse=True, key=lambda item: item[1].created_ts)
+            authns = dict(items[:MAX_AUTHNS_TO_KEEP])
+        return {k: v.model_dump() for k, v in authns.items()}
+
 
 class SvipeIDNamespace(SessionNSBase):
     rp: RPAuthnData = Field(default=RPAuthnData())
@@ -341,6 +348,10 @@ class FrejaEIDNamespace(SessionNSBase):
 class OrcidNamespace(SessionNSBase):
     rp: RPAuthnData = Field(default=RPAuthnData())
     nonces: dict[OIDCState, str] = Field(default_factory=dict)
+
+    @field_serializer("nonces")
+    def nonces_cleanup(self, nonces: dict[OIDCState, str]) -> dict[OIDCState, str]:
+        return {k: v for k, v in nonces.items() if k in self.rp.authns}
 
 
 class SamlEidNamespace(SessionNSBase):

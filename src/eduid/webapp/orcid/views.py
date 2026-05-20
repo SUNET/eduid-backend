@@ -172,6 +172,9 @@ def authn_callback(user: User) -> WerkzeugResponse:
             authn_req.status = OrcidMsg.unknown_nonce.value
             return redirect(formatted_finish_url)
 
+        # Nonce validated, remove it
+        del session.orcid.nonces[oidc_state]
+
         current_app.logger.info("ORCID authorized for user")
 
         # Userinfo request
