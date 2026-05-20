@@ -335,7 +335,8 @@ def assertion_consumer_service() -> WerkzeugResponse:
     if result.message:
         args.authn_req.status = result.message.value
     args.authn_req.error = False
-    args.authn_req.consumed = True
+    if args.authn_req.frontend_action != FrontendAction.SIGNUP_EXTERNAL_MFA:
+        args.authn_req.consumed = True
     return redirect(formatted_finish_url)
 
 
