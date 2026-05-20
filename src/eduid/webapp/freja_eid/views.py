@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from datetime import UTC, datetime
 from urllib.parse import parse_qs, urlparse
 
 from authlib.integrations.base_client import OAuthError
@@ -280,10 +281,15 @@ def authn_callback() -> WerkzeugResponse:
         authn_req.status = FrejaEIDMsg.authorization_error.value
         return redirect(formatted_finish_url)
 
+    _userinfo = token_response.get("userinfo", {})
+    _auth_time = _userinfo.get("auth_time") if isinstance(_userinfo, dict) else None
+    if _auth_time is not None:
+        authn_req.authn_instant = datetime.fromtimestamp(int(_auth_time), tz=UTC)
+
     action = get_action(default_action=None, authndata=authn_req)
     backdoor = check_magic_cookie(config=current_app.conf)
     args = ACSArgs(
-        session_info=token_response.get("userinfo"),
+        session_info=_userinfo,
         authn_req=authn_req,
         proofing_method=proofing_method,
         backdoor=backdoor,

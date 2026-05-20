@@ -1,5 +1,6 @@
 import json
 from dataclasses import dataclass
+from datetime import UTC, datetime
 from urllib.parse import parse_qs, urlparse
 
 from authlib.integrations.base_client import OAuthError
@@ -193,6 +194,10 @@ def authn_callback(user: User) -> WerkzeugResponse:
         authn_req.error = True
         authn_req.status = SvipeIDMsg.authorization_error.value
         return redirect(formatted_finish_url)
+
+    _auth_time = user_response.get("auth_time")
+    if _auth_time is not None:
+        authn_req.authn_instant = datetime.fromtimestamp(int(_auth_time), tz=UTC)
 
     # end session after successful token response
     try:
