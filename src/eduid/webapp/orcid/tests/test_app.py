@@ -194,6 +194,40 @@ class OrcidTests(EduidAPITestCase[OrcidApp]):
         assert user.orcid.family_name == userinfo["family_name"]
         assert self.app.proofing_log.db_count() == 1
 
+    def test_get_status_after_callback(self, mocker: MockerFixture) -> None:
+        mock_request_user_sync = mocker.patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
+        mock_request_user_sync.side_effect = self.request_user_sync
+
+        response = self._start_connect(self.test_user_eppn)
+        assert response.status_code == 200
+
+        authn_id = self._get_authn_id_from_session()
+        nonce = self._get_nonce_from_session(authn_id)
+
+        userinfo = {
+            "id": "https://sandbox.orcid.org/0000-0000-0000-0000",
+            "name": None,
+            "given_name": "Test",
+            "family_name": "Testsson",
+        }
+        callback_response = self.mock_authorization_callback(state=str(authn_id), nonce=nonce, userinfo=userinfo)
+        assert callback_response.status_code == 302
+
+        # Poll get-status with the authn_id from the callback
+        with self.browser.session_transaction() as sess:
+            csrf_token = sess.get_csrf_token()
+        status_response = self.browser.post(
+            "/get-status",
+            json={"csrf_token": csrf_token, "authn_id": str(authn_id)},
+        )
+        self._check_success_response(status_response, type_="POST_ORCID_GET_STATUS_SUCCESS")
+        status_payload = self.get_response_payload(status_response)
+        assert status_payload["frontend_action"] == FrontendAction.CONNECT_ORCID.value
+        assert status_payload["frontend_state"] == "test_state"
+        assert status_payload["method"] == "orcid"
+        assert status_payload["error"] is False
+        assert status_payload["status"] == OrcidMsg.authz_success.value
+
     def test_get_status_not_found(self) -> None:
         with self.session_cookie(self.browser, self.test_user_eppn) as client:
             with client.session_transaction() as sess:
