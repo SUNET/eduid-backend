@@ -16,6 +16,10 @@ from eduid.webapp.orcid.helpers import OrcidMsg, OrcidUserinfo
 @acs_action(OrcidAction.connect_orcid)
 @require_user
 def connect_orcid_action(user: User, args: ACSArgs) -> ACSResult:
+    if user.orcid is not None:
+        current_app.logger.info(f"User {user.eppn} already has ORCID linked, ignoring callback")
+        return ACSResult(message=OrcidMsg.already_connected)
+
     session_info = args.session_info
 
     id_token = session_info["id_token"]
