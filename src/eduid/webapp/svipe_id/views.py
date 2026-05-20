@@ -195,9 +195,9 @@ def authn_callback(user: User) -> WerkzeugResponse:
         authn_req.status = SvipeIDMsg.authorization_error.value
         return redirect(formatted_finish_url)
 
-    _auth_time = user_response.get("auth_time")
-    if _auth_time is not None:
-        authn_req.authn_instant = datetime.fromtimestamp(int(_auth_time), tz=UTC)
+    _iat = user_response.get("iat")
+    if _iat is not None:
+        authn_req.authn_instant = datetime.fromtimestamp(int(_iat), tz=UTC)
 
     # end session after successful token response
     try:
