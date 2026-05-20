@@ -630,12 +630,16 @@ def validate_external_mfa_authn(
     if authn.frontend_action != FrontendAction.SIGNUP_EXTERNAL_MFA:
         return SignupMsg.external_mfa_wrong_action
     if authn.error:
+        current_app.logger.error(authn.error)
         return SignupMsg.external_mfa_not_verified
     if authn.external_mfa_signup_identity is None:
+        current_app.logger.error("No external mfa identity provided")
         return SignupMsg.external_mfa_not_verified
     if authn.consumed:
+        current_app.logger.error("Authn request already consumed")
         return SignupMsg.external_mfa_already_consumed
     if authn.authn_instant is None:
+        current_app.logger.error("No authn_instant provided")
         return SignupMsg.external_mfa_not_verified
     max_age = current_app.conf.frontend_action_authn_parameters[FrontendAction.SIGNUP_EXTERNAL_MFA].max_age
     if utc_now() - authn.authn_instant > max_age:
