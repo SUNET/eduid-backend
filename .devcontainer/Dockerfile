@@ -1,11 +1,22 @@
+# This Dockerfile is based on the base image for Debian Trixie, which is the current stable release of Debian
+# TODO: how to synchronize to the image version to the version used in production debian:stable?
 FROM mcr.microsoft.com/devcontainers/base:trixie
 
 ARG NONROOT_USER=vscode
 
-# enabling non-root access to docker as outlined in docker-from-docker
-RUN apt-get update && apt install -y curl python-is-python3 python3 python3-venv swig xmlsec1 docker.io ghostscript libcairo2-dev \
-    && curl -LsSf https://astral.sh/uv/install.sh | env UV_INSTALL_DIR=/usr/local/bin sh \
-    && cat <<EOF >/usr/local/share/docker-init.sh
+# Minimum system packages required for `make bootstrap`.
+RUN apt-get update \
+    && apt install -y curl python3 python3-dev python3-packaging python3-venv libcairo2-dev \
+    && rm -rf /var/lib/apt/lists/* \
+    && curl -LsSf https://astral.sh/uv/install.sh | env UV_INSTALL_DIR=/usr/local/bin sh
+
+# Additional tools used by the devcontainer beyond the bootstrap flow.
+RUN apt-get update \
+    && apt install -y swig xmlsec1 docker.io ghostscript \
+    && rm -rf /var/lib/apt/lists/*
+
+# Enable non-root access to Docker as outlined in Docker-in-Docker.
+RUN cat <<EOF >/usr/local/share/docker-init.sh
 #!/bin/sh
 sudoIf() { if [ "\$(id -u)" -ne 0 ]; then sudo "\$@"; else "\$@"; fi; }
 if [ -S /var/run/docker.sock ]; then
