@@ -42,7 +42,6 @@ def get_status(user: User, authn_id: OIDCState) -> FluxData:
         return error_response(message=AuthnStatusMsg.not_found)
 
     payload = {
-        "authn_id": str(authn_id),
         "frontend_action": authn.frontend_action.value,
         "frontend_state": authn.frontend_state,
         "method": authn.method,
