@@ -216,6 +216,15 @@ class Signup(TimestampedNS):
     idp_service_info: dict[str, dict[str, str]] | None = None
     external_mfa: SignupExternalMfa | None = None
 
+    @property
+    def captcha_or_external_mfa_completed(self) -> bool:
+        """Check if the user has either completed the captcha or an external MFA for >=AL1 verification"""
+        if self.captcha.completed:
+            return True
+        elif self.external_mfa:
+            return self.external_mfa.completed
+        return False
+
 
 class Phone(SessionNSBase):
     captcha: Captcha = Field(default_factory=Captcha)
