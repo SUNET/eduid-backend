@@ -331,14 +331,15 @@ class ElementList[ListElement: Element](BaseModel, ABC):
             raise EduIDUserDBError("More than one element found")
         return res[0]
 
-    def add(self, element: ListElement) -> None:
+    def add(self, element: ListElement) -> ListElement:
         """
         Add an element to the list.
 
         :param element: Element
-        :return: None
+        :return: the stored element (pydantic may have copied it during validate_assignment)
         """
         self.elements += [element]
+        return self.elements[-1]
 
     def remove(self, key: ElementKey) -> None:
         """
