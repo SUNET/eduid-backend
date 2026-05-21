@@ -3,18 +3,12 @@ TOPDIR:=	$(abspath .)
 SRCDIR=		$(TOPDIR)/src
 EDUID_SRCDIR=	$(SRCDIR)/eduid
 
-# The bootstrap helper uses Python 3.7+ syntax, parses requires-python, inspects
-# installed interpreters, and selects the highest compatible Python executable on PATH.
+# The bootstrap helper runs on Python 3.11+, parses requires-python, and
+# derives the concrete Python minor bootstrap should provision with uv.
 PYTHON_REQUIRES_HELPER := $(TOPDIR)/scripts/python_requires_helper.py
-# Use whichever generic Python launcher is already available so the helper can
-# read pyproject.toml before the target interpreter has been selected.
-PYTHON_FOR_PARSE := $(strip $(shell if command -v python3 >/dev/null; then printf '%s' python3; elif command -v python >/dev/null; then printf '%s' python; fi))
-# The helper returns the exact executable path it probed, which avoids guessing
-# names like python3.13 from a discovered version.
-BOOTSTRAP_PYTHON := $(strip $(shell $(PYTHON_FOR_PARSE) $(PYTHON_REQUIRES_HELPER) select-from-pyproject $(TOPDIR)/pyproject.toml))
-# When requires-python pins a single minor release, uv can provision it even if
-# no compatible interpreter is installed yet.
-BOOTSTRAP_PYTHON_MINOR := $(strip $(shell $(PYTHON_FOR_PARSE) $(PYTHON_REQUIRES_HELPER) minor-from-pyproject $(TOPDIR)/pyproject.toml 2>/dev/null))
+# Use uv's isolated runner so helper dependency resolution stays independent
+# from system Python packages and avoids any pip fallback path.
+UV_BOOTSTRAP := $(strip $(shell if command -v uv >/dev/null; then printf '%s' uv; fi))
 
 # Keep the virtualenv path overridable so local setups and CI can share targets.
 VENV ?= .venv
@@ -30,69 +24,36 @@ test:
 
 # Create a virtualenv with an interpreter that satisfies project.requires-python.
 #
-# Resolution order:
-# 1. Ask the helper to pick the best compatible interpreter already visible on PATH.
-# 2. If uv is installed and no compatible interpreter is present, derive the
-#    pinned Python minor release from pyproject.toml and let uv provision it.
-# 3. Otherwise, re-check the selected executable immediately before use and build
-#    the venv with the standard library venv module.
-# 4. As a final fallback, try the generic python3/python launchers, but only if
-#    they still satisfy requires-python when checked through the helper.
-#
-# The extra re-checks keep bootstrap conservative if PATH contents or pyproject
-# change between Make variable expansion and target execution.
+# Bootstrap now requires a globally available uv executable. It derives the
+# pinned Python minor from pyproject.toml and lets uv provision that interpreter.
 bootstrap_venv:
-	@if command -v uv >/dev/null; then \
-		if test -n "$(BOOTSTRAP_PYTHON)"; then \
-			echo "Creating $(VENV) with uv using Python $(BOOTSTRAP_PYTHON)"; \
-			uv venv --python "$(BOOTSTRAP_PYTHON)" $(VENV); \
-		elif test -n "$(BOOTSTRAP_PYTHON_MINOR)"; then \
-			echo "Creating $(VENV) with uv using Python $(BOOTSTRAP_PYTHON_MINOR) from pyproject.toml"; \
-			uv python install "$(BOOTSTRAP_PYTHON_MINOR)"; \
-			uv venv --python "$(BOOTSTRAP_PYTHON_MINOR)" $(VENV); \
-		else \
-			echo "Could not derive a concrete Python minor release from requires-python in pyproject.toml for uv provisioning" >&2; \
-			exit 1; \
-		fi; \
-	elif test -x "$(BOOTSTRAP_PYTHON)" && "$(BOOTSTRAP_PYTHON)" $(PYTHON_REQUIRES_HELPER) check-from-pyproject $(TOPDIR)/pyproject.toml >/dev/null; then \
-		echo "Creating $(VENV) with $(BOOTSTRAP_PYTHON)"; \
-		"$(BOOTSTRAP_PYTHON)" -m venv $(VENV); \
-	elif command -v python3 >/dev/null && python3 $(PYTHON_REQUIRES_HELPER) check-from-pyproject $(TOPDIR)/pyproject.toml >/dev/null; then \
-		echo "Creating $(VENV) with python3"; \
-		python3 -m venv $(VENV); \
-	elif command -v python >/dev/null && python $(PYTHON_REQUIRES_HELPER) check-from-pyproject $(TOPDIR)/pyproject.toml >/dev/null; then \
-		echo "Creating $(VENV) with python"; \
-		python -m venv $(VENV); \
+	@if ! command -v uv >/dev/null; then \
+		echo "uv is required for bootstrap. Install uv, or use the devcontainer image that includes it." >&2; \
+		exit 1; \
+	fi
+	@bootstrap_python_minor="$$( $(UV_BOOTSTRAP) run --python '>=3.11' --no-project --with packaging $(PYTHON_REQUIRES_HELPER) minor-from-pyproject $(TOPDIR)/pyproject.toml 2>/dev/null)"; \
+	if test -n "$$bootstrap_python_minor"; then \
+		echo "Creating $(VENV) with uv using Python $$bootstrap_python_minor from pyproject.toml"; \
+		uv python install "$$bootstrap_python_minor"; \
+		uv venv --python "$$bootstrap_python_minor" $(VENV); \
 	else \
-		echo "A Python compatible with requires-python in pyproject.toml is required. Install uv to provision it automatically, use the devcontainer, or install a compatible Python locally." >&2; \
+		echo "Could not derive a concrete Python minor release from requires-python in pyproject.toml for uv provisioning" >&2; \
 		exit 1; \
 	fi
 
 # Install the locked development toolchain into the freshly created virtualenv.
 #
 # Steps:
-# 1. Ensure pip exists inside the environment, using ensurepip when the venv was
-#    created without it.
-# 2. Upgrade pip first so dependency installation uses a recent installer.
-# 3. Install the locked test/development requirements, preferring uv for speed
-#    when available and falling back to pip otherwise.
-# 4. Install this repository in editable mode without dependency resolution,
+# 1. Install the locked test/development requirements with uv pip.
+# 2. Install this repository in editable mode without dependency resolution,
 #    because the locked requirements already describe the environment.
-# 5. Pre-install mypy stub packages interactively so later type checks do not
-#    stop to ask for missing types.
+# 3. Run mypy with explicitly pinned stub packages already present in the
+#    environment, so type checking stays non-interactive.
 bootstrap: bootstrap_venv
 	$(info Installing locked development dependencies into $(VENV))
-	@if ! $(VENV_PYTHON) -m pip --version >/dev/null; then \
-		$(VENV_PYTHON) -m ensurepip --upgrade; \
-	fi
-	$(VENV_PYTHON) -m pip install --upgrade pip
-	@if command -v uv >/dev/null; then \
-		uv pip install --python $(VENV_PYTHON) -r requirements/test_requirements.txt; \
-	else \
-		$(VENV_PYTHON) -m pip install -r requirements/test_requirements.txt; \
-	fi
-	$(VENV_PYTHON) -m pip install --no-deps --no-build-isolation -e .
-	$(VENV_PYTHON) -m mypy --install-types --non-interactive
+	uv pip install --python $(VENV_PYTHON) -r requirements/test_requirements.txt
+	uv pip install --python $(VENV_PYTHON) --no-deps --no-build-isolation -e .
+	$(VENV_PYTHON) -m mypy --strict -p eduid
 
 # Reformat imports first, then apply Ruff's code formatter.
 reformat:
@@ -107,7 +68,7 @@ lint:
 
 # Primary mypy entrypoint used by developers and CI.
 typecheck:
-	mypy --install-types --non-interactive --strict -p eduid
+	mypy --strict -p eduid
 
 # Alias kept for tooling and developer muscle memory.
 typecheck_strict: typecheck
