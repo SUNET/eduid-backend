@@ -101,7 +101,7 @@ class User(BaseModel):
         # raise exception if the user is revoked
         if values.get("revoked_ts") is not None:
             raise UserIsRevoked(
-                f"User {values.get('user_id')}/{values.get('eppn')} was revoked at {values.get('revoked_ts')}"
+                f"User {values.get('_id')}/{values.get('eduPersonPrincipalName')} was revoked at {values.get('revoked_ts')}"
             )
         return values
 
