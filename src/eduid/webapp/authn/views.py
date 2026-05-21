@@ -1,5 +1,3 @@
-from dataclasses import dataclass
-
 from flask import Blueprint, abort, make_response, redirect, request
 from saml2 import BINDING_HTTP_REDIRECT
 from saml2.client import Saml2Client
@@ -21,7 +19,6 @@ from eduid.webapp.common.api.messages import (
     AuthnStatusMsg,
     CommonMsg,
     FluxData,
-    TranslatableMsg,
     error_response,
     redirect_with_msg,
     success_response,
@@ -74,10 +71,9 @@ def support_authenticate() -> WerkzeugResponse:
         req_authn_ctx=[EduidAuthnContextClass.REFEDS_MFA.value],
         finish_url=authn_params.finish_url,
     )
-    result = _authn(sp_authn=sp_authn, idp=_get_idp(), authn_params=authn_params)
-    if result.url is None:
-        raise RuntimeError("_authn returned no url")
-    return redirect(location=result.url, code=302)
+    url = _authn(sp_authn=sp_authn, idp=_get_idp(), authn_params=authn_params)
+
+    return redirect(location=url, code=302)
 
 
 @authn_views.route("/authenticate", methods=["POST"])
@@ -123,12 +119,9 @@ def authenticate(
         finish_url=authn_params.finish_url,
     )
 
-    result = _authn(sp_authn, idp=_get_idp(), authn_params=authn_params)
+    url = _authn(sp_authn, idp=_get_idp(), authn_params=authn_params)
 
-    if result.error:
-        return error_response(message=result.error)
-
-    return success_response(payload={"location": result.url})
+    return success_response(payload={"location": url})
 
 
 def _get_idp() -> str:
@@ -146,14 +139,7 @@ def _get_idp() -> str:
     return idp
 
 
-@dataclass
-class AuthnResult:
-    authn_id: AuthnRequestRef | None = None
-    error: TranslatableMsg | None = None
-    url: str | None = None
-
-
-def _authn(sp_authn: SP_AuthnRequest, idp: str, authn_params: AuthnParameters) -> AuthnResult:
+def _authn(sp_authn: SP_AuthnRequest, idp: str, authn_params: AuthnParameters) -> str:
     # Filter out any previous authns with the same frontend_action because we need to use the frontend_action value to
     # find the authn data for a specific action.
     session.authn.sp.authns = {
@@ -184,7 +170,7 @@ def _authn(sp_authn: SP_AuthnRequest, idp: str, authn_params: AuthnParameters) -
         f"Stored SP_AuthnRequest[{sp_authn.authn_id}]: {session.authn.sp.authns[sp_authn.authn_id]}"
     )
     _idp_redirect_url = get_location(authn_request)
-    return AuthnResult(authn_id=sp_authn.authn_id, url=_idp_redirect_url)
+    return _idp_redirect_url
 
 
 @authn_views.route("/saml2-acs", methods=["POST"])

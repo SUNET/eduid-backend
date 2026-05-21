@@ -6,7 +6,7 @@ import os
 import pprint
 from collections.abc import Iterator
 from datetime import datetime
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 from flask import Flask, Request, Response
 from flask.sessions import SessionInterface, SessionMixin
@@ -408,8 +408,8 @@ class SessionFactory(SessionInterface):
         # avoid circular import
         from eduid.webapp.common.api.app import EduIDBaseApp
 
-        if not isinstance(app, EduIDBaseApp):
-            raise RuntimeError(f"app is not an EduIDBaseApp: {type(app).__name__}")
+        # Trust Flask: SessionFactory is only registered on EduIDBaseApp instances.
+        app = cast(EduIDBaseApp, app)
         # Load token from cookie
         _conf = get_from_current_app("conf", EduIDBaseAppConfig)
         cookie_name = _conf.flask.session_cookie_name
@@ -465,10 +465,10 @@ class SessionFactory(SessionInterface):
         # avoid circular import
         from eduid.webapp.common.api.app import EduIDBaseApp
 
-        if not isinstance(app, EduIDBaseApp):
-            raise RuntimeError(f"app is not an EduIDBaseApp: {type(app).__name__}")
-        if not isinstance(session, EduidSession):
-            raise RuntimeError(f"session is not an EduidSession: {type(session).__name__}")
+        # Trust Flask: SessionFactory is only registered on EduIDBaseApp and
+        # produces EduidSession instances in open_session.
+        app = cast(EduIDBaseApp, app)
+        session = cast(EduidSession, session)
         if session is None:
             # Do not try to save the session and set the cookie if the session is not initialized
             # We have seen this happen...

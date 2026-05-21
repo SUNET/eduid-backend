@@ -76,6 +76,19 @@ class TestPhoneNumberList:
         assert match.is_verified
         assert match.verified_ts is None
 
+    def test_add_returns_stored_element(self) -> None:
+        """add() returns the stored element so callers can mutate without re-find()."""
+        new = PhoneNumber(number="+46700000099", created_by="test", is_verified=False, is_primary=False)
+        stored = self.one.add(new)
+
+        found = self.one.find("+46700000099")
+        assert found is stored
+
+        stored.is_verified = True
+        refound = self.one.find("+46700000099")
+        assert refound is not None
+        assert refound.is_verified is True
+
     def test_add(self) -> None:
         second = self.two.find("+46700000002")
         assert second

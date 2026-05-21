@@ -1,4 +1,5 @@
 from importlib.resources import files
+from typing import cast
 
 from flask import current_app, request
 from flask_babel import Babel  # type: ignore[import-untyped]
@@ -10,9 +11,8 @@ __author__ = "lundberg"
 
 
 def get_user_locale() -> str | None:
-    app = current_app
-    if not isinstance(app, EduIDBaseApp):
-        raise RuntimeError(f"unexpected current_app type: {type(app).__name__}")
+    # Trust Flask: this helper is only mounted on EduIDBaseApp instances.
+    app = cast(EduIDBaseApp, current_app)
     lang: str | None  # mypy 0.910 needs this
     # if a user is logged in, use the locale from the user settings
     if session.common.preferred_language is not None:
