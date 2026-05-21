@@ -95,6 +95,10 @@ profiles and groups defined there.
 
 ### Bootstrap Contract
 
+Bootstrap requires a working `uv` executable on `PATH`.
+`uv` runs the bootstrap helper on Python 3.11+ and provisions the pinned
+project interpreter declared in [pyproject.toml](pyproject.toml) itself.
+
 The Python bootstrap contract is shared across:
 
 - [Makefile](Makefile)

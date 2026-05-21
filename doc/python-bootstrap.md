@@ -4,9 +4,13 @@ This document explains how the repository bootstraps a local Python environment
 through [Makefile](../Makefile) and
 [scripts/python_requires_helper.py](../scripts/python_requires_helper.py).
 
-The goal is to keep the Python version requirement in one place,
-`[project].requires-python` in `pyproject.toml`, while still allowing bootstrap
-to start from a machine that does not yet have the target interpreter selected.
+The host system must provide a working `uv` installation before bootstrap starts.
+`uv` uses a Python 3.11+ runtime to execute the helper and provisions the
+project's pinned interpreter itself.
+
+The goal is to keep the project Python version requirement in one place,
+`[project].requires-python` in `pyproject.toml`, while using `uv` as the single
+bootstrap entrypoint for provisioning the target interpreter.
 
 ## Main pieces
 
@@ -14,8 +18,12 @@ The bootstrap flow is split into two layers:
 
 - `Makefile` owns the user-facing targets, mainly `bootstrap_venv` and `bootstrap`.
 - `scripts/python_requires_helper.py` owns the Python-specific logic for reading
-  `pyproject.toml`, parsing `requires-python`, inspecting interpreters on `PATH`,
-  and checking whether a concrete interpreter satisfies the requirement.
+  `pyproject.toml`, parsing `requires-python`, and deriving the concrete Python
+  minor that bootstrap should provision.
+
+`pyproject.toml` is the single source of truth for the project Python
+requirement. `Makefile` and the helper derive bootstrap behavior from that file;
+they do not hardcode the project interpreter version independently.
 
 This split keeps the shell logic readable and keeps the version-selection logic
 in Python, where PEP 440 specifiers and TOML parsing are easier to handle safely.
@@ -25,16 +33,14 @@ in Python, where PEP 440 specifiers and TOML parsing are easier to handle safely
 The bootstrap-related variables near the top of `Makefile` are:
 
 - `PYTHON_REQUIRES_HELPER`: absolute path to `scripts/python_requires_helper.py`.
-- `PYTHON_FOR_PARSE`: a generic bootstrap interpreter, preferring `python3` and
-  then `python`, used only to run the helper before the final interpreter has
-  been chosen.
-- `BOOTSTRAP_PYTHON`: the exact interpreter path returned by the helper after it
-  scans `PATH` for a Python that satisfies `project.requires-python`.
+- `UV_BOOTSTRAP`: the `uv` executable used to run the helper in an isolated
+  environment.
 - `VENV`: the virtualenv directory, defaulting to `.venv`.
 - `VENV_PYTHON`: the Python executable inside the created virtualenv.
 
-Returning an executable path instead of a version string avoids reconstructing
-versioned executable names from a discovered interpreter.
+The selected bootstrap interpreter and fallback minor are resolved lazily inside
+`bootstrap_venv`, so unrelated `make` targets do not run the helper during
+Makefile parsing.
 
 ## bootstrap_venv target
 
@@ -43,16 +49,11 @@ interpreter. It does not install the repo dependencies yet.
 
 Its resolution order is:
 
-1. Fail early if the helper could not find any compatible interpreter.
-2. If `uv` is installed, call `uv venv --python <selected interpreter>`.
-3. Otherwise, re-check the selected interpreter with the helper and create the
-   environment with `<selected interpreter> -m venv`.
-4. If that path is no longer usable, try `python3` and then `python`, but only
-   when the helper confirms that each still satisfies `requires-python`.
-5. If none of the above works, print an actionable error and stop.
-
-The explicit re-check is intentional. It keeps bootstrap conservative if `PATH`
-or `pyproject.toml` changes between Make variable expansion and recipe execution.
+1. Require the host system to provide `uv`.
+2. Ask the helper to derive the pinned Python minor from `pyproject.toml`.
+3. Run `uv python install <major.minor>`.
+4. Create the environment with `uv venv --python <major.minor>`.
+5. If the helper cannot derive a concrete pinned minor, print an actionable error and stop.
 
 ## bootstrap target
 
@@ -61,58 +62,47 @@ toolchain into the freshly created environment.
 
 The target performs these steps:
 
-1. Ensure `pip` exists inside `.venv`, using `ensurepip` when needed.
-2. Upgrade `pip` inside the environment.
-3. Install the locked development requirements from
-   `requirements/test_requirements.txt`, preferring `uv pip` when `uv` is
-   available and falling back to `pip` otherwise.
-4. Install the repository itself into `.venv` in editable mode with
-   `pip install --no-deps --no-build-isolation -e .`.
-5. Run `mypy --install-types --non-interactive` inside `.venv` so common stub
-   packages are available without extra manual setup.
+1. Install the locked development requirements from
+  `requirements/test_requirements.txt` with `uv pip`.
+2. Install the repository itself into `.venv` in editable mode with
+  `uv pip install --no-deps --no-build-isolation -e .`.
+3. Run `mypy --strict -p eduid` inside `.venv` after the locked stub packages
+   have already been installed as part of the development toolchain.
 
 The result is a local environment that IDEs, shell commands, and the devcontainer
 can all use consistently via `.venv/bin/python`.
 
 ## Helper script behavior
 
-`scripts/python_requires_helper.py` is intentionally runnable on Python 3.7 and
-newer. That lower minimum lets it run before the target project interpreter has
-been provisioned.
+`scripts/python_requires_helper.py` intentionally requires Python 3.11 or
+newer. `Makefile` enforces that by running it through `uv run --python '>=3.11'`,
+which lets `uv` fetch or select a suitable helper runtime independently of the
+target project interpreter while using the stdlib `tomllib` parser.
 
-The helper supports five commands:
+The helper supports one command:
 
-- `select <requires-python>`: print the best compatible interpreter path found
-  on `PATH`.
-- `check <requires-python>`: exit successfully only if the interpreter running
-  the helper satisfies the given specifier.
-- `select-from-pyproject <pyproject.toml>`: read `[project].requires-python`
-  from the given file, then behave like `select`.
-- `check-from-pyproject <pyproject.toml>`: read `[project].requires-python`
-  from the given file, then behave like `check`.
 - `minor-from-pyproject <pyproject.toml>`: read `[project].requires-python`
   from the given file and print the pinned Python minor release used for `uv`
   provisioning.
 
 Internally, the helper:
 
-- parses `pyproject.toml` with `tomllib` on Python 3.11+ and older-compatible
-  TOML loaders on Python 3.7-3.10,
-- parses the version specifier with `packaging`, with a fallback to pip's
-  vendored copy,
-- scans `PATH` for Python executables,
-- probes each candidate by executing it and reading `sys.version_info`,
-- picks the highest compatible interpreter, and
-- prints the exact executable path that satisfied the probe.
+- parses `pyproject.toml` with the stdlib `tomllib` parser,
+- parses the version specifier with `packaging`,
+- derives the concrete Python minor bootstrap should provision, and
+- prints that minor for `uv python install` and `uv venv --python`.
+
+`Makefile` runs the helper through `uv run --python '>=3.11' --no-project --with packaging ...`,
+so the helper no longer depends on system-installed parser modules or pip vendored copies.
 
 ## Why this design exists
 
 The design tries to solve a few practical problems at once:
 
 - keep the required Python version in one canonical place,
-- avoid hardcoding interpreter names in `Makefile`,
+- avoid hardcoding interpreter versions in `Makefile`,
 - let bootstrap work both inside and outside the devcontainer,
-- prefer `uv` when available without making it mandatory,
+- use `uv` as the single installer frontend for repo-managed workflows,
 - and keep the shell layer small enough to debug quickly.
 
 In short, `Makefile` owns the workflow and user messages, while the helper owns

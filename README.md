@@ -20,7 +20,7 @@ That makes shells, IDEs, tests, and type checkers resolve imports through the ac
 
 - A Unix-like environment or devcontainer
 - Docker, for the test suite and local service dependencies
-- A local Python interpreter compatible with `project.requires-python` in `pyproject.toml`, or `uv`
+- `uv`, installed and available on `PATH`
 
 ### Quick Start
 
@@ -33,13 +33,13 @@ make bootstrap
 What this does:
 
 - Creates `.venv`
-- Reads the required Python version from `pyproject.toml`
-- Uses `uv` to provision the Python minor pinned in `pyproject.toml` automatically when available
-- Falls back to a compatible local `python3` or `python`
+- Uses `uv` to run the bootstrap helper on Python 3.11+
+- Treats `pyproject.toml` as the single source of truth for the project Python requirement
+- Uses `uv` to provision and use the pinned Python minor derived from `pyproject.toml`
 - Installs the locked dependencies from `requirements/test_requirements.txt`
-- Installs the repo itself into `.venv` with `pip install -e .`
+- Installs the repo itself into `.venv` with an editable `uv pip install`
 
-If your machine does not already have a compatible Python interpreter, install `uv` and rerun `make bootstrap`.
+The host system must provide `uv` before `make bootstrap` runs. `uv` uses a Python 3.11+ runtime to execute the bootstrap helper and provisions the pinned project interpreter itself from `pyproject.toml`. If `uv` is not installed, `make bootstrap` fails immediately. Install `uv` first, or use the devcontainer image that includes it.
 
 For a detailed explanation of the bootstrap flow, see
 [doc/python-bootstrap.md](doc/python-bootstrap.md).
@@ -50,7 +50,7 @@ Use `.venv/bin/python` as the interpreter in your IDE.
 
 - VS Code: the workspace settings already point to `.venv/bin/python`
 - PyCharm: set the project interpreter to `.venv/bin/python`
-- Devcontainer: opening the repo in the devcontainer runs the same `make bootstrap` flow
+- Devcontainer: opening the repo in the devcontainer runs the same `make bootstrap` flow with `uv` preinstalled in the image
 
 The shared devcontainer configuration assumes only this repository is present.
 If you need to develop against a sibling checkout of `pysaml2`, copy the mount from `.devcontainer/devcontainer.pysaml2.example.json` into your local devcontainer configuration before reopening the container and keep it out of committed changes:
@@ -83,7 +83,7 @@ make kill_tests
 
 The repository includes minimal packaging metadata only to support editable local installs.
 
-- `[build-system]` tells `pip` which backend to use for `pip install -e .`
+- `[build-system]` tells editable installers which backend to use for local installs
 - `setuptools` maps the `src` layout into the active `.venv`
 - `src/eduid/py.typed` tells mypy and similar tools that the installed package includes inline type information
 
