@@ -518,7 +518,8 @@ def _check_user_not_created() -> FluxData | None:
 
 
 def _check_signup_steps_completed() -> FluxData | None:
-    if not session.signup.captcha.completed:
+    if not session.signup.captcha.completed or not session.signup.external_mfa.completed:
+        # we can skip captcha for signups starting with external mfa
         current_app.logger.error("Captcha not completed")
         return error_response(message=SignupMsg.captcha_not_completed)
     if not session.signup.email.completed:
