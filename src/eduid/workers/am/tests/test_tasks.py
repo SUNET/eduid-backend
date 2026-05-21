@@ -3,10 +3,18 @@ from bson import ObjectId
 
 import eduid.userdb
 from eduid.common.testing_base import normalised_data
-from eduid.userdb import LockedIdentityList, NinIdentity
+from eduid.userdb import EIDASIdentity, LockedIdentityList, NinIdentity
 from eduid.userdb.exceptions import EduIDUserDBError, MultipleUsersReturned
 from eduid.userdb.fixtures.users import UserFixtures
-from eduid.userdb.identity import IdentityType
+from eduid.userdb.identity import (
+    EIDASLoa,
+    FrejaIdentity,
+    FrejaLoaLevel,
+    FrejaRegistrationLevel,
+    IdentityType,
+    PridPersistence,
+    SvipeIdentity,
+)
 from eduid.userdb.user import User
 from eduid.workers.am.consistency_checks import check_locked_identity, unverify_duplicates
 from eduid.workers.am.testing import AMTestCase
@@ -113,6 +121,124 @@ class TestTasks(AMTestCase):
         assert user.identities.nin is not None
         assert user.identities.nin.number == "197801011234"
         assert user.identities.nin.is_verified is False
+        assert stats["nin_count"] == 1
+
+    def test_unverify_duplicate_eidas(self) -> None:
+        # Add a verified eidas identity to hubba-bubba
+        user = self.amdb.get_user_by_eppn("hubba-bubba")
+        assert user
+        eidas_identity = EIDASIdentity(
+            prid="unique/prid/string/1",
+            prid_persistence=PridPersistence.B,
+            loa=EIDASLoa.NF_SUBSTANTIAL,
+            date_of_birth="1978-09-02T00:00:00",
+            country_code="DE",
+            created_by="test",
+            is_verified=True,
+            verified_by="test",
+        )
+        user.identities.add(eidas_identity)
+        self.amdb.save(user)
+
+        user_id = ObjectId("901234567890123456789012")  # johnsmith@example.org / babba-labba
+        attributes = {
+            "$set": {
+                "identities": [
+                    {
+                        "identity_type": IdentityType.EIDAS.value,
+                        "prid": "unique/prid/string/1",
+                        "prid_persistence": PridPersistence.B.value,
+                        "loa": EIDASLoa.NF_SUBSTANTIAL.value,
+                        "date_of_birth": "1978-09-02T00:00:00",
+                        "country_code": "DE",
+                        "verified": True,
+                    }
+                ]
+            }
+        }
+        stats = unverify_duplicates(self.amdb, user_id, attributes)
+        user = self.amdb.get_user_by_eppn("hubba-bubba")
+        assert user.identities.eidas is not None
+        assert user.identities.eidas.prid == "unique/prid/string/1"
+        assert user.identities.eidas.is_verified is False
+        assert stats["nin_count"] == 1
+
+    def test_unverify_duplicate_freja(self) -> None:
+        # Add a verified freja identity to hubba-bubba
+        user = self.amdb.get_user_by_eppn("hubba-bubba")
+        assert user
+        freja_identity = FrejaIdentity(
+            user_id="freja-user-id-1",
+            registration_level=FrejaRegistrationLevel.PLUS,
+            loa_level=FrejaLoaLevel.LOA3,
+            date_of_birth="1978-09-02T00:00:00",
+            country_code="SE",
+            created_by="test",
+            is_verified=True,
+            verified_by="test",
+        )
+        user.identities.add(freja_identity)
+        self.amdb.save(user)
+
+        user_id = ObjectId("901234567890123456789012")  # johnsmith@example.org / babba-labba
+        attributes = {
+            "$set": {
+                "identities": [
+                    {
+                        "identity_type": IdentityType.FREJA.value,
+                        "user_id": "freja-user-id-1",
+                        "registration_level": FrejaRegistrationLevel.PLUS.value,
+                        "loa_level": FrejaLoaLevel.LOA3.value,
+                        "date_of_birth": "1978-09-02T00:00:00",
+                        "country_code": "SE",
+                        "verified": True,
+                    }
+                ]
+            }
+        }
+        stats = unverify_duplicates(self.amdb, user_id, attributes)
+        user = self.amdb.get_user_by_eppn("hubba-bubba")
+        assert user.identities.freja is not None
+        assert user.identities.freja.user_id == "freja-user-id-1"
+        assert user.identities.freja.is_verified is False
+        assert stats["nin_count"] == 1
+
+    def test_unverify_duplicate_svipe(self) -> None:
+        # Add a verified svipe identity to hubba-bubba
+        user = self.amdb.get_user_by_eppn("hubba-bubba")
+        assert user
+        svipe_identity = SvipeIdentity(
+            svipe_id="unique-svipe-id-1",
+            administrative_number="1234567890",
+            date_of_birth="1978-09-02T00:00:00",
+            country_code="DE",
+            created_by="test",
+            is_verified=True,
+            verified_by="test",
+        )
+        user.identities.add(svipe_identity)
+        self.amdb.save(user)
+
+        user_id = ObjectId("901234567890123456789012")  # johnsmith@example.org / babba-labba
+        attributes = {
+            "$set": {
+                "identities": [
+                    {
+                        "identity_type": IdentityType.SVIPE.value,
+                        "svipe_id": "unique-svipe-id-1",
+                        "administrative_number": "1234567890",
+                        "date_of_birth": "1978-09-02T00:00:00",
+                        "country_code": "DE",
+                        "verified": True,
+                    }
+                ]
+            }
+        }
+        stats = unverify_duplicates(self.amdb, user_id, attributes)
+        user = self.amdb.get_user_by_eppn("hubba-bubba")
+        assert user.identities.svipe is not None
+        assert user.identities.svipe.svipe_id == "unique-svipe-id-1"
+        assert user.identities.svipe.is_verified is False
         assert stats["nin_count"] == 1
 
     def test_unverify_duplicate_all(self) -> None:
