@@ -3,13 +3,6 @@ TOPDIR:=	$(abspath .)
 SRCDIR=		$(TOPDIR)/src
 EDUID_SRCDIR=	$(SRCDIR)/eduid
 
-# The bootstrap helper runs on Python 3.11+, parses requires-python, and
-# derives the concrete Python minor bootstrap should provision with uv.
-PYTHON_REQUIRES_HELPER := $(TOPDIR)/scripts/python_requires_helper.py
-# Use uv's isolated runner so helper dependency resolution stays independent
-# from system Python packages and avoids any pip fallback path.
-UV_BOOTSTRAP := $(strip $(shell if command -v uv >/dev/null; then printf '%s' uv; fi))
-
 # Keep the virtualenv path overridable so local setups and CI can share targets.
 VENV ?= .venv
 VENV_PYTHON := $(VENV)/bin/python
@@ -24,22 +17,15 @@ test:
 
 # Create a virtualenv with an interpreter that satisfies project.requires-python.
 #
-# Bootstrap now requires a globally available uv executable. It derives the
-# pinned Python minor from pyproject.toml and lets uv provision that interpreter.
+# Bootstrap requires a globally available uv executable and lets uv resolve the
+# interpreter directly from pyproject.toml.
 bootstrap_venv:
 	@if ! command -v uv >/dev/null; then \
 		echo "uv is required for bootstrap. Install uv, or use the devcontainer image that includes it." >&2; \
 		exit 1; \
 	fi
-	@bootstrap_python_minor="$$( $(UV_BOOTSTRAP) run --python '>=3.11' --no-project --with packaging $(PYTHON_REQUIRES_HELPER) minor-from-pyproject $(TOPDIR)/pyproject.toml 2>/dev/null)"; \
-	if test -n "$$bootstrap_python_minor"; then \
-		echo "Creating $(VENV) with uv using Python $$bootstrap_python_minor from pyproject.toml"; \
-		uv python install "$$bootstrap_python_minor"; \
-		uv venv --python "$$bootstrap_python_minor" $(VENV); \
-	else \
-		echo "Could not derive a concrete Python minor release from requires-python in pyproject.toml for uv provisioning" >&2; \
-		exit 1; \
-	fi
+	@echo "Creating $(VENV) with uv using requires-python from pyproject.toml"
+	uv venv $(VENV)
 
 # Install the locked development toolchain into the freshly created virtualenv.
 #

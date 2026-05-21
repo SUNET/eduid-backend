@@ -4,7 +4,7 @@ The repository keeps tool configuration in `pyproject.toml` and installs local d
 Using the same local interpreter path makes VS Code, PyCharm, shell commands, and devcontainers behave the same way.
 `pyproject.toml` is the single source of truth for the project Python requirement and related tool configuration.
 The bootstrap target reads the required Python version from `[project].requires-python` in `pyproject.toml`.
-The active bootstrap path combines Makefile targets with `scripts/python_requires_helper.py`.
+The active bootstrap path delegates Python-version resolution directly to `uv`.
 For the detailed bootstrap flow, see `doc/python-bootstrap.md`.
 
 ## Preferred local workflow
@@ -18,19 +18,18 @@ make bootstrap
 What it does:
 
 - Creates `.venv`
-- Uses `uv` to run the bootstrap helper on Python 3.11+
 - Requires the host system to provide `uv`
-- Requires the exact Python minor version declared in `pyproject.toml`
+- Requires a Python interpreter compatible with `pyproject.toml`
 - Treats `pyproject.toml` as the single source of truth for that requirement
-- Uses `uv` to provision and use the pinned Python minor derived from `pyproject.toml`
+- Uses `uv` to resolve and provision a compatible interpreter from `pyproject.toml`
 - Installs the locked developer dependencies from `requirements/test_requirements.txt`
 - Installs the repository itself into `.venv` in editable mode through `uv pip` so imports work without `PYTHONPATH`
 
 The install-first part uses a minimal packaging configuration in `pyproject.toml` only so developer tools can install the repo into `.venv`.
 This repository is not intended to be built or published as a release artifact.
 
-If the host does not provide `uv`, `make bootstrap` cannot run. `uv` uses a Python 3.11+ runtime for the helper and provisions the pinned project interpreter itself, so no separate host Python installation is required beyond a working `uv` setup. Install `uv` and then run `make bootstrap` again.
-That keeps the repo requirement in one place while still letting `uv` provision the pinned interpreter when needed.
+If the host does not provide `uv`, `make bootstrap` cannot run. `uv` provisions a compatible project interpreter itself, so no separate host Python installation is required beyond a working `uv` setup. Install `uv` and then run `make bootstrap` again.
+That keeps the repo requirement in one place while still letting `uv` provision the interpreter when needed.
 
 ## IDE setup
 

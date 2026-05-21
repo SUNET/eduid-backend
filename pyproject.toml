@@ -121,9 +121,6 @@ eduid = ["py.typed"]
 line-length = 120 # Set the maximum line length to 120.
 target-version = "py313"
 
-[tool.ruff.per-file-target-version]
-"scripts/python_requires_helper.py" = "py37"
-
 [tool.ruff.lint]
 select = [
   "A",

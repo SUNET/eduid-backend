@@ -96,21 +96,20 @@ profiles and groups defined there.
 ### Bootstrap Contract
 
 Bootstrap requires a working `uv` executable on `PATH`.
-`uv` runs the bootstrap helper on Python 3.11+ and provisions the pinned
-project interpreter declared in [pyproject.toml](pyproject.toml) itself.
+`uv` resolves and provisions an interpreter that satisfies the requirement
+declared in [pyproject.toml](pyproject.toml) itself.
 
 The Python bootstrap contract is shared across:
 
 - [Makefile](Makefile)
-- [scripts/python_requires_helper.py](scripts/python_requires_helper.py)
-- [scripts/tests/test_python_requires_helper.py](scripts/tests/test_python_requires_helper.py)
+- [pyproject.toml](pyproject.toml)
+- [doc/python-bootstrap.md](doc/python-bootstrap.md)
 
 These files must be treated as a coupled unit.
 
-- Changes to the bootstrap decision flow in [Makefile](Makefile) must be kept consistent with the helper commands and semantics in [scripts/python_requires_helper.py](scripts/python_requires_helper.py).
-- Changes to helper command names, helper output, helper failure modes, or `requires-python` interpretation in [scripts/python_requires_helper.py](scripts/python_requires_helper.py) must be reflected in [Makefile](Makefile).
-- [scripts/tests/test_python_requires_helper.py](scripts/tests/test_python_requires_helper.py) must cover the helper behaviors that [Makefile](Makefile) depends on, including current bootstrap branches and command-entry expectations.
-- If [Makefile](Makefile) starts relying on a new helper path or a new `requires-python` interpretation rule, the corresponding focused tests in [scripts/tests/test_python_requires_helper.py](scripts/tests/test_python_requires_helper.py) must be added or updated in the same change.
+- Changes to the bootstrap decision flow in [Makefile](Makefile) must stay consistent with how [pyproject.toml](pyproject.toml) declares `requires-python`.
+- Changes to the repository Python baseline or `requires-python` semantics in [pyproject.toml](pyproject.toml) must be reflected in [Makefile](Makefile) and [doc/python-bootstrap.md](doc/python-bootstrap.md).
+- If bootstrap behavior changes, update the developer-facing instructions in [doc/python-bootstrap.md](doc/python-bootstrap.md) and any nearby setup guidance in [doc/development.md](doc/development.md) in the same change.
 
 ## Code Style Guidelines
 
