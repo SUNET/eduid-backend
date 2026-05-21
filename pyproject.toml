@@ -83,17 +83,27 @@ satosa-scim = ["SATOSA"]
 [dependency-groups]
 test = [
   "mypy",
-  "pip-tools",
   "pytest",
   "pytest-asyncio",
   "pytest-cov",
   "pytest-mock",
   "pytest-xdist",
   "respx",
+  "setuptools>=69",
   "uv",
   "celery-types",
   "motor-types",
   "statsd-stubs",
+  "types-Authlib",
+  "types-bleach",
+  "types-defusedxml",
+  "types-Flask-Cors",
+  "types-jwcrypto",
+  "types-PyYAML",
+  "types-python-dateutil",
+  "types-qrcode",
+  "types-simplejson",
+  "types-zxcvbn",
   "ruff",
 ]
 
