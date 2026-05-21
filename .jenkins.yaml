@@ -13,12 +13,13 @@ pre_build_script:
   - "apt-get install -y libjpeg-dev libfreetype6-dev ghostscript libcairo2-dev"
 environment_variables:
   NEO4J_VERSION: "4.4-enterprise"
+  UV_DEFAULT_INDEX: "https://pypi.sunet.se/simple"
 script:
-  - "make bootstrap_venv VENV=venv"
+  - "curl -LsSf https://astral.sh/uv/install.sh | sh"
+  - "export PATH=$HOME/.local/bin:$PATH"
+  - "make bootstrap VENV=venv"
   - ". venv/bin/activate"
-  - "pip install -U pip wheel mypy"
-  - "pip install --index-url https://pypi.sunet.se -r requirements/test_requirements.txt"
-  - "pip freeze"
+  - "uv pip freeze"
   - "make test"
   - "make typecheck"
 clean_workspace: true
@@ -30,13 +31,15 @@ extra_jobs:
     triggers:
       github_push: false
       cron: "@daily"
+    environment_variables:
+      UV_DEFAULT_INDEX: "https://pypi.sunet.se/simple"
     script:
-      - "make bootstrap_venv VENV=venv"
+      - "curl -LsSf https://astral.sh/uv/install.sh | sh"
+      - "export PATH=$HOME/.local/bin:$PATH"
+      - "make bootstrap VENV=venv"
       - ". venv/bin/activate"
-      - "pip install -U pip wheel pip-tools mypy uv"
       - "make update_deps"
-      - "pip install --index-url https://pypi.sunet.se -r requirements/test_requirements.txt"
-      - "pip freeze"
+      - "uv pip freeze"
       - "make test"
       - "make typecheck"
 
