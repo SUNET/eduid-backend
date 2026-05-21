@@ -90,7 +90,7 @@ def register_email(given_name: str, surname: str, email: str) -> FluxData:
     current_app.logger.info("Registering email")
     current_app.logger.debug(f"email address: {email}")
 
-    if not session.signup.captcha.completed:
+    if not session.signup.captcha_or_external_mfa_completed:
         # don't allow registration without captcha completion
         # this is so that a malicious user can't send a lot of emails or enumerate email addresses already registered
         current_app.logger.info("Captcha not completed")
@@ -156,7 +156,7 @@ def verify_email(verification_code: str) -> FluxData:
     current_app.logger.debug(f"email address: {session.signup.email.address}")
     current_app.logger.debug(f"verification code: {verification_code}")
 
-    if not session.signup.captcha.completed:
+    if not session.signup.captcha_or_external_mfa_completed:
         current_app.logger.info("Captcha not completed")
         return error_response(message=SignupMsg.captcha_not_completed)
 
@@ -295,7 +295,7 @@ def get_password() -> FluxData:
 def webauthn_register_begin(authenticator: str) -> FluxData:
     current_app.logger.info("WebAuthn registration begin")
 
-    if not session.signup.captcha.completed:
+    if not session.signup.captcha_or_external_mfa_completed:
         return error_response(message=SignupMsg.captcha_not_completed)
     if not session.signup.email.completed:
         return error_response(message=SignupMsg.email_verification_not_complete)
@@ -518,8 +518,7 @@ def _check_user_not_created() -> FluxData | None:
 
 
 def _check_signup_steps_completed() -> FluxData | None:
-    if not session.signup.captcha.completed or not session.signup.external_mfa.completed:
-        # we can skip captcha for signups starting with external mfa
+    if not session.signup.captcha_or_external_mfa_completed:
         current_app.logger.error("Captcha not completed")
         return error_response(message=SignupMsg.captcha_not_completed)
     if not session.signup.email.completed:
