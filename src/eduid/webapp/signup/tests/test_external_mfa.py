@@ -7,6 +7,7 @@ from typing import Any
 import pytest
 from fido2.webauthn import AuthenticatorAttachment
 from fido_mds.models.webauthn import AttestationFormat
+from flask import url_for
 from jwcrypto.jwk import JWK
 from werkzeug.test import TestResponse
 
@@ -686,6 +687,102 @@ class ExternalMfaSignupTests(ExternalMfaSignupTestsBase):
         resp = self._call_external_mfa_clear()
         payload = self.get_response_payload(resp)
         assert payload["message"] == SignupMsg.user_already_exists.value
+
+    # ------------------------------------------------------------------
+    # captcha_or_external_mfa_completed — external MFA bypasses captcha
+    # ------------------------------------------------------------------
+
+    def test_register_email_with_external_mfa_no_captcha(self) -> None:
+        """register_email succeeds when external MFA is completed but captcha is not."""
+        self._seed_bankid_authn()
+        self._call_external_mfa_register("bankid", "authn-1")
+
+        with self.session_cookie_anon(self.browser) as client:
+            with client.session_transaction() as sess:
+                assert sess.signup.external_mfa is not None
+                assert sess.signup.external_mfa.completed is True
+                assert sess.signup.captcha.completed is False
+                csrf_token = sess.get_csrf_token()
+            with self.app.test_request_context():
+                endpoint = url_for("signup.register_email")
+            data = {
+                "given_name": "Test",
+                "surname": "Testdotter",
+                "email": "ext-mfa-nocaptcha@example.com",
+                "csrf_token": csrf_token,
+            }
+            response = client.post(endpoint, data=json.dumps(data), content_type=self.content_type_json)
+
+        self._check_api_response(response, status=200, type_="POST_SIGNUP_REGISTER_EMAIL_SUCCESS")
+        state = self.get_response_payload(response)["state"]
+        assert state["captcha"]["completed"] is False
+        assert state["external_mfa"]["completed"] is True
+        assert state["email"]["address"] == "ext-mfa-nocaptcha@example.com"
+
+    def test_register_email_fails_without_captcha_or_external_mfa(self) -> None:
+        """register_email fails when neither captcha nor external MFA is completed."""
+        self._register_email(
+            expect_success=False,
+            expected_message=SignupMsg.captcha_not_completed,
+        )
+
+    def test_create_user_with_external_mfa_no_captcha(self) -> None:
+        """create_user succeeds when external MFA is completed but captcha is not."""
+        self._seed_bankid_authn(nin="198001011234", authn_id="authn-1")
+        self._call_external_mfa_register("bankid", "authn-1")
+
+        self._prepare_for_create_user(
+            given_name="Anna",
+            surname="Andersson",
+            email="anna.nocaptcha@example.com",
+            captcha_completed=False,
+        )
+
+        with self.session_cookie_anon(self.browser) as client:
+            with client.session_transaction() as sess:
+                assert sess.signup.captcha.completed is False
+                assert sess.signup.external_mfa is not None
+                assert sess.signup.external_mfa.completed is True
+
+        result = self._create_user(
+            expected_payload={
+                "state": {
+                    "already_signed_up": True,
+                    "name": {"given_name": "Anna", "surname": "Andersson"},
+                    "email": {
+                        "address": "anna.nocaptcha@example.com",
+                        "completed": True,
+                        "sent_at": None,
+                        "bad_attempts": 0,
+                        "bad_attempts_max": 3,
+                    },
+                    "invite": {"initiated_signup": False, "finish_url": None, "completed": False},
+                    "tou": {"completed": True, "version": "test_tou_v1"},
+                    "captcha": {"completed": False},
+                    "credentials": {
+                        "completed": True,
+                        "generated_password": "test_password",
+                        "custom_password": False,
+                        "webauthn_registered": False,
+                        "webauthn_is_discoverable": False,
+                        "webauthn_description": None,
+                    },
+                    "external_mfa": {
+                        "completed": True,
+                        "app_name": "bankid",
+                        "given_name": "Anna",
+                        "surname": "Andersson",
+                        "date_of_birth": None,
+                        "masked_nin": "198001**-****",
+                        "country_code": None,
+                    },
+                    "user_created": True,
+                    "idp_request_ref": None,
+                    "idp_service_info": None,
+                },
+            },
+        )
+        assert result.response.status_code == 200
 
     # ------------------------------------------------------------------
     # create-user with external MFA — happy path tests
