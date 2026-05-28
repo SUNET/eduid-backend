@@ -419,8 +419,6 @@ class FrontendActionMixin(BaseModel):
                 finish_url="https://eduid.se/profile/ext-return/{app_name}/{authn_id}",
             ),
             FrontendAction.CONNECT_ORCID: AuthnParameters(
-                force_authn=False,
-                allow_login_auth=True,
                 finish_url="https://eduid.se/profile/ext-return/{app_name}/{authn_id}",
             ),
             FrontendAction.LOGIN: AuthnParameters(
