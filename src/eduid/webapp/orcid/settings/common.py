@@ -14,4 +14,3 @@ class OrcidConfig(EduIDBaseAppConfig, AmConfigMixin, ErrorsConfigMixin, Frontend
         }
     )
     userinfo_endpoint_method: str = "GET"
-    orcid_verify_redirect_url: str = "/profile/accountlinking"
