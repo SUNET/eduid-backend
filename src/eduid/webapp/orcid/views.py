@@ -104,7 +104,7 @@ def connect_orcid(user: User, frontend_action: str, frontend_state: str | None =
     return success_response(payload={"location": authorization_url})
 
 
-@orcid_views.route("/authn-callback", methods=["GET"])
+@orcid_views.route("/authorization-response", methods=["GET"])
 @require_user
 def authn_callback(user: User) -> WerkzeugResponse:
     current_app.logger.debug(f"authn_callback called with args: {request.args}")

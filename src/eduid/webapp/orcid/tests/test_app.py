@@ -153,7 +153,7 @@ class OrcidTests(EduidAPITestCase[OrcidApp]):
         }
         userinfo["sub"] = "sub"
         mock_userinfo_request.return_value = userinfo
-        return self.browser.get(f"/authn-callback?id_token=id_token&state={state}")
+        return self.browser.get(f"/authorization-response?id_token=id_token&state={state}")
 
     def test_authenticate(self) -> None:
         response = self._start_connect(self.test_user_eppn)
