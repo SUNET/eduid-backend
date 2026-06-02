@@ -9,6 +9,7 @@ from typing import Any, Self
 
 import bson
 
+from eduid.common.decorators import deprecated
 from eduid.common.misc.timeutil import utc_now
 from eduid.userdb.db import TUserDbDocument
 from eduid.userdb.exceptions import UserDBValueError
@@ -142,6 +143,7 @@ class LetterProofingState(NinProofingState):
         return res
 
 
+@deprecated("Orcid app now saves state in session")
 @dataclass()
 class OrcidProofingState(ProofingState):
     state: str

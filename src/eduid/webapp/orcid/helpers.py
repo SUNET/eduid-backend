@@ -17,14 +17,14 @@ class OrcidMsg(TranslatableMsg):
     already_connected = "orc.already_connected"
     # Authorization error at ORCID
     authz_error = "orc.authorization_fail"
-    # proofing state corresponding to ORCID response not found
-    no_state = "orc.unknown_state"
     # nonce received from ORCID not known
     unknown_nonce = "orc.unknown_nonce"
     # The 'sub' of userinfo does not match 'sub' of ID Token for user
     sub_mismatch = "orc.sub_mismatch"
     # ORCID proofing data saved for user
     authz_success = "orc.authorization_success"
+    # frontend action not supported
+    frontend_action_not_supported = "orc.frontend_action_not_supported"
 
 
 class OrcidUserinfo(BaseModel):

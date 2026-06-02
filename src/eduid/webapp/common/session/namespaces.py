@@ -24,6 +24,7 @@ from eduid.webapp.common.authn.acs_enums import AuthnAcsAction, BankIDAcsAction,
 from eduid.webapp.freja_eid.callback_enums import FrejaEIDAction
 from eduid.webapp.idp.idp_authn import AuthnData
 from eduid.webapp.idp.other_device.data import OtherDeviceId
+from eduid.webapp.orcid.callback_enums import OrcidAction
 from eduid.webapp.svipe_id.callback_enums import SvipeIDAction
 
 __author__ = "ft"
@@ -240,7 +241,9 @@ class BaseAuthnRequest(BaseModel, ABC):
     frontend_action: FrontendAction  # what action frontend is performing
     frontend_state: str | None = None  # opaque data from frontend, returned in /status
     method: str | None = None  # proofing method that frontend is invoking
-    post_authn_action: AuthnAcsAction | EidasAcsAction | SvipeIDAction | BankIDAcsAction | FrejaEIDAction | None = None
+    post_authn_action: (
+        AuthnAcsAction | EidasAcsAction | SvipeIDAction | BankIDAcsAction | FrejaEIDAction | OrcidAction | None
+    ) = None
     # proofing_credential_id is the credential being person-proofed, when doing that
     proofing_credential_id: ElementKey | None = None
     created_ts: datetime = Field(default_factory=utc_now)
@@ -322,6 +325,13 @@ class RPAuthnData(BaseModel):
     authlib_cache: dict[str, Any] = Field(default_factory=dict)
     authns: dict[OIDCState, RP_AuthnRequest] = Field(default_factory=dict)
 
+    @field_serializer("authns")
+    def authns_cleanup(self, authns: dict[OIDCState, RP_AuthnRequest]) -> dict[OIDCState, Any]:
+        if len(authns) > MAX_AUTHNS_TO_KEEP:
+            items = sorted(authns.items(), reverse=True, key=lambda item: item[1].created_ts)
+            authns = dict(items[:MAX_AUTHNS_TO_KEEP])
+        return {k: v.model_dump() for k, v in authns.items()}
+
 
 class SvipeIDNamespace(SessionNSBase):
     rp: RPAuthnData = Field(default=RPAuthnData())
@@ -333,6 +343,15 @@ class BankIDNamespace(SessionNSBase):
 
 class FrejaEIDNamespace(SessionNSBase):
     rp: RPAuthnData = Field(default=RPAuthnData())
+
+
+class OrcidNamespace(SessionNSBase):
+    rp: RPAuthnData = Field(default=RPAuthnData())
+    nonces: dict[OIDCState, str] = Field(default_factory=dict)
+
+    @field_serializer("nonces")
+    def nonces_cleanup(self, nonces: dict[OIDCState, str]) -> dict[OIDCState, str]:
+        return {k: v for k, v in nonces.items() if k in self.rp.authns}
 
 
 class SamlEidNamespace(SessionNSBase):

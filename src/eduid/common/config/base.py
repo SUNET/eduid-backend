@@ -370,6 +370,7 @@ class FrontendAction(Enum):
     ADD_SECURITY_KEY_AUTHN = "addSecurityKeyAuthn"
     CHANGE_PW_AUTHN = "changepwAuthn"
     CHANGE_SECURITY_PREFERENCES_AUTHN = "changeSecurityPreferencesAuthn"
+    CONNECT_ORCID = "connectOrcid"
     LOGIN = "login"
     LOGIN_MFA_AUTHN = "loginMfaAuthn"
     REMOVE_IDENTITY = "removeIdentity"
@@ -415,6 +416,9 @@ class FrontendActionMixin(BaseModel):
                 force_authn=True,
                 high_security=True,
                 allow_login_auth=True,
+                finish_url="https://eduid.se/profile/ext-return/{app_name}/{authn_id}",
+            ),
+            FrontendAction.CONNECT_ORCID: AuthnParameters(
                 finish_url="https://eduid.se/profile/ext-return/{app_name}/{authn_id}",
             ),
             FrontendAction.LOGIN: AuthnParameters(
