@@ -1,4 +1,5 @@
 {
+    "python.defaultInterpreterPath": "${workspaceFolder}/.venv/bin/python",
     "python.testing.pytestArgs": [
         "src"
     ],
@@ -8,10 +9,7 @@
         "editor.formatOnSave": true,
         "editor.defaultFormatter": "charliermarsh.ruff"
     },
-    "terminal.integrated.env.linux": {
-        "PYTHONPATH": "${workspaceFolder}/src"
-    },
-    "python.envFile": "${workspaceFolder}/.vscode/.env",
+    "mypy-type-checker.importStrategy": "fromEnvironment",
     "cSpell.words": [
         "accr",
         "amapi",
@@ -73,8 +71,5 @@
         "webauthn",
         "Werkzeug",
         "zxcvbn"
-    ],
-    "mypy-type-checker.args": [
-        "--ignore-missing-imports"
     ],
 }

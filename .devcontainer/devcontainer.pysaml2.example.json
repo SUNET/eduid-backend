@@ -1,0 +1,5 @@
+{
+	"mounts": [
+		"type=bind,source=${localWorkspaceFolder}/../pysaml2,target=/workspaces/pysaml2"
+	]
+}

@@ -11,7 +11,7 @@ Unless noted otherwise, code snippets in this document are illustrative and may 
 
 ## Project Overview
 
-eduID Backend is a Python 3.13 monorepo for Swedish federated identity management:
+eduID Backend is a Python monorepo for Swedish federated identity management:
 - **Flask web apps** (identity proofing, authentication, user management)
 - **FastAPI APIs** (SCIM, MACC)
 - **Celery workers** (background tasks)
@@ -28,16 +28,16 @@ Key technologies: Flask, FastAPI, Pydantic v2, MongoDB, Neo4j, Redis, Celery, SA
 make test
 
 # Run a single test file
-PYTHONPATH=src pytest -vvv src/eduid/webapp/freja_eid/tests/test_app.py
+pytest -vvv src/eduid/webapp/freja_eid/tests/test_app.py
 
 # Run a specific test class
-PYTHONPATH=src pytest -vvv src/eduid/webapp/freja_eid/tests/test_app.py::FrejaEIDTests
+pytest -vvv src/eduid/webapp/freja_eid/tests/test_app.py::FrejaEIDTests
 
 # Run a specific test method
-PYTHONPATH=src pytest -vvv src/eduid/webapp/freja_eid/tests/test_app.py::FrejaEIDTests::test_app_starts
+pytest -vvv src/eduid/webapp/freja_eid/tests/test_app.py::FrejaEIDTests::test_app_starts
 
 # Run tests matching a pattern
-PYTHONPATH=src pytest -vvv -k "test_verify" src/eduid/webapp/freja_eid/tests/
+pytest -vvv -k "test_verify" src/eduid/webapp/freja_eid/tests/
 ```
 
 Tests require Docker services (MongoDB, Redis, Neo4j, SMTP). Tests auto-start containers as needed.
@@ -73,6 +73,7 @@ Dependency metadata is also centralized in [pyproject.toml](pyproject.toml). The
 remain the install artifacts used by CI and local setup, while `requirements/*.in` has been removed.
 It will never be necessary to build a package out of this repo; [pyproject.toml](pyproject.toml) is used here as the
 source of truth for dependency and tool metadata.
+The repo is installed into `.venv` in editable mode only so imports, IDEs, and type checkers resolve code consistently without `PYTHONPATH=src`.
 
 ### Dependency Updates
 
@@ -91,6 +92,24 @@ make update_deps
 
 This regenerates the compiled lockfiles in `requirements/*.txt` from [pyproject.toml](pyproject.toml) using the
 profiles and groups defined there.
+
+### Bootstrap Contract
+
+Bootstrap requires a working `uv` executable on `PATH`.
+`uv` resolves and provisions an interpreter that satisfies the requirement
+declared in [pyproject.toml](pyproject.toml) itself.
+
+The Python bootstrap contract is shared across:
+
+- [Makefile](Makefile)
+- [pyproject.toml](pyproject.toml)
+- [doc/python-bootstrap.md](doc/python-bootstrap.md)
+
+These files must be treated as a coupled unit.
+
+- Changes to the bootstrap decision flow in [Makefile](Makefile) must stay consistent with how [pyproject.toml](pyproject.toml) declares `requires-python`.
+- Changes to the repository Python baseline or `requires-python` semantics in [pyproject.toml](pyproject.toml) must be reflected in [Makefile](Makefile) and [doc/python-bootstrap.md](doc/python-bootstrap.md).
+- If bootstrap behavior changes, update the developer-facing instructions in [doc/python-bootstrap.md](doc/python-bootstrap.md) and any nearby setup guidance in [doc/development.md](doc/development.md) in the same change.
 
 ## Code Style Guidelines
 
@@ -367,7 +386,7 @@ src/eduid/
 
 - Configuration lives in [pyproject.toml](pyproject.toml)
 - Line length: 120 characters
-- Target: Python 3.13
+- Target: the Python baseline declared in [pyproject.toml](pyproject.toml)
 - Key rules: ANN, ASYNC, E, F, I (Ruff import sorting, replacing standalone isort), PERF, UP (pyupgrade)
 - Magic numbers allowed in test files (PLR2004 ignored)
 

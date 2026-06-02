@@ -25,3 +25,6 @@ eduid-backend.code-workspace
 .venv
 .worktrees
 .claude/worktrees
+.continue
+.pytest_cache
+.ruff_cache
