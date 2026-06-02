@@ -19,6 +19,20 @@ logger = logging.getLogger(__name__)
 COORDINATION_NUMBER_OFFSET = 60
 
 
+def nin_to_date_of_birth(nin: str) -> datetime:
+    """Parse the 8-digit date prefix of a Swedish NIN or coordination number.
+
+    Coordination numbers add 60 to the day part (61-91); subtract the offset before
+    constructing the datetime.
+    """
+    year = int(nin[:4])
+    month = int(nin[4:6])
+    day = int(nin[6:8])
+    if day > COORDINATION_NUMBER_OFFSET:
+        day -= COORDINATION_NUMBER_OFFSET
+    return datetime(year=year, month=month, day=day, tzinfo=UTC)
+
+
 class IdentityType(StrEnum):
     NIN = "nin"
     EIDAS = "eidas"
@@ -322,14 +336,7 @@ class IdentityList(VerifiedElementList[IdentityElement]):
                 return self.nin.date_of_birth
             # Fall back to parsing NIN
             try:
-                try:
-                    return datetime.strptime(self.nin.number[:8], "%Y%m%d").replace(tzinfo=UTC)
-                except ValueError:
-                    # the nin might be a coordination number
-                    day = int(self.nin.number[6:8])
-                    if day > COORDINATION_NUMBER_OFFSET:  # coordination number day is 61-91
-                        day = day - COORDINATION_NUMBER_OFFSET
-                    return datetime.strptime(self.nin.number[:6] + str(day).zfill(2), "%Y%m%d").replace(tzinfo=UTC)
+                return nin_to_date_of_birth(self.nin.number)
             except ValueError:
                 logger.exception("Unable to parse user nin to date of birth")
                 logger.debug(f"User nins: {self.nin}")

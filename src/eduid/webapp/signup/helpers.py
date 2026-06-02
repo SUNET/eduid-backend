@@ -7,7 +7,7 @@ from enum import StrEnum, unique
 import proquint  # type: ignore[import-untyped]
 from flask import abort
 
-from eduid.common.config.base import EduidEnvironment
+from eduid.common.config.base import EduidEnvironment, FrontendAction
 from eduid.common.misc.timeutil import utc_now
 from eduid.common.models.scim_base import Email, SCIMSchema
 from eduid.common.models.scim_base import PhoneNumber as ScimPhoneNumber
@@ -18,6 +18,11 @@ from eduid.queue.db.message import EduidSignupEmail
 from eduid.userdb import MailAddress, NinIdentity, PhoneNumber, Profile, User
 from eduid.userdb.credentials import Webauthn
 from eduid.userdb.exceptions import UserDoesNotExist, UserOutOfSync
+from eduid.userdb.identity import (
+    EIDASIdentity,
+    EIDASLoa,
+    FrejaIdentity,
+)
 from eduid.userdb.logs import MailAddressProofing
 from eduid.userdb.signup import Invite, InviteType, SCIMReference, SignupUser
 from eduid.userdb.tou import ToUEvent
@@ -29,7 +34,24 @@ from eduid.webapp.common.api.validation import is_valid_password
 from eduid.webapp.common.authn.vccs import add_password, revoke_passwords
 from eduid.webapp.common.authn.webauthn import AuthenticatorInformation, save_webauthn_proofing_log
 from eduid.webapp.common.session import session
+from eduid.webapp.common.session.namespaces import (
+    ExternalMfaSignupBankIDIdentity,
+    ExternalMfaSignupEIDASIdentity,
+    ExternalMfaSignupFrejaEIDForeignIdentity,
+    ExternalMfaSignupFrejaEIDIdentity,
+    ExternalMfaSignupSwedenConnectIdentity,
+    RP_AuthnRequest,
+    SignupExternalMfa,
+    SP_AuthnRequest,
+)
 from eduid.webapp.signup.app import current_signup_app as current_app
+from eduid.webapp.signup.proofing import (
+    build_external_credential,
+    identity_proofing_method_for_framework,
+    identity_proofing_version_for_framework,
+    maybe_verify_webauthn_credential,
+    write_external_mfa_proofing_log,
+)
 
 
 @unique
@@ -82,6 +104,14 @@ class SignupMsg(TranslatableMsg):
     invite_already_completed = "signup.invite-already-completed"
     # IdP request ref not found in session
     idp_request_ref_not_found = "signup.idp-request-ref-not-found"
+
+    # external MFA signup
+    external_mfa_not_found = "signup.external-mfa-not-found"
+    external_mfa_not_verified = "signup.external-mfa-not-verified"
+    external_mfa_too_old = "signup.external-mfa-too-old"
+    external_mfa_already_consumed = "signup.external-mfa-already-consumed"
+    external_mfa_wrong_action = "signup.external-mfa-wrong-action"
+    identity_already_registered = "signup.identity-already-registered"
 
     # backwards compatibility
     # partial success registering new account
@@ -218,6 +248,8 @@ def create_and_sync_user(
     custom_password: str | None = None,
     webauthn: Webauthn | None = None,
     webauthn_authenticator_info: AuthenticatorInformation | None = None,
+    external_mfa: SignupExternalMfa | None = None,
+    webauthn_registered_at: datetime | None = None,
 ) -> SignupUser:
     """
     * Create a new user in the central userdb
@@ -257,7 +289,16 @@ def create_and_sync_user(
             raise VCCSBackendFailure("Failed to add a credential to user")
 
     if webauthn is not None:
-        signup_user.credentials.add(webauthn)
+        record_webauthn_credential(
+            signup_user=signup_user, webauthn=webauthn, webauthn_authenticator_info=webauthn_authenticator_info
+        )
+
+    if external_mfa is not None and write_external_mfa_proofing_log(signup_user, external_mfa):
+        record_user_identity(signup_user=signup_user, external_mfa=external_mfa)
+
+    # If the user registered a security key and verified their identity via external MFA,
+    # and both happened recently enough, mark the security key as verified too.
+    maybe_verify_webauthn_credential(signup_user, webauthn, webauthn_registered_at, external_mfa)
 
     try:
         save_and_sync_user(signup_user)
@@ -265,18 +306,6 @@ def create_and_sync_user(
         revoke_passwords(user=signup_user, reason="UserOutOfSync during signup", application=current_app.conf.app_name)
         current_app.logger.error(f"Failed saving user {signup_user}, data out of sync")
         raise e
-
-    # Write webauthn proofing log after user is saved (eppn exists in DB)
-    if webauthn is not None and webauthn_authenticator_info is not None and webauthn.mfa_approved:
-        if not save_webauthn_proofing_log(
-            eppn=signup_user.eppn,
-            authenticator_info=webauthn_authenticator_info,
-            proofing_log=current_app.proofing_log,
-            app_name=current_app.conf.app_name,
-            proofing_version=current_app.conf.webauthn_proofing_version,
-            proofing_method=current_app.conf.webauthn_proofing_method,
-        ):
-            current_app.logger.error("Failed to save webauthn proofing log")
 
     current_app.stats.count(name="user_created")
     current_app.logger.info("Signup user created")
@@ -330,6 +359,91 @@ def record_email_address(signup_user: SignupUser, email: str) -> None:
 
     signup_user.mail_addresses.add(mail_address)
     current_app.stats.count(name="mail_verified")
+
+
+def record_webauthn_credential(
+    signup_user: SignupUser, webauthn: Webauthn, webauthn_authenticator_info: AuthenticatorInformation | None = None
+) -> None:
+    # Need to write proofing log for mfa_approved credentials
+    if webauthn.mfa_approved:
+        if webauthn_authenticator_info is None:
+            raise RuntimeError("missing authenticator info for mfa approved webauthn credential")
+        if not save_webauthn_proofing_log(
+            eppn=signup_user.eppn,
+            authenticator_info=webauthn_authenticator_info,
+            proofing_log=current_app.proofing_log,
+            app_name=current_app.conf.app_name,
+            proofing_version=current_app.conf.webauthn_proofing_version,
+            proofing_method=current_app.conf.webauthn_proofing_method,
+        ):
+            current_app.logger.error("Failed to save webauthn proofing log")
+            raise ProofingLogFailure("Failed to save webauthn proofing log")
+    # add credential to user
+    signup_user.credentials.add(webauthn)
+
+
+def record_user_identity(signup_user: SignupUser, external_mfa: SignupExternalMfa) -> None:
+    signup_user.credentials.add(
+        build_external_credential(
+            framework=external_mfa.ident.framework,
+            loa=external_mfa.loa,
+            created_by=current_app.conf.app_name,
+        )
+    )
+    identity_proofing_method = identity_proofing_method_for_framework(external_mfa.ident.framework)
+    identity_proofing_version = identity_proofing_version_for_framework(external_mfa.ident.framework)
+    match external_mfa.ident:
+        case (
+            ExternalMfaSignupBankIDIdentity()
+            | ExternalMfaSignupFrejaEIDIdentity()
+            | ExternalMfaSignupSwedenConnectIdentity()
+        ):
+            signup_user.identities.add(
+                NinIdentity(
+                    created_by=current_app.conf.app_name,
+                    is_verified=True,
+                    number=external_mfa.ident.nin,
+                    proofing_method=identity_proofing_method,
+                    proofing_version=identity_proofing_version,
+                    verified_by=current_app.conf.app_name,
+                    verified_ts=utc_now(),
+                )
+            )
+        case ExternalMfaSignupEIDASIdentity():
+            signup_user.identities.add(
+                EIDASIdentity(
+                    country_code=external_mfa.ident.country_code,
+                    created_by=current_app.conf.app_name,
+                    date_of_birth=external_mfa.ident.date_of_birth,
+                    is_verified=True,
+                    loa=EIDASLoa(external_mfa.loa),
+                    prid=external_mfa.ident.prid,
+                    prid_persistence=external_mfa.ident.prid_persistence,
+                    proofing_method=identity_proofing_method,
+                    proofing_version=identity_proofing_version,
+                    verified_by=current_app.conf.app_name,
+                    verified_ts=utc_now(),
+                )
+            )
+        case ExternalMfaSignupFrejaEIDForeignIdentity():
+            signup_user.identities.add(
+                FrejaIdentity(
+                    personal_identity_number=external_mfa.ident.personal_identity_number,
+                    country_code=external_mfa.ident.country_code,
+                    created_by=current_app.conf.app_name,
+                    date_of_birth=external_mfa.ident.date_of_birth,
+                    is_verified=True,
+                    proofing_method=identity_proofing_method,
+                    proofing_version=identity_proofing_version,
+                    user_id=external_mfa.ident.user_id,
+                    registration_level=external_mfa.ident.registration_level,
+                    loa_level=external_mfa.ident.loa_level,
+                    verified_by=current_app.conf.app_name,
+                )
+            )
+        case _:
+            current_app.logger.debug(f"Failing external mfa identity: {external_mfa.ident}")
+            current_app.logger.error(f"Unknown external mfa identity: {type(external_mfa.ident)}")
 
 
 def complete_and_update_invite(user: User, invite_code: str) -> None:
@@ -479,6 +593,56 @@ def is_valid_custom_password(custom_password: str | None) -> bool:
         return False
 
     return True
+
+
+def get_webauthn_credential_data() -> tuple[Webauthn, AuthenticatorInformation]:
+    wn = session.signup.credentials.webauthn
+    if wn is None:
+        raise RuntimeError("webauthn credential data not set")
+    webauthn_credential = Webauthn(
+        keyhandle=wn.keyhandle,
+        credential_data=wn.credential_data,
+        authenticator_id=wn.authenticator_id,
+        authenticator=wn.authenticator,
+        app_id=current_app.conf.fido2_rp_id,
+        description=wn.description,
+        created_by=current_app.conf.app_name,
+        mfa_approved=wn.mfa_approved,
+        webauthn_proofing_version=current_app.conf.webauthn_proofing_version,
+        attestation_format=wn.attestation_format,
+    )
+    webauthn_authenticator_info = AuthenticatorInformation(
+        authenticator_id=wn.authenticator_id,
+        attestation_format=wn.attestation_format,
+        user_present=wn.user_present,
+        user_verified=wn.user_verified,
+        user_verification_methods=wn.user_verification_methods,
+        key_protection=wn.key_protection,
+    )
+    return webauthn_credential, webauthn_authenticator_info
+
+
+def validate_external_mfa_authn(
+    authn: SP_AuthnRequest | RP_AuthnRequest,
+) -> SignupMsg | None:
+    if authn.frontend_action != FrontendAction.SIGNUP_EXTERNAL_MFA:
+        return SignupMsg.external_mfa_wrong_action
+    if authn.error:
+        current_app.logger.error(authn.error)
+        return SignupMsg.external_mfa_not_verified
+    if authn.external_mfa_signup_identity is None:
+        current_app.logger.error("No external mfa identity provided")
+        return SignupMsg.external_mfa_not_verified
+    if authn.consumed:
+        current_app.logger.error("Authn request already consumed")
+        return SignupMsg.external_mfa_already_consumed
+    if authn.authn_instant is None:
+        current_app.logger.error("No authn_instant provided")
+        return SignupMsg.external_mfa_not_verified
+    max_age = current_app.conf.frontend_action_authn_parameters[FrontendAction.SIGNUP_EXTERNAL_MFA].max_age
+    if utc_now() - authn.authn_instant > max_age:
+        return SignupMsg.external_mfa_too_old
+    return None
 
 
 # backwards compatibility

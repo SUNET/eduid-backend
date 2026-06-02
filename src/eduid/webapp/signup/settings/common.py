@@ -10,6 +10,7 @@ from eduid.common.config.base import (
     Fido2RpConfigMixin,
     MagicCookieMixin,
     PasswordConfigMixin,
+    ProofingConfigMixin,
     TouConfigMixin,
     VCCSConfigMixin,
     WebauthnRegistrationConfigMixin,
@@ -27,6 +28,7 @@ class SignupConfig(
     VCCSConfigMixin,
     Fido2RpConfigMixin,
     WebauthnRegistrationConfigMixin,
+    ProofingConfigMixin,
 ):
     """
     Configuration for the signup app
@@ -48,4 +50,5 @@ class SignupConfig(
     eduid_site_name: str = "eduID"
     scim_api_url: AnyUrlStr | None = None
     gnap_auth_data: GNAPClientAuthData | None = None
+    credential_verify_max_age: timedelta = Field(default=timedelta(minutes=5))
     eduid_scope: str = "eduid.se"

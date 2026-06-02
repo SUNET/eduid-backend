@@ -52,6 +52,15 @@ class SignupStatusResponse(FluxStandardAction):
                 webauthn_is_discoverable = fields.Boolean(required=True, dump_default=False)
                 webauthn_description = fields.String(required=True, dump_default=None)
 
+            class ExternalMfa(EduidSchema):
+                completed = fields.Boolean(required=True)
+                app_name = fields.String(required=True, dump_default=None)
+                given_name = fields.String(required=True, dump_default=None)
+                surname = fields.String(required=True, dump_default=None)
+                date_of_birth = fields.Date(required=True, dump_default=None)
+                masked_nin = fields.String(required=True, dump_default=None)
+                country_code = fields.String(required=True, dump_default=None)
+
             class ServiceInfo(EduidSchema):
                 class DisplayName(EduidSchema):
                     en = fields.String(required=False)
@@ -66,6 +75,7 @@ class SignupStatusResponse(FluxStandardAction):
             tou = fields.Nested(Tou, required=True)
             captcha = fields.Nested(Captcha, required=True)
             credentials = fields.Nested(Credentials, required=True)
+            external_mfa = fields.Nested(ExternalMfa, required=True)
             user_created = fields.Boolean(required=True)
             idp_request_ref = fields.String(required=False, load_default=None)
             idp_service_info = fields.Nested(nested=ServiceInfo, required=False, load_default=None)
@@ -126,6 +136,20 @@ class SignupStatusResponse(FluxStandardAction):
             credentials["webauthn_registered"] = bool(webauthn)
             credentials["webauthn_is_discoverable"] = bool(webauthn and webauthn.get("is_discoverable"))
             credentials["webauthn_description"] = webauthn.get("description") if webauthn else None
+        return out_data
+
+    @pre_dump
+    def set_external_mfa(self, out_data: dict[str, Any], **kwargs: Any) -> dict[str, Any]:
+        if ext := out_data.get("payload", {}).get("state", {}).get("external_mfa"):
+            if ident := ext.get("ident"):
+                ext["given_name"] = ident.get("given_name")
+                ext["surname"] = ident.get("surname")
+                ext["date_of_birth"] = ident.get("date_of_birth")
+                ext["country_code"] = ident.get("country_code")
+                ext["masked_nin"] = None
+                if nin := ident.get("nin"):
+                    masked_nin = f"{nin[:6]}**-****"
+                    ext["masked_nin"] = masked_nin
         return out_data
 
 
@@ -195,3 +219,8 @@ class WebauthnRegisterCompleteRequest(EduidSchema, CSRFRequestMixin):
 class ReturnToAuthRequest(EduidSchema, CSRFRequestMixin):
     ref = fields.String(required=True)
     service_info = fields.Dict(required=True)
+
+
+class ExternalMfaRegisterRequest(EduidSchema, CSRFRequestMixin):
+    app_name = fields.String(required=True)
+    authn_id = fields.String(required=True)

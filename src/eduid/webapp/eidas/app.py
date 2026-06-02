@@ -64,6 +64,7 @@ def init_eidas_app(name: str = "eidas", test_config: Mapping[str, Any] | None = 
             "/saml2-acs",
             "/mfa-authentication",
             "/mfa-authenticate",
+            "/mfa-register",
             "/get-status",
         ],
     )

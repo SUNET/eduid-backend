@@ -8,3 +8,4 @@ class FrejaEIDAction(StrEnum):
     verify_identity = "verify-identity-action"
     verify_credential = "verify-credential-action"
     mfa_authenticate = "mfa-authenticate-action"
+    mfa_register = "mfa-register-action"
