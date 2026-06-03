@@ -769,6 +769,7 @@ class ExternalMfaSignupTests(ExternalMfaSignupTestsBase):
                     },
                     "external_mfa": {
                         "completed": True,
+                        "method": "bankid",
                         "app_name": "bankid",
                         "given_name": "Anna",
                         "surname": "Andersson",
