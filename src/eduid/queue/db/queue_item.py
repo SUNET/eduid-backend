@@ -54,12 +54,15 @@ class QueueItem:
     def from_dict(cls, data: Mapping[str, Any]) -> "QueueItem":
         data = dict(data)
         item_id = data.pop("_id")
+        created_ts = data.pop("created_ts")
         processed_by = data.pop("processed_by", None)
         processed_ts = data.pop("processed_ts", None)
+        retries = data.pop("retries", 0)
         sender_info = SenderInfo.from_dict(data["sender_info"])
         payload = RawPayload.from_dict(data["payload"])
         return cls(
             item_id=item_id,
+            created_ts=created_ts,
             payload_type=data["payload_type"],
             version=data["version"],
             expires_at=data["expires_at"],
@@ -68,4 +71,5 @@ class QueueItem:
             payload=payload,
             processed_by=processed_by,
             processed_ts=processed_ts,
+            retries=retries,
         )

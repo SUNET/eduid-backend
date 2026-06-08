@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 import random
 import shutil
+import socket
 import subprocess
 import tempfile
 import time
@@ -15,13 +16,30 @@ from eduid.common.misc.timeutil import utc_now
 logger = logging.getLogger(__name__)
 
 
+def get_available_port(min_port: int = 40000, max_port: int = 65535, exclude: set[int] | None = None) -> int:
+    if min_port > max_port:
+        raise ValueError("min_port must be less than or equal to max_port")
+    excluded_ports = exclude or set()
+    for _ in range(100):
+        port = random.randint(min_port, max_port)
+        if port in excluded_ports:
+            continue
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+            try:
+                sock.bind(("127.0.0.1", port))
+            except OSError:
+                continue
+        return port
+    raise RuntimeError(f"Failed to find a free port in range {min_port}-{max_port}")
+
+
 class EduidTemporaryInstance(ABC):
     """Manage a temporary instance of something needed when testing."""
 
     def __init__(self, max_retry_seconds: int) -> None:
         self._conn: Any | None = None  # self._conn should be initialised by subclasses in `setup_conn'
         self._tmpdir = tempfile.mkdtemp()
-        self._port = random.randint(40000, 65535)
+        self._port = get_available_port()
         self._logfile = open(f"/tmp/{self.__class__.__name__}-{self.port}.log", "w")  # noqa: SIM115
 
         start_time = utc_now()
