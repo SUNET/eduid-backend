@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import os
+import random
 from collections.abc import Iterator
 
 import pytest
@@ -10,6 +12,8 @@ from eduid.userdb.db.async_db import AsyncClientCache
 from eduid.userdb.testing import MongoTemporaryInstance
 from eduid.webapp.common.session.testing import RedisTemporaryInstance
 
+random.seed(os.urandom(8))
+
 
 @pytest.fixture
 def isolated_async_client_cache() -> Iterator[None]:
@@ -19,6 +23,8 @@ def isolated_async_client_cache() -> Iterator[None]:
     try:
         yield
     finally:
+        for client in AsyncClientCache._clients.values():
+            client.close()
         AsyncClientCache._clients = old
 
 

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
+import contextlib
 import logging
-import random
 import shutil
 import subprocess
 import tempfile
@@ -21,7 +21,14 @@ class EduidTemporaryInstance(ABC):
     def __init__(self, max_retry_seconds: int) -> None:
         self._conn: Any | None = None  # self._conn should be initialised by subclasses in `setup_conn'
         self._tmpdir = tempfile.mkdtemp()
+
+        # Use an ephemeral port or seed random per-process to avoid xdist collisions
+        import os
+        import random
+
+        random.seed(os.urandom(8))
         self._port = random.randint(40000, 65535)
+
         self._logfile = open(f"/tmp/{self.__class__.__name__}-{self.port}.log", "w")  # noqa: SIM115
 
         start_time = utc_now()
@@ -100,13 +107,17 @@ class EduidTemporaryInstance(ABC):
                     break
 
             if container_name:
-                # Non-blocking: docker kill is slow in this environment so we do not wait.
-                # The child will be reaped by init when pytest exits (not by us), leaving
-                # a brief zombie entry — acceptable since only one container runs per session.
-                subprocess.Popen(
-                    ["docker", "kill", container_name], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
+                # Use blocking docker stop instead of rm -f or kill
+                # to gracefully terminate MongoDB/Neo4j and avoid daemon panic (Exit 139)
+                subprocess.run(
+                    ["docker", "stop", "-t", "5", container_name],
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                    check=False,
                 )
-                self._process.terminate()
+            self._process.terminate()
+            with contextlib.suppress(subprocess.TimeoutExpired):
+                self._process.wait(timeout=5)
 
         if hasattr(self, "_logfile") and self._logfile and not self._logfile.closed:
             self._logfile.flush()

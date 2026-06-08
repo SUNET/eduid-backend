@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import logging
-import random
 from collections.abc import Sequence
 from os import environ
 from typing import cast
@@ -40,6 +39,10 @@ class Neo4jTemporaryInstance(EduidTemporaryInstance):
     DEFAULT_PASSWORD = "testingtesting"
 
     def __init__(self, max_retry_seconds: int = 60, neo4j_version: str = NEO4J_VERSION) -> None:
+        import os
+        import random
+
+        random.seed(os.urandom(8))
         self._http_port = random.randint(40000, 44999)
         self._https_port = random.randint(45000, 54999)
         self._bolt_port = random.randint(55000, 64999)
