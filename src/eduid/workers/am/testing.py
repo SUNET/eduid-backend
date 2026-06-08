@@ -140,7 +140,7 @@ class AMTestCase(WorkerTestCase):
         yield
         for fetcher in AmCelerySingleton.af_registry.all_fetchers():
             if fetcher.private_db:
-                fetcher.private_db._drop_whole_collection()
+                fetcher.private_db._coll.delete_many({})
 
 
 class ProofingTestCase(AMTestCase):
