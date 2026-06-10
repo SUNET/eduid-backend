@@ -224,3 +224,7 @@ class ReturnToAuthRequest(EduidSchema, CSRFRequestMixin):
 class ExternalMfaRegisterRequest(EduidSchema, CSRFRequestMixin):
     app_name = fields.String(required=True)
     authn_id = fields.String(required=True)
+    # Set by the frontend after the user confirms creating a new account with an
+    # identity that already belongs to an existing user. The AM worker moves the
+    # verified identity off the old account on sync.
+    confirm_replace = fields.Boolean(load_default=False)

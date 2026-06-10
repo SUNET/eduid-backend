@@ -434,7 +434,7 @@ def return_to_auth(ref: str, service_info: dict[str, dict[str, str]]) -> FluxDat
 @UnmarshalWith(ExternalMfaRegisterRequest)
 @MarshalWith(SignupStatusResponse)
 @require_not_logged_in
-def external_mfa_register(app_name: str, authn_id: str) -> FluxData:
+def external_mfa_register(app_name: str, authn_id: str, confirm_replace: bool = False) -> FluxData:
     """Store a successful external-MFA authn on the signup session.
 
     The frontend hits ``/profile/ext-return/{app_name}/{authn_id}`` after the
@@ -463,8 +463,16 @@ def external_mfa_register(app_name: str, authn_id: str) -> FluxData:
         raise RuntimeError("No external MFA signup identity")
 
     if existing_user_for_identity(ident=ident) is not None:
-        current_app.logger.info(f"External MFA signup blocked: identity already registered ({app_name})")
-        return error_response(message=SignupMsg.identity_already_registered)
+        if not confirm_replace:
+            # Ask the user to confirm. On confirmation the frontend re-posts with
+            # confirm_replace=True and signup proceeds; the AM worker moves the
+            # verified identity off the existing account on sync.
+            current_app.logger.info(f"External MFA signup needs confirmation: identity already registered ({app_name})")
+            return error_response(message=SignupMsg.identity_already_registered)
+        current_app.logger.info(
+            f"External MFA signup confirmed despite identity already registered ({app_name}); "
+            "new account will be created and the identity replaced by the AM worker"
+        )
 
     _authn_id: AuthnRequestRef | OIDCState
     match authn:
@@ -557,9 +565,13 @@ def _check_credentials_selected(use_password: bool, use_webauthn: bool, custom_p
 def _check_external_mfa_still_valid() -> FluxData | None:
     """Re-validate any stored external MFA at /create-user time.
 
-    The authn's freshness (max_age) and the identity collision are checked at
-    /external-mfa-register, but /create-user can happen an arbitrary time later.
-    Re-check so a stale or now-superseded authn can't be used to finish signup."""
+    The authn's freshness (max_age) is checked at /external-mfa-register, but
+    /create-user can happen an arbitrary time later. Re-check so a stale authn
+    can't be used to finish signup.
+
+    Identity collision is intentionally not re-checked here: it is allowed by
+    design (the user confirmed at /external-mfa-register) and the AM worker
+    handles replacing the identity on sync regardless of timing."""
     ext = session.signup.external_mfa
     if ext is None:
         return None
@@ -568,12 +580,6 @@ def _check_external_mfa_still_valid() -> FluxData | None:
         current_app.logger.info("External MFA signup blocked: authn too old at create-user time")
         session.signup.external_mfa = None
         return error_response(message=SignupMsg.external_mfa_too_old)
-    if existing_user_for_identity(ext.ident) is not None:
-        current_app.logger.info(
-            "External MFA signup blocked: identity registered between /external-mfa-register and /create-user"
-        )
-        session.signup.external_mfa = None
-        return error_response(message=SignupMsg.identity_already_registered)
     return None
 
 
