@@ -157,7 +157,6 @@ def _write_credential_verification_proofing_log(
 ) -> bool:
     """Write a proofing log entry for a webauthn credential verified via external MFA during signup."""
     app_name = current_app.conf.app_name
-    method = external_mfa.app_name
     version = _credential_proofing_version_for_identity(external_mfa.ident)
 
     entry: (
@@ -176,7 +175,6 @@ def _write_credential_verification_proofing_log(
                 given_name=external_mfa.ident.given_name,
                 key_id=credential_id,
                 nin=external_mfa.ident.nin,
-                proofing_method=method,
                 proofing_version=version,
                 surname=external_mfa.ident.surname,
                 transaction_id=external_mfa.ident.transaction_id,
@@ -190,7 +188,6 @@ def _write_credential_verification_proofing_log(
                 issuer=external_mfa.ident.issuer,
                 key_id=credential_id,
                 nin=external_mfa.ident.nin,
-                proofing_method=method,
                 proofing_version=version,
                 surname=external_mfa.ident.surname,
             )
@@ -207,7 +204,6 @@ def _write_credential_verification_proofing_log(
                 key_id=credential_id,
                 prid=external_mfa.ident.prid,
                 prid_persistence=external_mfa.ident.prid_persistence,
-                proofing_method=method,
                 proofing_version=version,
                 surname=external_mfa.ident.surname,
                 transaction_identifier=external_mfa.ident.transaction_id,
@@ -221,7 +217,6 @@ def _write_credential_verification_proofing_log(
                 given_name=external_mfa.ident.given_name,
                 key_id=credential_id,
                 nin=external_mfa.ident.nin,
-                proofing_method=method,
                 proofing_version=version,
                 surname=external_mfa.ident.surname,
                 transaction_id=external_mfa.ident.transaction_id,
@@ -238,7 +233,6 @@ def _write_credential_verification_proofing_log(
                 given_name=external_mfa.ident.given_name,
                 issuing_country=external_mfa.ident.issuing_country,
                 key_id=credential_id,
-                proofing_method=method,
                 proofing_version=version,
                 surname=external_mfa.ident.surname,
                 transaction_id=external_mfa.ident.transaction_id,

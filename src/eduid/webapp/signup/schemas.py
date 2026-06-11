@@ -55,6 +55,7 @@ class SignupStatusResponse(FluxStandardAction):
             class ExternalMfa(EduidSchema):
                 completed = fields.Boolean(required=True)
                 app_name = fields.String(required=True, dump_default=None)
+                method = fields.String(required=True, dump_default=None)
                 given_name = fields.String(required=True, dump_default=None)
                 surname = fields.String(required=True, dump_default=None)
                 date_of_birth = fields.Date(required=True, dump_default=None)
