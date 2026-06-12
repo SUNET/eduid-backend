@@ -170,11 +170,16 @@ class ExternalMfaSignupTestsBase(BaseSignupTests):
             with client.session_transaction() as sess:
                 sess.freja_eid.rp.authns[OIDCState(authn_id)] = req
 
-    def _call_external_mfa_register(self, app_name: str, authn_id: str) -> TestResponse:
+    def _call_external_mfa_register(self, app_name: str, authn_id: str, confirm_replace: bool = False) -> TestResponse:
         with self.session_cookie_anon(self.browser) as client:
             with client.session_transaction() as sess:
                 csrf_token = sess.get_csrf_token()
-            data = {"app_name": app_name, "authn_id": authn_id, "csrf_token": csrf_token}
+            data = {
+                "app_name": app_name,
+                "authn_id": authn_id,
+                "confirm_replace": confirm_replace,
+                "csrf_token": csrf_token,
+            }
             return client.post(
                 "/external-mfa-register",
                 data=json.dumps(data),
@@ -543,6 +548,29 @@ class ExternalMfaSignupTests(ExternalMfaSignupTestsBase):
                 # collision => nothing stored, nothing consumed
                 assert sess.signup.external_mfa is None
                 assert sess.bankid.sp.authns[AuthnRequestRef("authn-1")].consumed is False
+
+    def test_nin_collision_confirm_replace(self) -> None:
+        """With confirm_replace=True the collision is allowed: identity is stored despite the existing user.
+
+        The new account is created with the colliding NIN; the AM worker handles moving the
+        verified identity off the old account on sync.
+        """
+        existing = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
+        assert existing is not None
+        assert existing.identities.nin is not None
+        collision_nin = existing.identities.nin.number  # "197801011234"
+
+        self._seed_bankid_authn(nin=collision_nin)
+        response = self._call_external_mfa_register("bankid", "authn-1", confirm_replace=True)
+        assert response.status_code == 200
+        state = self.get_response_payload(response)["state"]
+        assert state["external_mfa"]["completed"] is True
+
+        with self.session_cookie_anon(self.browser) as client:
+            with client.session_transaction() as sess:
+                # confirmed => stored and consumed
+                assert sess.signup.external_mfa is not None
+                assert sess.bankid.sp.authns[AuthnRequestRef("authn-1")].consumed is True
 
     def test_prid_collision(self) -> None:
         """Signup is hard-blocked when eIDAS PRID already belongs to an existing verified user.
@@ -1076,9 +1104,13 @@ class ExternalMfaSignupTests(ExternalMfaSignupTestsBase):
                 assert sess.signup.external_mfa is None
                 assert sess.signup.user_created is False
 
-    def test_create_user_rejects_identity_registered_since(self) -> None:
-        """Identity that becomes taken between /external-mfa-register and /create-user
-        is rejected at /create-user time."""
+    def test_create_user_allows_identity_registered_since(self) -> None:
+        """Identity collision is not re-checked at /create-user.
+
+        Even if the identity becomes taken between /external-mfa-register and
+        /create-user, user creation proceeds: the collision is allowed by design
+        (the user confirmed at register) and the AM worker moves the verified
+        identity off the existing account on sync."""
         self._seed_bankid_authn(nin="198001011234", authn_id="authn-1")
         self._call_external_mfa_register("bankid", "authn-1")
 
@@ -1087,11 +1119,12 @@ class ExternalMfaSignupTests(ExternalMfaSignupTestsBase):
         existing = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
         assert existing is not None
         assert existing.identities.nin is not None
+        collision_nin = existing.identities.nin.number
         with self.session_cookie_anon(self.browser) as client:
             with client.session_transaction() as sess:
                 assert sess.signup.external_mfa is not None
                 assert isinstance(sess.signup.external_mfa.ident, ExternalMfaSignupBankIDIdentity)
-                sess.signup.external_mfa.ident.nin = existing.identities.nin.number
+                sess.signup.external_mfa.ident.nin = collision_nin
 
         self._prepare_for_create_user(
             given_name="Anna",
@@ -1099,14 +1132,19 @@ class ExternalMfaSignupTests(ExternalMfaSignupTestsBase):
             email="anna.andersson@example.com",
         )
 
-        result = self._create_user(expect_success=False)
-        payload = self.get_response_payload(result.response)
-        assert payload["message"] == SignupMsg.identity_already_registered.value
+        # _create_user asserts user_created and a logged-in eppn internally
+        result = self._create_user()
+        assert result.response.status_code == 200
 
-        with self.session_cookie_anon(self.browser) as client:
-            with client.session_transaction() as sess:
-                assert sess.signup.external_mfa is None
-                assert sess.signup.user_created is False
+        # A new account exists with the signup email and the (colliding) verified
+        # NIN; it is distinct from the existing user. The AM worker resolves the
+        # duplicate identity on sync.
+        user = self.app.central_userdb.get_user_by_mail("anna.andersson@example.com")
+        assert user is not None
+        assert user.eppn != existing.eppn
+        assert user.identities.nin is not None
+        assert user.identities.nin.number == collision_nin
+        assert user.identities.nin.is_verified is True
 
 
 class ExternalMfaWebauthnVerificationTests(ExternalMfaSignupTestsBase):
