@@ -17,6 +17,7 @@ import re
 import socket
 from abc import ABC, abstractmethod
 from logging import Logger
+from typing import cast
 
 from eduid.common.config.base import StatsConfigMixin
 
@@ -96,22 +97,22 @@ class Statsd(AppStats):
             def __init__(self, host: str, port: int, prefix: str | None) -> None:
                 self._host = host
                 self._port = port
-                self._addr: tuple | None = None
+                self._addr: tuple[str, int] | None = None
                 self._sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
                 self._prefix = prefix
                 self._maxudpsize = 512
 
-            def _resolve(self) -> None:
-                _, _, _, _, self._addr = socket.getaddrinfo(self._host, self._port, socket.AF_INET, socket.SOCK_DGRAM)[
-                    0
-                ]
+            def _resolve(self) -> tuple[str, int]:
+                _, _, _, _, addr = socket.getaddrinfo(self._host, self._port, socket.AF_INET, socket.SOCK_DGRAM)[0]
+                # AF_INET sockaddr is always (host, port); getaddrinfo's stub types it as a union
+                return cast(tuple[str, int], addr)
 
             def _send(self, data: str) -> None:
                 try:
-                    if self._addr is None:
-                        self._resolve()
-                    assert self._addr is not None  # narrow for mypy; _resolve() always sets it
-                    self._sock.sendto(data.encode("ascii"), self._addr)
+                    addr = self._addr
+                    if addr is None:
+                        addr = self._addr = self._resolve()
+                    self._sock.sendto(data.encode("ascii"), addr)
                 except OSError:
                     # force re-resolution on next send (handles restart / new IP / late DNS)
                     self._addr = None
