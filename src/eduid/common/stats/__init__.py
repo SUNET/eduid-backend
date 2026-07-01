@@ -14,6 +14,7 @@ Example usage in some view:
 __author__ = "ft"
 
 import re
+import socket
 from abc import ABC, abstractmethod
 from logging import Logger
 
@@ -80,7 +81,42 @@ class Statsd(AppStats):
     def __init__(self, host: str, port: int, prefix: str | None = None) -> None:
         import statsd
 
-        self.client = statsd.StatsClient(host, port, prefix=prefix)
+        class _LazyStatsClient(statsd.StatsClient):
+            """
+            statsd.StatsClient resolves the host with getaddrinfo() in __init__ and caches
+            the address forever. Under docker compose the stats service name is resolved via
+            docker's embedded DNS, which is not guaranteed to be resolvable when a gunicorn
+            worker boots (boot race) and whose IP changes when the stats container restarts.
+
+            This subclass defers resolution to the first send and re-resolves after any send
+            failure, so startup never crashes on a transient DNS error and a restarted stats
+            container (new IP) is picked up automatically. UDP sends already fail silently.
+            """
+
+            def __init__(self, host: str, port: int, prefix: str | None) -> None:
+                self._host = host
+                self._port = port
+                self._addr: tuple | None = None
+                self._sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+                self._prefix = prefix
+                self._maxudpsize = 512
+
+            def _resolve(self) -> None:
+                _, _, _, _, self._addr = socket.getaddrinfo(self._host, self._port, socket.AF_INET, socket.SOCK_DGRAM)[
+                    0
+                ]
+
+            def _send(self, data: str) -> None:
+                try:
+                    if self._addr is None:
+                        self._resolve()
+                    assert self._addr is not None  # narrow for mypy; _resolve() always sets it
+                    self._sock.sendto(data.encode("ascii"), self._addr)
+                except OSError:
+                    # force re-resolution on next send (handles restart / new IP / late DNS)
+                    self._addr = None
+
+        self.client = _LazyStatsClient(host, port, prefix)
 
     def count(self, name: str, value: int = 1) -> None:
         name = self.clean_name(name)
