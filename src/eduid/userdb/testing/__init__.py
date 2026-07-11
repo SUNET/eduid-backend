@@ -36,6 +36,8 @@ class MongoTemporaryInstance(EduidTemporaryInstance):
             "docker",
             "run",
             "--rm",
+            "--ulimit",
+            "nofile=65536:65536",
             "-p",
             f"{self.port}:27017",
             "--name",
