@@ -23,17 +23,35 @@ class AsyncClientCache:
 
     _clients: ClassVar[dict[str, AsyncIOMotorClient]] = {}
 
+    @classmethod
+    def close_all(cls) -> None:
+        for client in cls._clients.values():
+            client.close()
+        cls._clients = {}
+
+    @staticmethod
+    def _is_closed(client: AsyncIOMotorClient) -> bool:
+        delegate = getattr(client, "delegate", None)
+        topology = getattr(delegate, "_topology", None)
+        return bool(getattr(topology, "_closed", False))
+
     def get_client(self, db: BaseMongoDB) -> AsyncIOMotorClient:
         db_args = db.db_args
         connection_uri: str = db_args["host"]
         if connection_uri in self._clients:
-            logger.debug(f"Reusing existing connection to {db}")
-            return self._clients[connection_uri]
+            client = self._clients[connection_uri]
+            if not self._is_closed(client):
+                logger.debug(f"Reusing existing connection to {db}")
+                return client
+
+            logger.debug(f"Discarding closed connection to {db}")
+            del self._clients[connection_uri]
         else:
             logger.debug(f"Creating new connection to {db}")
-            client = AsyncIOMotorClient(**db_args)
-            self._clients[connection_uri] = client
-            return client
+
+        client = AsyncIOMotorClient(**db_args)
+        self._clients[connection_uri] = client
+        return client
 
 
 class AsyncMongoDB(BaseMongoDB):
