@@ -69,7 +69,7 @@ class User(BaseModel):
     revoked_ts: datetime | None = None
     preferences: UserPreferences = Field(default_factory=UserPreferences)
     model_config = ConfigDict(
-        populate_by_name=True, validate_assignment=True, extra="forbid", arbitrary_types_allowed=True
+        validate_by_name=True, validate_assignment=True, extra="forbid", arbitrary_types_allowed=True
     )
 
     @property

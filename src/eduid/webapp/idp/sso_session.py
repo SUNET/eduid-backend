@@ -66,7 +66,7 @@ class SSOSession(BaseModel):
     expires_at: datetime = Field(default_factory=lambda: utc_now() + timedelta(minutes=5))
     obj_id: ObjectId = Field(default_factory=ObjectId, alias="_id")
     session_id: SSOSessionId = Field(default_factory=create_session_id)
-    model_config = ConfigDict(populate_by_name=True, arbitrary_types_allowed=True)
+    model_config = ConfigDict(validate_by_name=True, arbitrary_types_allowed=True)
 
     def __str__(self) -> str:
         # Session id allows impersonation if leaked, so only log a small part of it

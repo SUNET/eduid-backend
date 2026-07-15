@@ -105,7 +105,7 @@ class Element(BaseModel):
     no_created_ts_in_db: bool = Field(default=False, exclude=True)
     no_modified_ts_in_db: bool = Field(default=False, exclude=True)
     model_config = ConfigDict(
-        populate_by_name=True, validate_assignment=True, extra="forbid", arbitrary_types_allowed=True
+        validate_by_name=True, validate_assignment=True, extra="forbid", arbitrary_types_allowed=True
     )
 
     def __str__(self) -> str:
