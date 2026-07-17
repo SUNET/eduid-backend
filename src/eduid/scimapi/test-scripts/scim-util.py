@@ -34,7 +34,7 @@ def parse_args() -> Args:
     parser.add_argument(
         "--insecure", "-k", dest="insecure", action="store_true", default=False, help="Do not verify tls cert"
     )
-    parser.add_argument("file", metavar="FILE", type=argparse.FileType("r"), help="YAML file with command data in it")
+    parser.add_argument("file", metavar="FILE", help="YAML file with command data in it")
 
     return cast(Args, parser.parse_args())
 
@@ -359,7 +359,8 @@ def process_events(api: Api, ops: Mapping[str, Any]) -> None:
 
 
 def main(args: Args) -> bool:
-    data = yaml.safe_load(args.file)
+    with open(args.file) as f:
+        data = yaml.safe_load(f)
 
     logger.debug(f"Loaded command data: {pformat(data)}")
 
