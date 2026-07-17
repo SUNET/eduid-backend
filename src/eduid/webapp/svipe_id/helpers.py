@@ -61,7 +61,7 @@ class UserInfoBase(BaseModel):
     nbf: int
     sid: str
     sub: str
-    model_config = ConfigDict(extra="allow", populate_by_name=True)
+    model_config = ConfigDict(extra="allow", validate_by_name=True)
 
 
 class SvipeDocumentUserInfo(UserInfoBase):

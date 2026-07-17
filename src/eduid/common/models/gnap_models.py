@@ -18,7 +18,7 @@ __author__ = "lundberg"
 
 
 class GnapBaseModel(BaseModel):
-    model_config = ConfigDict(populate_by_name=True)
+    model_config = ConfigDict(validate_by_name=True)
 
 
 class ProofMethod(StrEnum):

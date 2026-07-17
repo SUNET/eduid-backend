@@ -224,6 +224,4 @@ respect-type-ignore-comments = false
 [tool.ty.rules]
 invalid-argument-type = "ignore"
 invalid-assignment = "ignore"
-missing-argument = "ignore"
-unknown-argument = "ignore"
 unresolved-attribute = "ignore"

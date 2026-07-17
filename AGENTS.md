@@ -142,7 +142,7 @@ class UserConfig(BaseModel):
     name: str = Field(alias="displayName")
     email: str | None = Field(default=None)
     
-    model_config = ConfigDict(populate_by_name=True, validate_assignment=True, extra="forbid")
+    model_config = ConfigDict(validate_by_name=True, validate_assignment=True, extra="forbid")
 ```
 
 ### Error Handling
