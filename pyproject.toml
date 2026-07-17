@@ -2,7 +2,7 @@
 name = "eduid-backend"
 dynamic = ["version"]
 license = { file = "LICENSE" }
-requires-python = ">=3.13"
+requires-python = ">=3.13,<3.14"
 dependencies = [
   "Babel",
   "Pillow",
