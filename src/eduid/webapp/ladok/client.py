@@ -25,7 +25,7 @@ class Error(BaseModel):
 
 
 class LadokBaseModel(BaseModel):
-    model_config = ConfigDict(populate_by_name=True)
+    model_config = ConfigDict(validate_by_name=True)
 
 
 class UniversityName(LadokBaseModel):

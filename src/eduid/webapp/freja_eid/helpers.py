@@ -59,7 +59,7 @@ class UserInfoBase(BaseModel):
     iat: int
     iss: str
     sub: str
-    model_config = ConfigDict(extra="allow", populate_by_name=True)
+    model_config = ConfigDict(extra="allow", validate_by_name=True)
 
 
 class FrejaDocumentType(Enum):
@@ -76,7 +76,7 @@ class FrejaDocument(BaseModel):
     country: str
     serial_number: str = Field(alias="serialNumber")
     expiration_date: date = Field(alias="expirationDate")
-    model_config = ConfigDict(populate_by_name=True)
+    model_config = ConfigDict(validate_by_name=True)
 
 
 class FrejaEIDDocumentUserInfo(UserInfoBase):

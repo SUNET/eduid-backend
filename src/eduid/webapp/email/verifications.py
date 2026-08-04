@@ -79,13 +79,9 @@ def verify_mail_address(state: EmailProofingState, proofing_user: ProofingUser) 
     """
     email = proofing_user.mail_addresses.find(state.verification.email)
     if not email:
-        email = MailAddress(email=state.verification.email, created_by="email", is_verified=True, is_primary=False)
-        proofing_user.mail_addresses.add(email)
-        # Adding the phone to the list creates a copy of the element, so we have to 'find' it again
-        email = proofing_user.mail_addresses.find(state.verification.email)
-
-    if email is None:
-        raise RuntimeError("mail address not found after add")
+        email = proofing_user.mail_addresses.add(
+            MailAddress(email=state.verification.email, created_by="email", is_verified=True, is_primary=False)
+        )
 
     email.is_verified = True
     if not proofing_user.mail_addresses.primary:

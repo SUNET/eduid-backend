@@ -1,5 +1,5 @@
 from collections.abc import Mapping
-from typing import Any
+from typing import Any, cast
 
 from fastapi import Request
 from pydantic import BaseModel
@@ -50,8 +50,5 @@ def init_config(ns: str, app_name: str, test_config: Mapping[str, Any] | None = 
 
 
 def get_config(req: Request) -> VCCSConfig:
-    """Pull the VCCS config off the FastAPI app state with a runtime type check."""
-    config = req.app.state.config
-    if not isinstance(config, VCCSConfig):
-        raise RuntimeError(f"unexpected app.state.config type: {type(config).__name__}")
-    return config
+    """Pull the VCCS config off the FastAPI app state. Trust ourselves — config is set at app init."""
+    return cast(VCCSConfig, req.app.state.config)

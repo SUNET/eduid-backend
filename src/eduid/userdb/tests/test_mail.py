@@ -74,6 +74,21 @@ class TestMailAddressList:
 
         assert obtained == expected, "Wrong data after adding mail address to list"
 
+    def test_add_returns_stored_element(self) -> None:
+        """add() returns the stored element so callers can mutate without re-find()."""
+        new = MailAddress(email="new@example.org", created_by="test", is_verified=False, is_primary=False)
+        stored = self.one.add(new)
+
+        # Returned element matches what find() would return.
+        found = self.one.find("new@example.org")
+        assert found is stored
+
+        # Mutating the returned element updates the stored state.
+        stored.is_verified = True
+        refound = self.one.find("new@example.org")
+        assert refound is not None
+        assert refound.is_verified is True
+
     def test_add_duplicate(self) -> None:
         assert self.two.primary
         dup = self.two.find(self.two.primary.email)

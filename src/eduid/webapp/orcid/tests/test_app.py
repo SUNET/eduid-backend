@@ -6,13 +6,14 @@ import pytest
 from pytest_mock import MockerFixture
 from werkzeug.test import TestResponse
 
+from eduid.common.config.base import FrontendAction
 from eduid.userdb.orcid import OidcAuthorization, OidcIdToken, Orcid
 from eduid.userdb.proofing import ProofingUser
-from eduid.userdb.proofing.state import OrcidProofingState
+from eduid.webapp.common.api.messages import AuthnStatusMsg
 from eduid.webapp.common.api.testing import EduidAPITestCase
+from eduid.webapp.common.session.namespaces import OIDCState
 from eduid.webapp.orcid.app import OrcidApp, init_orcid_app
-
-__author__ = "lundberg"
+from eduid.webapp.orcid.helpers import OrcidMsg
 
 
 class MockResponse:
@@ -63,7 +64,7 @@ class OrcidTests(EduidAPITestCase[OrcidApp]):
         oidc_provider_config = {
             "token_endpoint_auth_signing_alg_values_supported": ["RS256"],
             "id_token_signing_alg_values_supported": ["RS256"],
-            "userinfo_endpoint": "https://https://example.com/op/oauth/userinfo",
+            "userinfo_endpoint": "https://example.com/op/oauth/userinfo",
             "authorization_endpoint": "https://example.com/op/oauth/authorize",
             "token_endpoint": "https://example.com/op/oauth/token",
             "jwks_uri": "https://example.com/op/oauth/jwks",
@@ -86,13 +87,41 @@ class OrcidTests(EduidAPITestCase[OrcidApp]):
                 "client_registration_info": {"client_id": "test_client", "client_secret": "secret"},
                 "userinfo_endpoint_method": "GET",
                 "orcid_verify_redirect_url": "https://dashboard.example.com/",
+                "frontend_action_authn_parameters": {
+                    FrontendAction.CONNECT_ORCID.value: {
+                        "finish_url": "https://dashboard.example.com/profile/ext-return/{app_name}/{authn_id}",
+                    },
+                },
             }
         )
         return config
 
-    def mock_authorization_response(
+    def _start_connect(self, eppn: str) -> TestResponse:
+        with self.session_cookie(self.browser, eppn) as client:
+            with client.session_transaction() as sess:
+                csrf_token = sess.get_csrf_token()
+            return client.post(
+                "/connect-orcid",
+                json={
+                    "csrf_token": csrf_token,
+                    "frontend_action": FrontendAction.CONNECT_ORCID.value,
+                    "frontend_state": "test_state",
+                },
+            )
+
+    def _get_authn_id_from_session(self) -> OIDCState:
+        with self.browser.session_transaction() as sess:
+            authn_ids = list(sess.orcid.rp.authns.keys())
+            return authn_ids[-1]
+
+    def _get_nonce_from_session(self, oidc_state: OIDCState) -> str:
+        with self.browser.session_transaction() as sess:
+            return sess.orcid.nonces[oidc_state]
+
+    def mock_authorization_callback(
         self,
-        proofing_state: OrcidProofingState,
+        state: str,
+        nonce: str,
         userinfo: dict[str, Any],
     ) -> TestResponse:
         mock_auth_response = self.mocker.patch("oic.oic.Client.parse_response")
@@ -101,7 +130,7 @@ class OrcidTests(EduidAPITestCase[OrcidApp]):
         mock_auth_response.return_value = {
             "id_token": "id_token",
             "code": "code",
-            "state": proofing_state.state,
+            "state": state,
         }
 
         mock_token_request.return_value = {
@@ -110,7 +139,7 @@ class OrcidTests(EduidAPITestCase[OrcidApp]):
             "expires_in": 0,
             "refresh_token": "refresh_token",
             "id_token": {
-                "nonce": proofing_state.nonce,
+                "nonce": nonce,
                 "sub": "sub",
                 "iss": "iss",
                 "aud": ["aud"],
@@ -124,34 +153,38 @@ class OrcidTests(EduidAPITestCase[OrcidApp]):
         }
         userinfo["sub"] = "sub"
         mock_userinfo_request.return_value = userinfo
-        return self.browser.get(f"/authorization-response?id_token=id_token&state={proofing_state.state}")
+        return self.browser.get(f"/authorization-response?id_token=id_token&state={state}")
 
     def test_authenticate(self) -> None:
-        response = self.browser.get("/authorize")
-        assert response.status_code == 401
-        with self.session_cookie(self.browser, self.test_user_eppn) as browser:
-            response = browser.get("/authorize")
-        assert response.status_code == 302  # Authenticated request redirected to OP
-        assert response.location.startswith(self.app.conf.provider_configuration_info["issuer"])
+        response = self._start_connect(self.test_user_eppn)
+        assert response.status_code == 200
+        payload = self.get_response_payload(response)
+        assert "location" in payload
+        assert payload["location"].startswith(self.app.conf.provider_configuration_info["issuer"])
 
     def test_oidc_flow(self, mocker: MockerFixture) -> None:
         mock_request_user_sync = mocker.patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
         mock_request_user_sync.side_effect = self.request_user_sync
 
-        with self.session_cookie(self.browser, self.test_user_eppn) as browser:
-            response = browser.get("/authorize")
-        assert response.status_code == 302  # Authenticated request redirected to OP
+        response = self._start_connect(self.test_user_eppn)
+        assert response.status_code == 200
+        payload = self.get_response_payload(response)
+        assert "location" in payload
+
+        # Get state and nonce from session
+        authn_id = self._get_authn_id_from_session()
+        nonce = self._get_nonce_from_session(authn_id)
 
         # Fake callback from OP
-        proofing_state = self.app.proofing_statedb.get_state_by_eppn(self.test_user_eppn)
-        assert proofing_state is not None
         userinfo = {
             "id": "https://sandbox.orcid.org/0000-0000-0000-0000",
             "name": None,
             "given_name": "Test",
             "family_name": "Testsson",
         }
-        self.mock_authorization_response(proofing_state, userinfo)
+        callback_response = self.mock_authorization_callback(state=str(authn_id), nonce=nonce, userinfo=userinfo)
+        assert callback_response.status_code == 302
+        assert "/ext-return/" in callback_response.location
 
         user = self.app.private_userdb.get_user_by_eppn(self.test_user_eppn)
         assert user.orcid is not None
@@ -160,6 +193,50 @@ class OrcidTests(EduidAPITestCase[OrcidApp]):
         assert user.orcid.given_name == userinfo["given_name"]
         assert user.orcid.family_name == userinfo["family_name"]
         assert self.app.proofing_log.db_count() == 1
+
+    def test_get_status_after_callback(self, mocker: MockerFixture) -> None:
+        mock_request_user_sync = mocker.patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
+        mock_request_user_sync.side_effect = self.request_user_sync
+
+        response = self._start_connect(self.test_user_eppn)
+        assert response.status_code == 200
+
+        authn_id = self._get_authn_id_from_session()
+        nonce = self._get_nonce_from_session(authn_id)
+
+        userinfo = {
+            "id": "https://sandbox.orcid.org/0000-0000-0000-0000",
+            "name": None,
+            "given_name": "Test",
+            "family_name": "Testsson",
+        }
+        callback_response = self.mock_authorization_callback(state=str(authn_id), nonce=nonce, userinfo=userinfo)
+        assert callback_response.status_code == 302
+
+        # Poll get-status with the authn_id from the callback
+        with self.browser.session_transaction() as sess:
+            csrf_token = sess.get_csrf_token()
+        status_response = self.browser.post(
+            "/get-status",
+            json={"csrf_token": csrf_token, "authn_id": str(authn_id)},
+        )
+        self._check_success_response(status_response, type_="POST_ORCID_GET_STATUS_SUCCESS")
+        status_payload = self.get_response_payload(status_response)
+        assert status_payload["frontend_action"] == FrontendAction.CONNECT_ORCID.value
+        assert status_payload["frontend_state"] == "test_state"
+        assert status_payload["method"] == "orcid"
+        assert status_payload["error"] is False
+        assert status_payload["status"] == OrcidMsg.authz_success.value
+
+    def test_get_status_not_found(self) -> None:
+        with self.session_cookie(self.browser, self.test_user_eppn) as client:
+            with client.session_transaction() as sess:
+                csrf_token = sess.get_csrf_token()
+            response = client.post(
+                "/get-status",
+                json={"csrf_token": csrf_token, "authn_id": "nonexistent"},
+            )
+        self._check_error_response(response, type_="POST_ORCID_GET_STATUS_FAIL", msg=AuthnStatusMsg.not_found)
 
     def test_get_orcid(self) -> None:
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
@@ -200,3 +277,15 @@ class OrcidTests(EduidAPITestCase[OrcidApp]):
 
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
         assert user.orcid is None
+
+    def test_already_connected(self, mocker: MockerFixture) -> None:
+        mock_request_user_sync = mocker.patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
+        mock_request_user_sync.side_effect = self.request_user_sync
+
+        user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
+        proofing_user = ProofingUser.from_user(user, self.app.private_userdb)
+        proofing_user.orcid = self.orcid_element
+        self.request_user_sync(proofing_user)
+
+        response = self._start_connect(self.test_user_eppn)
+        self._check_error_response(response, type_="POST_ORCID_CONNECT_ORCID_FAIL", msg=OrcidMsg.already_connected)

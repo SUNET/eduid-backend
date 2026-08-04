@@ -63,6 +63,7 @@ def init_samleid_app(name: str = "samleid", test_config: Mapping[str, Any] | Non
             "/saml2-metadata",
             "/saml2-acs",
             "/mfa-authenticate",
+            "/mfa-register",
             "/get-status",
         ],
     )

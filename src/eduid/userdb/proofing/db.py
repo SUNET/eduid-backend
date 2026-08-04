@@ -5,6 +5,7 @@ from datetime import timedelta
 from operator import itemgetter
 from typing import Any
 
+from eduid.common.decorators import deprecated
 from eduid.userdb.db import BaseDB, SaveResult, TUserDbDocument
 from eduid.userdb.proofing.state import (
     EmailProofingState,
@@ -198,6 +199,7 @@ class OidcStateDB[ProofingStateVar: ProofingState](ProofingStateDB[ProofingState
         return self.state_from_dict(state)
 
 
+@deprecated("Orcid app now saves state in session")
 class OrcidProofingStateDB(OidcStateDB[OrcidProofingState]):
     ProofingStateClass = OrcidProofingState
 

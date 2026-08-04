@@ -40,7 +40,7 @@ class TestUsers(TestAMBase, GNAPBearerTokenMixin):
             json=json_data,
             headers=oauth_header,
         )
-        return response
+        return response  # type: ignore[no-any-return]  # starlette 1.2 TestClient resolves httpx.Response to Any (wants httpx2)
 
     def _auth_header(self, service_name: str) -> Headers:
         expire = datetime.timedelta(seconds=3600)

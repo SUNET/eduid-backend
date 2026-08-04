@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "eduid-backend"
 dynamic = ["version"]
 license = { file = "LICENSE" }
-requires-python = "==3.13.*"
+requires-python = ">=3.13,<3.14"
 dependencies = [
   "Babel",
   "Pillow",
@@ -248,6 +248,4 @@ respect-type-ignore-comments = false
 [tool.ty.rules]
 invalid-argument-type = "ignore"
 invalid-assignment = "ignore"
-missing-argument = "ignore"
-unknown-argument = "ignore"
 unresolved-attribute = "ignore"

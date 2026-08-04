@@ -22,8 +22,6 @@ class AttributeFetcher(ABC):
     whitelist_unset_attrs: ClassVar[list[str]]
 
     def __init__(self, worker_config: AmConfig) -> None:
-        if not isinstance(worker_config, AmConfig):
-            raise TypeError("AttributeFetcher config should be AmConfig")
         self.conf = worker_config
         self.private_db: UserDB[User] | None = None
         if worker_config.mongo_uri:

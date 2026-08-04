@@ -6,7 +6,6 @@ from captcha.image import ImageCaptcha
 from marshmallow import fields
 
 from eduid.common.config.base import CaptchaConfigMixin
-from eduid.common.config.exceptions import BadConfiguration
 from eduid.webapp.common.api.schemas.base import EduidSchema, FluxStandardAction
 from eduid.webapp.common.api.schemas.csrf import CSRFRequestMixin, CSRFResponseMixin
 
@@ -54,6 +53,4 @@ def init_captcha(config: CaptchaConfigMixin) -> InternalCaptcha:
     """
     Add captcha to the app.
     """
-    if not isinstance(config, CaptchaConfigMixin):
-        raise BadConfiguration("CaptchaConfigMixin is not implemented by the config class")
     return InternalCaptcha(config=config)

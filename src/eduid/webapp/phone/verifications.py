@@ -68,12 +68,9 @@ def verify_phone_number(state: PhoneProofingState, proofing_user: ProofingUser) 
     number = state.verification.number
     phone = proofing_user.phone_numbers.find(number)
     if not phone:
-        phone = PhoneNumber(number=number, created_by="eduid_phone", is_verified=True, is_primary=False)
-        proofing_user.phone_numbers.add(phone)
-        # Adding the phone to the list creates a copy of the element, so we have to 'find' it again
-        phone = proofing_user.phone_numbers.find(phone.key)
-        if phone is None:
-            raise RuntimeError("phone number not found after add")
+        phone = proofing_user.phone_numbers.add(
+            PhoneNumber(number=number, created_by="eduid_phone", is_verified=True, is_primary=False)
+        )
 
     phone.is_verified = True
     if not proofing_user.phone_numbers.primary:

@@ -75,7 +75,7 @@ class SAMLQueryParams(BaseModel):
     SAMLRequest: str | None = None
     RelayState: str | None = None
     request_ref: RequestRef | None = Field(default=None, alias="ref")
-    model_config = ConfigDict(populate_by_name=True)
+    model_config = ConfigDict(validate_by_name=True)
 
     @field_validator("SAMLRequest", "RelayState")
     @classmethod

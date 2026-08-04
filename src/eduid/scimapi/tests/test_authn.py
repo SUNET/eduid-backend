@@ -414,7 +414,7 @@ class TestAuthnUserResource(ScimApiTestUserResourceBase):
         if bearer_token:
             headers["Authorization"] = f"Bearer {bearer_token}"
 
-        return self.client.get(url=f"/Users/{user.scim_id}", headers=headers)
+        return self.client.get(url=f"/Users/{user.scim_id}", headers=headers)  # type: ignore[no-any-return]  # starlette 1.2 TestClient resolves httpx.Response to Any (wants httpx2)
 
     def _make_bearer_token(self, claims: dict[str, Any]) -> str:
         token = jwt.JWT(header={"alg": "ES256"}, claims=claims)

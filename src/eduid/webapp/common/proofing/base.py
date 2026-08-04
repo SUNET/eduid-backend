@@ -132,6 +132,9 @@ class ProofingFunctions[SessionInfoVar](ABC):
     def match_identity(self, user: User, proofing_method: ProofingMethod) -> MatchResult:
         raise NotImplementedError("Subclass must implement match_identity")
 
+    def identity_proofing_element(self, user: User) -> ProofingElementResult:
+        raise NotImplementedError("Subclass must implement identity_proofing_element")
+
     def credential_proofing_element(self, user: User, credential: Credential) -> ProofingElementResult:
         raise NotImplementedError("Subclass must implement credential_proofing_element")
 

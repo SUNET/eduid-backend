@@ -27,7 +27,7 @@ LANGUAGE_MAPPING = {
 
 
 class NavetModelConfig(BaseModel):
-    model_config = ConfigDict(populate_by_name=True)
+    model_config = ConfigDict(validate_by_name=True)
 
 
 class CaseInformation(NavetModelConfig):

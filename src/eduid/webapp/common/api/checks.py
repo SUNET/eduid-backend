@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING, cast
 import redis
 from flask import current_app as flask_current_app
 
-from eduid.common.config.base import RedisConfigMixin, VCCSConfigMixin
+from eduid.common.config.base import VCCSConfigMixin
 from eduid.common.misc.timeutil import utc_now
 from eduid.common.rpc.am_relay import AmRelay
 from eduid.common.rpc.lookup_mobile_relay import LookupMobileRelay
@@ -113,8 +113,6 @@ def check_mongo() -> bool:
 def check_redis() -> bool:
     current_app = get_current_app()
     _conf = current_app.conf
-    if not isinstance(_conf, RedisConfigMixin):
-        raise RuntimeError(f"app.conf does not implement RedisConfigMixin: {type(_conf).__name__}")
     pool = get_redis_pool(_conf.redis_config)
     client = redis.StrictRedis(connection_pool=pool)
     try:

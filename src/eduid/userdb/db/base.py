@@ -48,9 +48,7 @@ class BaseMongoDB:
         if "replicaSet" in kwargs and kwargs["replicaSet"] is None:
             del kwargs["replicaSet"]
 
-        _options = self._parsed_uri.get("options")
-        if _options is None:
-            raise RuntimeError("parsed mongo URI has no options dict")
+        _options = self._parsed_uri.get("options", {})
 
         if "replicaSet" in _options and _options["replicaSet"] is not None:
             kwargs["replicaSet"] = _options["replicaSet"]

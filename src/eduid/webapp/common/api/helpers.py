@@ -237,15 +237,11 @@ def get_proofing_log_navet_data(nin: str) -> ProofingNavetData:
 
     navet_data = msg_relay.get_all_navet_data(nin=nin, allow_deregistered=True)
     # the only cause for deregistration we allow is emigration
-    if (
-        navet_data.person.is_deregistered()
-        and navet_data.person.deregistration_information.cause_code is not DeregisteredCauseCode.EMIGRATED
-    ):
-        if navet_data.person.deregistration_information.cause_code is None:
-            raise RuntimeError("deregistration cause_code missing for deregistered person")
-        raise NoNavetData(
-            f"Person deregistered with code {navet_data.person.deregistration_information.cause_code.value}"
-        )
+    if navet_data.person.is_deregistered():
+        cause_code = navet_data.person.deregistration_information.cause_code
+        if cause_code is not DeregisteredCauseCode.EMIGRATED:
+            code_str = cause_code.value if cause_code else "unknown"
+            raise NoNavetData(f"Person deregistered with code {code_str}")
 
     user_postal_address = FullPostalAddress(
         name=navet_data.person.name, official_address=navet_data.person.postal_addresses.official_address

@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from datetime import UTC, datetime
 from urllib.parse import parse_qs, urlparse
 
 from authlib.integrations.base_client import OAuthError
@@ -115,6 +116,28 @@ def verify_credential(
     if result.error:
         return error_response(message=result.error)
 
+    return success_response(payload={"location": result.url})
+
+
+@freja_eid_views.route("/mfa-register", methods=["POST"])
+@UnmarshalWith(FrejaEIDCommonRequestSchema)
+@MarshalWith(FrejaEIDCommonResponseSchema)
+def mfa_register(method: str, frontend_action: str, frontend_state: str | None = None) -> FluxData:
+    """Start an external MFA authn as the first step of a signup flow."""
+    current_app.logger.debug("mfa-register called")
+
+    if frontend_action != FrontendAction.SIGNUP_EXTERNAL_MFA.value:
+        current_app.logger.error(f"Invalid frontend_action for mfa-register: {frontend_action}")
+        return error_response(message=FrejaEIDMsg.frontend_action_not_supported)
+
+    result = _authn(
+        FrejaEIDAction.mfa_register,
+        method,
+        frontend_action,
+        frontend_state,
+    )
+    if result.error:
+        return error_response(message=result.error)
     return success_response(payload={"location": result.url})
 
 
@@ -258,14 +281,21 @@ def authn_callback() -> WerkzeugResponse:
         authn_req.status = FrejaEIDMsg.authorization_error.value
         return redirect(formatted_finish_url)
 
+    _userinfo = token_response.get("userinfo", {})
+    current_app.logger.debug(f"Got userinfo response: {_userinfo}")
+    _iat = _userinfo.get("iat") if isinstance(_userinfo, dict) else None
+    if _iat is not None:
+        authn_req.authn_instant = datetime.fromtimestamp(int(_iat), tz=UTC)
+
     action = get_action(default_action=None, authndata=authn_req)
     backdoor = check_magic_cookie(config=current_app.conf)
     args = ACSArgs(
-        session_info=token_response.get("userinfo"),
+        session_info=_userinfo,
         authn_req=authn_req,
         proofing_method=proofing_method,
         backdoor=backdoor,
     )
+    current_app.logger.debug(f"Callback args: {args}")
     result = action(args=args)
     current_app.logger.debug(f"Callback action result: {result}")
 
@@ -281,5 +311,6 @@ def authn_callback() -> WerkzeugResponse:
     current_app.logger.debug(f"OIDC callback action successful (frontend_action {args.authn_req.frontend_action})")
     if result.message:
         args.authn_req.status = result.message.value
-    args.authn_req.consumed = True
+    if args.authn_req.frontend_action != FrontendAction.SIGNUP_EXTERNAL_MFA:
+        args.authn_req.consumed = True
     return redirect(formatted_finish_url)

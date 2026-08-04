@@ -40,6 +40,10 @@ class MongoTemporaryInstanceReplicaSet(MongoTemporaryInstance):
             "docker",
             "run",
             "--rm",
+            # See MongoTemporaryInstance.command: pin nofile so WiredTiger does not run out of
+            # file descriptors and crash mongod when many collections/indexes are created.
+            "--ulimit",
+            "nofile=64000:64000",
             "-p",
             f"{self.port}:{self.port}",
             "-e",

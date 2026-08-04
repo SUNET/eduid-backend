@@ -36,6 +36,12 @@ class MongoTemporaryInstance(EduidTemporaryInstance):
             "docker",
             "run",
             "--rm",
+            # Pin the open-file-descriptor limit. Newer Docker no longer forces a high default,
+            # so containers inherit the host's soft nofile (often 1024). WiredTiger holds several
+            # fds per collection/index and panics ("Too many open files") once that is exhausted,
+            # crashing mongod. 64000 is MongoDB's own recommended minimum.
+            "--ulimit",
+            "nofile=64000:64000",
             "-p",
             f"{self.port}:27017",
             "--name",

@@ -1,6 +1,7 @@
 import logging
 from abc import ABC
 from dataclasses import dataclass
+from enum import StrEnum
 
 from flask import request
 from pydantic import ValidationError
@@ -32,9 +33,17 @@ class SessionInfoParseResult:
     ) = None
 
 
+class ProofingMethods(StrEnum):
+    BANKID = "bankid"
+    EIDAS = "eidas"
+    FREJA = "freja"
+    FREJA_EID = "freja_eid"
+    SVIPE_ID = "svipe_id"
+
+
 @dataclass(frozen=True)
 class ProofingMethod(ABC):
-    method: str
+    method: ProofingMethods
     framework: TrustFramework
     finish_url: str
 
@@ -174,54 +183,62 @@ def get_proofing_method(
     if authn_params is None:
         raise RuntimeError(f"no authn parameters configured for frontend_action {frontend_action}")
 
-    if method == "freja":
-        if not config.freja_idp:
-            logger.warning(f"Missing configuration freja_idp required for proofing method {method}")
-            return None
-        return ProofingMethodFreja(
-            finish_url=authn_params.finish_url,
-            framework=TrustFramework.SWECONN,
-            idp=config.freja_idp,
-            method=method,
-            required_loa=config.required_loa,
-        )
-    if method == "eidas":
-        if not config.foreign_identity_idp:
-            logger.warning(f"Missing configuration foreign_identity_idp required for proofing method {method}")
-            return None
-        return ProofingMethodEidas(
-            finish_url=authn_params.finish_url,
-            framework=TrustFramework.EIDAS,
-            idp=config.foreign_identity_idp,
-            method=method,
-            # TODO: True Required LOA is likely higher here when verifying credentials
-            required_loa=config.foreign_required_loa,
-        )
-    if method == "svipe_id":
-        return ProofingMethodSvipe(
-            method=method,
-            framework=TrustFramework.SVIPE,
-            finish_url=authn_params.finish_url,
-        )
-    if method == "bankid":
-        if not config.bankid_idp:
-            logger.warning(f"Missing configuration bankid_idp required for proofing method {method}")
-            return None
-        return ProofingMethodBankID(
-            method=method,
-            framework=TrustFramework.BANKID,
-            finish_url=authn_params.finish_url,
-            idp=config.bankid_idp,
-            required_loa=config.bankid_required_loa,
-        )
-    if method == "freja_eid":
-        return ProofingMethodFrejaEID(
-            method=method,
-            framework=TrustFramework.FREJA,
-            finish_url=authn_params.finish_url,
-            required_registration_level=config.freja_eid_required_registration_level,
-            required_loa=config.freja_eid_required_loa,
-        )
+    if method is None:
+        logger.warning(f"No proofing method provided for frontend_action {frontend_action}")
+        return None
 
-    logger.warning(f"Unknown proofing method {method}")
-    return None
+    try:
+        _method = ProofingMethods(method)
+    except ValueError:
+        logger.warning(f"Unknown proofing method {method}")
+        return None
+
+    match _method:
+        case ProofingMethods.FREJA:
+            if not config.freja_idp:
+                logger.warning(f"Missing configuration freja_idp required for proofing method {method}")
+                return None
+            return ProofingMethodFreja(
+                finish_url=authn_params.finish_url,
+                framework=TrustFramework.SWECONN,
+                idp=config.freja_idp,
+                method=_method,
+                required_loa=config.required_loa,
+            )
+        case ProofingMethods.EIDAS:
+            if not config.foreign_identity_idp:
+                logger.warning(f"Missing configuration foreign_identity_idp required for proofing method {method}")
+                return None
+            return ProofingMethodEidas(
+                finish_url=authn_params.finish_url,
+                framework=TrustFramework.EIDAS,
+                idp=config.foreign_identity_idp,
+                method=_method,
+                # TODO: True Required LOA is likely higher here when verifying credentials
+                required_loa=config.foreign_required_loa,
+            )
+        case ProofingMethods.SVIPE_ID:
+            return ProofingMethodSvipe(
+                method=_method,
+                framework=TrustFramework.SVIPE,
+                finish_url=authn_params.finish_url,
+            )
+        case ProofingMethods.BANKID:
+            if not config.bankid_idp:
+                logger.warning(f"Missing configuration bankid_idp required for proofing method {method}")
+                return None
+            return ProofingMethodBankID(
+                method=_method,
+                framework=TrustFramework.BANKID,
+                finish_url=authn_params.finish_url,
+                idp=config.bankid_idp,
+                required_loa=config.bankid_required_loa,
+            )
+        case ProofingMethods.FREJA_EID:
+            return ProofingMethodFrejaEID(
+                method=_method,
+                framework=TrustFramework.FREJA,
+                finish_url=authn_params.finish_url,
+                required_registration_level=config.freja_eid_required_registration_level,
+                required_loa=config.freja_eid_required_loa,
+            )

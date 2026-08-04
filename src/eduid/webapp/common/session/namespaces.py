@@ -20,10 +20,12 @@ from eduid.common.utils import uuid4_str
 from eduid.userdb.credentials import Credential
 from eduid.userdb.credentials.external import TrustFramework
 from eduid.userdb.element import ElementKey
+from eduid.userdb.identity import FrejaLoaLevel, FrejaRegistrationLevel, PridPersistence
 from eduid.webapp.common.authn.acs_enums import AuthnAcsAction, BankIDAcsAction, EidasAcsAction
 from eduid.webapp.freja_eid.callback_enums import FrejaEIDAction
 from eduid.webapp.idp.idp_authn import AuthnData
 from eduid.webapp.idp.other_device.data import OtherDeviceId
+from eduid.webapp.orcid.callback_enums import OrcidAction
 from eduid.webapp.svipe_id.callback_enums import SvipeIDAction
 
 __author__ = "ft"
@@ -162,8 +164,8 @@ class WebauthnCredential(BaseModel):
     keyhandle: str
     authenticator: AuthenticatorAttachment
     authenticator_id: UUID | str
-    mfa_approved: bool = False
     attestation_format: AttestationFormat
+    mfa_approved: bool = False
     description: str = ""
     # attestation flags for proofing log
     user_present: bool = True
@@ -172,6 +174,8 @@ class WebauthnCredential(BaseModel):
     key_protection: list[str] = Field(default_factory=list)
     # credProps.rk from the registration response
     is_discoverable: bool = False
+    # timestamp of when the credential was registered (for freshness checks)
+    registered_at: datetime | None = None
 
 
 class Credentials(SessionNSBase):
@@ -180,6 +184,24 @@ class Credentials(SessionNSBase):
     custom_password: bool = False
     webauthn_registration: WebauthnRegistration | None = None
     webauthn: WebauthnCredential | None = None
+
+
+class SignupExternalMfa(BaseModel):
+    completed: bool = False
+    app_name: str  # "eidas" | "bankid" | "freja_eid" | "samleid"
+    method: str  # "eidas" | "freja" | "bankid" | "freja_eid"
+    authn_id: AuthnRequestRef | OIDCState
+    loa: str
+    # authn_instant of the underlying external authn — used to re-check freshness
+    # at /create-user time so a stale authn can't be used to finish signup.
+    authn_instant: datetime
+    ident: (
+        ExternalMfaSignupBankIDIdentity
+        | ExternalMfaSignupEIDASIdentity
+        | ExternalMfaSignupFrejaEIDIdentity
+        | ExternalMfaSignupFrejaEIDForeignIdentity
+        | ExternalMfaSignupSwedenConnectIdentity
+    )
 
 
 class Signup(TimestampedNS):
@@ -194,6 +216,16 @@ class Signup(TimestampedNS):
     credentials: Credentials = Field(default_factory=Credentials)
     idp_request_ref: RequestRef | None = None
     idp_service_info: dict[str, dict[str, str]] | None = None
+    external_mfa: SignupExternalMfa | None = None
+
+    @property
+    def captcha_or_external_mfa_completed(self) -> bool:
+        """Check if the user has either completed the captcha or an external MFA for >=AL1 verification"""
+        if self.captcha.completed:
+            return True
+        elif self.external_mfa:
+            return self.external_mfa.completed
+        return False
 
 
 class Phone(SessionNSBase):
@@ -236,11 +268,72 @@ class IdP_Namespace(TimestampedNS):
         self.pending_requests[request_ref].credentials_used[credential.key] = authn_data
 
 
+class ExternalMfaSignupIdentity(BaseModel, ABC):
+    """Identity + LoA parsed from a signup-flow external MFA authn.
+
+    Populated by the ``mfa_register`` ACS action in each external MFA webapp and read
+    by the signup backend at /external-mfa-register time.
+    """
+
+    given_name: str
+    surname: str
+    issuer: str
+    # credential metadata
+    framework: TrustFramework
+    loa: str
+
+
+class ExternalMfaSignupBankIDIdentity(ExternalMfaSignupIdentity):
+    nin: str
+    transaction_id: str
+
+
+class ExternalMfaSignupEIDASIdentity(ExternalMfaSignupIdentity):
+    authn_context_class: str
+    country_code: str
+    date_of_birth: datetime
+    eidas_person_identifier: str
+    prid: str
+    prid_persistence: PridPersistence
+    transaction_id: str
+
+
+class ExternalMfaSignupFrejaEIDIdentity(ExternalMfaSignupIdentity):
+    date_of_birth: datetime
+    document_number: str
+    document_type: str
+    loa_level: FrejaLoaLevel
+    registration_level: FrejaRegistrationLevel
+    user_id: str
+    nin: str
+    transaction_id: str
+
+
+class ExternalMfaSignupFrejaEIDForeignIdentity(ExternalMfaSignupIdentity):
+    country_code: str
+    date_of_birth: datetime
+    personal_identity_number: str
+    document_number: str
+    document_type: str
+    issuing_country: str
+    loa_level: FrejaLoaLevel
+    registration_level: FrejaRegistrationLevel
+    user_id: str
+    transaction_id: str
+
+
+class ExternalMfaSignupSwedenConnectIdentity(ExternalMfaSignupIdentity):
+    nin: str
+    authn_context_class: str
+
+
 class BaseAuthnRequest(BaseModel, ABC):
     frontend_action: FrontendAction  # what action frontend is performing
     frontend_state: str | None = None  # opaque data from frontend, returned in /status
     method: str | None = None  # proofing method that frontend is invoking
-    post_authn_action: AuthnAcsAction | EidasAcsAction | SvipeIDAction | BankIDAcsAction | FrejaEIDAction | None = None
+    post_authn_action: (
+        AuthnAcsAction | EidasAcsAction | SvipeIDAction | BankIDAcsAction | FrejaEIDAction | OrcidAction | None
+    ) = None
     # proofing_credential_id is the credential being person-proofed, when doing that
     proofing_credential_id: ElementKey | None = None
     created_ts: datetime = Field(default_factory=utc_now)
@@ -258,6 +351,9 @@ class SP_AuthnRequest(BaseAuthnRequest):
     req_authn_ctx: list[str] = Field(default_factory=list)
     # the authentication contexts asserted for this authentication
     asserted_authn_ctx: EduidAuthnContextClass | None = None
+    external_mfa_signup_identity: (
+        ExternalMfaSignupBankIDIdentity | ExternalMfaSignupEIDASIdentity | ExternalMfaSignupSwedenConnectIdentity | None
+    ) = None
 
     def formatted_finish_url(self, app_name: str) -> str:
         return self.finish_url.format(app_name=app_name, authn_id=self.authn_id)
@@ -313,6 +409,9 @@ class AuthnNamespace(SessionNSBase):
 
 class RP_AuthnRequest(BaseAuthnRequest):
     authn_id: OIDCState
+    external_mfa_signup_identity: (
+        ExternalMfaSignupFrejaEIDIdentity | ExternalMfaSignupFrejaEIDForeignIdentity | None
+    ) = None
 
     def formatted_finish_url(self, app_name: str) -> str:
         return self.finish_url.format(app_name=app_name, authn_id=self.authn_id)
@@ -321,6 +420,13 @@ class RP_AuthnRequest(BaseAuthnRequest):
 class RPAuthnData(BaseModel):
     authlib_cache: dict[str, Any] = Field(default_factory=dict)
     authns: dict[OIDCState, RP_AuthnRequest] = Field(default_factory=dict)
+
+    @field_serializer("authns")
+    def authns_cleanup(self, authns: dict[OIDCState, RP_AuthnRequest]) -> dict[OIDCState, Any]:
+        if len(authns) > MAX_AUTHNS_TO_KEEP:
+            items = sorted(authns.items(), reverse=True, key=lambda item: item[1].created_ts)
+            authns = dict(items[:MAX_AUTHNS_TO_KEEP])
+        return {k: v.model_dump() for k, v in authns.items()}
 
 
 class SvipeIDNamespace(SessionNSBase):
@@ -333,6 +439,15 @@ class BankIDNamespace(SessionNSBase):
 
 class FrejaEIDNamespace(SessionNSBase):
     rp: RPAuthnData = Field(default=RPAuthnData())
+
+
+class OrcidNamespace(SessionNSBase):
+    rp: RPAuthnData = Field(default=RPAuthnData())
+    nonces: dict[OIDCState, str] = Field(default_factory=dict)
+
+    @field_serializer("nonces")
+    def nonces_cleanup(self, nonces: dict[OIDCState, str]) -> dict[OIDCState, str]:
+        return {k: v for k, v in nonces.items() if k in self.rp.authns}
 
 
 class SamlEidNamespace(SessionNSBase):

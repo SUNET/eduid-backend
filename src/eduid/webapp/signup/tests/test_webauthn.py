@@ -3,6 +3,7 @@ import json
 import logging
 from collections.abc import Mapping
 from typing import Any
+from uuid import UUID
 
 import pytest
 from fido2.webauthn import AuthenticatorAttachment, RegistrationResponse
@@ -201,7 +202,7 @@ class SignupWebauthnTests(EduidAPITestCase[SignupApp]):
                     keyhandle=registration.id,
                     attestation_format=AttestationFormat.NONE,
                     authenticator=AuthenticatorAttachment.CROSS_PLATFORM,
-                    authenticator_id="test-authenticator-id",
+                    authenticator_id=UUID("00000000-1111-2222-3333-444444444444"),
                     description="test security key",
                     is_discoverable=is_discoverable,
                 )
@@ -498,7 +499,7 @@ class SignupWebauthnTests(EduidAPITestCase[SignupApp]):
                     keyhandle=registration.id,
                     attestation_format=AttestationFormat.PACKED,
                     authenticator=AuthenticatorAttachment.CROSS_PLATFORM,
-                    authenticator_id="test-authenticator-id",
+                    authenticator_id=UUID("00000000-1111-2222-3333-444444444444"),
                     mfa_approved=True,
                     user_verified=True,
                     description="mfa security key",

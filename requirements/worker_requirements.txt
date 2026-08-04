@@ -2,9 +2,9 @@
 #    uv pip compile --generate-hashes --no-strip-extras --index-url https://pypi.sunet.se/simple --emit-index-url --project .. ../pyproject.toml --extra worker -o worker_requirements.txt
 --index-url https://pypi.sunet.se/simple
 
-aiosmtplib==5.1.0 \
-    --hash=sha256:2504a23b2b63c9de6bc4ea719559a38996dba68f73f6af4eb97be20ee4c5e6c4 \
-    --hash=sha256:368029440645b486b69db7029208a7a78c6691b90d24a5332ddba35d9109d55b
+aiosmtplib==5.1.1 \
+    --hash=sha256:9d384f0c3d8906f745c1cf6819f073145bb2de8b10407905f5e2ee3389bfe6c7 \
+    --hash=sha256:d9a35e9d170bc1a9f66e2fdfe7fd212f7eebb8c1581c621f79395d0bcaba7a68
     # via eduid-backend (../pyproject.toml)
 amqp==5.3.1 \
     --hash=sha256:43b3319e1b4e7d1251833a93d672b4af1e40f3d632d479b98661a95f117880a2 \
@@ -42,13 +42,13 @@ bleach==6.3.0 \
     --hash=sha256:6f3b91b1c0a02bb9a78b5a454c92506aa0fdf197e1d5e114d2e00c6f64306d22 \
     --hash=sha256:fe10ec77c93ddf3d13a73b035abaac7a9f5e436513864ccdad516693213c65d6
     # via eduid-backend (../pyproject.toml)
-boto3==1.43.12 \
-    --hash=sha256:4a60cdf02c52cb0a60f8dbc986142ce2c31e87e3df1438ffe6755b83008f3e4e \
-    --hash=sha256:685c3e6093455623bfc22dac55b4946ea243095252f7f9c11a99d84b38033bcf
+boto3==1.43.18 \
+    --hash=sha256:33138883e984eb1937d1553da699182c8ad2099138091e885b65c9accbccea16 \
+    --hash=sha256:7b62ce5c0a51428d692aa4f2adc9dc2a4a4c2989bf65a0a12834eeffa99b0b84
     # via eduid-backend (../pyproject.toml)
-botocore==1.43.12 \
-    --hash=sha256:75dfb84c6edbb5aaa0314d93776d840d74e26e8d97e0431270a3274d70abeba3 \
-    --hash=sha256:7608ecd51687132e22aa8b82acb89a5917b1b68ec0563c25d82c3e16adab9bc0
+botocore==1.43.18 \
+    --hash=sha256:dc8c105351b49688c667065cd5a45fc5b9db982657cefc9e3fbfb9417a55c7df \
+    --hash=sha256:e2610fce16df9f89deab5f3c163430a814e6804034eb95bef8957c8db60b7dbc
     # via
     #   boto3
     #   s3transfer
@@ -284,9 +284,9 @@ charset-normalizer==3.4.7 \
     # via
     #   reportlab
     #   requests
-click==8.4.0 \
-    --hash=sha256:40c50b7c6c6adac2823d411041ec84f3f103f1b280d5e9ce0d7f998995832f81 \
-    --hash=sha256:638f1338fe1235c8f4e008e4a8a254fb5c5fbdcbb40ece3c9142ebb78e792973
+click==8.4.1 \
+    --hash=sha256:482be17c6991b8c19c5429a1e995d9b0efdbb63172824c41f99965dc0ade8ec2 \
+    --hash=sha256:918b5633eddf6b41c32d4f454bf0de810065c74e3f7dbf8ee5452f8be88d3e96
     # via
     #   celery
     #   click-didyoumean
@@ -450,9 +450,9 @@ httpx==0.28.1 \
     --hash=sha256:75e98c5f16b0f35b567856f597f06ff2270a374470a5c2392242528e3e3e42fc \
     --hash=sha256:d909fcccc110f8c7faf814ca82a9a4d816bc5a6dbfea25d6591d6985b8ba59ad
     # via eduid-backend (../pyproject.toml)
-idna==3.15 \
-    --hash=sha256:048adeaf8c2d788c40fee287673ccaa74c24ffd8dcf09ffa555a2fbb59f10ac8 \
-    --hash=sha256:ca962446ea538f7092a95e057da437618e886f4d349216d2b1e294abfdb65fdc
+idna==3.17 \
+    --hash=sha256:466e48829084efe2548012b855df21540b96f2e20e51bd124c851536556a592c \
+    --hash=sha256:5eb0cb53bc467c12eadcf6de83163ad8527cec9416f44b9b61b19caedad2b87f
     # via
     #   eduid-backend (../pyproject.toml)
     #   anyio
@@ -762,9 +762,9 @@ packaging==26.2 \
     # via
     #   gunicorn
     #   kombu
-phonenumbers==9.0.30 \
-    --hash=sha256:d42d232ccde69c1af1bb5916a7e46f4edbcc72975b02759830f4ea1fba7b00c9 \
-    --hash=sha256:e0890d4cda206ef6ac18ef07e8f3ab225c31c7edce237ac870b4729d4c1d2520
+phonenumbers==9.0.31 \
+    --hash=sha256:287dbd012b12cf9bcc4803b55a29e0d204db5a0df747d38c9130fee1b1b6b0aa \
+    --hash=sha256:f308c1f425e2637b92ff34a174f0888ddf47aacfa6199531f7097e00ad90f57c
     # via eduid-backend (../pyproject.toml)
 pillow==12.2.0 \
     --hash=sha256:00a2865911330191c0b818c59103b58a5e697cae67042366970a6b6f1b20b7f9 \
@@ -1232,9 +1232,9 @@ pyparsing==3.3.2 \
     --hash=sha256:850ba148bd908d7e2411587e247a1e4f0327839c40e2e5e6d05a007ecc69911d \
     --hash=sha256:c777f4d763f140633dcb6d8a3eda953bf7a214dc4eff598413c070bcdc117cbc
     # via httplib2
-pypdf==6.12.0 \
-    --hash=sha256:061f135db8934503ed301c2d4cfaccb12f0a2ef1db11c5d0768a72a5ab4097d8 \
-    --hash=sha256:a8e104ab950e655d0bcf5fa5e71317c06474bc707987335da44a210f73a8883b
+pypdf==6.12.2 \
+    --hash=sha256:111669eb6680c04495ae0c113a1476e3bf93a95761d23c7406b591c80a6490b1 \
+    --hash=sha256:67b2699357a1f3f4c945940ea80826349ee507c9e2577724a14b4941982c104d
     # via xhtml2pdf
 pysaml2==7.5.2+sunet4 \
     --hash=sha256:335ff4a0d0bad395f84b4de9d3f54ef3213443859f5c8ebb40428952fd895e4d \
@@ -1526,9 +1526,9 @@ rsa==4.9.1 \
     --hash=sha256:68635866661c6836b8d39430f97a996acbd61bfa49406748ea243539fe239762 \
     --hash=sha256:e7bdbfdb5497da4c07dfd35530e1a902659db6ff241e39d9953cad06ebd0ae75
     # via python-jose
-s3transfer==0.17.0 \
-    --hash=sha256:9edeb6d1c3c2f89d6050348548834ad8289610d886e5bf7b7207728bd43ce33a \
-    --hash=sha256:ce3801712acf4ad3e89fb9990df97b4972e93f4b3b0004d214be5bce12814c20
+s3transfer==0.18.0 \
+    --hash=sha256:239c13b09e65ad0346e1be7348b8a202dcad44ac7ea7c6eb858fc881dce739b6 \
+    --hash=sha256:3760b8b7ec1315da54048b2d626276732bee4300d054d492d4e1d43e20d4ecbd
     # via boto3
 simplejson==3.20.2 \
     --hash=sha256:00bcd408a4430af99d1f8b2b103bb2f5133bb688596a511fcfa7db865fbb845e \
@@ -1706,9 +1706,9 @@ tzlocal==5.3.1 \
     # via
     #   celery
     #   pyhanko
-uritools==6.1.1 \
-    --hash=sha256:579b75d9438431574df07746a3c1445991d07f4bae65b25cdc0f43967670fb61 \
-    --hash=sha256:c390cf204db7f14637bb47a2a8f2cc0a813e0bc3d16b6bc58e87433fa76e875a
+uritools==6.1.2 \
+    --hash=sha256:5682f8c58e96e379224fd72aec227a45432740c1fa860a06b3024d47c2968601 \
+    --hash=sha256:fa60028843a8be651699a1ee2b399066eeaef349224b32a177efa4aeba463f00
     # via pyhanko-certvalidator
 urllib3==2.7.0 \
     --hash=sha256:231e0ec3b63ceb14667c67be60f2f2c40a518cb38b03af60abc813da26505f4c \
