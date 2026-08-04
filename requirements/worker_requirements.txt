@@ -308,7 +308,7 @@ cookies-samesite-compat==0.0.1 \
     --hash=sha256:2d2921799d79aebd5a3d3dc6cfd6f877eb7aef6c644a65574df43bb763cd715b \
     --hash=sha256:782d2bb613addda854529f850f4f60b836a0f0c45049167495490fc4af073ac0
     # via eduid-backend (../pyproject.toml)
-cryptography==48.0.0 \
+cryptography==49.0.0 \
     --hash=sha256:0890f502ddf7d9c6426129c3f49f5c0a39278ed7cd6322c8755ffca6ee675a13 \
     --hash=sha256:0c558d2cdffd8f4bbb30fc7134c74d2ca9a476f830bb053074498fbc86f41ed6 \
     --hash=sha256:16cd65b9330583e4619939b3a3843eec1e6e789744bb01e7c7e2e62e33c239c8 \
