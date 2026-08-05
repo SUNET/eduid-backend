@@ -74,6 +74,9 @@ remain the install artifacts used by CI and local setup, while `requirements/*.i
 It will never be necessary to build a package out of this repo; [pyproject.toml](pyproject.toml) is used here as the
 source of truth for dependency and tool metadata.
 The repo is installed into `.venv` in editable mode only so imports, IDEs, and type checkers resolve code consistently without `PYTHONPATH=src`.
+For VS Code specifically, the host workspace defaults to `.venv/bin/python`, while the devcontainer defaults to `.venv-devcontainer/bin/python`.
+The Python extension remembers the selected interpreter separately for the local workspace window and the devcontainer window, and that remembered selection overrides `python.defaultInterpreterPath` after the first selection.
+If the integrated terminal auto-activates the wrong environment for the current context, use `Python: Select Interpreter` in that context and then open a fresh terminal.
 
 ### Dependency Updates
 

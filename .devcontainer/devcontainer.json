@@ -6,7 +6,8 @@
 	"customizations": {
 		"vscode": {
 			"settings": {
-				"cSpell.language": "en-GB,en,sv"
+				"cSpell.language": "en-GB,en,sv",
+				"python.defaultInterpreterPath": "${workspaceFolder}/.venv-devcontainer/bin/python"
 			},
 			"extensions": [
 				"ms-python.python",
@@ -21,7 +22,7 @@
 			]
 		}
 	},
-	"postCreateCommand": "make bootstrap",
+	"postCreateCommand": "make bootstrap VENV=.venv-devcontainer",
 	"mounts": [
 		"type=bind,source=/var/run/docker.sock,target=/var/run/docker.sock"
 	],

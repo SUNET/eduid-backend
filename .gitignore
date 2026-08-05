@@ -23,6 +23,7 @@ src/eduid/scimapi/test-scripts/dev/
 src/eduid/scimapi/test-scripts/staging/
 eduid-backend.code-workspace
 .venv
+.venv-devcontainer
 .worktrees
 .claude/worktrees
 .continue

@@ -1,10 +1,7 @@
 # eduID Backend
 
-eduID Backend is a Python monorepo for Swedish federated identity management.
-It contains Flask web applications, FastAPI services, Celery workers, SATOSA plugins, and shared libraries.
+eduID Backend contains Flask web applications, FastAPI services, Celery workers, SATOSA plugins, and shared libraries.
 
-This repository is configured for development convenience.
-It is not intended to be built or published as a release artifact from this checkout.
 
 ## Development Installation
 
@@ -46,11 +43,15 @@ For a detailed explanation of the bootstrap flow, see
 
 ## Using The Environment
 
-Use `.venv/bin/python` as the interpreter in your IDE.
+Use the environment-specific interpreter in your IDE.
 
-- VS Code: the workspace settings already point to `.venv/bin/python`
-- PyCharm: set the project interpreter to `.venv/bin/python`
-- Devcontainer: opening the repo in the devcontainer runs the same `make bootstrap` flow with `uv` preinstalled in the image
+- VS Code on the host: the workspace settings already point to `.venv/bin/python`
+- PyCharm on the host: set the project interpreter to `.venv/bin/python`
+- Devcontainer: opening the repo in the devcontainer bootstraps `.venv-devcontainer` and overrides the interpreter to `.venv-devcontainer/bin/python`
+
+VS Code remembers the selected Python interpreter separately for the normal host workspace window and the reopened devcontainer window.
+That means the host can stay on `.venv` while the devcontainer stays on `.venv-devcontainer`, but a stale selection in either context can override the default interpreter path and make the integrated terminal auto-activate the wrong environment.
+If that happens, run `Python: Select Interpreter` in the current context and then open a fresh terminal.
 
 The shared devcontainer configuration assumes only this repository is present.
 If you need to develop against a sibling checkout of `pysaml2`, copy the mount from `.devcontainer/devcontainer.pysaml2.example.json` into your local devcontainer configuration before reopening the container and keep it out of committed changes:

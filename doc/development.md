@@ -33,13 +33,15 @@ That keeps the repo requirement in one place while still letting `uv` provision 
 
 ## IDE setup
 
-Use `.venv/bin/python` as the project interpreter in every IDE.
+Use the environment-specific interpreter as the project interpreter in every IDE.
 
 VS Code:
 
-- Workspace settings already point at `.venv/bin/python`
+- Host workspace settings point at `.venv/bin/python`
 - Python tools resolve imports from the active `.venv`
 - The mypy extension reads the repo configuration from `pyproject.toml`
+- The Python extension remembers the selected interpreter per context, so the normal host window can stay on `.venv` while the devcontainer window stays on `.venv-devcontainer`
+- `python.defaultInterpreterPath` only seeds the initial selection; if a terminal auto-activates the wrong environment, run `Python: Select Interpreter` in the current context and then open a new terminal
 
 PyCharm:
 
@@ -51,13 +53,15 @@ PyCharm:
 The devcontainer now runs the same bootstrap command:
 
 ```bash
-make bootstrap
+make bootstrap VENV=.venv-devcontainer
 ```
 
-That means container and non-container development both use the same `.venv` layout and dependency installation path.
-The container does not carry a separate interpreter override. VS Code reads the shared workspace interpreter path from `.vscode/settings.json`, and `make bootstrap` creates that `.venv` inside the container.
-Because the repo is installed editable into `.venv`, local shells, IDEs, and the devcontainer all resolve imports through the same interpreter model.
+That keeps host and devcontainer development reproducible without sharing the same virtualenv artifact.
+The container overrides the interpreter path to `.venv-devcontainer/bin/python`, while the host workspace keeps using `.venv/bin/python` from `.vscode/settings.json`.
+Because the repo is installed editable into the active environment in both cases, local shells, IDEs, and the devcontainer still resolve imports through the same bootstrap model.
 The devcontainer image includes `uv`, so the required bootstrap path is available without extra manual setup.
+VS Code stores the selected interpreter separately for the host workspace and the reopened devcontainer workspace, so each context can remember its own environment once selected.
+If the host terminal starts inside `.venv-devcontainer` or the container terminal starts inside `.venv`, the current window has a stale interpreter selection rather than a bootstrap mismatch.
 
 The shared devcontainer configuration assumes only this repository is mounted.
 If you intentionally want to develop against a sibling checkout of `pysaml2`, copy the mount from `.devcontainer/devcontainer.pysaml2.example.json` into your local devcontainer configuration before reopening the container and do not commit it as part of the repo default:

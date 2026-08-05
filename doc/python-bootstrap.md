@@ -62,8 +62,17 @@ The target performs these steps:
 3. Run `mypy --strict -p eduid` inside `.venv` after the locked stub packages
    have already been installed as part of the development toolchain.
 
-The result is a local environment that IDEs, shell commands, and the devcontainer
-can all use consistently via `.venv/bin/python`.
+The result is a local environment that IDEs and shell commands can use
+consistently via the active virtualenv for that environment. In this repository,
+the host workflow defaults to `.venv`, while the devcontainer uses a separate
+virtualenv path to avoid reusing host-local artifacts.
+For VS Code, those defaults apply independently in the host workspace window and
+in the reopened devcontainer window. The Python extension remembers the selected
+interpreter for each context after the first selection, so
+`python.defaultInterpreterPath` only acts as the initial default.
+If the integrated terminal auto-activates the wrong environment, reselection in
+the current context with `Python: Select Interpreter` and then opening a fresh
+terminal is enough to restore the expected activation behavior.
 
 ## Why this design exists
 
