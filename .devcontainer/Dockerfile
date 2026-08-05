@@ -1,5 +1,5 @@
-# This Dockerfile is based on the base image for Debian Trixie, which is the current stable release of Debian
-# TODO: how to synchronize to the image version to the version used in production debian:stable?
+# Remember to update the devcontainer image version to match the version used in production 
+# See here: https://github.com/devcontainers/images/tree/main/src/base-debian
 FROM mcr.microsoft.com/devcontainers/base:trixie
 
 ARG NONROOT_USER=vscode
