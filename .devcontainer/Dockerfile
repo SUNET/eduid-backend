@@ -6,9 +6,9 @@ ARG NONROOT_USER=vscode
 
 # Minimum system packages required for `make bootstrap`.
 RUN apt-get update \
-    && apt install -y curl python3 python3-dev python3-packaging python3-venv libcairo2-dev \
+    && apt install -y python3 python3-dev python3-packaging python3-pip python3-venv libcairo2-dev \
     && rm -rf /var/lib/apt/lists/* \
-    && curl -LsSf https://astral.sh/uv/install.sh | env UV_INSTALL_DIR=/usr/local/bin sh
+    && python3 -m pip install --break-system-packages --no-cache-dir uv
 
 # Additional tools used by the devcontainer beyond the bootstrap flow.
 RUN apt-get update \
@@ -34,6 +34,8 @@ exec "\$@"
 EOF
 
 RUN chmod +x /usr/local/share/docker-init.sh
+
+USER ${NONROOT_USER}
 
 # VS Code overrides ENTRYPOINT and CMD when executing `docker run` by default.
 # Setting the ENTRYPOINT to docker-init.sh will configure non-root access to
