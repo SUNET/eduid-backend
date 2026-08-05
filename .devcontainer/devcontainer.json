@@ -13,6 +13,8 @@
 				"ms-python.python",
 				"ms-python.vscode-pylance",
 				"ms-python.mypy-type-checker",
+				"tamasfe.even-better-toml",
+				"ms-azuretools.vscode-docker",
 				"GitHub.copilot-chat",
 				"GitHub.vscode-pull-request-github",
 				"streetsidesoftware.code-spell-checker",
