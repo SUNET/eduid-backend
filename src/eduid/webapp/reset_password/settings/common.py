@@ -39,6 +39,9 @@ class ResetPasswordConfig(
 
     email_code_timeout: timedelta = Field(default=timedelta(hours=2))
     email_code_length: int = 6
+    # Incorrect email code submissions allowed per state before it is locked until expiry.
+    # Mirrors signup's email_verification_max_bad_attempts.
+    email_code_max_bad_attempts: int = 3
     phone_code_timeout: timedelta = Field(default=timedelta(minutes=10))
     # Number of bytes of salt to generate (recommended min 16).
     password_salt_length: int = 32

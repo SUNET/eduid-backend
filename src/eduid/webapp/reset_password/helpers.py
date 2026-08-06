@@ -51,6 +51,8 @@ class ResetPwMsg(TranslatableMsg):
     expired_email_code = "resetpw.expired-email-code"
     # The user has sent an SMS'ed code that has expired
     expired_phone_code = "resetpw.expired-phone-code"
+    # Too many incorrect email code submissions against this state
+    email_code_too_many_tries = "resetpw.email-code-too-many-tries"
     # There was some problem sending the email with the code.
     email_send_failure = "resetpw.email-send-failure"
     # A new code has been generated and sent by email successfully
@@ -160,10 +162,20 @@ def get_pwreset_state(email_code: str) -> ResetPasswordEmailState | ResetPasswor
         current_app.stats.count(name="state_not_found", value=1)
         raise StateException(msg=ResetPwMsg.state_not_found)
 
+    # Checked before the comparison, so a locked state rejects the correct code too.
+    if state.bad_attempts >= current_app.conf.email_code_max_bad_attempts:
+        current_app.logger.info(f"Too many bad email code attempts for eppn {eppn}")
+        current_app.stats.count(name="email_code_locked", value=1)
+        raise StateException(msg=ResetPwMsg.email_code_too_many_tries)
+
     # Compare as bytes: compare_digest() raises TypeError on str arguments containing
     # non-ASCII characters, and email_code is unvalidated user input.
     if not compare_digest(state.email_code.code.encode(), email_code.encode()):
         current_app.logger.info(f"Bad email code for eppn {eppn}")
+        # Counted in the database, not read-modify-written here: concurrent guesses must not
+        # be able to lose increments, nor to escape as a DocumentOutOfSync 500 on a path that
+        # is only reachable when a state exists.
+        current_app.password_reset_state_db.increment_bad_attempts(state)
         current_app.stats.count(name="email_code_bad_attempt", value=1)
         raise StateException(msg=ResetPwMsg.state_not_found)
 
@@ -178,9 +190,16 @@ def get_pwreset_state(email_code: str) -> ResetPasswordEmailState | ResetPasswor
 
     if isinstance(state, ResetPasswordEmailAndPhoneState) and state.phone_code.is_expired(sms_expiration_time):
         current_app.logger.info(f"Phone code expired for eppn {eppn}")
-        # Revert the state to EmailState to allow the user to choose extra security again
+        # Revert the state to EmailState to allow the user to choose extra security again.
+        # The attempt counter has to be carried over: this rebuild replaces the document, so
+        # anything left out of the constructor is silently reset to its default.
         current_app.password_reset_state_db.remove_state(state)
-        state = ResetPasswordEmailState(eppn=state.eppn, email_address=state.email_address, email_code=state.email_code)
+        state = ResetPasswordEmailState(
+            eppn=state.eppn,
+            email_address=state.email_address,
+            email_code=state.email_code,
+            bad_attempts=state.bad_attempts,
+        )
         current_app.password_reset_state_db.save(state, is_in_database=False)
         current_app.stats.count(name="phone_code_expired", value=1)
         raise StateException(msg=ResetPwMsg.expired_phone_code)

@@ -863,6 +863,173 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
             response, type_="POST_RESET_PASSWORD_VERIFY_EMAIL_FAIL", msg=ResetPwMsg.expired_email_code
         )
 
+    def _post_verify_email(self, email_code: str) -> TestResponse:
+        """POST a code to /verify-email/ reusing the session established by _post_email_address."""
+        with self.app.test_request_context():
+            verify_url = url_for("reset_password.verify_email", _external=True)
+        with self.session_cookie_anon(self.browser) as c:
+            with c.session_transaction() as sess:
+                csrf_token = sess.get_csrf_token()
+            data = {"email_code": email_code, "csrf_token": csrf_token}
+            return c.post(verify_url, data=json.dumps(data), content_type=self.content_type_json)
+
+    def test_wrong_code_increments_bad_attempts(self) -> None:
+        self._post_email_address()
+
+        response = self._post_verify_email(email_code="wrong-code")
+        self._check_error_response(
+            response, type_="POST_RESET_PASSWORD_VERIFY_EMAIL_FAIL", msg=ResetPwMsg.state_not_found
+        )
+
+        state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user.eppn)
+        assert state is not None
+        assert state.bad_attempts == 1
+
+    def test_third_wrong_code_locks_state(self) -> None:
+        self._post_email_address()
+        state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user.eppn)
+        assert state is not None
+        correct_code = state.email_code.code
+
+        for _ in range(self.app.conf.email_code_max_bad_attempts):
+            response = self._post_verify_email(email_code="wrong-code")
+            self._check_error_response(
+                response, type_="POST_RESET_PASSWORD_VERIFY_EMAIL_FAIL", msg=ResetPwMsg.state_not_found
+            )
+
+        state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user.eppn)
+        assert state is not None
+        assert state.bad_attempts == self.app.conf.email_code_max_bad_attempts
+
+        # The correct code is now rejected too.
+        response = self._post_verify_email(email_code=correct_code)
+        self._check_error_response(
+            response, type_="POST_RESET_PASSWORD_VERIFY_EMAIL_FAIL", msg=ResetPwMsg.email_code_too_many_tries
+        )
+
+    def test_correct_code_does_not_increment_bad_attempts(self) -> None:
+        self._post_email_address()
+        state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user.eppn)
+        assert state is not None
+
+        response = self._post_verify_email(email_code=state.email_code.code)
+        assert response.status_code == 200
+
+        state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user.eppn)
+        assert state is not None
+        assert state.bad_attempts == 0
+
+    def test_bad_attempts_counter_is_accurate_over_repeated_wrong_codes(self) -> None:
+        """Each wrong code must advance the counter by exactly one, never more or fewer."""
+        self.app.conf.email_code_max_bad_attempts = 5
+        self._post_email_address()
+
+        for expected in range(1, self.app.conf.email_code_max_bad_attempts + 1):
+            response = self._post_verify_email(email_code="wrong-code")
+            self._check_error_response(
+                response, type_="POST_RESET_PASSWORD_VERIFY_EMAIL_FAIL", msg=ResetPwMsg.state_not_found
+            )
+            state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user.eppn)
+            assert state is not None
+            assert state.bad_attempts == expected
+
+    def test_wrong_code_answers_the_same_with_and_without_a_state(self) -> None:
+        """Counting an attempt must not turn "a state exists" into a status-code oracle.
+
+        The counter write is reachable only when a state exists and the code is wrong. If it
+        could ever escape as an unhandled exception the caller would get a 500 there and a
+        200 otherwise, which is exactly the distinguisher resolving by eppn removed.
+        """
+        self._post_email_address()
+        state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user.eppn)
+        assert state is not None
+        self.app.password_reset_state_db.remove_state(state)
+
+        # Same session hint, but nothing to load and so no counter write.
+        without_state = self._post_verify_email(email_code="wrong-code")
+
+        self._post_email_address()
+        assert self.app.password_reset_state_db.get_state_by_eppn(self.test_user.eppn) is not None
+        with_state = self._post_verify_email(email_code="wrong-code")
+
+        assert without_state.status_code == 200
+        assert with_state.status_code == 200
+        for response in (without_state, with_state):
+            self._check_error_response(
+                response, type_="POST_RESET_PASSWORD_VERIFY_EMAIL_FAIL", msg=ResetPwMsg.state_not_found
+            )
+
+    def test_counter_survives_upgrade_to_phone_state(self) -> None:
+        """The counter must not reset when the state is upgraded to email-and-phone.
+
+        Task 2's review flagged that nothing pinned this. It is not exploitable today,
+        because reaching the upgrade requires an already-verified email code — an attacker
+        without the code cannot trigger it. But the counter becomes load-bearing here, so
+        pin it rather than rely on that argument holding after future edits.
+        """
+        self.mocker.patch("eduid.common.rpc.msg_relay.MsgRelay.sendsms", return_value=True)
+        self._post_email_address()
+
+        # One bad guess, then verify properly so the state can be upgraded.
+        self._post_verify_email(email_code="wrong-code")
+        state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user.eppn)
+        assert state is not None
+        assert state.bad_attempts == 1
+        self._post_verify_email(email_code=state.email_code.code)
+
+        state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user.eppn)
+        assert isinstance(state, ResetPasswordEmailState)
+        user = self.app.central_userdb.get_user_by_eppn(self.test_user.eppn)
+        with self.app.test_request_context():
+            state.extra_security = get_extra_security_alternatives(user)
+            self.app.password_reset_state_db.save(state)
+            send_verify_phone_code(state, state.extra_security["phone_numbers"][0]["number"])
+
+        upgraded = self.app.password_reset_state_db.get_state_by_eppn(self.test_user.eppn)
+        assert isinstance(upgraded, ResetPasswordEmailAndPhoneState)
+        assert upgraded.bad_attempts == 1
+
+    def test_counter_survives_downgrade_from_phone_state(self) -> None:
+        """The phone-expiry branch rebuilds the state, which must not zero the counter.
+
+        Unreachable without the correct email code, so not exploitable — but pinning the
+        upgrade path while leaving the downgrade zeroing would be incoherent.
+        """
+        self.mocker.patch("eduid.common.rpc.msg_relay.MsgRelay.sendsms", return_value=True)
+        self._post_email_address()
+
+        # One bad guess, then verify properly so the state can be upgraded to email-and-phone.
+        self._post_verify_email(email_code="wrong-code")
+        state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user.eppn)
+        assert state is not None
+        assert state.bad_attempts == 1
+        email_code = state.email_code.code
+        self._post_verify_email(email_code=email_code)
+
+        state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user.eppn)
+        assert isinstance(state, ResetPasswordEmailState)
+        user = self.app.central_userdb.get_user_by_eppn(self.test_user.eppn)
+        with self.app.test_request_context():
+            state.extra_security = get_extra_security_alternatives(user)
+            self.app.password_reset_state_db.save(state)
+            send_verify_phone_code(state, state.extra_security["phone_numbers"][0]["number"])
+
+        upgraded = self.app.password_reset_state_db.get_state_by_eppn(self.test_user.eppn)
+        assert isinstance(upgraded, ResetPasswordEmailAndPhoneState)
+        assert upgraded.bad_attempts == 1
+
+        # Expire the phone code and submit the correct email code, which downgrades the state.
+        self.app.conf.phone_code_timeout = timedelta(0)
+        response = self._post_verify_email(email_code=email_code)
+        self._check_error_response(
+            response, type_="POST_RESET_PASSWORD_VERIFY_EMAIL_FAIL", msg=ResetPwMsg.expired_phone_code
+        )
+
+        downgraded = self.app.password_reset_state_db.get_state_by_eppn(self.test_user.eppn)
+        assert isinstance(downgraded, ResetPasswordEmailState)
+        assert not isinstance(downgraded, ResetPasswordEmailAndPhoneState)
+        assert downgraded.bad_attempts == 1
+
     def test_post_reset_wrong_csrf(self) -> None:
         data2 = {"csrf_token": "wrong-code"}
         response = self._post_reset_code(data2=data2)

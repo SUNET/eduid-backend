@@ -3,6 +3,8 @@ from collections.abc import Mapping
 from datetime import timedelta
 from typing import Any
 
+from pymongo import ReturnDocument
+
 from eduid.userdb.db import BaseDB, SaveResult, TUserDbDocument
 from eduid.userdb.reset_password.state import (
     ResetPasswordEmailAndPhoneState,
@@ -74,6 +76,32 @@ class ResetPasswordStateDB(BaseDB):
         elif state.get("method") == "email_and_phone":
             return ResetPasswordEmailAndPhoneState.from_dict(data=state)
         return None
+
+    def increment_bad_attempts(self, state: ResetPasswordState) -> int:
+        """
+        Count one incorrect email code submission against a state.
+
+        The increment is done in the database rather than through save(), which would be a
+        read-check-write across the whole request: save() filters replace_one on the
+        modified_ts the caller loaded, so two requests that loaded the same state would have
+        one of them lose its increment and raise DocumentOutOfSync. $inc also deliberately
+        leaves modified_ts untouched, so a failed attempt neither re-arms the resend throttle
+        nor postpones the auto-expire index.
+
+        :param state: the state to count an attempt against, updated in place
+        :return: the number of bad attempts recorded for the state, this one included
+        """
+        doc = self._coll.find_one_and_update(
+            filter={"eduPersonPrincipalName": state.eppn},
+            update={"$inc": {"bad_attempts": 1}},
+            return_document=ReturnDocument.AFTER,
+            # No upsert: a state removed while the request was in flight must stay removed.
+        )
+        if doc is None:
+            logger.debug(f"No reset password state left to count a bad attempt against: {state.eppn}")
+            return state.bad_attempts
+        state.bad_attempts = int(doc["bad_attempts"])
+        return state.bad_attempts
 
     def save(self, state: ResetPasswordState, is_in_database: bool = True) -> SaveResult:
         """
