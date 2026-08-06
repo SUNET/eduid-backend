@@ -1066,13 +1066,49 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
             response, type_="POST_RESET_PASSWORD_VERIFY_EMAIL_FAIL", msg=ResetPwMsg.email_code_too_many_tries
         )
 
+    def test_locked_state_blocks_new_code_until_expiry(self) -> None:
+        self._post_email_address()
+        for _ in range(self.app.conf.email_code_max_bad_attempts):
+            self._post_verify_email(email_code="wrong-code")
+
+        response = self._post_email_address()
+        self._check_error_response(response, type_="POST_RESET_PASSWORD_FAIL", msg=ResetPwMsg.email_code_too_many_tries)
+
+    def test_expired_locked_state_is_replaced_with_a_fresh_one(self) -> None:
+        self.app.conf.throttle_resend = timedelta(0)
+        self._post_email_address()
+        state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user.eppn)
+        assert state is not None
+        old_code = state.email_code.code
+
+        for _ in range(self.app.conf.email_code_max_bad_attempts):
+            self._post_verify_email(email_code="wrong-code")
+
+        # Age the state past email_code_timeout
+        state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user.eppn)
+        assert state is not None
+        state.email_code.created_ts = utc_now() - (self.app.conf.email_code_timeout + timedelta(minutes=5))
+        self.app.password_reset_state_db.save(state)
+
+        response = self._post_email_address()
+        self._check_success_response(response, msg=ResetPwMsg.reset_pw_initialized, type_="POST_RESET_PASSWORD_SUCCESS")
+
+        fresh = self.app.password_reset_state_db.get_state_by_eppn(self.test_user.eppn)
+        assert fresh is not None
+        assert fresh.bad_attempts == 0
+        assert fresh.email_code.code != old_code
+
+        # And the new code works.
+        response = self._post_verify_email(email_code=fresh.email_code.code)
+        self._check_success_response(response, type_="POST_RESET_PASSWORD_VERIFY_EMAIL_SUCCESS")
+
     def test_correct_code_does_not_increment_bad_attempts(self) -> None:
         self._post_email_address()
         state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user.eppn)
         assert state is not None
 
         response = self._post_verify_email(email_code=state.email_code.code)
-        assert response.status_code == 200
+        self._check_success_response(response, type_="POST_RESET_PASSWORD_VERIFY_EMAIL_SUCCESS")
 
         state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user.eppn)
         assert state is not None

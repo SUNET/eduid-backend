@@ -239,6 +239,12 @@ def send_password_reset_mail(email_address: str) -> ResetPasswordEmailState:
     state = current_app.password_reset_state_db.get_state_by_eppn(eppn=user.eppn)
     _is_in_db = state is not None
     if state and not state.email_code.is_expired(timeout=current_app.conf.email_code_timeout):
+        if state.bad_attempts >= current_app.conf.email_code_max_bad_attempts:
+            # Do not delete the state and issue a fresh code: that would let an attacker
+            # use the counter as a lever to roll a new code every throttle_resend period.
+            current_app.logger.info(f"Refusing to resend, state is locked for eppn {user.eppn}")
+            current_app.stats.count(name="email_code_locked_resend", value=1)
+            raise StateException(msg=ResetPwMsg.email_code_too_many_tries)
         # Let the user only send one mail every throttle_resend time period
         if state.is_throttled(current_app.conf.throttle_resend):
             raise ThrottledException(state=state)

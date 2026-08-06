@@ -193,6 +193,9 @@ def start_reset_pw(email: str) -> FluxData:
     except UserDoesNotExist:
         current_app.logger.error(f"No user with email {email} found")
         return error_response(message=ResetPwMsg.user_not_found)
+    except StateException as e:
+        current_app.logger.error(f"Reset password state locked for {email}")
+        return error_response(message=e.msg)
     except ThrottledException as e:
         current_app.logger.error(f"Email resending throttled for {email}")
         return success_response(
