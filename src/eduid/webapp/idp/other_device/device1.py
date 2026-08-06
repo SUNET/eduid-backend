@@ -27,7 +27,7 @@ logger = logging.getLogger(__name__)
 
 def device1_check_response_code(
     response_code: str | None, sso_session: SSOSession | None, state: OtherDevice, ticket: LoginContext
-) -> SSOSession | None | FluxData:
+) -> SSOSession | FluxData | None:
     """
     Validate the response code supplied by the user on device 1.
 

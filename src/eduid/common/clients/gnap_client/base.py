@@ -90,5 +90,5 @@ class GNAPBearerTokenMixin(ABC):
     def _request_bearer_token(self) -> GrantResponse | Coroutine[Any, Any, GrantResponse]:
         raise NotImplementedError()
 
-    def _add_authz_header(self, request: Request) -> None | Coroutine[Any, Any, None]:
+    def _add_authz_header(self, request: Request) -> Coroutine[Any, Any, None] | None:
         raise NotImplementedError()

@@ -29,7 +29,7 @@ class FrejaEIDClientConfig(AuthlibClientConfig):
             "https://frejaeid.com/oidc/scopes/birthdate",
         ]
     )
-    claims_request: dict[str, None | dict[str, bool]] = Field(default={})
+    claims_request: dict[str, dict[str, bool] | None] = Field(default={})
 
 
 class FrejaEIDConfig(

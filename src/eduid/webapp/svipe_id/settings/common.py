@@ -16,7 +16,7 @@ __author__ = "lundberg"
 class SvipeClientConfig(AuthlibClientConfig):
     acr_values: list[str] = Field(default=["face_present"])
     scopes: list[str] = Field(default=["openid"])
-    claims_request: dict[str, None | dict[str, bool]] = Field(
+    claims_request: dict[str, dict[str, bool] | None] = Field(
         default={
             "birthdate": {"essential": True},
             "com.svipe:document_administrative_number": {"essential": True},
