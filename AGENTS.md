@@ -183,6 +183,7 @@ class EduIDDBError(Exception):
         Exception.__init__(self)
         self.reason = reason
 
+
 class UserDoesNotExist(EduIDDBError):
     """Requested user could not be found."""
 ```
@@ -212,6 +213,7 @@ def authenticate(self, user_id: str, factors: Sequence[VCCSFactor]) -> bool:
 
 ```python
 from enum import StrEnum, unique
+
 
 @unique
 class IdentityType(StrEnum):
@@ -250,6 +252,7 @@ Each webapp has a specific test base class. IdP tests should use `IdPAPITests`:
 ```python
 from eduid.webapp.idp.tests.test_api import IdPAPITests
 
+
 class TestMyFeature(IdPAPITests):
     def update_config(self, config: dict[str, Any]) -> dict[str, Any]:
         return super().update_config(config)
@@ -278,7 +281,7 @@ The `IdPAPITests` base class provides helper methods for common test scenarios:
 ```python
 # Add a security key (FIDO/WebAuthn credential) to test user
 self.add_test_user_security_key(
-    user=None,                      # defaults to self.test_user
+    user=None,  # defaults to self.test_user
     credential_id="webauthn_keyhandle",
     is_verified=False,
     mfa_approved=False,
@@ -287,10 +290,11 @@ self.add_test_user_security_key(
 
 # Add external MFA credential (SwedenConnect, eIDAS, BankID, Freja)
 from eduid.userdb.credentials.external import TrustFramework
+
 cred = self.add_test_user_external_mfa_cred(
-    user=None,                           # defaults to self.test_user
+    user=None,  # defaults to self.test_user
     trust_framework=TrustFramework.SWECONN,  # SWECONN, EIDAS, BANKID, FREJA
-    trust_level="loa3",                  # e.g., "loa3", "eidas-nf-high", "uncertified-loa3", "freja-loa3"
+    trust_level="loa3",  # e.g., "loa3", "eidas-nf-high", "uncertified-loa3", "freja-loa3"
 )
 
 # Add Terms of Use acceptance
@@ -313,6 +317,7 @@ and class-scoped setup in `EduidAPITestCase` subclasses should use `class_mocker
 ```python
 from pytest_mock import MockerFixture
 
+
 def test_get_all_navet_data(self, mocker: MockerFixture) -> None:
     mock_get_all_navet_data = mocker.patch("eduid.workers.msg.tasks.get_all_navet_data.apply_async")
 
@@ -329,9 +334,8 @@ from typing import cast
 
 from pytest_mock import MockerFixture
 
-def _make_ticket(
-    mocker: MockerFixture, credentials_used: Mapping[ElementKey, AuthnData] | None = None
-) -> LoginContext:
+
+def _make_ticket(mocker: MockerFixture, credentials_used: Mapping[ElementKey, AuthnData] | None = None) -> LoginContext:
     if credentials_used is None:
         credentials_used = {}
     ticket = cast(LoginContext, mocker.MagicMock(spec=LoginContext))
