@@ -89,7 +89,7 @@ class ScimApiEmail:
     type: EmailType | None = None
     primary: bool | None = None
 
-    def to_dict(self) -> dict[str, str | None | bool]:
+    def to_dict(self) -> dict[str, str | bool | None]:
         res = asdict(self)
         if self.type is not None:
             res["type"] = self.type.value
@@ -110,7 +110,7 @@ class ScimApiPhoneNumber:
     type: PhoneNumberType | None = None
     primary: bool | None = None
 
-    def to_dict(self) -> dict[str, str | None | bool]:
+    def to_dict(self) -> dict[str, str | bool | None]:
         res = asdict(self)
         if self.type is not None:
             res["type"] = self.type.value
