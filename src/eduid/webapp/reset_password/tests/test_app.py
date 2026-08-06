@@ -19,6 +19,7 @@ from eduid.userdb.fixtures.fido_credentials import webauthn_credential
 from eduid.userdb.fixtures.fido_credentials import webauthn_credential as sample_credential
 from eduid.userdb.fixtures.users import UserFixtures
 from eduid.userdb.reset_password import ResetPasswordEmailAndPhoneState, ResetPasswordEmailState
+from eduid.userdb.reset_password.element import CodeElement
 from eduid.webapp.common.api.messages import TranslatableMsg
 from eduid.webapp.common.api.testing import CSRFTestClient, EduidAPITestCase
 from eduid.webapp.common.api.utils import get_zxcvbn_terms, hash_password
@@ -723,9 +724,23 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
         assert "email_code_expires_at" not in state_payload
 
     def test_status_sets_expiry_on_throttled_resend(self) -> None:
-        """The throttled early-return path must not leave the session field stale."""
+        """The throttled early-return path must set the expiry from first issue, not from now."""
         self.app.conf.throttle_resend = timedelta(minutes=5)
         self._post_email_address()
+        state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user.eppn)
+        assert state is not None
+
+        # Age the code to half its lifetime so "created_ts + timeout" and "utc_now() + timeout"
+        # are an hour apart. Without this the rolling-window bug would be within rounding
+        # distance of the correct value and the assertion below would not be able to see it.
+        half = self.app.conf.email_code_timeout / 2
+        state.email_code.created_ts = utc_now() - half
+        self.app.password_reset_state_db.save(state)
+        # Re-read, so the expected value carries the same precision the view will see.
+        state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user.eppn)
+        assert state is not None
+        expected = state.email_code.created_ts + self.app.conf.email_code_timeout
+
         with self.session_cookie_anon(self.browser) as c:
             with c.session_transaction() as sess:
                 sess.reset_password.email_code_expires_at = None
@@ -734,7 +749,40 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
         self._check_success_response(response, msg=ResetPwMsg.email_send_throttled, type_="POST_RESET_PASSWORD_SUCCESS")
         with self.session_cookie_anon(self.browser) as c:
             with c.session_transaction() as sess:
-                assert sess.reset_password.email_code_expires_at is not None
+                assert sess.reset_password.email_code_expires_at == expected
+
+    def test_throttled_resend_populates_a_fresh_session(self) -> None:
+        """Throttling is keyed on the state in the db, so a fresh browser can hit it.
+
+        That exit returns before the normal session bookkeeping, so it has to do its own -
+        otherwise GET / reports an expiry countdown for an address the session does not know.
+        """
+        assert self.test_user.mail_addresses.primary is not None
+        self.app.conf.throttle_resend = timedelta(minutes=5)
+        self._post_email_address()  # creates the state, and throttles the next send
+        state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user.eppn)
+        assert state is not None
+
+        # A browser that has never seen this reset before.
+        browser = cast(CSRFTestClient, self.app.test_client())
+        with self.session_cookie_anon(browser) as c:
+            response = c.get("/", content_type=self.content_type_json)
+            with c.session_transaction() as sess:
+                sess.reset_password.captcha.completed = True
+                assert sess.reset_password.email.address is None
+            data = {
+                "email": self.test_user.mail_addresses.primary.email,
+                "csrf_token": self.get_response_payload(response)["csrf_token"],
+            }
+            response = c.post("/", data=json.dumps(data), content_type=self.content_type_json)
+            self._check_success_response(
+                response, msg=ResetPwMsg.email_send_throttled, type_="POST_RESET_PASSWORD_SUCCESS"
+            )
+            with c.session_transaction() as sess:
+                assert sess.reset_password.email.address == self.test_user.mail_addresses.primary.email
+                assert sess.reset_password.email_code_expires_at == (
+                    state.email_code.created_ts + self.app.conf.email_code_timeout
+                )
 
     def test_post_unknown_email_address(self) -> None:
         data = {"email": "unknown@unplaced.un"}
@@ -900,29 +948,56 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
         assert response.status_code == 200
         assert self.get_response_payload(response)["email_address"] == "johnsmith@example.com"
 
-    def test_unknown_email_and_no_pending_reset_are_indistinguishable(self) -> None:
-        """Neither response may reveal whether the account or the reset request exists."""
+    def test_unknown_email_no_pending_reset_and_wrong_code_are_indistinguishable(self) -> None:
+        """No response may reveal whether the account, the reset request, or the code is right."""
         # The other test user is not loaded into the central userdb by the test setup, so
         # put it there - otherwise "known account without a reset" would not be known at all
         # and this test would pass without exercising the distinction it exists to rule out.
         self.amdb.save(self.other_test_user)
         assert self.other_test_user.mail_addresses.primary is not None
         assert self.app.central_userdb.get_user_by_mail(self.other_test_user.mail_addresses.primary.email) is not None
+        assert self.test_user.mail_addresses.primary is not None
         self._post_email_address()  # a reset exists for test_user, not for anyone else
 
-        unknown = self._post_verify_email_cross_device(email_code="123456", email="nobody@example.com")
+        # One code, used for all three arms, that cannot accidentally be the real one.
+        state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user.eppn)
+        assert state is not None
+        wrong_code = "wrong-code"
+        assert wrong_code != state.email_code.code
+
+        unknown = self._post_verify_email_cross_device(email_code=wrong_code, email="nobody@example.com")
         known_no_reset = self._post_verify_email_cross_device(
-            email_code="123456", email=self.other_test_user.mail_addresses.primary.email
+            email_code=wrong_code, email=self.other_test_user.mail_addresses.primary.email
+        )
+        # Known account, pending reset, wrong code - the third way of ending up nowhere.
+        bad_code = self._post_verify_email_cross_device(
+            email_code=wrong_code, email=self.test_user.mail_addresses.primary.email
         )
 
-        self._check_error_response(
-            unknown, type_="POST_RESET_PASSWORD_VERIFY_EMAIL_FAIL", msg=ResetPwMsg.state_not_found
-        )
-        self._check_error_response(
-            known_no_reset, type_="POST_RESET_PASSWORD_VERIFY_EMAIL_FAIL", msg=ResetPwMsg.state_not_found
-        )
-        assert unknown.status_code == known_no_reset.status_code
+        for _response in (unknown, known_no_reset, bad_code):
+            self._check_error_response(
+                _response, type_="POST_RESET_PASSWORD_VERIFY_EMAIL_FAIL", msg=ResetPwMsg.state_not_found
+            )
+        assert unknown.status_code == known_no_reset.status_code == bad_code.status_code
         assert self._response_without_csrf(unknown) == self._response_without_csrf(known_no_reset)
+        assert self._response_without_csrf(unknown) == self._response_without_csrf(bad_code)
+
+    def _retry_verify_email_same_browser(self, browser: CSRFTestClient, email_code: str, email: str) -> TestResponse:
+        """POST a code again from a browser that has already been served a response.
+
+        The csrf token is fetched through that same browser, so whatever session state the
+        previous response left behind - a dropped cookie or a stale one - is the state in
+        play. Using a fresh test_client() here instead would prove nothing about recovery.
+        """
+        with self.app.test_request_context():
+            verify_url = url_for("reset_password.verify_email", _external=True)
+        csrf_response = browser.get("/", content_type=self.content_type_json)
+        data = {
+            "email_code": email_code,
+            "email": email,
+            "csrf_token": self.get_response_payload(csrf_response)["csrf_token"],
+        }
+        return browser.post(verify_url, data=json.dumps(data), content_type=self.content_type_json)
 
     def test_other_user_session_recovers_when_email_posted(self) -> None:
         """A session for another user is cleared, so the retry succeeds."""
@@ -949,13 +1024,63 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
             response, type_="POST_RESET_PASSWORD_VERIFY_EMAIL_FAIL", msg=ResetPwMsg.invalid_session
         )
 
-        # The dead end is now recoverable: the foreign session is gone, so retrying the same
-        # request resolves through the email fallback instead of against the stale eppn.
-        retry = self._post_verify_email_cross_device(
-            email_code=state.email_code.code, email=self.test_user.mail_addresses.primary.email
+        # The dead end is now recoverable: retry through the very browser that was just
+        # rejected. It only resolves through the email fallback if the foreign session is
+        # really gone; if the cookie survived, resolution would key on the stale eppn again.
+        retry = self._retry_verify_email_same_browser(
+            browser, email_code=state.email_code.code, email=self.test_user.mail_addresses.primary.email
         )
         assert retry.status_code == 200
         assert self.get_response_payload(retry)["email_address"] == "johnsmith@example.com"
+
+    def test_stale_reset_session_for_other_address_recovers(self) -> None:
+        """A reset session for another *address* is cleared too, not just one for another eppn.
+
+        start_reset_pw leaves an address in the session without an eppn, so this is the same
+        dead end as the test above, one identity hint down.
+        """
+        self.amdb.save(self.other_test_user)
+        assert self.other_test_user.mail_addresses.primary is not None
+        assert self.test_user.mail_addresses.primary is not None
+        other_email = self.other_test_user.mail_addresses.primary.email
+
+        # self.browser now holds a reset-password session for the test user's address, with
+        # no eppn - exactly the state start_reset_pw leaves behind.
+        self._post_email_address()
+        with self.session_cookie_anon(self.browser) as c:
+            with c.session_transaction() as sess:
+                assert sess.common.eppn is None
+                assert sess.reset_password.email.address == self.test_user.mail_addresses.primary.email
+
+        # The code the user is about to submit belongs to a reset for the *other* address.
+        other_state = ResetPasswordEmailState(
+            eppn=self.other_test_user.eppn,
+            email_address=other_email,
+            email_code=CodeElement(code="654321", created_by="test", is_verified=False),
+        )
+        self.app.password_reset_state_db.save(other_state, is_in_database=False)
+
+        with self.app.test_request_context():
+            verify_url = url_for("reset_password.verify_email", _external=True)
+        with self.session_cookie_anon(self.browser) as c:
+            with c.session_transaction() as sess:
+                csrf_token = sess.get_csrf_token()
+            data = {"email_code": "654321", "email": other_email, "csrf_token": csrf_token}
+            response = c.post(verify_url, data=json.dumps(data), content_type=self.content_type_json)
+
+        self._check_error_response(
+            response, type_="POST_RESET_PASSWORD_VERIFY_EMAIL_FAIL", msg=ResetPwMsg.invalid_session
+        )
+        # The posted address was never resolved against anything, so the session user's own
+        # state must be untouched - in particular it must not have taken a bad attempt.
+        stale_state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user.eppn)
+        assert stale_state is not None
+        assert stale_state.bad_attempts == 0
+
+        # And the dead end is gone: the same browser can now complete the other reset.
+        retry = self._retry_verify_email_same_browser(self.browser, email_code="654321", email=other_email)
+        assert retry.status_code == 200
+        assert self.get_response_payload(retry)["email_address"] == other_email
 
     def test_unknown_email_in_other_user_session_gives_same_response(self) -> None:
         """Unknown and known-but-not-mine must be indistinguishable - no enumeration oracle."""
@@ -1497,6 +1622,17 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
     def test_post_reset_password_secure_phone_wrong_sms_code(self) -> None:
         data2 = {"phone_code": "wrong-code"}
         response = self._post_reset_password_secure_phone(data2=data2)
+        self._check_error_response(
+            response,
+            type_="POST_RESET_PASSWORD_NEW_PASSWORD_EXTRA_SECURITY_PHONE_FAIL",
+            msg=ResetPwMsg.unknown_phone_code,
+        )
+
+    def test_post_reset_password_secure_phone_non_ascii_sms_code(self) -> None:
+        """A non-ASCII phone code is just a wrong code, not a TypeError out of compare_digest."""
+        data2 = {"phone_code": "åäö123"}
+        response = self._post_reset_password_secure_phone(data2=data2)
+        assert response.status_code == 200
         self._check_error_response(
             response,
             type_="POST_RESET_PASSWORD_NEW_PASSWORD_EXTRA_SECURITY_PHONE_FAIL",

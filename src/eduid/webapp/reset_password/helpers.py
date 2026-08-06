@@ -123,8 +123,9 @@ def get_context(email_code: str, email_address: str | None = None) -> ResetPassw
 
     user = current_app.central_userdb.get_user_by_eppn(state.eppn)
     if not user:
-        # User has been removed before reset password was completed
-        current_app.logger.error(f"User not found for state {state.email_code}")
+        # User has been removed before reset password was completed. Log the eppn, never the
+        # CodeElement - that renders the code itself.
+        current_app.logger.error(f"User not found for eppn {state.eppn}")
         raise StateException(msg=ResetPwMsg.user_not_found)
 
     return ResetPasswordContext(state=state, user=user)
@@ -155,6 +156,7 @@ def get_pwreset_state(
         _address = session.reset_password.email.address or email_address
         if _address is None:
             current_app.logger.info("No identity hint available to resolve reset password state")
+            current_app.stats.count(name="email_address_required", value=1)
             raise StateException(msg=ResetPwMsg.email_address_required)
         user = current_app.central_userdb.get_user_by_mail(_address)
         if user is None:

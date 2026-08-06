@@ -13,14 +13,16 @@ with a text input for an email address and a "send" button. The user enters
 init_reset_pw view (at /), with the email as only data.
 
 The result of calling this init_reset_pw method will be the generation of a
-password reset state in a db, keyed by a hash code, and the sending of an email
-with a link that includes the mentioned hash code.
+password reset state in a db, stored under the eppn of the user owning the
+email address, and the sending of an email containing a short code.
 
-When the user follows the link in the email, the front app will load, it will
-grab the code from document.location.href, and will use it to send a POST to
-the config_reset_pw view located at /config/, with the code as only data. This
-POST will return the same code, a suggested password, and an array of (masked)
-verified phone numbers.
+The user types that code into the front app, which POSTs it to the verify_email
+view at /verify-email/. The state is never looked up by the code: it is loaded
+for the user the request already identifies - the eppn in the session, else the
+address in the session, else, as a last resort, an email address posted
+alongside the code for the cross-device case - and the code is then compared
+against the one that state holds. This POST will return the same code, a
+suggested password, and an array of (masked) verified phone numbers.
 
 Now there are 2 possibilities.
 
@@ -45,6 +47,7 @@ her data.
 
 from collections.abc import Mapping
 from copy import deepcopy
+from secrets import compare_digest
 
 from fido2.webauthn import AuthenticationResponse
 from flask import Blueprint, abort, request
@@ -198,6 +201,11 @@ def start_reset_pw(email: str) -> FluxData:
         return error_response(message=e.msg)
     except ThrottledException as e:
         current_app.logger.error(f"Email resending throttled for {email}")
+        # Throttling is keyed on the state in the database, so a session that has never seen
+        # this reset can land here. Everything the normal exit below puts in the session and
+        # that is still true has to be set here too, or GET / reports a countdown for an
+        # address it does not know. Not email.sent_at: no mail was sent.
+        session.reset_password.email.address = e.state.email_address
         # The expiry is fixed at first issue, so it must be set here too or the session
         # field goes stale from a previous cycle.
         session.reset_password.email_code_expires_at = (
@@ -224,8 +232,11 @@ def verify_email(email_code: str, email: str | None = None) -> FluxData:
     configuration needed for the reset password form.
 
     Preconditions required for the call to succeed:
-    * A PasswordResetEmailState object in the password_reset_state_db
-      keyed by the received code.
+    * A PasswordResetEmailState object in the password_reset_state_db for the
+      user this request identifies - by the eppn in the session, else by the
+      address in the session, else by the email address posted with the code.
+      The state is never looked up by the code.
+    * The received code matches the code that state holds.
 
     The configuration returned (in case of success) will include:
     * The received code;
@@ -242,7 +253,9 @@ def verify_email(email_code: str, email: str | None = None) -> FluxData:
     * Set a hash of the generated password in the session.
 
     This operation may fail due to:
-    * The code does not correspond to a valid state in the db;
+    * No state exists for the user this request identifies;
+    * The code does not match the code that state holds;
+    * Too many codes have already been tried against that state;
     * The code has expired;
     * No valid user corresponds to the eppn stored in the state.
     """
@@ -256,6 +269,16 @@ def verify_email(email_code: str, email: str | None = None) -> FluxData:
         _session_user = current_app.central_userdb.get_user_by_mail(email)
         if _session_user is None or _session_user.eppn != session.common.eppn:
             current_app.logger.info("Posted email does not match the session user; invalidating session")
+            session.invalidate()
+            return error_response(message=ResetPwMsg.invalid_session)
+
+    if email is not None and session.common.eppn is None and session.reset_password.email.address is not None:
+        # The same dead end one identity hint down: start_reset_pw stores an address without
+        # an eppn, and that address outranks the posted one, so a stale one would silently
+        # swallow this request. Purely a session-local string comparison - deliberately no
+        # userdb lookup, so unlike the guard above this one cannot leak address existence.
+        if session.reset_password.email.address != email:
+            current_app.logger.info("Posted email does not match the session address; invalidating session")
             session.invalidate()
             return error_response(message=ResetPwMsg.invalid_session)
 
@@ -308,8 +331,10 @@ def set_new_pw_no_extra_security(email_code: str, password: str) -> FluxData:
     the password as credential for the user, with no extra security.
 
     Preconditions required for the call to succeed:
-    * A PasswordResetEmailState object in the password_reset_state_db
-      keyed by the received code.
+    * A PasswordResetEmailState object in the password_reset_state_db for the
+      user this request identifies, by the eppn or the address in the session.
+      The state is never looked up by the code.
+    * The received code matches the code that state holds.
     * A flag in said state object indicating that the emailed code has already
       been verified.
 
@@ -320,7 +345,8 @@ def set_new_pw_no_extra_security(email_code: str, password: str) -> FluxData:
     * Unverify any verified phone number or NIN the user previously had.
 
     This operation may fail due to:
-    * The code does not correspond to a valid state in the db;
+    * No state exists for the user this request identifies, or the code does
+      not match the code that state holds;
     * The code has expired;
     * No valid user corresponds to the eppn stored in the state;
     * Communication problems with the VCCS backend;
@@ -331,7 +357,8 @@ def set_new_pw_no_extra_security(email_code: str, password: str) -> FluxData:
     except StateException as e:
         return error_response(message=e.msg)
 
-    current_app.logger.info(f"Reset password with state {email_code} using NO extra security for user {context.user}")
+    # Never log email_code. User.__str__ renders the eppn, so the line still identifies who.
+    current_app.logger.info(f"Reset password using NO extra security for user {context.user}")
     return reset_user_password(user=context.user, state=context.state, password=password)
 
 
@@ -346,8 +373,10 @@ def choose_extra_security_phone(email_code: str, phone_index: int) -> FluxData:
     result of the attempted operation.
 
     Preconditions required for the call to succeed:
-    * A PasswordResetEmailState object in the password_reset_state_db
-      keyed by the received code.
+    * A PasswordResetEmailState object in the password_reset_state_db for the
+      user this request identifies, by the eppn or the address in the session.
+      The state is never looked up by the code.
+    * The received code matches the code that state holds.
     * A flag in said state object indicating that the emailed code has already
       been verified.
     * The user referenced in the state has at least phone_index (number) of
@@ -362,7 +391,8 @@ def choose_extra_security_phone(email_code: str, phone_index: int) -> FluxData:
       the received phone_index;
 
     This operation may fail due to:
-    * The code does not correspond to a valid state in the db;
+    * No state exists for the user this request identifies, or the code does
+      not match the code that state holds;
     * The code has expired;
     * No valid user corresponds to the eppn stored in the state;
     * Problems sending the SMS message
@@ -414,7 +444,9 @@ def set_new_pw_extra_security_phone(email_code: str, password: str, phone_code: 
 
     Preconditions required for the call to succeed:
     * A PasswordResetEmailAndPhoneState object in the password_reset_state_db
-      keyed by the received codes.
+      for the user this request identifies, by the eppn or the address in the
+      session. The state is never looked up by either code.
+    * The received codes match the codes that state holds.
     * A flag in said state object indicating that the emailed code has already
       been verified.
 
@@ -424,7 +456,8 @@ def set_new_pw_extra_security_phone(email_code: str, password: str, phone_code: 
     * Revoke all password credentials the user had;
 
     This operation may fail due to:
-    * The codes do not correspond to a valid state in the db;
+    * No state exists for the user this request identifies, or the codes do
+      not match the codes that state holds;
     * Any of the codes have expired;
     * No valid user corresponds to the eppn stored in the state;
     * Communication problems with the VCCS backend;
@@ -439,7 +472,10 @@ def set_new_pw_extra_security_phone(email_code: str, password: str, phone_code: 
         # if the state is not an EmailAndPhoneState the phone code has expired
         return error_response(message=ResetPwMsg.expired_phone_code)
 
-    if phone_code == context.state.phone_code.code:
+    # Consistency with the email code path rather than a fix: the phone code is 40 bits and
+    # state-bound over a ten minute window. Compared as bytes because compare_digest() raises
+    # TypeError on str arguments holding non-ASCII, and phone_code is unvalidated user input.
+    if compare_digest(context.state.phone_code.code.encode(), phone_code.encode()):
         if not verify_phone_number(context.state):
             current_app.logger.info(f"Could not verify phone code for user {context.user}")
             return error_response(message=ResetPwMsg.phone_invalid)
@@ -464,8 +500,10 @@ def set_new_pw_extra_security_key(
     extra security.
 
     Preconditions required for the call to succeed:
-    * A PasswordResetEmailState object in the password_reset_state_db
-      keyed by the received code.
+    * A PasswordResetEmailState object in the password_reset_state_db for the
+      user this request identifies, by the eppn or the address in the session.
+      The state is never looked up by the code.
+    * The received code matches the code that state holds.
     * A flag in said state object indicating that the emailed code has already
       been verified.
 
@@ -475,7 +513,8 @@ def set_new_pw_extra_security_key(
     * Revoke all password credentials the user had;
 
     This operation may fail due to:
-    * The codes do not correspond to a valid state in the db;
+    * No state exists for the user this request identifies, or the codes do
+      not match the codes that state holds;
     * Any of the codes have expired;
     * No valid user corresponds to the eppn stored in the state;
     * Communication problems with the VCCS backend;

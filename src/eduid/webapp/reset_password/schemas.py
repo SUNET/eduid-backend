@@ -50,6 +50,8 @@ class ResetPasswordStatusResponse(FluxStandardAction):
         if expires_at:
             verification_time_left = (expires_at - utc_now()).total_seconds()
             if verification_time_left > 0:
+                # The guard above is on a sibling key, so it does not prove "email" exists.
+                out_data["payload"]["state"].setdefault("email", {})
                 out_data["payload"]["state"]["email"]["expires_time_left"] = verification_time_left
                 out_data["payload"]["state"]["email"]["expires_time_max"] = (
                     current_app.conf.email_code_timeout.total_seconds()
