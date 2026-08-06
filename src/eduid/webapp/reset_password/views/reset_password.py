@@ -209,7 +209,7 @@ def start_reset_pw(email: str) -> FluxData:
 @reset_password_views.route("/verify-email/", methods=["POST"])
 @UnmarshalWith(ResetPasswordEmailCodeRequestSchema)
 @MarshalWith(ResetPasswordVerifyEmailResponseSchema)
-def verify_email(email_code: str) -> FluxData:
+def verify_email(email_code: str, email: str | None = None) -> FluxData:
     """
     View that receives an emailed reset password code and returns the
     configuration needed for the reset password form.
@@ -237,9 +237,21 @@ def verify_email(email_code: str) -> FluxData:
     * The code has expired;
     * No valid user corresponds to the eppn stored in the state.
     """
-    current_app.logger.info(f"Configuring password reset form for {email_code}")
+    current_app.logger.info("Configuring password reset form")
+
+    if email is not None and session.common.eppn is not None:
+        # The browser holds a session for someone else. Clear it rather than dead-ending:
+        # resolution keys on session.common.eppn, so it would never match this address.
+        # Invalidate on ANY address that is not the session user's own - including unknown
+        # ones - so the response cannot be used to test whether an address exists.
+        _session_user = current_app.central_userdb.get_user_by_mail(email)
+        if _session_user is None or _session_user.eppn != session.common.eppn:
+            current_app.logger.info("Posted email does not match the session user; invalidating session")
+            session.invalidate()
+            return error_response(message=ResetPwMsg.invalid_session)
+
     try:
-        context = get_context(email_code=email_code)
+        context = get_context(email_code=email_code, email_address=email)
     except StateException as e:
         return error_response(message=e.msg)
 
@@ -247,6 +259,8 @@ def verify_email(email_code: str) -> FluxData:
     # No mismatch check is needed: when session.common.eppn is set, get_pwreset_state
     # resolved the state from it, so context.user.eppn cannot differ.
     session.common.eppn = context.user.eppn
+    # After a cross-device fallback resolution there is no address in the session yet
+    session.reset_password.email.address = context.state.email_address
 
     # TODO: Split this view to verify email address view and configuration view
     # Do not verify the email address again if it has been done already using this state

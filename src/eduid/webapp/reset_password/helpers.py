@@ -53,6 +53,8 @@ class ResetPwMsg(TranslatableMsg):
     expired_phone_code = "resetpw.expired-phone-code"
     # Too many incorrect email code submissions against this state
     email_code_too_many_tries = "resetpw.email-code-too-many-tries"
+    # No identity hint available; the frontend must prompt for the email address
+    email_address_required = "resetpw.email-address-required"
     # There was some problem sending the email with the code.
     email_send_failure = "resetpw.email-send-failure"
     # A new code has been generated and sent by email successfully
@@ -110,14 +112,15 @@ class ResetPasswordContext:
     user: User
 
 
-def get_context(email_code: str) -> ResetPasswordContext:
+def get_context(email_code: str, email_address: str | None = None) -> ResetPasswordContext:
     """
-    Use a email code to load reset-password state from the database.
+    Load reset-password state for the current user and verify the supplied code against it.
 
     :param email_code: User supplied password reset code
+    :param email_address: User supplied email address, for the cross-device fallback
     :return: ResetPasswordContext instance
     """
-    state = get_pwreset_state(email_code)
+    state = get_pwreset_state(email_code, email_address=email_address)
 
     user = current_app.central_userdb.get_user_by_eppn(state.eppn)
     if not user:
@@ -128,13 +131,20 @@ def get_context(email_code: str) -> ResetPasswordContext:
     return ResetPasswordContext(state=state, user=user)
 
 
-def get_pwreset_state(email_code: str) -> ResetPasswordEmailState | ResetPasswordEmailAndPhoneState:
+def get_pwreset_state(
+    email_code: str, email_address: str | None = None
+) -> ResetPasswordEmailState | ResetPasswordEmailAndPhoneState:
     """
     Get the password reset state for the current user and verify the provided code against it.
 
     The state is resolved by eppn, never by the code. Resolving by code would test every
     guess against every live state at once and would make per-state attempt counting
     impossible.
+
+    Identity hints are consulted in a fixed order, and the order is a security property:
+    session.common.eppn first, then the address in the session, then the address the user
+    supplied in the request. The last one is a strict last resort, so a supplied address can
+    never override an eppn already established in the session.
 
     raises StateException in case of problems
     """
@@ -143,15 +153,14 @@ def get_pwreset_state(email_code: str) -> ResetPasswordEmailState | ResetPasswor
 
     eppn = session.common.eppn
     if eppn is None:
-        _address = session.reset_password.email.address
+        _address = session.reset_password.email.address or email_address
         if _address is None:
             current_app.logger.info("No identity hint available to resolve reset password state")
-            current_app.stats.count(name="state_not_found", value=1)
-            raise StateException(msg=ResetPwMsg.state_not_found)
+            raise StateException(msg=ResetPwMsg.email_address_required)
         user = current_app.central_userdb.get_user_by_mail(_address)
         if user is None:
             # Same message as a missing state, to avoid an account enumeration oracle
-            current_app.logger.info("No user found for the email address in the session")
+            current_app.logger.info("No user found for the supplied email address")
             current_app.stats.count(name="state_not_found", value=1)
             raise StateException(msg=ResetPwMsg.state_not_found)
         eppn = user.eppn

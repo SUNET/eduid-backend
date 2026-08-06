@@ -781,15 +781,174 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
             return c.post(verify_url, data=json.dumps(data), content_type=self.content_type_json)
 
     def test_verify_email_without_session_is_rejected(self) -> None:
-        """A valid code with no identity hint in the session must not resolve anything."""
+        """A valid code with no identity hint must not resolve anything."""
         self._post_email_address()
         state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user.eppn)
         assert state is not None
 
         response = self._post_verify_email_no_session(email_code=state.email_code.code)
         self._check_error_response(
-            response, type_="POST_RESET_PASSWORD_VERIFY_EMAIL_FAIL", msg=ResetPwMsg.state_not_found
+            response, type_="POST_RESET_PASSWORD_VERIFY_EMAIL_FAIL", msg=ResetPwMsg.email_address_required
         )
+
+    @staticmethod
+    def _response_without_csrf(response: TestResponse) -> dict[str, Any]:
+        """The whole FSA response with the per-response CSRF nonce removed.
+
+        A fresh csrf_token is minted for every response, so two responses issued to two
+        different sessions can never be byte-identical. Everything an attacker could learn
+        something from - type, error, and the rest of the payload - must be.
+        """
+        _json = copy.deepcopy(response.json)
+        assert isinstance(_json, dict), "Response has invalid JSON"
+        assert isinstance(_json.get("payload"), dict), "Response has no payload"
+        # Guard the comparisons below against silently weakening if the field ever moves.
+        assert "csrf_token" in _json["payload"], "Expected a csrf_token in the payload"
+        del _json["payload"]["csrf_token"]
+        return _json
+
+    def _post_verify_email_cross_device(self, email_code: str, email: str | None) -> TestResponse:
+        """POST a code from a fresh browser with no reset-password session state."""
+        with self.app.test_request_context():
+            verify_url = url_for("reset_password.verify_email", _external=True)
+        browser = cast(CSRFTestClient, self.app.test_client())
+        with self.session_cookie_anon(browser) as c:
+            with c.session_transaction() as sess:
+                csrf_token = sess.get_csrf_token()
+            data: dict[str, Any] = {"email_code": email_code, "csrf_token": csrf_token}
+            if email is not None:
+                data["email"] = email
+            return c.post(verify_url, data=json.dumps(data), content_type=self.content_type_json)
+
+    def test_verify_email_no_hint_asks_for_email_address(self) -> None:
+        self._post_email_address()
+        state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user.eppn)
+        assert state is not None
+
+        response = self._post_verify_email_cross_device(email_code=state.email_code.code, email=None)
+        self._check_error_response(
+            response, type_="POST_RESET_PASSWORD_VERIFY_EMAIL_FAIL", msg=ResetPwMsg.email_address_required
+        )
+        # Nothing resolved, so nothing was counted against the state.
+        state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user.eppn)
+        assert state is not None
+        assert state.bad_attempts == 0
+
+    def test_verify_email_cross_device_with_email_succeeds(self) -> None:
+        assert self.test_user.mail_addresses.primary is not None
+        self._post_email_address()
+        state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user.eppn)
+        assert state is not None
+
+        response = self._post_verify_email_cross_device(
+            email_code=state.email_code.code, email=self.test_user.mail_addresses.primary.email
+        )
+        assert response.status_code == 200
+        assert self.get_response_payload(response)["email_address"] == "johnsmith@example.com"
+
+    def test_unknown_email_and_no_pending_reset_are_indistinguishable(self) -> None:
+        """Neither response may reveal whether the account or the reset request exists."""
+        # The other test user is not loaded into the central userdb by the test setup, so
+        # put it there - otherwise "known account without a reset" would not be known at all
+        # and this test would pass without exercising the distinction it exists to rule out.
+        self.amdb.save(self.other_test_user)
+        assert self.other_test_user.mail_addresses.primary is not None
+        assert self.app.central_userdb.get_user_by_mail(self.other_test_user.mail_addresses.primary.email) is not None
+        self._post_email_address()  # a reset exists for test_user, not for anyone else
+
+        unknown = self._post_verify_email_cross_device(email_code="123456", email="nobody@example.com")
+        known_no_reset = self._post_verify_email_cross_device(
+            email_code="123456", email=self.other_test_user.mail_addresses.primary.email
+        )
+
+        self._check_error_response(
+            unknown, type_="POST_RESET_PASSWORD_VERIFY_EMAIL_FAIL", msg=ResetPwMsg.state_not_found
+        )
+        self._check_error_response(
+            known_no_reset, type_="POST_RESET_PASSWORD_VERIFY_EMAIL_FAIL", msg=ResetPwMsg.state_not_found
+        )
+        assert unknown.status_code == known_no_reset.status_code
+        assert self._response_without_csrf(unknown) == self._response_without_csrf(known_no_reset)
+
+    def test_other_user_session_recovers_when_email_posted(self) -> None:
+        """A session for another user is cleared, so the retry succeeds."""
+        assert self.test_user.mail_addresses.primary is not None
+        self._post_email_address()
+        state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user.eppn)
+        assert state is not None
+
+        with self.app.test_request_context():
+            verify_url = url_for("reset_password.verify_email", _external=True)
+
+        browser = cast(CSRFTestClient, self.app.test_client())
+        with self.session_cookie(browser, eppn=self.other_test_user.eppn) as c:
+            with c.session_transaction() as sess:
+                csrf_token = sess.get_csrf_token()
+            data = {
+                "email_code": state.email_code.code,
+                "email": self.test_user.mail_addresses.primary.email,
+                "csrf_token": csrf_token,
+            }
+            response = c.post(verify_url, data=json.dumps(data), content_type=self.content_type_json)
+
+        self._check_error_response(
+            response, type_="POST_RESET_PASSWORD_VERIFY_EMAIL_FAIL", msg=ResetPwMsg.invalid_session
+        )
+
+        # The dead end is now recoverable: the foreign session is gone, so retrying the same
+        # request resolves through the email fallback instead of against the stale eppn.
+        retry = self._post_verify_email_cross_device(
+            email_code=state.email_code.code, email=self.test_user.mail_addresses.primary.email
+        )
+        assert retry.status_code == 200
+        assert self.get_response_payload(retry)["email_address"] == "johnsmith@example.com"
+
+    def test_unknown_email_in_other_user_session_gives_same_response(self) -> None:
+        """Unknown and known-but-not-mine must be indistinguishable - no enumeration oracle."""
+        assert self.test_user.mail_addresses.primary is not None
+        self._post_email_address()
+
+        with self.app.test_request_context():
+            verify_url = url_for("reset_password.verify_email", _external=True)
+
+        def _post(email: str) -> TestResponse:
+            browser = cast(CSRFTestClient, self.app.test_client())
+            with self.session_cookie(browser, eppn=self.other_test_user.eppn) as c:
+                with c.session_transaction() as sess:
+                    csrf_token = sess.get_csrf_token()
+                data = {"email_code": "123456", "email": email, "csrf_token": csrf_token}
+                return c.post(verify_url, data=json.dumps(data), content_type=self.content_type_json)
+
+        known = _post(self.test_user.mail_addresses.primary.email)
+        unknown = _post("nobody@example.com")
+
+        assert known.status_code == unknown.status_code
+        assert self._response_without_csrf(known) == self._response_without_csrf(unknown)
+
+    def test_verify_email_cross_device_binds_session_for_rest_of_flow(self) -> None:
+        """After a successful fallback, the session carries the identity onward."""
+        assert self.test_user.mail_addresses.primary is not None
+        self._post_email_address()
+        state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user.eppn)
+        assert state is not None
+
+        with self.app.test_request_context():
+            verify_url = url_for("reset_password.verify_email", _external=True)
+        browser = cast(CSRFTestClient, self.app.test_client())
+        with self.session_cookie_anon(browser) as c:
+            with c.session_transaction() as sess:
+                csrf_token = sess.get_csrf_token()
+            data = {
+                "email_code": state.email_code.code,
+                "email": self.test_user.mail_addresses.primary.email,
+                "csrf_token": csrf_token,
+            }
+            response = c.post(verify_url, data=json.dumps(data), content_type=self.content_type_json)
+            assert response.status_code == 200
+
+            with c.session_transaction() as sess:
+                assert sess.common.eppn == self.test_user.eppn
+                assert sess.reset_password.email.address == self.test_user.mail_addresses.primary.email
 
     def test_wrong_code_does_not_downgrade_phone_state(self) -> None:
         """A wrong code must not reach the phone-expiry branch, which mutates the state."""

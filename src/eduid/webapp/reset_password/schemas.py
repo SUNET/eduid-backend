@@ -62,6 +62,8 @@ class ResetPasswordEmailRequestSchema(EduidSchema, CSRFRequestMixin):
 
 class ResetPasswordEmailCodeRequestSchema(EduidSchema, CSRFRequestMixin):
     email_code = fields.String(required=True)
+    # Cross-device fallback: supplied when the browser has no reset-password session
+    email = LowercaseEmail(required=False, load_default=None)
 
 
 class ResetPasswordCaptchaResponseSchema(FluxStandardAction):
