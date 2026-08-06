@@ -96,3 +96,37 @@ class TestResetPasswordStateDB(MongoTestCase):
         assert state.phone_number == "+99999999999"
         assert state.phone_code.code == "dummy-phone-code"
         assert state.method == "email_and_phone"
+
+    def test_email_state_bad_attempts_defaults_to_zero(self) -> None:
+        email_state = ResetPasswordEmailState(
+            eppn="hubba-bubba",
+            email_address="johnsmith@example.com",
+            email_code=CodeElement.parse(application="test", code_or_element="dummy-code"),
+        )
+        assert email_state.bad_attempts == 0
+
+    def test_email_state_bad_attempts_round_trips(self) -> None:
+        email_state = ResetPasswordEmailState(
+            eppn="hubba-bubba",
+            email_address="johnsmith@example.com",
+            email_code=CodeElement.parse(application="test", code_or_element="dummy-code"),
+        )
+        email_state.bad_attempts = 2
+        self.resetpw_db.save(email_state, is_in_database=False)
+
+        state = self.resetpw_db.get_state_by_eppn("hubba-bubba")
+        assert state is not None
+        assert state.bad_attempts == 2
+
+    def test_state_without_bad_attempts_key_loads(self) -> None:
+        """Existing documents predate the field; from_dict must apply the default."""
+        email_state = ResetPasswordEmailState(
+            eppn="hubba-bubba",
+            email_address="johnsmith@example.com",
+            email_code=CodeElement.parse(application="test", code_or_element="dummy-code"),
+        )
+        data = email_state.to_dict()
+        del data["bad_attempts"]
+
+        loaded = ResetPasswordEmailState.from_dict(data)
+        assert loaded.bad_attempts == 0

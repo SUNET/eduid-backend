@@ -28,6 +28,9 @@ class ResetPasswordState:
     modified_ts: datetime.datetime | None = None
     extra_security: dict[str, Any] | None = None
     generated_password: bool = False
+    # Number of incorrect email_code submissions against this state. Capped by
+    # ResetPasswordConfig.email_code_max_bad_attempts.
+    bad_attempts: int = 0
 
     def __post_init__(self) -> None:
         self.reference = str(self.id)
