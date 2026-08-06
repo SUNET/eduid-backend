@@ -198,12 +198,18 @@ def start_reset_pw(email: str) -> FluxData:
         return error_response(message=e.msg)
     except ThrottledException as e:
         current_app.logger.error(f"Email resending throttled for {email}")
+        # The expiry is fixed at first issue, so it must be set here too or the session
+        # field goes stale from a previous cycle.
+        session.reset_password.email_code_expires_at = (
+            e.state.email_code.created_ts + current_app.conf.email_code_timeout
+        )
         return success_response(
             message=ResetPwMsg.email_send_throttled, payload=email_state_to_response_payload(e.state)
         )
 
     session.reset_password.email.address = state.email_address
     session.reset_password.email.sent_at = utc_now()
+    session.reset_password.email_code_expires_at = state.email_code.created_ts + current_app.conf.email_code_timeout
     current_app.stats.count(name="email_sent", value=1)
 
     return success_response(message=ResetPwMsg.reset_pw_initialized, payload=email_state_to_response_payload(state))

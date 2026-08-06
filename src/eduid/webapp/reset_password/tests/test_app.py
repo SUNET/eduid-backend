@@ -105,6 +105,10 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
             assert response.status_code == 200
             return response
 
+    def _get_status(self) -> TestResponse:
+        with self.session_cookie_anon(self.browser) as c:
+            return c.get("/", content_type=self.content_type_json)
+
     def _post_reset_code(
         self, data1: dict[str, Any] | None = None, data2: dict[str, Any] | None = None
     ) -> TestResponse | None:
@@ -681,6 +685,56 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
         state2 = self.app.password_reset_state_db.get_state_by_eppn(self.test_user.eppn)
         assert state2
         assert state1.email_code.code != state2.email_code.code
+
+    def test_resend_does_not_extend_expiry(self) -> None:
+        self.app.conf.throttle_resend = timedelta(0)
+        self._post_email_address()
+        state1 = self.app.password_reset_state_db.get_state_by_eppn(self.test_user.eppn)
+        assert state1 is not None
+        first_created_ts = state1.email_code.created_ts
+
+        self._post_email_address()
+        state2 = self.app.password_reset_state_db.get_state_by_eppn(self.test_user.eppn)
+        assert state2 is not None
+        assert state2.email_code.code == state1.email_code.code
+        assert state2.email_code.created_ts == first_created_ts
+
+    def test_status_reports_expiry_from_first_issue(self) -> None:
+        self.app.conf.throttle_resend = timedelta(0)
+        self._post_email_address()
+        state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user.eppn)
+        assert state is not None
+
+        # Age the state to half its lifetime, without expiring it.
+        half = self.app.conf.email_code_timeout / 2
+        state.email_code.created_ts = utc_now() - half
+        self.app.password_reset_state_db.save(state)
+
+        # Resend. sent_at is re-stamped, but the expiry must not move.
+        self._post_email_address()
+        response = self._get_status()
+        state_payload = self.get_response_payload(response)["state"]
+        email_state = state_payload["email"]
+
+        assert email_state["expires_time_max"] == self.app.conf.email_code_timeout.total_seconds()
+        # Roughly half the window left, not the full window.
+        assert 0 < email_state["expires_time_left"] <= half.total_seconds() + 60
+        # The raw expiry is internal; only the derived countdown may reach the client.
+        assert "email_code_expires_at" not in state_payload
+
+    def test_status_sets_expiry_on_throttled_resend(self) -> None:
+        """The throttled early-return path must not leave the session field stale."""
+        self.app.conf.throttle_resend = timedelta(minutes=5)
+        self._post_email_address()
+        with self.session_cookie_anon(self.browser) as c:
+            with c.session_transaction() as sess:
+                sess.reset_password.email_code_expires_at = None
+
+        response = self._post_email_address()
+        self._check_success_response(response, msg=ResetPwMsg.email_send_throttled, type_="POST_RESET_PASSWORD_SUCCESS")
+        with self.session_cookie_anon(self.browser) as c:
+            with c.session_transaction() as sess:
+                assert sess.reset_password.email_code_expires_at is not None
 
     def test_post_unknown_email_address(self) -> None:
         data = {"email": "unknown@unplaced.un"}

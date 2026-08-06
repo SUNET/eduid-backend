@@ -124,6 +124,10 @@ class ResetPasswordNS(SessionNSBase):
     generated_password_hash: str | None = None
     email: EmailVerification = Field(default_factory=EmailVerification)
     captcha: Captcha = Field(default_factory=Captcha)
+    # When the current email code expires. Distinct from email.sent_at, which is
+    # re-stamped on every resend while the expiry stays fixed at first issue.
+    # Kept on this namespace rather than the shared EmailVerification so signup is unaffected.
+    email_code_expires_at: datetime | None = None
 
 
 class WebauthnRegistration(SessionNSBase):

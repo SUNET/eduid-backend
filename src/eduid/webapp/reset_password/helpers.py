@@ -10,7 +10,6 @@ from fido2.webauthn import UserVerificationRequirement
 from flask import render_template
 
 from eduid.common.config.base import EduidEnvironment
-from eduid.common.misc.timeutil import utc_now
 from eduid.common.utils import generate_password, get_short_hash
 from eduid.queue.client import init_queue_item
 from eduid.queue.db.message.payload import EduidResetPasswordEmail
@@ -248,9 +247,8 @@ def send_password_reset_mail(email_address: str) -> ResetPasswordEmailState:
         # Let the user only send one mail every throttle_resend time period
         if state.is_throttled(current_app.conf.throttle_resend):
             raise ThrottledException(state=state)
-        # If a state is found and not expired, just send another message with the same code
-        # Update created_ts to give the user another email_code_timeout seconds to complete the password reset
-        state.email_code.created_ts = utc_now()
+        # If a state is found and not expired, just send another message with the same
+        # code. The expiry stays fixed at first issue.
     else:
         # create a new state
         state = ResetPasswordEmailState(
