@@ -2,7 +2,6 @@
 TOPDIR:=	$(abspath .)
 SRCDIR=		$(TOPDIR)/src
 EDUID_SRCDIR=	$(SRCDIR)/eduid
-MYPY_FLAGS := --strict --no-incremental -p eduid
 
 # Keep the virtualenv path overridable so local setups and CI can share targets.
 VENV ?= .venv
@@ -35,13 +34,12 @@ bootstrap_venv:
 # 2. Install this repository in editable mode without dependency resolution,
 #    because the locked requirements already describe the environment.
 # 3. Run mypy with explicitly pinned stub packages already present in the
-#    environment, so type checking stays non-interactive and deterministic even
-#    when CI restores a previously populated workspace cache.
+#    environment, so type checking stays non-interactive.
 bootstrap: bootstrap_venv
 	$(info Installing locked development dependencies into $(VENV))
 	uv pip install --python $(VENV_PYTHON) -r requirements/test_requirements.txt
 	uv pip install --python $(VENV_PYTHON) --no-deps --no-build-isolation -e .
-	$(VENV_PYTHON) -m mypy $(MYPY_FLAGS)
+	$(VENV_PYTHON) -m mypy --strict -p eduid
 
 # Reformat imports first, then apply Ruff's code formatter.
 reformat:
@@ -56,7 +54,7 @@ lint:
 
 # Primary mypy entrypoint used by developers and CI.
 typecheck:
-	mypy $(MYPY_FLAGS)
+	mypy --strict -p eduid
 
 # Alias kept for tooling and developer muscle memory.
 typecheck_strict: typecheck
