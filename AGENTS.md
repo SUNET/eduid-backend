@@ -19,6 +19,13 @@ eduID Backend is a Python monorepo for Swedish federated identity management:
 
 Key technologies: Flask, FastAPI, Pydantic v2, MongoDB, Neo4j, Redis, Celery, SAML2, WebAuthn/FIDO2.
 
+## Source of Truth
+
+Documentation files under this repository are written for humans and may lag behind the implementation.
+AI agents must never treat documentation as authoritative when deducing how the system currently works.
+Code, tests, configuration, and executable behavior are the only trusted sources of truth.
+Documentation may be used to find likely entry points or to identify documentation that might need updates, but not to prove current runtime behavior or invariants.
+
 ## Build/Lint/Test Commands
 
 ### Running Tests
@@ -358,6 +365,7 @@ make typecheck  # Verify type correctness
 Must create signed commits.
 Must never commit with `--no-gpg-sign`.
 If commit signing fails, fix the signing issue and try again with signing enabled rather than falling back to an unsigned commit.
+Before any commit, must check whether the code changes require documentation updates and include the necessary documentation changes in the same change when they do.
 
 Should use [Conventional Commits](https://www.conventionalcommits.org/) for commit messages:
 ```
