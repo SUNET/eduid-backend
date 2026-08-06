@@ -3,43 +3,43 @@
 FROM mcr.microsoft.com/devcontainers/base:trixie
 
 ARG NONROOT_USER=vscode
+ENV NONROOT_USER=${NONROOT_USER}
 
-# Minimum system packages required for `make bootstrap`.
-RUN apt-get update \
-    && apt install -y python3 python3-dev python3-packaging python3-pip python3-venv libcairo2-dev \
-    && rm -rf /var/lib/apt/lists/* \
-    && python3 -m pip install --break-system-packages --no-cache-dir uv
+# Copy the CI-owned shared package list into the image so the build can source
+# the same repo system dependencies that workflows install on GitHub runners.
+COPY --chmod=0644 .github/repo-system-packages.sh /usr/local/share/repo-system-packages.sh
 
-# Additional tools used by the devcontainer beyond the bootstrap flow.
-RUN apt-get update \
-    && apt install -y swig xmlsec1 docker.io ghostscript \
-    && rm -rf /var/lib/apt/lists/*
+# Keep the Dockerfile phases aligned with `make bootstrap` while using a single image layer.
+RUN set -eux; \
+    bootstrap_python_packages='python3 python3-dev python3-pip python3-venv'; \
+    # Reuse the CI-owned repo package list so the devcontainer and workflows
+    # install the same shared system dependencies from one source of truth.
+    . /usr/local/share/repo-system-packages.sh; \
+    # Keep swig available for PKCS#11-related native builds. It was originally
+    # added alongside pyXMLSecurity[PKCS11], and retaining it avoids regressions
+    # if that dependency path falls back to a source build again.
+    native_build_tool_packages='swig'; \
+    container_tool_packages='docker.io'; \
+    apt-get update; \
+    apt-get install -y --no-install-recommends \
+        $bootstrap_python_packages \
+        $repo_system_packages \
+        $native_build_tool_packages; \
+    python3 -m pip install --break-system-packages --no-cache-dir uv; \
+    apt-get install -y $container_tool_packages; \
+    rm -rf /var/lib/apt/lists/*
 
-# Enable non-root access to Docker as outlined in Docker-in-Docker.
-RUN cat <<EOF >/usr/local/share/docker-init.sh
-#!/bin/sh
-sudoIf() { if [ "\$(id -u)" -ne 0 ]; then sudo "\$@"; else "\$@"; fi; }
-if [ -S /var/run/docker.sock ]; then
-    SOCKET_GID=\$(stat -c '%g' /var/run/docker.sock)
-    if [ "\${SOCKET_GID}" != '0' ]; then
-        if ! getent group "\${SOCKET_GID}" >/dev/null; then
-            sudoIf groupadd --gid "\${SOCKET_GID}" docker-host
-        fi
-        if ! id "${NONROOT_USER}" | grep -Eq "groups=.*(=|,)\${SOCKET_GID}\\("; then
-            sudoIf usermod -aG "\${SOCKET_GID}" "${NONROOT_USER}"
-        fi
-    fi
-fi
-exec "\$@"
-EOF
-
-RUN chmod +x /usr/local/share/docker-init.sh
-
-USER ${NONROOT_USER}
+COPY --chmod=0755 .devcontainer/docker-init.sh /usr/local/share/docker-init.sh
 
 # VS Code overrides ENTRYPOINT and CMD when executing `docker run` by default.
+# This devcontainer uses Docker-outside-of-Docker: it mounts the host Docker
+# socket instead of starting a daemon inside the container. We still want the
+# editor and shell to run as ${NONROOT_USER}, but the mounted socket's group ID
+# comes from the host and can vary by machine. Startup therefore stays as root
+# long enough for docker-init.sh to align socket permissions, then the entrypoint
+# re-execs the requested command as ${NONROOT_USER}.
 # Setting the ENTRYPOINT to docker-init.sh will configure non-root access to
-# the Docker socket if "overrideCommand": false is set in devcontainer.json.
+# the mounted Docker socket if "overrideCommand": false is set in devcontainer.json.
 # The script will also execute CMD if you need to alter startup behaviors.
 ENTRYPOINT [ "/usr/local/share/docker-init.sh" ]
 CMD [ "sleep", "infinity" ]

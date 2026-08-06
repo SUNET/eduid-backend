@@ -29,10 +29,8 @@ jobs:
       - name: Install packages
         run: |
           sudo apt update
-          # pysaml2 needs to find an xmlsec1 binary
-          # PIL/EpsImagePlugin.py needs to find a ghostscript binary
-          # xhtml2pdf needs libcairo-dev
-          sudo apt install xmlsec1 ghostscript libcairo2-dev
+          . .github/repo-system-packages.sh
+          sudo apt install -y $repo_system_packages
 
       - name: Set up uv
         uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
@@ -72,10 +70,8 @@ jobs:
       - name: Install packages
         run: |
           sudo apt update
-          # pysaml2 needs to find an xmlsec1 binary
-          # PIL/EpsImagePlugin.py needs to find a ghostscript binary
-          # xhtml2pdf needs libcairo-dev
-          sudo apt install xmlsec1 ghostscript libcairo2-dev
+          . .github/repo-system-packages.sh
+          sudo apt install -y $repo_system_packages
 
       - name: Set up uv
         uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0

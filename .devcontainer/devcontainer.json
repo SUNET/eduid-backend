@@ -1,7 +1,9 @@
 {
 	"name": "Python 3",
 	"build": {
-		"dockerfile": "Dockerfile"
+		"dockerfile": "Dockerfile",
+		"context": "..",
+		"options": ["--network=host"]
 	},
 	"customizations": {
 		"vscode": {
@@ -28,7 +30,8 @@
 	"mounts": [
 		"type=bind,source=/var/run/docker.sock,target=/var/run/docker.sock"
 	],
+	"init": true,
 	"remoteUser": "vscode",
-	"runArgs": ["--init", "--network=host"],
+	"runArgs": ["--network=host"],
 	"overrideCommand": false
 }
