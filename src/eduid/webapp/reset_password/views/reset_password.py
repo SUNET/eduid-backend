@@ -243,14 +243,9 @@ def verify_email(email_code: str) -> FluxData:
     except StateException as e:
         return error_response(message=e.msg)
 
-    # User is at least partially authenticated, put the eppn in the shared session
-    if session.common.eppn and session.common.eppn != context.user.eppn:
-        # Do not allow eppn change in an existing session
-        current_app.logger.warning(
-            f"eppn in session {session.common.eppn} not same as in the state {context.user.eppn}. Removing session."
-        )
-        session.invalidate()
-        return error_response(message=ResetPwMsg.invalid_session)
+    # User is at least partially authenticated, put the eppn in the shared session.
+    # No mismatch check is needed: when session.common.eppn is set, get_pwreset_state
+    # resolved the state from it, so context.user.eppn cannot differ.
     session.common.eppn = context.user.eppn
 
     # TODO: Split this view to verify email address view and configuration view

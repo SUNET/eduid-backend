@@ -4,7 +4,6 @@ from datetime import timedelta
 from typing import Any
 
 from eduid.userdb.db import BaseDB, SaveResult, TUserDbDocument
-from eduid.userdb.exceptions import MultipleDocumentsReturned
 from eduid.userdb.reset_password.state import (
     ResetPasswordEmailAndPhoneState,
     ResetPasswordEmailState,
@@ -49,31 +48,6 @@ class ResetPasswordStateDB(BaseDB):
                 },
             }
             self.setup_indexes(indexes)
-
-    def get_state_by_email_code(
-        self, email_code: str
-    ) -> ResetPasswordEmailState | ResetPasswordEmailAndPhoneState | None:
-        """
-        Locate a state in the db given the state's email code.
-
-        :param email_code: Code sent to the user
-
-        :return: ResetPasswordState subclass instance
-
-        :raise self.DocumentDoesNotExist: No document match the search criteria
-        :raise self.MultipleDocumentsReturned: More than one document matches
-                                               the search criteria
-        """
-        spec = {"email_code.code": email_code}
-        states = list(self._get_documents_by_filter(spec))
-
-        if len(states) == 0:
-            return None
-
-        if len(states) > 1:
-            raise MultipleDocumentsReturned(f"Multiple matching users for filter {filter}")
-
-        return self.init_state(states[0])
 
     def get_state_by_eppn(self, eppn: str) -> ResetPasswordEmailState | ResetPasswordEmailAndPhoneState | None:
         """

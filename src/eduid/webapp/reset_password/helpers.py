@@ -3,6 +3,7 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import timedelta
 from enum import unique
+from secrets import compare_digest
 from typing import Any
 
 from fido2.webauthn import UserVerificationRequirement
@@ -127,27 +128,56 @@ def get_context(email_code: str) -> ResetPasswordContext:
 
 def get_pwreset_state(email_code: str) -> ResetPasswordEmailState | ResetPasswordEmailAndPhoneState:
     """
-    get the password reset state for the provided code
+    Get the password reset state for the current user and verify the provided code against it.
 
-    raises BadCode in case of problems
+    The state is resolved by eppn, never by the code. Resolving by code would test every
+    guess against every live state at once and would make per-state attempt counting
+    impossible.
+
+    raises StateException in case of problems
     """
     mail_expiration_time = current_app.conf.email_code_timeout
     sms_expiration_time = current_app.conf.phone_code_timeout
-    state = current_app.password_reset_state_db.get_state_by_email_code(email_code)
+
+    eppn = session.common.eppn
+    if eppn is None:
+        _address = session.reset_password.email.address
+        if _address is None:
+            current_app.logger.info("No identity hint available to resolve reset password state")
+            current_app.stats.count(name="state_not_found", value=1)
+            raise StateException(msg=ResetPwMsg.state_not_found)
+        user = current_app.central_userdb.get_user_by_mail(_address)
+        if user is None:
+            # Same message as a missing state, to avoid an account enumeration oracle
+            current_app.logger.info("No user found for the email address in the session")
+            current_app.stats.count(name="state_not_found", value=1)
+            raise StateException(msg=ResetPwMsg.state_not_found)
+        eppn = user.eppn
+
+    state = current_app.password_reset_state_db.get_state_by_eppn(eppn)
     if not state:
-        current_app.logger.info(f"State not found: {email_code}")
+        current_app.logger.info(f"State not found for eppn {eppn}")
         current_app.stats.count(name="state_not_found", value=1)
         raise StateException(msg=ResetPwMsg.state_not_found)
 
-    current_app.logger.debug(f"Found state using email_code {email_code}: {state}")
+    # Compare as bytes: compare_digest() raises TypeError on str arguments containing
+    # non-ASCII characters, and email_code is unvalidated user input.
+    if not compare_digest(state.email_code.code.encode(), email_code.encode()):
+        current_app.logger.info(f"Bad email code for eppn {eppn}")
+        current_app.stats.count(name="email_code_bad_attempt", value=1)
+        raise StateException(msg=ResetPwMsg.state_not_found)
 
+    current_app.logger.debug(f"Found state for eppn {eppn}: {state}")
+
+    # Expiry checks run only after the caller has proven they hold the code. The phone
+    # branch below mutates the state, and no mutation may be reachable without that proof.
     if state.email_code.is_expired(mail_expiration_time):
-        current_app.logger.info(f"State expired: {email_code}")
+        current_app.logger.info(f"State expired for eppn {eppn}")
         current_app.stats.count(name="email_code_expired", value=1)
         raise StateException(msg=ResetPwMsg.expired_email_code)
 
     if isinstance(state, ResetPasswordEmailAndPhoneState) and state.phone_code.is_expired(sms_expiration_time):
-        current_app.logger.info(f"Phone code expired for state: {email_code}")
+        current_app.logger.info(f"Phone code expired for eppn {eppn}")
         # Revert the state to EmailState to allow the user to choose extra security again
         current_app.password_reset_state_db.remove_state(state)
         state = ResetPasswordEmailState(eppn=state.eppn, email_address=state.email_address, email_code=state.email_code)

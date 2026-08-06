@@ -4,7 +4,7 @@ import json
 from collections.abc import Callable, Iterable, Mapping
 from datetime import timedelta
 from http import HTTPStatus
-from typing import Any
+from typing import Any, cast
 from urllib.parse import quote_plus
 
 import pytest
@@ -20,7 +20,7 @@ from eduid.userdb.fixtures.fido_credentials import webauthn_credential as sample
 from eduid.userdb.fixtures.users import UserFixtures
 from eduid.userdb.reset_password import ResetPasswordEmailAndPhoneState, ResetPasswordEmailState
 from eduid.webapp.common.api.messages import TranslatableMsg
-from eduid.webapp.common.api.testing import EduidAPITestCase
+from eduid.webapp.common.api.testing import CSRFTestClient, EduidAPITestCase
 from eduid.webapp.common.api.utils import get_zxcvbn_terms, hash_password
 from eduid.webapp.common.authn.testing import MockVCCSClient
 from eduid.webapp.common.authn.tests.test_fido_tokens import (
@@ -768,6 +768,101 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
             response, type_="POST_RESET_PASSWORD_VERIFY_EMAIL_FAIL", msg=ResetPwMsg.state_not_found
         )
 
+    def _post_verify_email_no_session(self, email_code: str) -> TestResponse:
+        """POST a code to /verify-email/ from a browser with no reset-password session state."""
+        with self.app.test_request_context():
+            verify_url = url_for("reset_password.verify_email", _external=True)
+        # A brand new client, so no cookie from any previous request in this test.
+        browser = cast(CSRFTestClient, self.app.test_client())
+        with self.session_cookie_anon(browser) as c:
+            with c.session_transaction() as sess:
+                csrf_token = sess.get_csrf_token()
+            data = {"email_code": email_code, "csrf_token": csrf_token}
+            return c.post(verify_url, data=json.dumps(data), content_type=self.content_type_json)
+
+    def test_verify_email_without_session_is_rejected(self) -> None:
+        """A valid code with no identity hint in the session must not resolve anything."""
+        self._post_email_address()
+        state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user.eppn)
+        assert state is not None
+
+        response = self._post_verify_email_no_session(email_code=state.email_code.code)
+        self._check_error_response(
+            response, type_="POST_RESET_PASSWORD_VERIFY_EMAIL_FAIL", msg=ResetPwMsg.state_not_found
+        )
+
+    def test_wrong_code_does_not_downgrade_phone_state(self) -> None:
+        """A wrong code must not reach the phone-expiry branch, which mutates the state."""
+        self.mocker.patch("eduid.common.rpc.msg_relay.MsgRelay.sendsms", return_value=True)
+        self._post_email_address()
+        state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user.eppn)
+        assert isinstance(state, ResetPasswordEmailState)
+
+        user = self.app.central_userdb.get_user_by_eppn(self.test_user.eppn)
+        with self.app.test_request_context():
+            state.extra_security = get_extra_security_alternatives(user)
+            state.email_code.is_verified = True
+            self.app.password_reset_state_db.save(state)
+            send_verify_phone_code(state, state.extra_security["phone_numbers"][0]["number"])
+
+        upgraded = self.app.password_reset_state_db.get_state_by_eppn(self.test_user.eppn)
+        assert isinstance(upgraded, ResetPasswordEmailAndPhoneState)
+
+        # Expire the phone code, then submit a WRONG email code.
+        self.app.conf.phone_code_timeout = timedelta(0)
+        with self.app.test_request_context():
+            verify_url = url_for("reset_password.verify_email", _external=True)
+        with self.session_cookie_anon(self.browser) as c:
+            with c.session_transaction() as sess:
+                csrf_token = sess.get_csrf_token()
+            data = {"email_code": "wrong-code", "csrf_token": csrf_token}
+            response = c.post(verify_url, data=json.dumps(data), content_type=self.content_type_json)
+
+        self._check_error_response(
+            response, type_="POST_RESET_PASSWORD_VERIFY_EMAIL_FAIL", msg=ResetPwMsg.state_not_found
+        )
+        # The state must NOT have been downgraded back to a plain email state.
+        after = self.app.password_reset_state_db.get_state_by_eppn(self.test_user.eppn)
+        assert isinstance(after, ResetPasswordEmailAndPhoneState)
+
+    def test_non_ascii_code_is_rejected_cleanly(self) -> None:
+        """A non-ASCII code is just a wrong code, not an unhandled TypeError from compare_digest."""
+        self._post_email_address()
+        state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user.eppn)
+        assert state is not None
+
+        with self.app.test_request_context():
+            verify_url = url_for("reset_password.verify_email", _external=True)
+        with self.session_cookie_anon(self.browser) as c:
+            with c.session_transaction() as sess:
+                csrf_token = sess.get_csrf_token()
+            data = {"email_code": "åäö123", "csrf_token": csrf_token}
+            response = c.post(verify_url, data=json.dumps(data), content_type=self.content_type_json)
+
+        assert response.status_code == 200
+        self._check_error_response(
+            response, type_="POST_RESET_PASSWORD_VERIFY_EMAIL_FAIL", msg=ResetPwMsg.state_not_found
+        )
+
+    def test_correct_but_expired_code_still_reports_expired(self) -> None:
+        """Comparing before checking expiry means legitimate users see the right message."""
+        self._post_email_address()
+        state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user.eppn)
+        assert state is not None
+        self.app.conf.email_code_timeout = timedelta(0)
+
+        with self.app.test_request_context():
+            verify_url = url_for("reset_password.verify_email", _external=True)
+        with self.session_cookie_anon(self.browser) as c:
+            with c.session_transaction() as sess:
+                csrf_token = sess.get_csrf_token()
+            data = {"email_code": state.email_code.code, "csrf_token": csrf_token}
+            response = c.post(verify_url, data=json.dumps(data), content_type=self.content_type_json)
+
+        self._check_error_response(
+            response, type_="POST_RESET_PASSWORD_VERIFY_EMAIL_FAIL", msg=ResetPwMsg.expired_email_code
+        )
+
     def test_post_reset_wrong_csrf(self) -> None:
         data2 = {"csrf_token": "wrong-code"}
         response = self._post_reset_code(data2=data2)
@@ -778,7 +873,7 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
             error={"csrf_token": ["CSRF failed to validate"]},
         )
 
-    def test_post_reset_invalid_session_eppn(self) -> None:
+    def test_post_reset_other_user_session_eppn(self) -> None:
         if self.test_user.mail_addresses.primary is None:
             raise RuntimeError(f"user {self.test_user} has no primary email address")
 
@@ -808,8 +903,10 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
             }
             response = c.post(verify_url, data=json.dumps(data), content_type=self.content_type_json)
 
+        # Resolution is keyed on the session eppn (other_test_user), which has no reset
+        # state, so the foreign session learns nothing about the code's validity.
         self._check_error_response(
-            response=response, type_="POST_RESET_PASSWORD_VERIFY_EMAIL_FAIL", msg=ResetPwMsg.invalid_session
+            response=response, type_="POST_RESET_PASSWORD_VERIFY_EMAIL_FAIL", msg=ResetPwMsg.state_not_found
         )
 
     def test_post_reset_password(self) -> None:

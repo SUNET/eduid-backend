@@ -30,22 +30,6 @@ class TestResetPasswordStateDB(MongoTestCase):
         assert state.email_code.is_expired(timedelta(0))
         assert not state.email_code.is_expired(timedelta(1))
 
-    def test_email_state_get_by_code(self) -> None:
-        email_state = ResetPasswordEmailState(
-            eppn="hubba-bubba",
-            email_address="johnsmith@example.com",
-            email_code=CodeElement.parse(application="test", code_or_element="dummy-code"),
-        )
-
-        self.resetpw_db.save(email_state, is_in_database=False)
-
-        state = self.resetpw_db.get_state_by_email_code("dummy-code")
-        assert state is not None
-        assert state.email_address == "johnsmith@example.com"
-        assert state.method == "email"
-        assert state.eppn == "hubba-bubba"
-        assert not state.generated_password
-
     def test_email_state_generated_pw(self) -> None:
         email_state = ResetPasswordEmailState(
             eppn="hubba-bubba",
