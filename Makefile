@@ -85,14 +85,16 @@ update_queue_translations:
 compile_queue_translations:
 	pybabel compile --directory=$(EDUID_SRCDIR)/queue/translations/ --use-fuzzy
 
-# Delegate dependency lockfile regeneration to the requirements sub-make.
+# Regenerate every compiled lockfile.
 update_deps:
 	@echo "Updating ALL the dependencies"
-	cd requirements && make update_deps
+	# Use recursive make so command-line flags propagate into the requirements sub-make.
+	$(MAKE) -C requirements update_deps
 
-# Sync development dependencies from the compiled lockfiles.
+# Sync your active virtualenv to the refreshed dev/test lockfile.
 dev_sync_deps:
-	cd requirements && make dev_sync_deps
+	# Keep the delegation symmetric with update_deps so the same make context is preserved.
+	$(MAKE) -C requirements dev_sync_deps
 
 # Remove caches and Python build artefacts produced by local development.
 clean:
