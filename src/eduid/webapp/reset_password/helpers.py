@@ -166,13 +166,13 @@ def get_pwreset_state(
             current_app.logger.info("No identity hint available to resolve reset password state")
             current_app.stats.count(name="email_address_required", value=1)
             raise StateException(msg=ResetPwMsg.email_address_required)
-        user = current_app.central_userdb.get_user_by_mail(_address)
-        if user is None:
+        users = current_app.central_userdb.get_users_by_mail(_address)
+        if len(users) != 1:
             # Same message as a missing state, to avoid an account enumeration oracle
-            current_app.logger.info("No user found for the supplied email address")
+            current_app.logger.info("No unique user found for the supplied email address")
             current_app.stats.count(name="state_not_found", value=1)
             raise StateException(msg=ResetPwMsg.state_not_found)
-        eppn = user.eppn
+        eppn = users[0].eppn
 
     state = current_app.password_reset_state_db.get_state_by_eppn(eppn)
     if not state:
