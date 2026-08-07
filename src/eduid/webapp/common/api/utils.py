@@ -232,7 +232,10 @@ def sanitise_redirect_url(redirect_url: str | None, safe_default: str = "/") -> 
     logger.debug(f"Checking if redirect_url {redirect_url} is safe")
     url_scheme = get_from_current_app("conf", EduIDBaseAppConfig).flask.preferred_url_scheme
     safe_domain = get_from_current_app("conf", Pysaml2SPConfigMixin).safe_relay_domain
-    parsed_relay_state = urlparse(redirect_url)
+    # Browsers treat backslashes as forward slashes, so "/\evil.com" would parse here as a
+    # safe path-only URL while actually being an open redirect to //evil.com. Normalise
+    # backslashes to forward slashes before parsing so urlparse sees the real netloc.
+    parsed_relay_state = urlparse(redirect_url.replace("\\", "/"))
 
     # If relay state is only a path
     if (not parsed_relay_state.scheme and not parsed_relay_state.netloc) and parsed_relay_state.path:
