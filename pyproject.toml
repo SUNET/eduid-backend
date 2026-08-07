@@ -97,7 +97,6 @@ test = [
   "types-Authlib",
   "types-bleach",
   "types-defusedxml",
-  "types-Flask-Cors",
   "types-jwcrypto",
   "types-PyYAML",
   "types-python-dateutil",
