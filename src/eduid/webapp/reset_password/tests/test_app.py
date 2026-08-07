@@ -166,6 +166,12 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
         state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user.eppn)
         assert isinstance(state, ResetPasswordEmailState)
 
+        # This helper skips /verify-email/, so stand in for the other thing that view does:
+        # mark the code verified. The view rejects an unverified state - see
+        # test_new_password_requires_a_verified_email_code.
+        state.email_code.is_verified = True
+        self.app.password_reset_state_db.save(state)
+
         with self.app.test_request_context():
             url = url_for("reset_password.set_new_pw_no_extra_security", _external=True)
 
@@ -1556,6 +1562,45 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
                 "POST_RESET_PASSWORD_NEW_PASSWORD_EXTRA_SECURITY_EXTERNAL_MFA_FAIL",
             ),
         ]
+
+    def test_new_password_requires_a_verified_email_code(self) -> None:
+        """A session eppn alone is not enough to reset a password at /new-password/.
+
+        session.common.eppn is a shared cross-app field, also set by the IdP, authn and signup
+        apps, so a user authenticated by any of those reaches this view without having passed
+        through /verify-email/ - which is what writes the MailAddressProofing entry and sets
+        email_code.is_verified. Resolution keys on that same eppn, so this is the account owner
+        holding their own code rather than an impersonation path, but skipping the proofing-log
+        entry is not acceptable and the two sibling extra-security views already refuse it.
+        """
+        self._post_email_address()
+        state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user.eppn)
+        assert isinstance(state, ResetPasswordEmailState)
+        assert state.email_code.is_verified is False
+
+        with self.app.test_request_context():
+            url = url_for("reset_password.set_new_pw_no_extra_security", _external=True)
+
+        with self.session_cookie_anon(self.browser) as c:
+            new_password = generate_suggested_password(self.app.conf.password_length)
+            with c.session_transaction() as sess:
+                sess.reset_password.generated_password_hash = hash_password(new_password)
+                # An eppn from some other app's authentication, not from /verify-email/.
+                sess.common.eppn = self.test_user.eppn
+            data = {
+                "email_code": state.email_code.code,
+                "password": new_password,
+                "csrf_token": self.get_response_payload(c.get("/"))["csrf_token"],
+            }
+            response = c.post(url, data=json.dumps(data), content_type=self.content_type_json)
+
+        self._check_error_response(
+            response, type_="POST_RESET_PASSWORD_NEW_PASSWORD_FAIL", msg=ResetPwMsg.email_not_validated
+        )
+
+        # And the password really was not changed.
+        user = self.app.central_userdb.get_user_by_eppn(self.test_user.eppn)
+        assert user.credentials.filter(Password) == self.test_user.credentials.filter(Password)
 
     def test_post_verification_views_require_a_verified_session(self) -> None:
         """Every view after /verify-email/ refuses a session that never supplied the code.

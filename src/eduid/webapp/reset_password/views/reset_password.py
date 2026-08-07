@@ -388,6 +388,7 @@ def set_new_pw_no_extra_security(email_code: str, password: str) -> FluxData:
       not match the code that state holds;
     * The code has expired;
     * Too many codes have already been tried against that state;
+    * The emailed code has not been verified on this state;
     * No valid user corresponds to the eppn stored in the state;
     * Communication problems with the VCCS backend;
     * Synchronization problems with the central user db.
@@ -399,6 +400,14 @@ def set_new_pw_no_extra_security(email_code: str, password: str) -> FluxData:
         context = get_context(email_code=email_code)
     except StateException as e:
         return error_response(message=e.msg)
+
+    # Check that the email code has been validated. A session eppn is not sufficient on its
+    # own: it is a shared cross-app field, also set by the IdP, authn and signup apps, so a
+    # user authenticated by any of those reaches this view without having passed through
+    # /verify-email/ — which is what writes the MailAddressProofing entry and sets this flag.
+    if not context.state.email_code.is_verified:
+        current_app.logger.info(f"User with eppn {context.state.eppn} has not verified their email address")
+        return error_response(message=ResetPwMsg.email_not_validated)
 
     # Never log email_code. User.__str__ renders the eppn, so the line still identifies who.
     current_app.logger.info(f"Reset password using NO extra security for user {context.user}")
