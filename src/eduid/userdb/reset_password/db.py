@@ -3,8 +3,9 @@ from collections.abc import Mapping
 from datetime import timedelta
 from typing import Any
 
+from pymongo import ReturnDocument
+
 from eduid.userdb.db import BaseDB, SaveResult, TUserDbDocument
-from eduid.userdb.exceptions import MultipleDocumentsReturned
 from eduid.userdb.reset_password.state import (
     ResetPasswordEmailAndPhoneState,
     ResetPasswordEmailState,
@@ -50,31 +51,6 @@ class ResetPasswordStateDB(BaseDB):
             }
             self.setup_indexes(indexes)
 
-    def get_state_by_email_code(
-        self, email_code: str
-    ) -> ResetPasswordEmailState | ResetPasswordEmailAndPhoneState | None:
-        """
-        Locate a state in the db given the state's email code.
-
-        :param email_code: Code sent to the user
-
-        :return: ResetPasswordState subclass instance
-
-        :raise self.DocumentDoesNotExist: No document match the search criteria
-        :raise self.MultipleDocumentsReturned: More than one document matches
-                                               the search criteria
-        """
-        spec = {"email_code.code": email_code}
-        states = list(self._get_documents_by_filter(spec))
-
-        if len(states) == 0:
-            return None
-
-        if len(states) > 1:
-            raise MultipleDocumentsReturned(f"Multiple matching users for filter {filter}")
-
-        return self.init_state(states[0])
-
     def get_state_by_eppn(self, eppn: str) -> ResetPasswordEmailState | ResetPasswordEmailAndPhoneState | None:
         """
         Locate a state in the db given the users eppn.
@@ -100,6 +76,70 @@ class ResetPasswordStateDB(BaseDB):
         elif state.get("method") == "email_and_phone":
             return ResetPasswordEmailAndPhoneState.from_dict(data=state)
         return None
+
+    def reserve_bad_attempt(self, state: ResetPasswordState, max_attempts: int) -> int | None:
+        """
+        Reserve one email code submission against a state, if the state has any left.
+
+        The cap check and the increment are a single atomic update because they are a single
+        decision: a check done separately is stale the moment it returns, so parallel guesses
+        would all read the same count, all pass the check, and all get to compare a different
+        code before any of them is counted - letting a correct guess through after the cap was
+        already spent. Callers must reserve first, and reject a submission that cannot reserve.
+
+        The update is done in the database rather than through save(), which would be a
+        read-check-write across the whole request: save() filters replace_one on the
+        modified_ts the caller loaded, so two requests that loaded the same state would have
+        one of them lose its increment and raise DocumentOutOfSync. $inc also deliberately
+        leaves modified_ts untouched, so an attempt neither re-arms the resend throttle nor
+        postpones the auto-expire index.
+
+        :param state: the state to reserve an attempt against, updated in place
+        :param max_attempts: incorrect submissions allowed per state, from the app config
+        :return: the number of attempts recorded for the state, this one included, or None if
+                 nothing could be reserved because the state is locked or no longer exists
+        """
+        doc = self._coll.find_one_and_update(
+            filter={
+                "eduPersonPrincipalName": state.eppn,
+                # States written before the counter existed carry no field at all, and $lt does
+                # not match a missing field - without the $exists arm they would be locked out
+                # permanently instead of starting from zero.
+                "$or": [{"bad_attempts": {"$lt": max_attempts}}, {"bad_attempts": {"$exists": False}}],
+            },
+            update={"$inc": {"bad_attempts": 1}},
+            return_document=ReturnDocument.AFTER,
+            # No upsert: a state removed while the request was in flight must stay removed.
+        )
+        if doc is None:
+            logger.debug(f"No email code attempt could be reserved for {state.eppn}")
+            return None
+        state.bad_attempts = int(doc["bad_attempts"])
+        return state.bad_attempts
+
+    def reset_bad_attempts(self, state: ResetPasswordState) -> None:
+        """
+        Clear the incorrect email code counter for a state, after the correct code was supplied.
+
+        Written straight to the database for the same reasons as reserve_bad_attempt: save()
+        filters replace_one on the modified_ts the caller loaded, so a concurrent write would
+        turn this into a DocumentOutOfSync. $set also deliberately leaves modified_ts alone, so
+        clearing the counter neither re-arms the resend throttle nor postpones the auto-expire
+        index.
+
+        :param state: the state to clear the counter on, updated in place
+        """
+        result = self._coll.update_one(
+            filter={"eduPersonPrincipalName": state.eppn},
+            update={"$set": {"bad_attempts": 0}},
+            # No upsert: a state removed while the request was in flight must stay removed.
+        )
+        if result.matched_count == 0:
+            logger.debug(f"No reset password state left to clear the bad attempt counter on: {state.eppn}")
+        # Set in memory regardless of whether a document was matched. The caller has proven it
+        # holds the code, so zero is the right value for anything downstream that re-saves the
+        # state - notably the phone-expiry rebuild, which would otherwise persist a stale count.
+        state.bad_attempts = 0
 
     def save(self, state: ResetPasswordState, is_in_database: bool = True) -> SaveResult:
         """

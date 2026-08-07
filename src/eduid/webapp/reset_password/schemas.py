@@ -2,6 +2,7 @@ from typing import Any
 
 from marshmallow import fields, pre_dump
 
+from eduid.common.misc.timeutil import utc_now
 from eduid.webapp.common.api.schemas.base import EduidSchema, FluxStandardAction
 from eduid.webapp.common.api.schemas.csrf import CSRFRequestMixin, CSRFResponseMixin
 from eduid.webapp.common.api.schemas.email import LowercaseEmail
@@ -45,10 +46,12 @@ class ResetPasswordStatusResponse(FluxStandardAction):
 
     @pre_dump
     def email_verification_timeout_delta_to_seconds(self, out_data: dict[str, Any], **kwargs: Any) -> dict[str, Any]:
-        if out_data["payload"].get("state", {}).get("email", {}).get("sent_at"):
-            sent_at = out_data["payload"]["state"]["email"]["sent_at"]
-            verification_time_left = time_left(sent_at, current_app.conf.email_code_timeout).total_seconds()
+        expires_at = out_data["payload"].get("state", {}).get("email_code_expires_at")
+        if expires_at:
+            verification_time_left = (expires_at - utc_now()).total_seconds()
             if verification_time_left > 0:
+                # The guard above is on a sibling key, so it does not prove "email" exists.
+                out_data["payload"]["state"].setdefault("email", {})
                 out_data["payload"]["state"]["email"]["expires_time_left"] = verification_time_left
                 out_data["payload"]["state"]["email"]["expires_time_max"] = (
                     current_app.conf.email_code_timeout.total_seconds()
@@ -62,6 +65,8 @@ class ResetPasswordEmailRequestSchema(EduidSchema, CSRFRequestMixin):
 
 class ResetPasswordEmailCodeRequestSchema(EduidSchema, CSRFRequestMixin):
     email_code = fields.String(required=True)
+    # Cross-device fallback: supplied when the browser has no reset-password session
+    email = LowercaseEmail(required=False, load_default=None)
 
 
 class ResetPasswordCaptchaResponseSchema(FluxStandardAction):
