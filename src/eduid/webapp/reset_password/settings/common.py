@@ -38,7 +38,7 @@ class ResetPasswordConfig(
     dashboard_url: str
 
     email_code_timeout: timedelta = Field(default=timedelta(hours=2))
-    # Lower bound: make_short_code(digits=0) would hand out an empty code.
+    # Lower bound: make_short_code(digits=0) always returns "0" (zero entropy, guessable).
     email_code_length: int = Field(default=6, gt=0)
     # Incorrect email code submissions allowed per state before it is locked until expiry.
     # Mirrors signup's email_verification_max_bad_attempts. Lower bound: at 0 every state is
