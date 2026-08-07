@@ -146,10 +146,11 @@ def get_pwreset_state(
     supplied in the request. The last one is a strict last resort, so a supplied address can
     never override an eppn already established in the session.
 
-    Every caller is metered the same way: the lockout is checked and a wrong code is charged
-    against the counter unconditionally. A correct code clears the counter, which is what
-    keeps a legitimate user's typos from accumulating into a lockout across the flow - only
-    someone who holds the code can reset it, so it hands an attacker nothing.
+    Every caller is metered the same way: an attempt is reserved against the counter before
+    the code is compared, and the reservation doubles as the lockout check. A correct code
+    clears the counter, which is what keeps a legitimate user's typos from accumulating into
+    a lockout across the flow - only someone who holds the code can reset it, so it hands an
+    attacker nothing.
 
     :param email_code: User supplied password reset code
     :param email_address: User supplied email address, for the cross-device fallback
@@ -180,8 +181,16 @@ def get_pwreset_state(
         current_app.stats.count(name="state_not_found", value=1)
         raise StateException(msg=ResetPwMsg.state_not_found)
 
-    # Checked before the comparison, so a locked state rejects the correct code too.
-    if state.bad_attempts >= current_app.conf.email_code_max_bad_attempts:
+    # Reserving the attempt *is* the lockout check, and it is done before the comparison, so a
+    # locked state rejects the correct code too. The cap and the increment have to be one atomic
+    # step: checked separately, many parallel guesses all read the same count, all pass the
+    # check, and all compare before any increment lands, so a correct guess among them wins even
+    # though the cap was already spent. A reservation only fails on a state that is locked, or
+    # that was removed while the request was in flight - neither has an attempt left to spend.
+    attempts = current_app.password_reset_state_db.reserve_bad_attempt(
+        state, max_attempts=current_app.conf.email_code_max_bad_attempts
+    )
+    if attempts is None:
         current_app.logger.info(f"Too many bad email code attempts for eppn {eppn}")
         current_app.stats.count(name="email_code_locked", value=1)
         raise StateException(msg=ResetPwMsg.email_code_too_many_tries)
@@ -190,20 +199,15 @@ def get_pwreset_state(
     # non-ASCII characters, and email_code is unvalidated user input.
     if not compare_digest(state.email_code.code.encode(), email_code.encode()):
         current_app.logger.info(f"Bad email code for eppn {eppn}")
-        # Counted unconditionally, and in the database rather than read-modify-written here:
-        # concurrent guesses must not be able to lose increments, nor to escape as a
-        # DocumentOutOfSync 500 on a path that is only reachable when a state exists.
-        current_app.password_reset_state_db.increment_bad_attempts(state)
+        # Already charged by the reservation above, so there is nothing left to count here.
         current_app.stats.count(name="email_code_bad_attempt", value=1)
         raise StateException(msg=ResetPwMsg.state_not_found)
 
-    # The caller has proven it holds the code, so earlier typos must not linger and lock a
-    # legitimate user out of the rest of their own recovery. An attacker's guesses never get
-    # here, so this cannot be used to refresh a guessing budget.
-    if state.bad_attempts:
-        # Racing a concurrent increment can leave the counter at one instead of zero. That
-        # only costs the user one of the next attempts, and the next correct code clears it.
-        current_app.password_reset_state_db.reset_bad_attempts(state)
+    # The caller has proven it holds the code, so its own reservation and any earlier typos must
+    # not linger and lock a legitimate user out of the rest of their own recovery. An attacker's
+    # guesses never get here, so this cannot be used to refresh a guessing budget.
+    current_app.password_reset_state_db.reset_bad_attempts(state)
+    if attempts > 1:
         current_app.stats.count(name="email_code_attempts_cleared", value=1)
 
     current_app.logger.debug(f"Found state for eppn {eppn}: {state}")

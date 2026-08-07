@@ -103,7 +103,7 @@ class TestResetPasswordStateDB(MongoTestCase):
         assert state is not None
         assert state.bad_attempts == 2
 
-    def test_increment_bad_attempts_counts_each_call(self) -> None:
+    def test_reserve_bad_attempt_counts_each_call(self) -> None:
         email_state = ResetPasswordEmailState(
             eppn="hubba-bubba",
             email_address="johnsmith@example.com",
@@ -114,7 +114,7 @@ class TestResetPasswordStateDB(MongoTestCase):
         state = self.resetpw_db.get_state_by_eppn("hubba-bubba")
         assert state is not None
         for expected in (1, 2, 3):
-            assert self.resetpw_db.increment_bad_attempts(state) == expected
+            assert self.resetpw_db.reserve_bad_attempt(state, max_attempts=3) == expected
             # The in-memory state tracks the database, so callers cannot act on a stale count.
             assert state.bad_attempts == expected
 
@@ -122,12 +122,32 @@ class TestResetPasswordStateDB(MongoTestCase):
         assert reloaded is not None
         assert reloaded.bad_attempts == 3
 
-    def test_increment_bad_attempts_does_not_lose_concurrent_increments(self) -> None:
-        """Two requests that loaded the same state must both get counted.
+    def test_reserve_bad_attempt_refuses_once_the_cap_is_spent(self) -> None:
+        """The cap is the reservation: past it, no attempt is handed out and nothing is counted."""
+        email_state = ResetPasswordEmailState(
+            eppn="hubba-bubba",
+            email_address="johnsmith@example.com",
+            email_code=CodeElement.parse(application="test", code_or_element="dummy-code"),
+        )
+        self.resetpw_db.save(email_state, is_in_database=False)
 
-        A read-modify-write through save() cannot do this: save() filters replace_one on the
-        modified_ts the caller loaded, so the second writer is stale and raises
-        DocumentOutOfSync, losing its increment.
+        state = self.resetpw_db.get_state_by_eppn("hubba-bubba")
+        assert state is not None
+        for expected in (1, 2, 3):
+            assert self.resetpw_db.reserve_bad_attempt(state, max_attempts=3) == expected
+
+        assert self.resetpw_db.reserve_bad_attempt(state, max_attempts=3) is None
+        # A refused reservation must not push the counter past the cap either.
+        reloaded = self.resetpw_db.get_state_by_eppn("hubba-bubba")
+        assert reloaded is not None
+        assert reloaded.bad_attempts == 3
+
+    def test_reserve_bad_attempt_caps_guesses_that_loaded_the_same_state(self) -> None:
+        """The check and the increment are one step, so parallel guesses cannot all pass it.
+
+        This is the whole point of reserving: with a separate lockout check, every request
+        holding this stale count would pass and get to compare a code, and one of them could
+        hold the right one - so the cap would only bound the counter, not the guesses.
         """
         email_state = ResetPasswordEmailState(
             eppn="hubba-bubba",
@@ -136,23 +156,21 @@ class TestResetPasswordStateDB(MongoTestCase):
         )
         self.resetpw_db.save(email_state, is_in_database=False)
 
-        # Two concurrent requests load the same document before either writes.
-        first = self.resetpw_db.get_state_by_eppn("hubba-bubba")
-        second = self.resetpw_db.get_state_by_eppn("hubba-bubba")
-        assert first is not None
-        assert second is not None
+        # Three concurrent requests load the same document before any of them writes.
+        loaded = [self.resetpw_db.get_state_by_eppn("hubba-bubba") for _ in range(3)]
+        assert all(state is not None for state in loaded)
 
-        assert self.resetpw_db.increment_bad_attempts(first) == 1
-        assert self.resetpw_db.increment_bad_attempts(second) == 2
+        reserved = [self.resetpw_db.reserve_bad_attempt(state, max_attempts=2) for state in loaded if state]
+        assert reserved == [1, 2, None]
 
         reloaded = self.resetpw_db.get_state_by_eppn("hubba-bubba")
         assert reloaded is not None
         assert reloaded.bad_attempts == 2
 
-    def test_increment_bad_attempts_survives_a_concurrent_write(self) -> None:
-        """A write by another request between load and increment must not break the count.
+    def test_reserve_bad_attempt_survives_a_concurrent_write(self) -> None:
+        """A write by another request between load and reservation must not break the count.
 
-        This is the path that would otherwise escape as a 500: the increment is reachable
+        This is the path that would otherwise escape as a 500: the reservation is reachable
         only when a state exists, so an exception here would leak state existence.
         """
         email_state = ResetPasswordEmailState(
@@ -175,9 +193,9 @@ class TestResetPasswordStateDB(MongoTestCase):
         with pytest.raises(DocumentOutOfSync):
             self.resetpw_db.save(loaded)
 
-        assert self.resetpw_db.increment_bad_attempts(loaded) == 1
+        assert self.resetpw_db.reserve_bad_attempt(loaded, max_attempts=3) == 1
 
-    def test_increment_bad_attempts_leaves_modified_ts_alone(self) -> None:
+    def test_reserve_bad_attempt_leaves_modified_ts_alone(self) -> None:
         """Bad attempts must not re-arm the resend throttle or postpone the auto-expire index."""
         email_state = ResetPasswordEmailState(
             eppn="hubba-bubba",
@@ -191,14 +209,14 @@ class TestResetPasswordStateDB(MongoTestCase):
         before = state.modified_ts
         assert before is not None
 
-        self.resetpw_db.increment_bad_attempts(state)
+        self.resetpw_db.reserve_bad_attempt(state, max_attempts=3)
 
         reloaded = self.resetpw_db.get_state_by_eppn("hubba-bubba")
         assert reloaded is not None
         assert reloaded.modified_ts == before
 
-    def test_increment_bad_attempts_does_not_resurrect_a_removed_state(self) -> None:
-        """The state may be removed between loading it and counting the attempt."""
+    def test_reserve_bad_attempt_does_not_resurrect_a_removed_state(self) -> None:
+        """The state may be removed between loading it and reserving the attempt."""
         email_state = ResetPasswordEmailState(
             eppn="hubba-bubba",
             email_address="johnsmith@example.com",
@@ -210,11 +228,15 @@ class TestResetPasswordStateDB(MongoTestCase):
         assert state is not None
         self.resetpw_db.remove_state(state)
 
-        assert self.resetpw_db.increment_bad_attempts(state) == 0
+        assert self.resetpw_db.reserve_bad_attempt(state, max_attempts=3) is None
         assert self.resetpw_db.get_state_by_eppn("hubba-bubba") is None
 
-    def test_increment_bad_attempts_on_a_document_predating_the_field(self) -> None:
-        """$inc must create the field on states saved before bad_attempts existed."""
+    def test_reserve_bad_attempt_on_a_document_predating_the_field(self) -> None:
+        """States saved before bad_attempts existed have no field, and $lt does not match one.
+
+        Without the $exists arm in the filter they would be locked out permanently instead of
+        starting from zero.
+        """
         email_state = ResetPasswordEmailState(
             eppn="hubba-bubba",
             email_address="johnsmith@example.com",
@@ -225,7 +247,7 @@ class TestResetPasswordStateDB(MongoTestCase):
 
         state = self.resetpw_db.get_state_by_eppn("hubba-bubba")
         assert state is not None
-        assert self.resetpw_db.increment_bad_attempts(state) == 1
+        assert self.resetpw_db.reserve_bad_attempt(state, max_attempts=3) == 1
 
     def test_reset_bad_attempts_clears_the_counter(self) -> None:
         email_state = ResetPasswordEmailState(
@@ -237,8 +259,8 @@ class TestResetPasswordStateDB(MongoTestCase):
 
         state = self.resetpw_db.get_state_by_eppn("hubba-bubba")
         assert state is not None
-        self.resetpw_db.increment_bad_attempts(state)
-        self.resetpw_db.increment_bad_attempts(state)
+        self.resetpw_db.reserve_bad_attempt(state, max_attempts=3)
+        self.resetpw_db.reserve_bad_attempt(state, max_attempts=3)
         assert state.bad_attempts == 2
 
         self.resetpw_db.reset_bad_attempts(state)
@@ -264,7 +286,7 @@ class TestResetPasswordStateDB(MongoTestCase):
 
         loaded = self.resetpw_db.get_state_by_eppn("hubba-bubba")
         assert loaded is not None
-        self.resetpw_db.increment_bad_attempts(loaded)
+        self.resetpw_db.reserve_bad_attempt(loaded, max_attempts=3)
 
         other = self.resetpw_db.get_state_by_eppn("hubba-bubba")
         assert other is not None
@@ -290,7 +312,7 @@ class TestResetPasswordStateDB(MongoTestCase):
 
         state = self.resetpw_db.get_state_by_eppn("hubba-bubba")
         assert state is not None
-        self.resetpw_db.increment_bad_attempts(state)
+        self.resetpw_db.reserve_bad_attempt(state, max_attempts=3)
         before = state.modified_ts
         assert before is not None
 

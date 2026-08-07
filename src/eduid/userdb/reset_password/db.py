@@ -77,29 +77,43 @@ class ResetPasswordStateDB(BaseDB):
             return ResetPasswordEmailAndPhoneState.from_dict(data=state)
         return None
 
-    def increment_bad_attempts(self, state: ResetPasswordState) -> int:
+    def reserve_bad_attempt(self, state: ResetPasswordState, max_attempts: int) -> int | None:
         """
-        Count one incorrect email code submission against a state.
+        Reserve one email code submission against a state, if the state has any left.
 
-        The increment is done in the database rather than through save(), which would be a
+        The cap check and the increment are a single atomic update because they are a single
+        decision: a check done separately is stale the moment it returns, so parallel guesses
+        would all read the same count, all pass the check, and all get to compare a different
+        code before any of them is counted - letting a correct guess through after the cap was
+        already spent. Callers must reserve first, and reject a submission that cannot reserve.
+
+        The update is done in the database rather than through save(), which would be a
         read-check-write across the whole request: save() filters replace_one on the
         modified_ts the caller loaded, so two requests that loaded the same state would have
         one of them lose its increment and raise DocumentOutOfSync. $inc also deliberately
-        leaves modified_ts untouched, so a failed attempt neither re-arms the resend throttle
-        nor postpones the auto-expire index.
+        leaves modified_ts untouched, so an attempt neither re-arms the resend throttle nor
+        postpones the auto-expire index.
 
-        :param state: the state to count an attempt against, updated in place
-        :return: the number of bad attempts recorded for the state, this one included
+        :param state: the state to reserve an attempt against, updated in place
+        :param max_attempts: incorrect submissions allowed per state, from the app config
+        :return: the number of attempts recorded for the state, this one included, or None if
+                 nothing could be reserved because the state is locked or no longer exists
         """
         doc = self._coll.find_one_and_update(
-            filter={"eduPersonPrincipalName": state.eppn},
+            filter={
+                "eduPersonPrincipalName": state.eppn,
+                # States written before the counter existed carry no field at all, and $lt does
+                # not match a missing field - without the $exists arm they would be locked out
+                # permanently instead of starting from zero.
+                "$or": [{"bad_attempts": {"$lt": max_attempts}}, {"bad_attempts": {"$exists": False}}],
+            },
             update={"$inc": {"bad_attempts": 1}},
             return_document=ReturnDocument.AFTER,
             # No upsert: a state removed while the request was in flight must stay removed.
         )
         if doc is None:
-            logger.debug(f"No reset password state left to count a bad attempt against: {state.eppn}")
-            return state.bad_attempts
+            logger.debug(f"No email code attempt could be reserved for {state.eppn}")
+            return None
         state.bad_attempts = int(doc["bad_attempts"])
         return state.bad_attempts
 
@@ -107,7 +121,7 @@ class ResetPasswordStateDB(BaseDB):
         """
         Clear the incorrect email code counter for a state, after the correct code was supplied.
 
-        Written straight to the database for the same reasons as increment_bad_attempts: save()
+        Written straight to the database for the same reasons as reserve_bad_attempt: save()
         filters replace_one on the modified_ts the caller loaded, so a concurrent write would
         turn this into a DocumentOutOfSync. $set also deliberately leaves modified_ts alone, so
         clearing the counter neither re-arms the resend throttle nor postpones the auto-expire
