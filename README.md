@@ -30,13 +30,13 @@ make bootstrap
 What this does:
 
 - Creates `.venv`
-- Uses `uv` to run the bootstrap helper on Python 3.11+
+- Requires the host system to provide `uv`
 - Treats `pyproject.toml` as the single source of truth for the project Python requirement
 - Uses `uv` to provision and use the pinned Python minor derived from `pyproject.toml`
 - Installs the locked dependencies from `requirements/test_requirements.txt`
 - Installs the repo itself into `.venv` with an editable `uv pip install`
 
-The host system must provide `uv` before `make bootstrap` runs. `uv` uses a Python 3.11+ runtime to execute the bootstrap helper and provisions the pinned project interpreter itself from `pyproject.toml`. If `uv` is not installed, `make bootstrap` fails immediately. Install `uv` first, or use the devcontainer image that includes it.
+The host system must provide `uv` before `make bootstrap` runs. `uv` provisions the pinned project interpreter from `pyproject.toml`, which currently requires Python 3.13. If `uv` is not installed, `make bootstrap` fails immediately. Install `uv` first, or use the devcontainer image that includes it.
 
 For a detailed explanation of the bootstrap flow, see
 [doc/python-bootstrap.md](doc/python-bootstrap.md).
