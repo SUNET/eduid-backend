@@ -117,11 +117,6 @@ class Neo4jTemporaryInstance(EduidTemporaryInstance):
             """
         with self.conn.driver.session() as s:
             s.run(q)
-            # Drop constraints and indices
-            for constraint in s.run("CALL db.constraints"):
-                s.run(f"DROP CONSTRAINT {constraint['name']}")
-            for index in s.run("CALL db.indexes"):
-                s.run(f"DROP INDEX {index['name']}")
 
 
 class Neo4jTestCase:

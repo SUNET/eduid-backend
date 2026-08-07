@@ -28,7 +28,7 @@ class TestEventResource(ScimApiTestCase):
     def setup(self, scimapi_setup: None) -> Iterator[None]:
         yield
         assert self.eventdb
-        self.eventdb._drop_whole_collection()
+        self.eventdb._coll.delete_many({})
 
     def _create_event(self, event: dict[str, Any], expect_success: bool = True) -> EventApiResult:
         req = {

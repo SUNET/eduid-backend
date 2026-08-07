@@ -4,10 +4,7 @@ from uuid import UUID, uuid4
 
 import pytest
 
-from eduid.common.config.parsers import load_config
 from eduid.graphdb.groupdb import Group as GraphGroup
-from eduid.scimapi.config import ScimApiConfig
-from eduid.scimapi.context import Context
 from eduid.scimapi.testing import ScimApiTestCase
 from eduid.userdb.scimapi import GroupExtensions, ScimApiGroup
 
@@ -17,9 +14,6 @@ logger = logging.getLogger(__name__)
 class TestGroupDB(ScimApiTestCase):
     @pytest.fixture(autouse=True)
     def setup(self, scimapi_setup: None) -> Iterator[None]:
-        self.test_config = self._get_config()
-        config = load_config(typ=ScimApiConfig, app_name="scimapi", ns="api", test_config=self.test_config)
-        self.context = Context(config=config)
         self.groupdb = self.context.get_groupdb("eduid.se")
 
         for i in range(9):
@@ -28,7 +22,7 @@ class TestGroupDB(ScimApiTestCase):
         yield
 
         assert self.groupdb is not None
-        self.groupdb._drop_whole_collection()
+        self.groupdb._coll.delete_many({})
 
     def add_group(self, scim_id: UUID, display_name: str, extensions: GroupExtensions | None = None) -> ScimApiGroup:
         if extensions is None:

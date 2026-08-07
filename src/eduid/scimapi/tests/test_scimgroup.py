@@ -60,7 +60,7 @@ class TestGroupResource(ScimApiTestCase):
         self.groupdb = self.context.get_groupdb("eduid.se")
         yield
         assert self.groupdb
-        self.groupdb._drop_whole_collection()
+        self.groupdb._coll.delete_many({})
 
     def add_group(self, scim_id: UUID, display_name: str, extensions: GroupExtensions | None = None) -> ScimApiGroup:
         if extensions is None:
