@@ -227,6 +227,94 @@ class TestResetPasswordStateDB(MongoTestCase):
         assert state is not None
         assert self.resetpw_db.increment_bad_attempts(state) == 1
 
+    def test_reset_bad_attempts_clears_the_counter(self) -> None:
+        email_state = ResetPasswordEmailState(
+            eppn="hubba-bubba",
+            email_address="johnsmith@example.com",
+            email_code=CodeElement.parse(application="test", code_or_element="dummy-code"),
+        )
+        self.resetpw_db.save(email_state, is_in_database=False)
+
+        state = self.resetpw_db.get_state_by_eppn("hubba-bubba")
+        assert state is not None
+        self.resetpw_db.increment_bad_attempts(state)
+        self.resetpw_db.increment_bad_attempts(state)
+        assert state.bad_attempts == 2
+
+        self.resetpw_db.reset_bad_attempts(state)
+        # In memory as well as in the database: the phone-expiry rebuild re-saves whatever the
+        # in-memory state holds, so a stale count there would come straight back.
+        assert state.bad_attempts == 0
+        reloaded = self.resetpw_db.get_state_by_eppn("hubba-bubba")
+        assert reloaded is not None
+        assert reloaded.bad_attempts == 0
+
+    def test_reset_bad_attempts_survives_a_concurrent_write(self) -> None:
+        """Clearing the counter must not be able to escape as a DocumentOutOfSync 500.
+
+        It runs immediately after a correct code, on a path where the caller is entitled to
+        succeed. A save()-based read-modify-write would raise here.
+        """
+        email_state = ResetPasswordEmailState(
+            eppn="hubba-bubba",
+            email_address="johnsmith@example.com",
+            email_code=CodeElement.parse(application="test", code_or_element="dummy-code"),
+        )
+        self.resetpw_db.save(email_state, is_in_database=False)
+
+        loaded = self.resetpw_db.get_state_by_eppn("hubba-bubba")
+        assert loaded is not None
+        self.resetpw_db.increment_bad_attempts(loaded)
+
+        other = self.resetpw_db.get_state_by_eppn("hubba-bubba")
+        assert other is not None
+        other.extra_security = {"phone_numbers": []}
+        self.resetpw_db.save(other)
+
+        with pytest.raises(DocumentOutOfSync):
+            self.resetpw_db.save(loaded)
+
+        self.resetpw_db.reset_bad_attempts(loaded)
+        reloaded = self.resetpw_db.get_state_by_eppn("hubba-bubba")
+        assert reloaded is not None
+        assert reloaded.bad_attempts == 0
+
+    def test_reset_bad_attempts_leaves_modified_ts_alone(self) -> None:
+        """Clearing the counter must not re-arm the resend throttle or the auto-expire index."""
+        email_state = ResetPasswordEmailState(
+            eppn="hubba-bubba",
+            email_address="johnsmith@example.com",
+            email_code=CodeElement.parse(application="test", code_or_element="dummy-code"),
+        )
+        self.resetpw_db.save(email_state, is_in_database=False)
+
+        state = self.resetpw_db.get_state_by_eppn("hubba-bubba")
+        assert state is not None
+        self.resetpw_db.increment_bad_attempts(state)
+        before = state.modified_ts
+        assert before is not None
+
+        self.resetpw_db.reset_bad_attempts(state)
+
+        reloaded = self.resetpw_db.get_state_by_eppn("hubba-bubba")
+        assert reloaded is not None
+        assert reloaded.modified_ts == before
+
+    def test_reset_bad_attempts_does_not_resurrect_a_removed_state(self) -> None:
+        email_state = ResetPasswordEmailState(
+            eppn="hubba-bubba",
+            email_address="johnsmith@example.com",
+            email_code=CodeElement.parse(application="test", code_or_element="dummy-code"),
+        )
+        self.resetpw_db.save(email_state, is_in_database=False)
+
+        state = self.resetpw_db.get_state_by_eppn("hubba-bubba")
+        assert state is not None
+        self.resetpw_db.remove_state(state)
+
+        self.resetpw_db.reset_bad_attempts(state)
+        assert self.resetpw_db.get_state_by_eppn("hubba-bubba") is None
+
     def test_state_without_bad_attempts_key_loads(self) -> None:
         """Existing documents predate the field; from_dict must apply the default."""
         email_state = ResetPasswordEmailState(

@@ -10,9 +10,9 @@ inputs for credentials.
 When this "reset password" link is followed, the user will be presented a form,
 with a text input for an email address and a "send" button. The user enters
 (one of) her email(s) and submits the form, which results in a POST to the
-init_reset_pw view (at /), with the email as only data.
+start_reset_pw view (at /), with the email as only data.
 
-The result of calling this init_reset_pw method will be the generation of a
+The result of calling this start_reset_pw method will be the generation of a
 password reset state in a db, stored under the eppn of the user owning the
 email address, and the sending of an email containing a short code.
 
@@ -24,11 +24,16 @@ alongside the code for the cross-device case - and the code is then compared
 against the one that state holds. This POST will return the same code, a
 suggested password, and an array of (masked) verified phone numbers.
 
+Succeeding here is what puts the eppn in the session, and every view further
+along the flow requires it. The address left in the session by start_reset_pw
+only records what the caller typed after solving a captcha, so it cannot stand
+in for having supplied the code.
+
 Now there are 2 possibilities.
 
 The first happens when the user has no verified phone numbers. Then she will be
 shown a form where she can choose the suggested password or enter a custom one,
-submit it to the set_new_pw view at /new-password/, and have her password
+submit it to the set_new_pw_no_extra_security view at /new-password/, and have her password
 reset as a result. In this case, with no extra security, all her verified phone
 numbers and NINs will be unverified.
 
@@ -96,6 +101,34 @@ from eduid.webapp.reset_password.schemas import (
 )
 
 reset_password_views = Blueprint("reset_password", __name__, url_prefix="/", template_folder="templates")
+
+
+def _require_verified_session() -> FluxData | None:
+    """
+    Refuse a request that has not proven it holds the emailed code.
+
+    session.common.eppn is set by verify_email and nowhere else in this app, so it is the one
+    session field that means "this browser has supplied the code for this account". Everything
+    downstream of /verify-email/ needs that, because the weaker hint - the address
+    start_reset_pw leaves in the session - is not authentication at all: it records whatever
+    address the caller typed after solving a captcha. Without this guard anyone could mint a
+    session, POST a victim's address to /, and then guess codes straight at /new-password/.
+
+    A plain helper rather than a decorator: the five views already sit under @UnmarshalWith and
+    @MarshalWith, and a third wrapper would have to be threaded between them in the right order
+    to have its FluxData marshalled. Two greppable lines at the top of each view cost less than
+    a decorator whose correctness depends on where it is stacked.
+
+    The answer is derived only from the caller's own session, before any lookup, so it can
+    never depend on - or reveal anything about - the state being targeted.
+
+    :return: an error response to return immediately, or None to carry on
+    """
+    if session.common.eppn is None:
+        current_app.logger.info("Reset password request without a verified session")
+        current_app.stats.count(name="invalid_session_not_verified", value=1)
+        return error_response(message=ResetPwMsg.invalid_session)
+    return None
 
 
 @reset_password_views.route("/", methods=["GET"])
@@ -257,6 +290,9 @@ def verify_email(email_code: str, email: str | None = None) -> FluxData:
     * The code does not match the code that state holds;
     * Too many codes have already been tried against that state;
     * The code has expired;
+    * No identity hint is available, so the frontend has to ask for the email address;
+    * The browser holds a session belonging to someone else, or a stale address for
+      another account - the session is invalidated and the user can simply try again;
     * No valid user corresponds to the eppn stored in the state.
     """
     current_app.logger.info("Configuring password reset form")
@@ -269,6 +305,7 @@ def verify_email(email_code: str, email: str | None = None) -> FluxData:
         _session_user = current_app.central_userdb.get_user_by_mail(email)
         if _session_user is None or _session_user.eppn != session.common.eppn:
             current_app.logger.info("Posted email does not match the session user; invalidating session")
+            current_app.stats.count(name="invalid_session_eppn_mismatch", value=1)
             session.invalidate()
             return error_response(message=ResetPwMsg.invalid_session)
 
@@ -279,6 +316,7 @@ def verify_email(email_code: str, email: str | None = None) -> FluxData:
         # userdb lookup, so unlike the guard above this one cannot leak address existence.
         if session.reset_password.email.address != email:
             current_app.logger.info("Posted email does not match the session address; invalidating session")
+            current_app.stats.count(name="invalid_session_address_mismatch", value=1)
             session.invalidate()
             return error_response(message=ResetPwMsg.invalid_session)
 
@@ -331,9 +369,9 @@ def set_new_pw_no_extra_security(email_code: str, password: str) -> FluxData:
     the password as credential for the user, with no extra security.
 
     Preconditions required for the call to succeed:
-    * A PasswordResetEmailState object in the password_reset_state_db for the
-      user this request identifies, by the eppn or the address in the session.
-      The state is never looked up by the code.
+    * The session has already verified the emailed code at /verify-email/, which
+      is what puts the eppn in the session. The state is loaded for that eppn,
+      and never looked up by the code.
     * The received code matches the code that state holds.
     * A flag in said state object indicating that the emailed code has already
       been verified.
@@ -345,13 +383,18 @@ def set_new_pw_no_extra_security(email_code: str, password: str) -> FluxData:
     * Unverify any verified phone number or NIN the user previously had.
 
     This operation may fail due to:
+    * The session has not verified the emailed code, so nothing is resolved;
     * No state exists for the user this request identifies, or the code does
       not match the code that state holds;
     * The code has expired;
+    * Too many codes have already been tried against that state;
     * No valid user corresponds to the eppn stored in the state;
     * Communication problems with the VCCS backend;
     * Synchronization problems with the central user db.
     """
+    if (err := _require_verified_session()) is not None:
+        return err
+
     try:
         context = get_context(email_code=email_code)
     except StateException as e:
@@ -373,9 +416,9 @@ def choose_extra_security_phone(email_code: str, phone_index: int) -> FluxData:
     result of the attempted operation.
 
     Preconditions required for the call to succeed:
-    * A PasswordResetEmailState object in the password_reset_state_db for the
-      user this request identifies, by the eppn or the address in the session.
-      The state is never looked up by the code.
+    * The session has already verified the emailed code at /verify-email/, which
+      is what puts the eppn in the session. The state is loaded for that eppn,
+      and never looked up by the code.
     * The received code matches the code that state holds.
     * A flag in said state object indicating that the emailed code has already
       been verified.
@@ -391,12 +434,17 @@ def choose_extra_security_phone(email_code: str, phone_index: int) -> FluxData:
       the received phone_index;
 
     This operation may fail due to:
+    * The session has not verified the emailed code, so nothing is resolved;
     * No state exists for the user this request identifies, or the code does
       not match the code that state holds;
     * The code has expired;
+    * Too many codes have already been tried against that state;
     * No valid user corresponds to the eppn stored in the state;
     * Problems sending the SMS message
     """
+    if (err := _require_verified_session()) is not None:
+        return err
+
     try:
         context = get_context(email_code=email_code)
     except StateException as e:
@@ -443,9 +491,9 @@ def set_new_pw_extra_security_phone(email_code: str, password: str, phone_code: 
     extra security.
 
     Preconditions required for the call to succeed:
-    * A PasswordResetEmailAndPhoneState object in the password_reset_state_db
-      for the user this request identifies, by the eppn or the address in the
-      session. The state is never looked up by either code.
+    * The session has already verified the emailed code at /verify-email/, which
+      is what puts the eppn in the session. The state is loaded for that eppn,
+      and never looked up by either code.
     * The received codes match the codes that state holds.
     * A flag in said state object indicating that the emailed code has already
       been verified.
@@ -456,13 +504,18 @@ def set_new_pw_extra_security_phone(email_code: str, password: str, phone_code: 
     * Revoke all password credentials the user had;
 
     This operation may fail due to:
+    * The session has not verified the emailed code, so nothing is resolved;
     * No state exists for the user this request identifies, or the codes do
       not match the codes that state holds;
     * Any of the codes have expired;
+    * Too many codes have already been tried against that state;
     * No valid user corresponds to the eppn stored in the state;
     * Communication problems with the VCCS backend;
     * Synchronization problems with the central user db.
     """
+    if (err := _require_verified_session()) is not None:
+        return err
+
     try:
         context = get_context(email_code=email_code)
     except StateException as e:
@@ -500,9 +553,9 @@ def set_new_pw_extra_security_key(
     extra security.
 
     Preconditions required for the call to succeed:
-    * A PasswordResetEmailState object in the password_reset_state_db for the
-      user this request identifies, by the eppn or the address in the session.
-      The state is never looked up by the code.
+    * The session has already verified the emailed code at /verify-email/, which
+      is what puts the eppn in the session. The state is loaded for that eppn,
+      and never looked up by the code.
     * The received code matches the code that state holds.
     * A flag in said state object indicating that the emailed code has already
       been verified.
@@ -513,13 +566,18 @@ def set_new_pw_extra_security_key(
     * Revoke all password credentials the user had;
 
     This operation may fail due to:
+    * The session has not verified the emailed code, so nothing is resolved;
     * No state exists for the user this request identifies, or the codes do
       not match the codes that state holds;
     * Any of the codes have expired;
+    * Too many codes have already been tried against that state;
     * No valid user corresponds to the eppn stored in the state;
     * Communication problems with the VCCS backend;
     * Synchronization problems with the central user db.
     """
+    if (err := _require_verified_session()) is not None:
+        return err
+
     try:
         context = get_context(email_code=email_code)
     except StateException as e:
@@ -568,6 +626,31 @@ def set_new_pw_extra_security_external_mfa(
     email_code: str,
     password: str,
 ) -> FluxData:
+    """
+    View that receives an emailed reset password code and a password, and sets the password as
+    credential for the user, with an external MFA service as extra security.
+
+    Preconditions required for the call to succeed:
+    * The session has already verified the emailed code at /verify-email/, which is what puts
+      the eppn in the session. The state is loaded for that eppn, and never looked up by the
+      code.
+    * The received code matches the code that state holds.
+    * The session records a successful authentication at an external MFA service.
+
+    This operation may fail due to:
+    * The session has not verified the emailed code, so nothing is resolved;
+    * No state exists for the user this request identifies, or the code does not match the
+      code that state holds;
+    * The code has expired;
+    * Too many codes have already been tried against that state;
+    * No valid user corresponds to the eppn stored in the state;
+    * The external MFA authentication did not succeed;
+    * Communication problems with the VCCS backend;
+    * Synchronization problems with the central user db.
+    """
+    if (err := _require_verified_session()) is not None:
+        return err
+
     try:
         context = get_context(email_code=email_code)
     except StateException as e:

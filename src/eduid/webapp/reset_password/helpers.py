@@ -146,6 +146,14 @@ def get_pwreset_state(
     supplied in the request. The last one is a strict last resort, so a supplied address can
     never override an eppn already established in the session.
 
+    Every caller is metered the same way: the lockout is checked and a wrong code is charged
+    against the counter unconditionally. A correct code clears the counter, which is what
+    keeps a legitimate user's typos from accumulating into a lockout across the flow - only
+    someone who holds the code can reset it, so it hands an attacker nothing.
+
+    :param email_code: User supplied password reset code
+    :param email_address: User supplied email address, for the cross-device fallback
+
     raises StateException in case of problems
     """
     mail_expiration_time = current_app.conf.email_code_timeout
@@ -182,12 +190,21 @@ def get_pwreset_state(
     # non-ASCII characters, and email_code is unvalidated user input.
     if not compare_digest(state.email_code.code.encode(), email_code.encode()):
         current_app.logger.info(f"Bad email code for eppn {eppn}")
-        # Counted in the database, not read-modify-written here: concurrent guesses must not
-        # be able to lose increments, nor to escape as a DocumentOutOfSync 500 on a path that
-        # is only reachable when a state exists.
+        # Counted unconditionally, and in the database rather than read-modify-written here:
+        # concurrent guesses must not be able to lose increments, nor to escape as a
+        # DocumentOutOfSync 500 on a path that is only reachable when a state exists.
         current_app.password_reset_state_db.increment_bad_attempts(state)
         current_app.stats.count(name="email_code_bad_attempt", value=1)
         raise StateException(msg=ResetPwMsg.state_not_found)
+
+    # The caller has proven it holds the code, so earlier typos must not linger and lock a
+    # legitimate user out of the rest of their own recovery. An attacker's guesses never get
+    # here, so this cannot be used to refresh a guessing budget.
+    if state.bad_attempts:
+        # Racing a concurrent increment can leave the counter at one instead of zero. That
+        # only costs the user one of the next attempts, and the next correct code clears it.
+        current_app.password_reset_state_db.reset_bad_attempts(state)
+        current_app.stats.count(name="email_code_attempts_cleared", value=1)
 
     current_app.logger.debug(f"Found state for eppn {eppn}: {state}")
 
@@ -201,8 +218,11 @@ def get_pwreset_state(
     if isinstance(state, ResetPasswordEmailAndPhoneState) and state.phone_code.is_expired(sms_expiration_time):
         current_app.logger.info(f"Phone code expired for eppn {eppn}")
         # Revert the state to EmailState to allow the user to choose extra security again.
-        # The attempt counter has to be carried over: this rebuild replaces the document, so
-        # anything left out of the constructor is silently reset to its default.
+        # The attempt counter is carried over explicitly: this rebuild replaces the document,
+        # so anything left out of the constructor is silently reset to its default. The value
+        # is always zero here, because getting this far cleared it above - which is the point.
+        # Reading it off the state rather than hardcoding a zero keeps the rebuild honest if
+        # the clearing above ever moves.
         current_app.password_reset_state_db.remove_state(state)
         state = ResetPasswordEmailState(
             eppn=state.eppn,

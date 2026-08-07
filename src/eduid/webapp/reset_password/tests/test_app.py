@@ -9,6 +9,7 @@ from urllib.parse import quote_plus
 
 import pytest
 from flask import url_for
+from pydantic import ValidationError
 from pytest_mock import MockerFixture
 from werkzeug.test import TestResponse
 
@@ -173,6 +174,10 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
             new_password = generate_suggested_password(self.app.conf.password_length)
             with c.session_transaction() as sess:
                 sess.reset_password.generated_password_hash = hash_password(new_password)
+                # This helper skips /verify-email/, so stand in for what that view does to the
+                # session. Without it the view rejects the request as unverified, which is the
+                # whole point of the guard - see test_post_verification_views_require_a_verified_session.
+                sess.common.eppn = self.test_user.eppn
 
             data = {
                 "email_code": state.email_code.code,
@@ -288,6 +293,9 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
             new_password = generate_suggested_password(self.app.conf.password_length)
             with c.session_transaction() as sess:
                 sess.reset_password.generated_password_hash = hash_password(new_password)
+                # See _post_reset_password: this helper marks the state verified in the db
+                # rather than going through /verify-email/, so the session needs the eppn too.
+                sess.common.eppn = self.test_user.eppn
             data = {
                 "csrf_token": self.get_response_payload(response)["csrf_token"],
                 "email_code": state2.email_code.code,
@@ -352,6 +360,9 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
                 sess.mfa_action.webauthn_state = fido2state
                 new_password = generate_suggested_password(self.app.conf.password_length)
                 sess.reset_password.generated_password_hash = hash_password(new_password)
+                # See _post_reset_password: this helper marks the state verified in the db
+                # rather than going through /verify-email/, so the session needs the eppn too.
+                sess.common.eppn = self.test_user.eppn
             data = {
                 "email_code": state.email_code.code,
                 "password": custom_password or new_password,
@@ -412,6 +423,9 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
                 sess._namespaces.mfa_action = mfa_action
                 new_password = generate_suggested_password(self.app.conf.password_length)
                 sess.reset_password.generated_password_hash = hash_password(new_password)
+                # See _post_reset_password: this helper marks the state verified in the db
+                # rather than going through /verify-email/, so the session needs the eppn too.
+                sess.common.eppn = self.test_user.eppn
             data = {
                 "email_code": state.email_code.code,
                 "password": custom_password or new_password,
@@ -1343,13 +1357,16 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
         """
         self.mocker.patch("eduid.common.rpc.msg_relay.MsgRelay.sendsms", return_value=True)
         self._post_email_address()
+        state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user.eppn)
+        assert state is not None
 
-        # One bad guess, then verify properly so the state can be upgraded.
+        # Verify first - a correct code clears the counter, so a bad guess made before this
+        # point would not survive to be observed. Then one bad guess to put the counter up.
+        self._post_verify_email(email_code=state.email_code.code)
         self._post_verify_email(email_code="wrong-code")
         state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user.eppn)
         assert state is not None
         assert state.bad_attempts == 1
-        self._post_verify_email(email_code=state.email_code.code)
 
         state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user.eppn)
         assert isinstance(state, ResetPasswordEmailState)
@@ -1363,21 +1380,20 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
         assert isinstance(upgraded, ResetPasswordEmailAndPhoneState)
         assert upgraded.bad_attempts == 1
 
-    def test_counter_survives_downgrade_from_phone_state(self) -> None:
-        """The phone-expiry branch rebuilds the state, which must not zero the counter.
+    def test_downgrade_from_phone_state_carries_the_counter(self) -> None:
+        """The phone-expiry branch rebuilds the state, which must not resurrect a stale counter.
 
-        Unreachable without the correct email code, so not exploitable — but pinning the
-        upgrade path while leaving the downgrade zeroing would be incoherent.
+        The rebuild is behind the code comparison, and a correct code clears the counter, so
+        the value it carries over is always zero today. Pin that: if the rebuild ever wrote
+        back the pre-comparison count instead, a user who just proved they hold the code would
+        be handed their old strikes back at the exact moment the flow restarts.
         """
         self.mocker.patch("eduid.common.rpc.msg_relay.MsgRelay.sendsms", return_value=True)
         self._post_email_address()
-
-        # One bad guess, then verify properly so the state can be upgraded to email-and-phone.
-        self._post_verify_email(email_code="wrong-code")
         state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user.eppn)
         assert state is not None
-        assert state.bad_attempts == 1
         email_code = state.email_code.code
+
         self._post_verify_email(email_code=email_code)
 
         state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user.eppn)
@@ -1390,7 +1406,10 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
 
         upgraded = self.app.password_reset_state_db.get_state_by_eppn(self.test_user.eppn)
         assert isinstance(upgraded, ResetPasswordEmailAndPhoneState)
-        assert upgraded.bad_attempts == 1
+        # Put strikes on the phone state out of band: every route to a non-zero counter here
+        # runs through a correct code, which clears it.
+        upgraded.bad_attempts = self.app.conf.email_code_max_bad_attempts - 1
+        self.app.password_reset_state_db.save(upgraded)
 
         # Expire the phone code and submit the correct email code, which downgrades the state.
         self.app.conf.phone_code_timeout = timedelta(0)
@@ -1402,7 +1421,337 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
         downgraded = self.app.password_reset_state_db.get_state_by_eppn(self.test_user.eppn)
         assert isinstance(downgraded, ResetPasswordEmailState)
         assert not isinstance(downgraded, ResetPasswordEmailAndPhoneState)
-        assert downgraded.bad_attempts == 1
+        # Cleared by the correct code, and the rebuild carried the cleared value, not the
+        # stale one it was loaded with.
+        assert downgraded.bad_attempts == 0
+
+    def _post_extra_security_phone(self, email_code: str, phone_index: int = 0) -> TestResponse:
+        """POST a code to /extra-security-phone/ reusing the session from earlier requests."""
+        with self.app.test_request_context():
+            url = url_for("reset_password.choose_extra_security_phone", _external=True)
+        with self.session_cookie_anon(self.browser) as c:
+            with c.session_transaction() as sess:
+                csrf_token = sess.get_csrf_token()
+            data = {"email_code": email_code, "phone_index": str(phone_index), "csrf_token": csrf_token}
+            return c.post(url, data=json.dumps(data), content_type=self.content_type_json)
+
+    def test_correct_code_clears_bad_attempts(self) -> None:
+        """Proving possession of the code hands the user their full budget of attempts back.
+
+        This is what keeps a legitimate user's typos from adding up across the flow, and it is
+        safe precisely because it sits behind the comparison: a guess that does not match the
+        code never reaches it, so no attacker can refill their own budget.
+        """
+        self._post_email_address()
+        state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user.eppn)
+        assert state is not None
+        correct_code = state.email_code.code
+
+        for expected in range(1, self.app.conf.email_code_max_bad_attempts):
+            self._check_error_response(
+                self._post_verify_email(email_code="wrong-code"),
+                type_="POST_RESET_PASSWORD_VERIFY_EMAIL_FAIL",
+                msg=ResetPwMsg.state_not_found,
+            )
+            state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user.eppn)
+            assert state is not None
+            assert state.bad_attempts == expected
+
+        self._check_success_response(
+            self._post_verify_email(email_code=correct_code), type_="POST_RESET_PASSWORD_VERIFY_EMAIL_SUCCESS"
+        )
+        state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user.eppn)
+        assert state is not None
+        assert state.bad_attempts == 0
+
+    def test_verified_user_is_not_locked_out_downstream(self) -> None:
+        """Typos after the code has been proven must not end the recovery.
+
+        Every view charges a wrong code against the same counter, and three strikes lock the
+        state until it expires. Without the counter being cleared on a correct code, a user
+        who mistyped twice before getting it right would have a single strike left to cover
+        the whole rest of the flow.
+        """
+        self.mocker.patch("eduid.common.rpc.msg_relay.MsgRelay.sendsms", return_value=True)
+        self._post_email_address()
+        state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user.eppn)
+        assert state is not None
+        correct_code = state.email_code.code
+
+        # Two typos, then the correct code.
+        for _ in range(self.app.conf.email_code_max_bad_attempts - 1):
+            self._post_verify_email(email_code="wrong-code")
+        self._check_success_response(
+            self._post_verify_email(email_code=correct_code), type_="POST_RESET_PASSWORD_VERIFY_EMAIL_SUCCESS"
+        )
+        state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user.eppn)
+        assert state is not None
+        assert state.bad_attempts == 0
+
+        # Two more typos further along the flow. These do count - metering every view is what
+        # makes the cap mean anything - but the budget was refilled, so nothing locks.
+        for expected in range(1, self.app.conf.email_code_max_bad_attempts):
+            self._check_error_response(
+                self._post_extra_security_phone(email_code="wrong-code"),
+                type_="POST_RESET_PASSWORD_EXTRA_SECURITY_PHONE_FAIL",
+                msg=ResetPwMsg.state_not_found,
+            )
+            state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user.eppn)
+            assert state is not None
+            assert state.bad_attempts == expected
+
+        # And the flow completes, with the counter cleared again on the way through.
+        self._check_success_response(
+            self._post_extra_security_phone(email_code=correct_code),
+            type_="POST_RESET_PASSWORD_EXTRA_SECURITY_PHONE_SUCCESS",
+            msg=ResetPwMsg.send_sms_success,
+        )
+        state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user.eppn)
+        assert state is not None
+        assert state.bad_attempts == 0
+
+    def _post_after_verification_view(self, endpoint: str, payload: dict[str, Any]) -> TestResponse:
+        """POST to one of the five views that run after /verify-email/, reusing self.browser."""
+        with self.app.test_request_context():
+            url = url_for(endpoint, _external=True)
+        with self.session_cookie_anon(self.browser) as c:
+            with c.session_transaction() as sess:
+                csrf_token = sess.get_csrf_token()
+            data = dict(payload, csrf_token=csrf_token)
+            return c.post(url, data=json.dumps(data), content_type=self.content_type_json)
+
+    @staticmethod
+    def _post_verification_views(email_code: str) -> list[tuple[str, dict[str, Any], str]]:
+        """The five views that run after /verify-email/, with a body each of them accepts.
+
+        Bodies that pass schema validation, so the request reaches the view rather than being
+        turned back by @UnmarshalWith - otherwise a test of the view's own guard would prove
+        nothing about the view.
+        """
+        password = "T%7j 8/tT a0=b"
+        return [
+            (
+                "reset_password.set_new_pw_no_extra_security",
+                {"email_code": email_code, "password": password},
+                "POST_RESET_PASSWORD_NEW_PASSWORD_FAIL",
+            ),
+            (
+                "reset_password.choose_extra_security_phone",
+                {"email_code": email_code, "phone_index": 0},
+                "POST_RESET_PASSWORD_EXTRA_SECURITY_PHONE_FAIL",
+            ),
+            (
+                "reset_password.set_new_pw_extra_security_phone",
+                {"email_code": email_code, "password": password, "phone_code": "123456"},
+                "POST_RESET_PASSWORD_NEW_PASSWORD_EXTRA_SECURITY_PHONE_FAIL",
+            ),
+            (
+                "reset_password.set_new_pw_extra_security_key",
+                {"email_code": email_code, "password": password, "webauthn_response": SAMPLE_WEBAUTHN_REQUEST},
+                "POST_RESET_PASSWORD_NEW_PASSWORD_EXTRA_SECURITY_TOKEN_FAIL",
+            ),
+            (
+                "reset_password.set_new_pw_extra_security_external_mfa",
+                {"email_code": email_code, "password": password},
+                "POST_RESET_PASSWORD_NEW_PASSWORD_EXTRA_SECURITY_EXTERNAL_MFA_FAIL",
+            ),
+        ]
+
+    def test_post_verification_views_require_a_verified_session(self) -> None:
+        """Every view after /verify-email/ refuses a session that never supplied the code.
+
+        The session used here is exactly what start_reset_pw leaves behind: the address the
+        caller typed, and no eppn. A captcha is the only thing standing between anyone and
+        that session, so it must not be able to resolve a state - not even holding the
+        correct code. And because the guard runs before any lookup, the counter must not move.
+        """
+        # Mocked so that, if a view did resolve the state, the reset would go through cleanly
+        # and be caught by the assertions below rather than by a connection error.
+        mock_request_user_sync = self.mocker.patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
+        self.mocker.patch("eduid.webapp.common.authn.vccs.get_vccs_client", return_value=MockVCCSClient())
+        self.mocker.patch("eduid.common.rpc.msg_relay.MsgRelay.sendsms", return_value=True)
+        mock_request_user_sync.side_effect = self.request_user_sync
+
+        self._post_email_address()
+        state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user.eppn)
+        assert state is not None
+        correct_code = state.email_code.code
+
+        with self.session_cookie_anon(self.browser) as c:
+            with c.session_transaction() as sess:
+                assert sess.common.eppn is None
+                assert sess.reset_password.email.address == state.email_address
+
+        for endpoint, payload, type_ in self._post_verification_views(correct_code):
+            response = self._post_after_verification_view(endpoint, payload)
+            self._check_error_response(response, type_=type_, msg=ResetPwMsg.invalid_session)
+            after = self.app.password_reset_state_db.get_state_by_eppn(self.test_user.eppn)
+            assert after is not None, f"{endpoint} removed the state"
+            assert after.bad_attempts == 0, f"{endpoint} touched the attempt counter"
+            assert after.email_code.is_verified is False, f"{endpoint} verified the state"
+            assert isinstance(after, ResetPasswordEmailState), f"{endpoint} upgraded the state"
+
+        # Nothing was reset: an unverified reset would have unverified all of this.
+        user = self.app.central_userdb.get_user_by_eppn(self.test_user.eppn)
+        assert len(user.phone_numbers.verified) == 1
+        assert len(user.identities.verified) == 3
+
+    def test_attacker_with_a_captcha_cannot_reach_a_victims_state(self) -> None:
+        """The account takeover this guard closes, end to end.
+
+        start_reset_pw asks for a completed captcha and nothing else, reuses any live state
+        for the address it is given, and writes that address into the caller's session. That
+        used to be enough for the views downstream to resolve the victim's state, so an
+        attacker could work from their own session and guess codes at /new-password/.
+        """
+        mock_request_user_sync = self.mocker.patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
+        self.mocker.patch("eduid.webapp.common.authn.vccs.get_vccs_client", return_value=MockVCCSClient())
+        mock_request_user_sync.side_effect = self.request_user_sync
+        assert self.test_user.mail_addresses.primary is not None
+        victim_email = self.test_user.mail_addresses.primary.email
+
+        # The victim starts a reset, verifies the code, then abandons the browser.
+        self._post_email_address()
+        state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user.eppn)
+        assert state is not None
+        victim_code = state.email_code.code
+        self._check_success_response(
+            self._post_verify_email(email_code=victim_code), type_="POST_RESET_PASSWORD_VERIFY_EMAIL_SUCCESS"
+        )
+
+        with self.app.test_request_context():
+            new_password_url = url_for("reset_password.set_new_pw_no_extra_security", _external=True)
+
+        # A separate client, carrying no cookie from anything above.
+        attacker = cast(CSRFTestClient, self.app.test_client())
+        with self.session_cookie_anon(attacker) as c:
+            response = c.get("/", content_type=self.content_type_json)
+            with c.session_transaction() as sess:
+                sess.reset_password.captcha.completed = True
+            data: dict[str, Any] = {
+                "email": victim_email,
+                "csrf_token": self.get_response_payload(response)["csrf_token"],
+            }
+            assert c.post("/", data=json.dumps(data), content_type=self.content_type_json).status_code == 200
+
+            # A captcha bought the attacker the victim's address in their own session.
+            with c.session_transaction() as sess:
+                assert sess.reset_password.email.address == victim_email
+                assert sess.common.eppn is None
+
+            # Both a guess and the real code, since the point is that neither is even compared.
+            for guess in ("wrong-code", victim_code):
+                with c.session_transaction() as sess:
+                    csrf_token = sess.get_csrf_token()
+                data = {"email_code": guess, "password": "T%7j 8/tT a0=b", "csrf_token": csrf_token}
+                self._check_error_response(
+                    c.post(new_password_url, data=json.dumps(data), content_type=self.content_type_json),
+                    type_="POST_RESET_PASSWORD_NEW_PASSWORD_FAIL",
+                    msg=ResetPwMsg.invalid_session,
+                )
+
+        # The victim's state was never reached: no strike for the wrong guess, and the state
+        # is still there rather than consumed by a reset.
+        after = self.app.password_reset_state_db.get_state_by_eppn(self.test_user.eppn)
+        assert after is not None
+        assert after.bad_attempts == 0
+        user = self.app.central_userdb.get_user_by_eppn(self.test_user.eppn)
+        assert len(user.identities.verified) == 3
+
+    def test_wrong_code_on_verify_email_is_counted_even_after_verification(self) -> None:
+        """/verify-email/ keeps counting for the whole life of the state.
+
+        It is the view an attacker guesses against, so opting it out at any point - including
+        once the state has been verified by someone else's successful call - would reopen the
+        brute force this branch closed.
+        """
+        self._post_email_address()
+        state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user.eppn)
+        assert state is not None
+
+        self._check_success_response(
+            self._post_verify_email(email_code=state.email_code.code),
+            type_="POST_RESET_PASSWORD_VERIFY_EMAIL_SUCCESS",
+        )
+        state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user.eppn)
+        assert state is not None
+        assert state.email_code.is_verified is True
+        assert state.bad_attempts == 0
+
+        self._check_error_response(
+            self._post_verify_email(email_code="wrong-code"),
+            type_="POST_RESET_PASSWORD_VERIFY_EMAIL_FAIL",
+            msg=ResetPwMsg.state_not_found,
+        )
+        state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user.eppn)
+        assert state is not None
+        assert state.bad_attempts == 1
+
+    def test_wrong_code_on_a_verified_session_still_locks_the_state(self) -> None:
+        """Metering does not stop once the session is verified.
+
+        A verified session is one browser's proof, not a licence to grind the code. Guesses
+        made through it keep costing a strike, and the cap still lands.
+        """
+        self._post_email_address()
+        state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user.eppn)
+        assert state is not None
+        correct_code = state.email_code.code
+        self._check_success_response(
+            self._post_verify_email(email_code=correct_code), type_="POST_RESET_PASSWORD_VERIFY_EMAIL_SUCCESS"
+        )
+
+        for expected in range(1, self.app.conf.email_code_max_bad_attempts + 1):
+            self._check_error_response(
+                self._post_extra_security_phone(email_code="wrong-code"),
+                type_="POST_RESET_PASSWORD_EXTRA_SECURITY_PHONE_FAIL",
+                msg=ResetPwMsg.state_not_found,
+            )
+            state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user.eppn)
+            assert state is not None
+            assert state.bad_attempts == expected
+
+        # The cap is reached, so guessing stops there - and so does the correct code.
+        for code in ("wrong-code", correct_code):
+            self._check_error_response(
+                self._post_extra_security_phone(email_code=code),
+                type_="POST_RESET_PASSWORD_EXTRA_SECURITY_PHONE_FAIL",
+                msg=ResetPwMsg.email_code_too_many_tries,
+            )
+
+    def test_locked_state_is_rejected_by_a_post_verification_view(self) -> None:
+        """The lockout check runs on every view, ahead of the comparison."""
+        self._post_email_address()
+        state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user.eppn)
+        assert state is not None
+        correct_code = state.email_code.code
+
+        self._check_success_response(
+            self._post_verify_email(email_code=correct_code), type_="POST_RESET_PASSWORD_VERIFY_EMAIL_SUCCESS"
+        )
+
+        # Lock the state out of band, so the lockout is the only thing under test here.
+        state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user.eppn)
+        assert state is not None
+        state.bad_attempts = self.app.conf.email_code_max_bad_attempts
+        self.app.password_reset_state_db.save(state)
+
+        # Even the correct code is refused, and it does not clear the counter on its way out.
+        self._check_error_response(
+            self._post_extra_security_phone(email_code=correct_code),
+            type_="POST_RESET_PASSWORD_EXTRA_SECURITY_PHONE_FAIL",
+            msg=ResetPwMsg.email_code_too_many_tries,
+        )
+        state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user.eppn)
+        assert state is not None
+        assert state.bad_attempts == self.app.conf.email_code_max_bad_attempts
+
+    def test_config_rejects_a_zero_bad_attempt_cap(self) -> None:
+        """email_code_max_bad_attempts=0 would lock every state on first contact (0 >= 0)."""
+        with pytest.raises(ValidationError):
+            self.app.conf.email_code_max_bad_attempts = 0
+        with pytest.raises(ValidationError):
+            self.app.conf.email_code_length = 0
 
     def test_post_reset_wrong_csrf(self) -> None:
         data2 = {"csrf_token": "wrong-code"}
@@ -1552,10 +1901,17 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
         )
 
     def test_post_choose_extra_sec_wrong_code(self) -> None:
+        """A failed /verify-email/ leaves no verified session, so the next view refuses outright.
+
+        data2 is the code sent to /verify-email/, so this arrives at /extra-security-phone/
+        with the correct code but nothing to show it was ever proven. That used to resolve the
+        state anyway - through the address start_reset_pw put in the session - and answer
+        email-not-validated, which told the caller their code was right.
+        """
         data2 = {"email_code": "wrong-code"}
         response = self._post_choose_extra_sec(data2=data2)
         self._check_error_response(
-            response, type_="POST_RESET_PASSWORD_EXTRA_SECURITY_PHONE_FAIL", msg=ResetPwMsg.email_not_validated
+            response, type_="POST_RESET_PASSWORD_EXTRA_SECURITY_PHONE_FAIL", msg=ResetPwMsg.invalid_session
         )
 
     def test_post_choose_extra_sec_bad_phone_index(self) -> None:

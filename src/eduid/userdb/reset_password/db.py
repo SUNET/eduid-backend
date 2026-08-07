@@ -103,6 +103,30 @@ class ResetPasswordStateDB(BaseDB):
         state.bad_attempts = int(doc["bad_attempts"])
         return state.bad_attempts
 
+    def reset_bad_attempts(self, state: ResetPasswordState) -> None:
+        """
+        Clear the incorrect email code counter for a state, after the correct code was supplied.
+
+        Written straight to the database for the same reasons as increment_bad_attempts: save()
+        filters replace_one on the modified_ts the caller loaded, so a concurrent write would
+        turn this into a DocumentOutOfSync. $set also deliberately leaves modified_ts alone, so
+        clearing the counter neither re-arms the resend throttle nor postpones the auto-expire
+        index.
+
+        :param state: the state to clear the counter on, updated in place
+        """
+        result = self._coll.update_one(
+            filter={"eduPersonPrincipalName": state.eppn},
+            update={"$set": {"bad_attempts": 0}},
+            # No upsert: a state removed while the request was in flight must stay removed.
+        )
+        if result.matched_count == 0:
+            logger.debug(f"No reset password state left to clear the bad attempt counter on: {state.eppn}")
+        # Set in memory regardless of whether a document was matched. The caller has proven it
+        # holds the code, so zero is the right value for anything downstream that re-saves the
+        # state - notably the phone-expiry rebuild, which would otherwise persist a stale count.
+        state.bad_attempts = 0
+
     def save(self, state: ResetPasswordState, is_in_database: bool = True) -> SaveResult:
         """
         Save state to the database.
