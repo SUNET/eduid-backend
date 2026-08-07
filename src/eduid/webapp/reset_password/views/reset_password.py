@@ -302,8 +302,8 @@ def verify_email(email_code: str, email: str | None = None) -> FluxData:
         # resolution keys on session.common.eppn, so it would never match this address.
         # Invalidate on ANY address that is not the session user's own - including unknown
         # ones - so the response cannot be used to test whether an address exists.
-        _session_user = current_app.central_userdb.get_user_by_mail(email)
-        if _session_user is None or _session_user.eppn != session.common.eppn:
+        _session_users = current_app.central_userdb.get_users_by_mail(email)
+        if len(_session_users) != 1 or _session_users[0].eppn != session.common.eppn:
             current_app.logger.info("Posted email does not match the session user; invalidating session")
             current_app.stats.count(name="invalid_session_eppn_mismatch", value=1)
             session.invalidate()
