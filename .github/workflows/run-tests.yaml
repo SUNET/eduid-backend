@@ -16,9 +16,9 @@ jobs:
       NEO4J_VERSION: 4.4-enterprise
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - name: Set up Python from pyproject.toml
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@v7
         with:
           python-version-file: pyproject.toml
           cache: "pip"
@@ -33,7 +33,7 @@ jobs:
           sudo apt install -y $repo_system_packages
 
       - name: Set up uv
-        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        uses: astral-sh/setup-uv@v9
         with:
           enable-cache: true
 
@@ -56,10 +56,10 @@ jobs:
   typecheck:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Set up Python from pyproject.toml
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@v7
         with:
           python-version-file: pyproject.toml
           cache: "pip"
@@ -74,7 +74,7 @@ jobs:
           sudo apt install -y $repo_system_packages
 
       - name: Set up uv
-        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        uses: astral-sh/setup-uv@v9
         with:
           enable-cache: true
 
@@ -91,10 +91,8 @@ jobs:
   lint:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: "Lint using ruff"
-        uses: astral-sh/ruff-action@v3
-        with:
-          version: "<0.16.0"
+        uses: astral-sh/ruff-action@v4
 
