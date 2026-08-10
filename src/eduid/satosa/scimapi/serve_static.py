@@ -58,7 +58,7 @@ class ServeStatic(RequestMicroService):  # type: ignore[misc]
         base = os.path.realpath(self.locations[endpoint])
         file = os.path.realpath(os.path.join(base, target))
         if file != base and not file.startswith(base + os.sep):
-            logger.warning(f"{self.logprefix} rejected path traversal attempt: {endpoint} - {target}")
+            logger.warning(f"{self.logprefix} rejected path traversal attempt: {endpoint!r} - {target!r}")
             return Response(b"File not found", content="text/html", status="404 Not Found")
 
         try:
