@@ -7,7 +7,7 @@ from typing import Protocol, Self, cast
 
 import babel
 from babel.support import Translations
-from jinja2 import Environment, FileSystemLoader, select_autoescape
+from jinja2 import Environment, FileSystemLoader
 
 __author__ = "lundberg"
 
@@ -36,7 +36,10 @@ class Jinja2Env:
         self.jinja2_env = Environment(
             loader=template_loader,
             extensions=["jinja2.ext.i18n"],
-            autoescape=select_autoescape(),
+            # Template names don't consistently use a ".html." infix before the .jinja2
+            # suffix (e.g. eduid_invite_mail_html.jinja2), so select_autoescape's
+            # extension matching misses it. Match on "html" anywhere in the name instead.
+            autoescape=lambda name: name is not None and "html" in name.lower(),
         )
         # Translations
         self.translations = {
