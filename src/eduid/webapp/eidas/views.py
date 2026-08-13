@@ -271,6 +271,7 @@ def _authn(
         current_app.logger.error(f"Couldn't extract Location from {authn_info}")
         return AuthnResult(error=EidasMsg.method_not_available)
 
+    current_app.stats.count(f"{proofing_method.method.value}_authn_request")
     return AuthnResult(authn_req=authn_info, authn_id=authn_req.authn_id, url=url)
 
 
@@ -319,6 +320,7 @@ def assertion_consumer_service() -> WerkzeugResponse:
             ctx=EduidErrorsContext.SAML_RESPONSE_FAIL,
             rp=current_app.saml2_config.entityid,
         )
+    current_app.stats.count(f"{proofing_method.method.value}_authn_response")
 
     # Remap nin in staging environment
     if current_app.conf.environment in [EduidEnvironment.staging, EduidEnvironment.dev]:
