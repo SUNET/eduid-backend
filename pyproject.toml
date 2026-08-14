@@ -167,7 +167,6 @@ ignore = [
   "D419", # empty-docstring (32)
   "G201", # logging-exc-info - .exception() instead of .error(..., exc_info=True) (5)
   "LOG015", # root-logger-call (6)
-  "PYI019", # custom-type-var-for-self - autofixable to Self (2)
   "RET501", # unnecessary-return-none (33)
   "TRY004", # type-check-without-type-error (51)
   "TRY201", # verbose-raise (16)
