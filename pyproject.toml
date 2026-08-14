@@ -190,6 +190,15 @@ eduid = ["ndnkdf"]
 # "src/eduid/scimapi/**" = ["A001", "A002"] # builtin shadowing - filter is core concept of scim and builtin is not used
 "src/eduid/webapp/common/authn/vccs.py" = ["PLR2004"] # magic-value-comparison - allow magic numbers for password version
 
+[tool.ruff.format]
+# From 0.16 the formatter also formats Python inside markdown code fences. There is
+# no setting to turn that off, so exclude the files where we do not want it.
+# AGENTS.md aligns trailing comments in its snippets on purpose, as documentation,
+# and the formatter collapses that alignment to a single space. Note that CI only
+# runs `ruff check`, so markdown formatting is not enforced anywhere - without this
+# exclude the only effect is a dirty tree for whoever runs `ruff format .` locally.
+exclude = ["AGENTS.md"]
+
 [tool.mypy]
 plugins = ["pydantic.mypy", "marshmallow_dataclass.mypy"]
 namespace_packages = true
