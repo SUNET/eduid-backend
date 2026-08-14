@@ -167,7 +167,6 @@ ignore = [
   "D419", # empty-docstring (32)
   "G201", # logging-exc-info - .exception() instead of .error(..., exc_info=True) (5)
   "LOG015", # root-logger-call (6)
-  "N999", # invalid-module-name - would mean renaming test modules (3)
   "PYI019", # custom-type-var-for-self - autofixable to Self (2)
   "PYI061", # redundant-none-literal (1)
   "RET501", # unnecessary-return-none (33)
