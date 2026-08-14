@@ -242,7 +242,7 @@ celery[redis]==5.6.3 \
 celery-types==0.26.0 \
     --hash=sha256:eb9da76f461786091970df466ec647d9a27956399852542cb6cab9309970f950 \
     --hash=sha256:fa318136fdad83f83f1531deecd9fe664b5dfffff29f3c31e9120a46b8e3908f
-    # via eduid-backend (/home/lundberg/projects/eduid-backend/pyproject.toml:test)
+    # via eduid-backend (/workspaces/eduid-backend/pyproject.toml:test)
 certifi==2026.7.22 \
     --hash=sha256:62f22742b58a1a33014a2b6b706588a8d7e2a88ae7bd1a6ebe8c992928483775 \
     --hash=sha256:741e2c3b351ddf169a738da9f2c048608ff7f2c5cc02f1ebc6b118bb090d5d55
@@ -1216,7 +1216,7 @@ motor==3.7.1 \
 motor-types==1.0.0b4 \
     --hash=sha256:6dc37c87a78acdbd658abbc4426ba3d239c4a26485a12325c65439cb7a2e27bf \
     --hash=sha256:ece2ec5283dfef1a4d3d693db15a010b6c56fea0d46697184e36880935a9f940
-    # via eduid-backend (/home/lundberg/projects/eduid-backend/pyproject.toml:test)
+    # via eduid-backend (/workspaces/eduid-backend/pyproject.toml:test)
 mypy==2.3.0 \
     --hash=sha256:04e617030eca5221909c8b7d8d7fd1c637948199aa2100b2ad9813feb07e1491 \
     --hash=sha256:094af99f92638aa92852326188b85a89e50f4a472f44827c03362228482f0762 \
@@ -1263,7 +1263,7 @@ mypy==2.3.0 \
     --hash=sha256:f1b3a98dfd21058bc759bb3337d5d1f61d0fdf9f3cf9c00f4291790fb5427bff \
     --hash=sha256:f4ed18f111bfe2d599bca7468e7f9251042c1c2118f762c8de2766a56d773c60 \
     --hash=sha256:fbc00cee7bdbb9291979ddc9d08034a29dfcda4932628c9bbc28c1edd589df0c
-    # via eduid-backend (/home/lundberg/projects/eduid-backend/pyproject.toml:test)
+    # via eduid-backend (/workspaces/eduid-backend/pyproject.toml:test)
 mypy-extensions==1.1.0 \
     --hash=sha256:1be4cccdb0f2482337c4743e60421de3a356cd97508abadd57d47403e94f5505 \
     --hash=sha256:52e68efc3284861e772bbcd66823fde5ae21fd2fdb51c62a211403730b916558
@@ -1413,7 +1413,7 @@ pip==26.2 \
 pip-tools==7.6.0 \
     --hash=sha256:4bd99155b6d8de358a214b0865e1a2855a453570c1a83d40f7b564870b8657be \
     --hash=sha256:c1c59f7844df4866fa9542d3f50d1f44be537ac0027cb50b2563d6a992853981
-    # via eduid-backend (/home/lundberg/projects/eduid-backend/pyproject.toml:test)
+    # via eduid-backend (/workspaces/eduid-backend/pyproject.toml:test)
 pluggy==1.6.0 \
     --hash=sha256:7dcc130b76258d33b90f61b658791dede3486c3e6bfb003ee5c9bfb396dd22f3 \
     --hash=sha256:e920276dd6813095e9377c0bc5566d94c932c33b27a3e3945d8389c374dd4746
@@ -1856,7 +1856,7 @@ pytest==9.1.1 \
     --hash=sha256:1088fbde8f2b49d95a549a195707afa7a76a3ce9bcadc26b6d71f0ffda5fe313 \
     --hash=sha256:37a86b45efb9a47a61a36449063e8e18d0cab3161329fc099eb21783169c4f0c
     # via
-    #   eduid-backend (/home/lundberg/projects/eduid-backend/pyproject.toml:test)
+    #   eduid-backend (/workspaces/eduid-backend/pyproject.toml:test)
     #   pytest-asyncio
     #   pytest-cov
     #   pytest-mock
@@ -1864,19 +1864,19 @@ pytest==9.1.1 \
 pytest-asyncio==1.4.0 \
     --hash=sha256:933ca923a23075a87fb7070c0ec272a6848489824d887c85c812670932835aa1 \
     --hash=sha256:c6c0d2259945122819f171a32ecea2c349ead889ee28176caaf492143424be42
-    # via eduid-backend (/home/lundberg/projects/eduid-backend/pyproject.toml:test)
+    # via eduid-backend (/workspaces/eduid-backend/pyproject.toml:test)
 pytest-cov==7.1.0 \
     --hash=sha256:30674f2b5f6351aa09702a9c8c364f6a01c27aae0c1366ae8016160d1efc56b2 \
     --hash=sha256:a0461110b7865f9a271aa1b51e516c9a95de9d696734a2f71e3e78f46e1d4678
-    # via eduid-backend (/home/lundberg/projects/eduid-backend/pyproject.toml:test)
+    # via eduid-backend (/workspaces/eduid-backend/pyproject.toml:test)
 pytest-mock==3.15.1 \
     --hash=sha256:0a25e2eb88fe5168d535041d09a4529a188176ae608a6d249ee65abc0949630d \
     --hash=sha256:1849a238f6f396da19762269de72cb1814ab44416fa73a8686deac10b0d87a0f
-    # via eduid-backend (/home/lundberg/projects/eduid-backend/pyproject.toml:test)
+    # via eduid-backend (/workspaces/eduid-backend/pyproject.toml:test)
 pytest-xdist==3.8.0 \
     --hash=sha256:202ca578cfeb7370784a8c33d6d05bc6e13b4f25b5053c30a152269fd10f0b88 \
     --hash=sha256:7e578125ec9bc6050861aa93f2d59f1d8d085595d6551c2c90b6f4fad8d3a9f1
-    # via eduid-backend (/home/lundberg/projects/eduid-backend/pyproject.toml:test)
+    # via eduid-backend (/workspaces/eduid-backend/pyproject.toml:test)
 python-bidi==0.6.11 \
     --hash=sha256:034090c597af250d699299d7e7f1e83eb016f9e47b3b707bd89ab2bdec77bce0 \
     --hash=sha256:0608bddcc1c53dfa5293499de13ca9935b31aa46d1c722c404a88c703d1a4e47 \
@@ -2182,31 +2182,31 @@ requests==2.34.2 \
 respx==0.23.1 \
     --hash=sha256:242dcc6ce6b5b9bf621f5870c82a63997e8e82bc7c947f9ffe272b8f3dd5a780 \
     --hash=sha256:b18004b029935384bccfa6d7d9d74b4ec9af73a081cc28600fffc0447f4b8c1a
-    # via eduid-backend (/home/lundberg/projects/eduid-backend/pyproject.toml:test)
+    # via eduid-backend (/workspaces/eduid-backend/pyproject.toml:test)
 rsa==4.9.1 \
     --hash=sha256:68635866661c6836b8d39430f97a996acbd61bfa49406748ea243539fe239762 \
     --hash=sha256:e7bdbfdb5497da4c07dfd35530e1a902659db6ff241e39d9953cad06ebd0ae75
     # via python-jose
-ruff==0.16.1 \
-    --hash=sha256:07bf434b1c95f4e093be4532068ef4fcf00924eb2ade8796075980902d6fd54a \
-    --hash=sha256:09b05e8b90c2cb06ad63464350e7a45e8e44a2dfe52072ebfba6666ca8d3f596 \
-    --hash=sha256:24e9c631573cbca9d20f1283f8f479b2afa4a8503504822bd71a293889f16743 \
-    --hash=sha256:26e9ca5c9bc3971f20d3cf18a957f52ffd6a5f6564ff15c4912a144dcac22494 \
-    --hash=sha256:30affbcedf59ad5703d9c91f82266e02b47739f797e1a7b6e158e5526a6dae38 \
-    --hash=sha256:39897739f112253ee4fdd2e8aa9a4f9ded99fb2be367d5f31dfa4ded6025584c \
-    --hash=sha256:4d5f2ed10f8242d83fc08d521301089364e3375375705356f20c0e31606ef3ef \
-    --hash=sha256:58edb313b88f0c5460a26adf5f39a37a3be789494a15e3e411e35fa78b89f9a0 \
-    --hash=sha256:67e1e1e3fa4f0c82f0e36d4cd61e661f6e7a6196cb1aa92fe0828fa7b8f257cd \
-    --hash=sha256:82ae3c0c0d74daf17b968a10b7b3bb3ef297ab7de0c1f749646b25e690ccb150 \
-    --hash=sha256:a4665b309891f83f3e3c25447935f1213e9abbd4b5640af7a1f2def9f8d413c1 \
-    --hash=sha256:b0d1e1393b7648079e13669de1c1f4fde06d4583e84d8fd5c1551e0a77a2aa75 \
-    --hash=sha256:b41bdd48fb420987a9b5212e4957c26ad4abce401fa9ea9d4d85843727945f4f \
-    --hash=sha256:d31765e131295b8445caf301e3e8a85b34d1b9b211b4109b7ba457888b051806 \
-    --hash=sha256:dbaadaac38c70239f056d306b7476f246b0bf000fa6b3876402acbf5b227eaf8 \
-    --hash=sha256:e0d4c20532fca4f7fa609369161d968dd28f65d83dabbd61d8e9c7edbf7001f6 \
-    --hash=sha256:fde5a99e2f97479af66edd6622c6d5a2a7592c77cf4153d9e4428f5eeb55b60c \
-    --hash=sha256:fedad7c801dabd3fb9741d76aca39246e6ddd9ca446a015875207bf19f1e6bc7
-    # via eduid-backend (/home/lundberg/projects/eduid-backend/pyproject.toml:test)
+ruff==0.16.3 \
+    --hash=sha256:09571e6d1288ed9be475207a3ac04ada404f1cd898104be0f6ab8d7df438575b \
+    --hash=sha256:0c5710e247a58a4521e66e124ba9a74655b414f61ba3a2e9e3811e11098f48f7 \
+    --hash=sha256:294b95c4ae0cda9388525c2047778aa758d6b8d4bb876fd4e9eaa3ebc92343eb \
+    --hash=sha256:2c18c5a101eb540010638cc1ff3c84944d3adb3df62b8d98ca8f22ba484d3413 \
+    --hash=sha256:388cdf2166642bd9b13d52b5932d3170f34f8abed7e8d9a855f1d84b83645a0a \
+    --hash=sha256:3d0c7c40c87c2a820509c31ba007968da6e1306468c067b2d82fbfdbcd0e8474 \
+    --hash=sha256:8457c44f15033c85ddbb77b15d451df9e24e4bd03b628396dd3610cedc3b8f82 \
+    --hash=sha256:9e0b1da805eb043654645d74d5de1e5ce2edc686e40790d2b86f56d71cc06a84 \
+    --hash=sha256:9f738c0fdfa8eed0b2ce7fb27ee7258208a92a68d7949e62aa15164bc7b389da \
+    --hash=sha256:a2d85c02f9b8e165d85e6779184d38c4132de12603dab59c51c28e22584f9e4d \
+    --hash=sha256:a37bdea0bbe21780f590bf437d6412c8c4e1b6cd010f91a65c2c40c5e5f5f870 \
+    --hash=sha256:b8ca152da82c1acc1fa8d5874b15951935f0eef46f10e6954c83859011b6178a \
+    --hash=sha256:c5536e3acfbf9563085aa2be7b13c629c3077e902afc5b941ac44024dbb9f506 \
+    --hash=sha256:e2ed719e14aa64d895c2ee922594a90a43c861a93f0575a95ff8c47cdbd13eb9 \
+    --hash=sha256:e76d33a347661a84b5be6d043d0347fdc745dfdcf825a8f4fed64b5e26eebdf2 \
+    --hash=sha256:e80a7d69ca2a6d1c4d352ec91458cdca6e56c83cdbcabd93e4abe1e53591d948 \
+    --hash=sha256:fb785f0be25abe69d320415cd4f833b59e17ba7613d9ba6a958023b6bceb0a50 \
+    --hash=sha256:fe155130631a2471fd2e14a7a664a4dfbd7194b8229c3d7b2a40b21178639081
+    # via eduid-backend (/workspaces/eduid-backend/pyproject.toml:test)
 s3transfer==0.19.2 \
     --hash=sha256:ba0309fd86be3c27dbf78cdd813c13c5e1df16e5874b99d2535ebbdfb9892993 \
     --hash=sha256:d8168eccca828cbb2cd573675333f3bddd254313a9c42494b84c76b539e8ba25
@@ -2358,7 +2358,7 @@ statsd==4.0.1 \
 statsd-stubs==4.0.1.20240223 \
     --hash=sha256:7c8a9a3402eb5cd9fbf232e8eec5fad87b3d8a7ef87fb18209c10372d5122cf6 \
     --hash=sha256:be3897db4865a39ae658ea0ca20c0d13489f13affe6c1e8361b02bc523a227c2
-    # via eduid-backend (/home/lundberg/projects/eduid-backend/pyproject.toml:test)
+    # via eduid-backend (/workspaces/eduid-backend/pyproject.toml:test)
 suds-community==1.2.0 \
     --hash=sha256:505b191865bca125f12e8ff9598b24d9c0108b98826671bdd700ed51def44e36 \
     --hash=sha256:ab3b24dc9ba06b5e6598e2a5d34d2a7d06c79e613d81cedc028475bfbd3bb90c
@@ -2455,7 +2455,7 @@ uv==0.12.1 \
     --hash=sha256:bd02f2da212e6a983115dc64a6fc94e9256c2d60e056d6b669de0a6025aaec05 \
     --hash=sha256:e35e0030480a8c3bf8ecd87ae4a6f6a224009e15e96a6fbb3634ac11ab75d582 \
     --hash=sha256:ead7ad064f291a5df358c3ffa8ffab347a32bd5a75a6a068ca22254c2539a829
-    # via eduid-backend (/home/lundberg/projects/eduid-backend/pyproject.toml:test)
+    # via eduid-backend (/workspaces/eduid-backend/pyproject.toml:test)
 uvicorn[standard]==0.52.1 \
     --hash=sha256:112ec661814189acbccd3f7b86460147cc065fc92c0821afa78918780e4354dd \
     --hash=sha256:e4403f9d93188cf9d1088e9f40e3acd12630e2df8675316704379a7fc20fff6a
