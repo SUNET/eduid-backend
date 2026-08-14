@@ -98,7 +98,12 @@ line-length = 120 # Set the maximum line length to 120.
 target-version = "py313"
 
 [tool.ruff.lint]
-select = [
+# extend-select rather than select, so we keep ruff's default rule set on top of
+# the prefixes below. Every prefix here is still listed explicitly: the defaults
+# only ever enable a subset of a linter, and defaults may also be removed
+# upstream, so we do not rely on them to carry the rules we care about.
+# See: https://docs.astral.sh/ruff/default-rules/
+extend-select = [
   "A",
   "ANN",
   "ASYNC",
@@ -127,10 +132,15 @@ select = [
 ignore = [
   "PLR09", # rule set for complexity checks
   "PLC0415", # non top level imports
+  # SIM102 and SIM103 are part of ruff's default rule set - these entries are a
+  # deliberate opt-out, not leftovers from the pre-extend-select config
   "SIM102", # collapsible-if
   "SIM103", # return-bool-condition-directly (keeping explicit if/else for clarity)
   "SIM108", # if-else-block-instead-of-if-exp
-  # Since we use ruff as a formatter, the following rules should be ignored
+  # Since we use ruff as a formatter, the following rules should be ignored.
+  # Most are not enabled by our extend-select or by ruff's defaults today; they
+  # are listed defensively so they cannot start conflicting with the formatter if
+  # they are added to the default rule set later.
   # See: https://docs.astral.sh/ruff/formatter/#conflicting-lint-rules
   "W191",
   "E111",
@@ -146,6 +156,25 @@ ignore = [
   "COM812",
   "COM819",
   "ISC002",
+  # TRANSIENT: rules from ruff's default rule set that we now inherit via
+  # extend-select and that currently trigger. Ignored only to keep the tree green
+  # while we work through them. Each one gets evaluated and then leaves this
+  # block: fixed and deleted where that is easy, or moved up to the permanent
+  # ignores above with a rationale where we decide to keep ignoring it. This
+  # block is expected to be empty again in the near future - nothing should
+  # linger here. Hit counts as of ruff 0.16.3.
+  "BLE001", # blind-except (28)
+  "D419", # empty-docstring (32)
+  "EXE001", # shebang-not-executable (5)
+  "G201", # logging-exc-info - .exception() instead of .error(..., exc_info=True) (5)
+  "LOG015", # root-logger-call (6)
+  "N999", # invalid-module-name - would mean renaming test modules (3)
+  "PYI019", # custom-type-var-for-self - autofixable to Self (2)
+  "PYI061", # redundant-none-literal (1)
+  "RET501", # unnecessary-return-none (33)
+  "TRY004", # type-check-without-type-error (51)
+  "TRY201", # verbose-raise (16)
+  "TRY401", # verbose-log-message (3)
 ]
 allowed-confusables = ["’", "х"]
 
