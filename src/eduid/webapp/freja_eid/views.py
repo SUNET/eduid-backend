@@ -222,6 +222,7 @@ def _authn(
     session.freja_eid.rp.authns[authn_req.authn_id] = authn_req
     current_app.logger.debug(f"Stored RP_AuthnRequest[{authn_req.authn_id}]: {authn_req}")
     current_app.logger.debug(f"returning url: {auth_url}")
+    current_app.stats.count(f"{proofing_method.method.value}_authn_request")
     return AuthnResult(authn_id=authn_req.authn_id, url=auth_url, authn_req=authn_req)
 
 
@@ -267,6 +268,7 @@ def authn_callback() -> WerkzeugResponse:
             ctx=EduidErrorsContext.OIDC_RESPONSE_FAIL,
             rp=url_for("freja_eid.authn_callback", _external=True),
         )
+    current_app.stats.count(f"{proofing_method.method.value}_authn_response")
 
     formatted_finish_url = authn_req.formatted_finish_url(app_name=current_app.conf.app_name)
 
