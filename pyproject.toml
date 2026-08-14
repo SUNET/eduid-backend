@@ -165,7 +165,6 @@ ignore = [
   # linger here. Hit counts as of ruff 0.16.3.
   "BLE001", # blind-except (28)
   "D419", # empty-docstring (32)
-  "EXE001", # shebang-not-executable (5)
   "G201", # logging-exc-info - .exception() instead of .error(..., exc_info=True) (5)
   "LOG015", # root-logger-call (6)
   "N999", # invalid-module-name - would mean renaming test modules (3)
