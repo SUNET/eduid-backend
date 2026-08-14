@@ -91,5 +91,5 @@ jobs:
       - name: "Lint using ruff"
         uses: astral-sh/ruff-action@v3
         with:
-          version: "0.16.3" # keep in sync with requirements/test_requirements.txt
+          version-file: "requirements/test_requirements.txt"
 
