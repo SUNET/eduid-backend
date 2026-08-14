@@ -10,6 +10,8 @@ __author__ = "lundberg"
 
 from eduid.common.config.parsers.exceptions import SecretKeyException
 
+logger = logging.getLogger(__name__)
+
 
 def decrypt(f: Callable[..., Mapping[str, Any]]) -> Callable[..., Mapping[str, Any]]:
     @wraps(f)
@@ -63,7 +65,7 @@ def decrypt_config(config_dict: Mapping[str, Any]) -> Mapping[str, Any]:
                     try:
                         boxes[key_name] = init_secret_box(key_name=key_name)
                     except OSError as e:
-                        logging.error(e)
+                        logger.error(e)
                         continue  # Try next key
                 try:
                     encrypted_value = bytes(encrypted_value, "ascii")
@@ -74,10 +76,10 @@ def decrypt_config(config_dict: Mapping[str, Any]) -> Mapping[str, Any]:
                     decrypted = True
                     break  # Decryption successful, do not try any more keys
                 except exceptions.CryptoError as e:
-                    logging.error(e)
+                    logger.error(e)
                     continue  # Try next key
             if not decrypted:
-                logging.error(f"Failed to decrypt {key}:{value}")
+                logger.error(f"Failed to decrypt {key}:{value}")
         else:
             new_config_dict[key] = value
     return new_config_dict

@@ -166,7 +166,6 @@ ignore = [
   "BLE001", # blind-except (28)
   "D419", # empty-docstring (32)
   "G201", # logging-exc-info - .exception() instead of .error(..., exc_info=True) (5)
-  "LOG015", # root-logger-call (6)
   "RET501", # unnecessary-return-none (33)
   "TRY004", # type-check-without-type-error (51)
   "TRY201", # verbose-raise (16)
