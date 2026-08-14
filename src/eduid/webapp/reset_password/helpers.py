@@ -3,13 +3,13 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import timedelta
 from enum import unique
+from secrets import compare_digest
 from typing import Any
 
 from fido2.webauthn import UserVerificationRequirement
 from flask import render_template
 
 from eduid.common.config.base import EduidEnvironment
-from eduid.common.misc.timeutil import utc_now
 from eduid.common.utils import generate_password, get_short_hash
 from eduid.queue.client import init_queue_item
 from eduid.queue.db.message.payload import EduidResetPasswordEmail
@@ -50,6 +50,10 @@ class ResetPwMsg(TranslatableMsg):
     expired_email_code = "resetpw.expired-email-code"
     # The user has sent an SMS'ed code that has expired
     expired_phone_code = "resetpw.expired-phone-code"
+    # Too many incorrect email code submissions against this state
+    email_code_too_many_tries = "resetpw.email-code-too-many-tries"
+    # No identity hint available; the frontend must prompt for the email address
+    email_address_required = "resetpw.email-address-required"
     # There was some problem sending the email with the code.
     email_send_failure = "resetpw.email-send-failure"
     # A new code has been generated and sent by email successfully
@@ -107,50 +111,129 @@ class ResetPasswordContext:
     user: User
 
 
-def get_context(email_code: str) -> ResetPasswordContext:
+def get_context(email_code: str, email_address: str | None = None) -> ResetPasswordContext:
     """
-    Use a email code to load reset-password state from the database.
+    Load reset-password state for the current user and verify the supplied code against it.
 
     :param email_code: User supplied password reset code
+    :param email_address: User supplied email address, for the cross-device fallback
     :return: ResetPasswordContext instance
     """
-    state = get_pwreset_state(email_code)
+    state = get_pwreset_state(email_code, email_address=email_address)
 
     user = current_app.central_userdb.get_user_by_eppn(state.eppn)
     if not user:
-        # User has been removed before reset password was completed
-        current_app.logger.error(f"User not found for state {state.email_code}")
+        # User has been removed before reset password was completed. Log the eppn, never the
+        # CodeElement - that renders the code itself.
+        current_app.logger.error(f"User not found for eppn {state.eppn}")
         raise StateException(msg=ResetPwMsg.user_not_found)
 
     return ResetPasswordContext(state=state, user=user)
 
 
-def get_pwreset_state(email_code: str) -> ResetPasswordEmailState | ResetPasswordEmailAndPhoneState:
+def get_pwreset_state(
+    email_code: str, email_address: str | None = None
+) -> ResetPasswordEmailState | ResetPasswordEmailAndPhoneState:
     """
-    get the password reset state for the provided code
+    Get the password reset state for the current user and verify the provided code against it.
 
-    raises BadCode in case of problems
+    The state is resolved by eppn, never by the code. Resolving by code would test every
+    guess against every live state at once and would make per-state attempt counting
+    impossible.
+
+    Identity hints are consulted in a fixed order, and the order is a security property:
+    session.common.eppn first, then the address in the session, then the address the user
+    supplied in the request. The last one is a strict last resort, so a supplied address can
+    never override an eppn already established in the session.
+
+    Every caller is metered the same way: an attempt is reserved against the counter before
+    the code is compared, and the reservation doubles as the lockout check. A correct code
+    clears the counter, which is what keeps a legitimate user's typos from accumulating into
+    a lockout across the flow - only someone who holds the code can reset it, so it hands an
+    attacker nothing.
+
+    :param email_code: User supplied password reset code
+    :param email_address: User supplied email address, for the cross-device fallback
+
+    raises StateException in case of problems
     """
     mail_expiration_time = current_app.conf.email_code_timeout
     sms_expiration_time = current_app.conf.phone_code_timeout
-    state = current_app.password_reset_state_db.get_state_by_email_code(email_code)
+
+    eppn = session.common.eppn
+    if eppn is None:
+        _address = session.reset_password.email.address or email_address
+        if _address is None:
+            current_app.logger.info("No identity hint available to resolve reset password state")
+            current_app.stats.count(name="email_address_required", value=1)
+            raise StateException(msg=ResetPwMsg.email_address_required)
+        users = current_app.central_userdb.get_users_by_mail(_address)
+        if len(users) != 1:
+            # Same message as a missing state, to avoid an account enumeration oracle
+            current_app.logger.info("No unique user found for the supplied email address")
+            current_app.stats.count(name="state_not_found", value=1)
+            raise StateException(msg=ResetPwMsg.state_not_found)
+        eppn = users[0].eppn
+
+    state = current_app.password_reset_state_db.get_state_by_eppn(eppn)
     if not state:
-        current_app.logger.info(f"State not found: {email_code}")
+        current_app.logger.info(f"State not found for eppn {eppn}")
         current_app.stats.count(name="state_not_found", value=1)
         raise StateException(msg=ResetPwMsg.state_not_found)
 
-    current_app.logger.debug(f"Found state using email_code {email_code}: {state}")
+    # Reserving the attempt *is* the lockout check, and it is done before the comparison, so a
+    # locked state rejects the correct code too. The cap and the increment have to be one atomic
+    # step: checked separately, many parallel guesses all read the same count, all pass the
+    # check, and all compare before any increment lands, so a correct guess among them wins even
+    # though the cap was already spent. A reservation only fails on a state that is locked, or
+    # that was removed while the request was in flight - neither has an attempt left to spend.
+    attempts = current_app.password_reset_state_db.reserve_bad_attempt(
+        state, max_attempts=current_app.conf.email_code_max_bad_attempts
+    )
+    if attempts is None:
+        current_app.logger.info(f"Too many bad email code attempts for eppn {eppn}")
+        current_app.stats.count(name="email_code_locked", value=1)
+        raise StateException(msg=ResetPwMsg.email_code_too_many_tries)
 
+    # Compare as bytes: compare_digest() raises TypeError on str arguments containing
+    # non-ASCII characters, and email_code is unvalidated user input.
+    if not compare_digest(state.email_code.code.encode(), email_code.encode()):
+        current_app.logger.info(f"Bad email code for eppn {eppn}")
+        # Already charged by the reservation above, so there is nothing left to count here.
+        current_app.stats.count(name="email_code_bad_attempt", value=1)
+        raise StateException(msg=ResetPwMsg.state_not_found)
+
+    # The caller has proven it holds the code, so its own reservation and any earlier typos must
+    # not linger and lock a legitimate user out of the rest of their own recovery. An attacker's
+    # guesses never get here, so this cannot be used to refresh a guessing budget.
+    current_app.password_reset_state_db.reset_bad_attempts(state)
+    if attempts > 1:
+        current_app.stats.count(name="email_code_attempts_cleared", value=1)
+
+    current_app.logger.debug(f"Found state for eppn {eppn}: {state}")
+
+    # Expiry checks run only after the caller has proven they hold the code. The phone
+    # branch below mutates the state, and no mutation may be reachable without that proof.
     if state.email_code.is_expired(mail_expiration_time):
-        current_app.logger.info(f"State expired: {email_code}")
+        current_app.logger.info(f"State expired for eppn {eppn}")
         current_app.stats.count(name="email_code_expired", value=1)
         raise StateException(msg=ResetPwMsg.expired_email_code)
 
     if isinstance(state, ResetPasswordEmailAndPhoneState) and state.phone_code.is_expired(sms_expiration_time):
-        current_app.logger.info(f"Phone code expired for state: {email_code}")
-        # Revert the state to EmailState to allow the user to choose extra security again
+        current_app.logger.info(f"Phone code expired for eppn {eppn}")
+        # Revert the state to EmailState to allow the user to choose extra security again.
+        # The attempt counter is carried over explicitly: this rebuild replaces the document,
+        # so anything left out of the constructor is silently reset to its default. The value
+        # is always zero here, because getting this far cleared it above - which is the point.
+        # Reading it off the state rather than hardcoding a zero keeps the rebuild honest if
+        # the clearing above ever moves.
         current_app.password_reset_state_db.remove_state(state)
-        state = ResetPasswordEmailState(eppn=state.eppn, email_address=state.email_address, email_code=state.email_code)
+        state = ResetPasswordEmailState(
+            eppn=state.eppn,
+            email_address=state.email_address,
+            email_code=state.email_code,
+            bad_attempts=state.bad_attempts,
+        )
         current_app.password_reset_state_db.save(state, is_in_database=False)
         current_app.stats.count(name="phone_code_expired", value=1)
         raise StateException(msg=ResetPwMsg.expired_phone_code)
@@ -181,12 +264,17 @@ def send_password_reset_mail(email_address: str) -> ResetPasswordEmailState:
     state = current_app.password_reset_state_db.get_state_by_eppn(eppn=user.eppn)
     _is_in_db = state is not None
     if state and not state.email_code.is_expired(timeout=current_app.conf.email_code_timeout):
+        if state.bad_attempts >= current_app.conf.email_code_max_bad_attempts:
+            # Do not delete the state and issue a fresh code: that would let an attacker
+            # use the counter as a lever to roll a new code every throttle_resend period.
+            current_app.logger.info(f"Refusing to resend, state is locked for eppn {user.eppn}")
+            current_app.stats.count(name="email_code_locked_resend", value=1)
+            raise StateException(msg=ResetPwMsg.email_code_too_many_tries)
         # Let the user only send one mail every throttle_resend time period
         if state.is_throttled(current_app.conf.throttle_resend):
             raise ThrottledException(state=state)
-        # If a state is found and not expired, just send another message with the same code
-        # Update created_ts to give the user another email_code_timeout seconds to complete the password reset
-        state.email_code.created_ts = utc_now()
+        # If a state is found and not expired, just send another message with the same
+        # code. The expiry stays fixed at first issue.
     else:
         # create a new state
         state = ResetPasswordEmailState(

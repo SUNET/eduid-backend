@@ -38,7 +38,12 @@ class ResetPasswordConfig(
     dashboard_url: str
 
     email_code_timeout: timedelta = Field(default=timedelta(hours=2))
-    email_code_length: int = 6
+    # Lower bound: make_short_code(digits=0) always returns "0" (zero entropy, guessable).
+    email_code_length: int = Field(default=6, gt=0)
+    # Incorrect email code submissions allowed per state before it is locked until expiry.
+    # Mirrors signup's email_verification_max_bad_attempts. Lower bound: at 0 every state is
+    # locked on first contact (0 >= 0), a silent total password reset outage.
+    email_code_max_bad_attempts: int = Field(default=3, gt=0)
     phone_code_timeout: timedelta = Field(default=timedelta(minutes=10))
     # Number of bytes of salt to generate (recommended min 16).
     password_salt_length: int = 32

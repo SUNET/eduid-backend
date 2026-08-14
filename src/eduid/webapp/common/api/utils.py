@@ -1,6 +1,6 @@
 import logging
-import os
 import re
+import secrets
 from datetime import datetime, timedelta
 from typing import TYPE_CHECKING, Any, cast
 from urllib.parse import urlparse
@@ -43,8 +43,7 @@ def get_unique_hash() -> str:
 
 def make_short_code(digits: int = 6) -> str:
     """Make a short decimal code, left-padded with zeros to the width specified by `digits'."""
-    code = int.from_bytes(os.urandom(4), byteorder="big") % 1000000
-    return str(code).zfill(digits)
+    return str(secrets.randbelow(10**digits)).zfill(digits)
 
 
 def update_modified_ts(user: User) -> None:
