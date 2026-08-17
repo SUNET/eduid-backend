@@ -240,7 +240,7 @@ class AuthnAPITestBase(EduidAPITestCase[AuthnApp]):
         )
 
 
-class AuthnAPITestCase(AuthnAPITestBase):
+class TestAuthnAPI(AuthnAPITestBase):
     """
     Tests to check the different modes of authentication.
     """
@@ -311,7 +311,7 @@ class AuthnTestApp(AuthnBaseApp):
         super().__init__(config, **kwargs)
 
 
-class UnAuthnAPITestCase(EduidAPITestCase[AuthnTestApp]):
+class TestUnAuthnAPI(EduidAPITestCase[AuthnTestApp]):
     """Tests for a fictitious app based on AuthnBaseApp"""
 
     app: AuthnTestApp
@@ -352,7 +352,7 @@ class UnAuthnAPITestCase(EduidAPITestCase[AuthnTestApp]):
                 c.get("/")
 
 
-class NoAuthnAPITestCase(EduidAPITestCase[AuthnTestApp]):
+class TestNoAuthnAPI(EduidAPITestCase[AuthnTestApp]):
     """Tests for a fictitious app based on AuthnBaseApp"""
 
     app: AuthnTestApp

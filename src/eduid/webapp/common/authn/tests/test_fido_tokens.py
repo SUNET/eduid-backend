@@ -95,7 +95,7 @@ SAMPLE_WEBAUTHN_APP_CONFIG = {
 }
 
 
-class FidoTokensTestCase(EduidAPITestCase[MockFidoApp]):
+class TestFidoTokens(EduidAPITestCase[MockFidoApp]):
     app: MockFidoApp
 
     @pytest.fixture(autouse=True)

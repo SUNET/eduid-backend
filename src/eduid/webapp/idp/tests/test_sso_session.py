@@ -10,7 +10,7 @@ from eduid.webapp.idp.sso_session import SSOSession
 from eduid.webapp.idp.tests.test_api import IdPAPITests
 
 
-class test_SSOSession(IdPAPITests):
+class TestSSOSession(IdPAPITests):
     @pytest.fixture(autouse=True)
     def setup(self, setup_api: None) -> None:
         self.data = {
