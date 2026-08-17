@@ -64,8 +64,8 @@ def decrypt_config(config_dict: Mapping[str, Any]) -> Mapping[str, Any]:
                 if not boxes.get(key_name):
                     try:
                         boxes[key_name] = init_secret_box(key_name=key_name)
-                    except OSError as e:
-                        logger.error(e)
+                    except OSError:
+                        logger.exception(f"Failed to initialize secret box for key_name {key_name}")
                         continue  # Try next key
                 try:
                     encrypted_value = bytes(encrypted_value, "ascii")
@@ -75,8 +75,8 @@ def decrypt_config(config_dict: Mapping[str, Any]) -> Mapping[str, Any]:
                     new_config_dict[key[:-10]] = decrypted_value
                     decrypted = True
                     break  # Decryption successful, do not try any more keys
-                except exceptions.CryptoError as e:
-                    logger.error(e)
+                except exceptions.CryptoError:
+                    logger.exception(f"Failed to decrypt {key} with key_name {key_name}")
                     continue  # Try next key
             if not decrypted:
                 logger.error(f"Failed to decrypt {key}:{value}")
