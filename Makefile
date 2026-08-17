@@ -6,8 +6,13 @@ PYTEST_WORKERS ?= 2  # override with e.g. make test PYTEST_WORKERS=4; use 1 for 
 # --dist=loadgroup: tests with xdist_group("neo4j") all go to one worker; ungrouped tests are load-balanced.
 # Do NOT use --dist=loadfile: xdist_group is only respected with loadgroup, not loadfile.
 
-test:
+test: check_test_collection
 	PYTHONPATH=$(SRCDIR) pytest -vvv -ra --log-cli-level DEBUG -n $(PYTEST_WORKERS) --dist=loadgroup
+
+# Our test base classes are plain classes, not unittest.TestCase, so a test class whose
+# name does not match python_classes is skipped silently and the suite still goes green.
+check_test_collection:
+	$(TOPDIR)/scripts/check_test_collection.py
 
 reformat:
 	# sort imports and remove unused imports
