@@ -23,6 +23,14 @@ eppn - Available if a user session is initiated
 
 DEFAULT_FORMAT = "{asctime} | {levelname:7} | {hostname} | {eppn:11} | {name:35} | {module:10} | {message}"
 
+# Used by init_logging() below to report on its own work. Safe to create at import
+# time even though this module configures logging: make_dict_config() sets
+# 'disable_existing_loggers': False, so dictConfig() will not disable this logger.
+# It has no explicit config, so its level is NOTSET (inherited from root) and its
+# records propagate to root's 'console' handler - same level gating, same handler,
+# same filters as a root logger call would get.
+logger = logging.getLogger(__name__)
+
 
 # Default to RFC3339/ISO 8601 with tz
 class EduidFormatter(logging.Formatter):
@@ -169,9 +177,24 @@ def init_logging(config: LoggingConfigMixin) -> None:
     logging_config = merge_config(logging_config, config.logging_config)
 
     logging.config.dictConfig(logging_config)
+    # These used to be logging.debug()/logging.info(), i.e. calls on the root logger,
+    # which ruff flags as LOG015. Two ways to resolve that were considered:
+    #
+    #   1. Use the module logger (what we do here). Behaviourally identical - see the
+    #      note on `logger` above - except that DEFAULT_FORMAT includes {name}, so
+    #      these two records are now attributed to 'eduid.common.logging' instead of
+    #      'root'. That matches every other log line in the system.
+    #   2. Keep the root logger calls and add a per-file ignore for LOG015, on the
+    #      grounds that this is the one module where 'root' is arguably the honest
+    #      attribution: the message is about root's configuration, not about this
+    #      module doing work.
+    #
+    # Option 1 was chosen so the rule stays enforced everywhere with no exceptions.
+    # If the change of logger name in the output turns out to matter to anything that
+    # parses logs, switching to option 2 is the intended fallback.
     if config.debug:
-        logging.debug(f"Logging config:\n{pformat(logging_config)}")
-    logging.info("Logging configured")
+        logger.debug(f"Logging config:\n{pformat(logging_config)}")
+    logger.info("Logging configured")
 
 
 @dataclass

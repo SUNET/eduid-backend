@@ -288,7 +288,7 @@ class IdP_SAMLRequest:
             logger.info(f"{log_prefix}: Service provider not known: {exc}")
             raise BadRequest("SAML_UNKNOWN_SP") from exc
         except SAMLError as e:
-            logger.exception(f"{log_prefix}: SAMLError: {e}")
+            logger.exception(f"{log_prefix}: SAMLError")
             raise BadRequest("Misconfigured SAML request") from e
 
         # Set digest_alg and sign_alg to a good default value

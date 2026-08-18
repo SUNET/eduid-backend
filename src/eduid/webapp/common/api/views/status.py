@@ -2,7 +2,7 @@ import logging
 from collections.abc import Mapping
 from dataclasses import asdict, dataclass
 from datetime import datetime, timedelta
-from typing import TYPE_CHECKING, Any, Literal, cast, overload
+from typing import TYPE_CHECKING, Any, cast, overload
 
 from flask import Blueprint, jsonify
 from flask import current_app as flask_current_app
@@ -39,7 +39,7 @@ def cached_json_response(key: str, data: dict[str, Any]) -> Response: ...
 
 
 @overload
-def cached_json_response(key: str, data: Literal[None]) -> Response | None: ...
+def cached_json_response(key: str, data: None) -> Response | None: ...
 
 
 def cached_json_response(key: str, data: dict[str, Any] | None = None) -> Response | None:

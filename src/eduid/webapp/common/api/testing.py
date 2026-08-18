@@ -163,7 +163,7 @@ class EduidAPITestCase[T: EduIDBaseApp](CommonTestCase):
             data = self.test_user.to_dict()
             assert isinstance(self.app, HasPrivateUserDB), f"{type(self.app)} does not have private_userdb"
             _private_userdb = self.app.private_userdb
-            logging.info(f"Copying test-user {self.test_user} to private_userdb {_private_userdb}")
+            logger.info(f"Copying test-user {self.test_user} to private_userdb {_private_userdb}")
             _private_userdb.save(_private_userdb.user_from_dict(data=data))
 
         yield

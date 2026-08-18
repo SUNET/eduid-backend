@@ -1,5 +1,3 @@
-#!/usr/bin/python
-
 import logging
 
 from eduid.common.misc.timeutil import utc_now

@@ -338,7 +338,7 @@ def sendsms(self: MessageSender, recipient: str, message: str, reference: str) -
     try:
         return cast(str, self.sendsms(recipient, message, reference))
     except Exception as e:
-        logger.error(f"sendsms task error: {e}", exc_info=True)
+        logger.exception("sendsms task error")
         raise self.retry(countdown=1, max_retries=3, exc=e) from e
 
 
@@ -355,7 +355,7 @@ def get_all_navet_data(self: MessageSender, identity_number: str) -> OrderedDict
     try:
         return self.get_all_navet_data(identity_number)
     except Exception as e:
-        logger.error(f"get_all_navet_data task error: {e}", exc_info=True)
+        logger.exception("get_all_navet_data task error")
         raise self.retry(countdown=1, max_retries=3, exc=e) from e
 
 
@@ -372,7 +372,7 @@ def get_postal_address(self: MessageSender, identity_number: str) -> OrderedDict
     try:
         return self.get_postal_address(identity_number)
     except Exception as e:
-        logger.error(f"get_postal_address task error: {e}", exc_info=True)
+        logger.exception("get_postal_address task error")
         raise self.retry(countdown=1, max_retries=3, exc=e) from e
 
 
@@ -421,7 +421,7 @@ def get_relations_to(self: MessageSender, identity_number: str, relative_nin: st
                     result.append(d["RelationType"])
         return result
     except Exception as e:
-        logger.error(f"get_relations_to task error: {e}", exc_info=True)
+        logger.exception("get_relations_to task error")
         raise self.retry(countdown=1, max_retries=3, exc=e) from e
 
 

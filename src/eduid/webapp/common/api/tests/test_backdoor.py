@@ -24,8 +24,8 @@ def get_code() -> str:
             result = f"dummy-code-for-{eppn}"
             current_app.logger.info(f"Endpoint get_code result: {result}")
             return result
-    except Exception as e:
-        current_app.logger.exception(f"get_code failed: {e}")
+    except Exception:
+        current_app.logger.exception("get_code failed")
 
     current_app.logger.info("Endpoint get_code aborting with a HTTP 400 error")
     abort(400)

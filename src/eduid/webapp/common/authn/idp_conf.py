@@ -1,6 +1,3 @@
-#!/usr/bin/env python
-
-
 """
 Example configuration for eduid-IdP.
 """
