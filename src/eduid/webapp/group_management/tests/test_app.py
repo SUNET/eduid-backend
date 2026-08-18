@@ -101,7 +101,7 @@ class GroupManagementTests(EduidAPITestCase[GroupManagementApp]):
         self, group_scim_id: str, inviter: User, invite_address: str, role: str, expect_mail: bool = True
     ) -> TestResponse:
         # Clear messagedb before test
-        self.app.messagedb._drop_whole_collection()
+        self.app.messagedb._coll.delete_many({})
         with self.session_cookie(self.browser, inviter.eppn) as client:
             with self.app.test_request_context():
                 with client.session_transaction() as sess:
@@ -150,7 +150,7 @@ class GroupManagementTests(EduidAPITestCase[GroupManagementApp]):
 
     def _delete_invite(self, group_scim_id: str, inviter: User, invite_address: str, role: str) -> TestResponse:
         # Clear messagedb before test
-        self.app.messagedb._drop_whole_collection()
+        self.app.messagedb._coll.delete_many({})
         with self.session_cookie(self.browser, inviter.eppn) as client:
             with self.app.test_request_context():
                 with client.session_transaction() as sess:

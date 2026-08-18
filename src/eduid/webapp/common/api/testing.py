@@ -175,7 +175,7 @@ class EduidAPITestCase[T: EduIDBaseApp](CommonTestCase):
         try:
             for this in vars(self.app).values():
                 if isinstance(this, BaseDB):
-                    this._drop_whole_collection()
+                    this._coll.delete_many({})
         except Exception as exc:
             sys.stderr.write(f"Exception in teardown: {exc!s}\n{exc!r}\n")
             traceback.print_exc()

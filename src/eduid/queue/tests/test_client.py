@@ -91,7 +91,7 @@ class TestMessageDB(EduidQueueTestCase):
 
         yield
 
-        self.messagedb._drop_whole_collection()
+        self.messagedb._coll.delete_many({})
 
     def _create_queue_item(self, payload: Payload) -> QueueItem:
         return QueueItem(
