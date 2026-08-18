@@ -59,7 +59,8 @@ class SignupWebauthnTests(EduidAPITestCase[SignupApp]):
     def setup(self, setup_api: None, mocker: MockerFixture) -> None:
         self.mocker = mocker
 
-    def load_app(self, config: Mapping[str, Any]) -> SignupApp:
+    @classmethod
+    def load_app(cls, config: Mapping[str, Any]) -> SignupApp:
         return signup_init_app(name="signup", test_config=config)
 
     @pytest.fixture(scope="class")

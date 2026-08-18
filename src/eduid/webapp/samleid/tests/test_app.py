@@ -288,7 +288,8 @@ class SamlEidTests(ProofingTests[SamlEidApp]):
 </saml2p:Response>
 """
 
-    def load_app(self, config: Mapping[str, Any]) -> SamlEidApp:
+    @classmethod
+    def load_app(cls, config: Mapping[str, Any]) -> SamlEidApp:
         """
         Called from the parent class, so we can provide the appropriate flask
         app for this test case.

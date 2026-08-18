@@ -108,8 +108,9 @@ class EduidAPITestCase[T: EduIDBaseApp](CommonTestCase):
     copy_user_to_private: ClassVar[bool] = False
 
     @pytest.fixture(scope="class")
+    @classmethod
     def _shared_app(
-        self,
+        cls,
         mongo_instance: MongoTemporaryInstance,
         redis_instance: RedisTemporaryInstance,
         update_config: dict[str, Any],
@@ -121,7 +122,7 @@ class EduidAPITestCase[T: EduIDBaseApp](CommonTestCase):
         settings = deepcopy(update_config)
         settings["redis_config"] = RedisConfig(host="localhost", port=redis_instance.port)
         settings["mongo_uri"] = mongo_instance.uri
-        app = self.load_app(settings)
+        app = cls.load_app(settings)
         if isinstance(app, EduIDBaseApp):
             app.test_client_class = CSRFTestClient
         return app
@@ -180,7 +181,8 @@ class EduidAPITestCase[T: EduIDBaseApp](CommonTestCase):
             sys.stderr.write(f"Exception in teardown: {exc!s}\n{exc!r}\n")
             traceback.print_exc()
 
-    def load_app(self, config: dict[str, Any]) -> T:
+    @classmethod
+    def load_app(cls, config: dict[str, Any]) -> T:
         """
         Method that must be implemented by any subclass, where the
         flask app must be imported and returned.

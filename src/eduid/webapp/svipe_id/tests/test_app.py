@@ -114,7 +114,8 @@ class SvipeIdTests(ProofingTests[SvipeIdApp]):
             "acr_values_supported": ["face_present", "document_present", "face_and_document_present"],
         }
 
-    def load_app(self, config: dict[str, Any]) -> SvipeIdApp:
+    @classmethod
+    def load_app(cls, config: dict[str, Any]) -> SvipeIdApp:
         """
         Called from the parent class, so we can provide the appropriate flask
         app for this test case.

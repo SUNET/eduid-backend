@@ -56,7 +56,8 @@ class LadokTests(EduidAPITestCase[LadokApp]):
         user.ladok = None
         self.app.central_userdb.save(user)
 
-    def load_app(self, config: Mapping[str, Any]) -> LadokApp:
+    @classmethod
+    def load_app(cls, config: Mapping[str, Any]) -> LadokApp:
         """
         Called from the parent class, so we can provide the appropriate flask
         app for this test case.
@@ -216,7 +217,8 @@ class LadokDevTests(EduidAPITestCase[LadokApp]):
         self.test_unverified_user_eppn = "hubba-baar"
         self.ladok_user_external_id = uuid4()
 
-    def load_app(self, config: Mapping[str, Any]) -> LadokApp:
+    @classmethod
+    def load_app(cls, config: Mapping[str, Any]) -> LadokApp:
         """
         Called from the parent class, so we can provide the appropriate flask
         app for this test case.

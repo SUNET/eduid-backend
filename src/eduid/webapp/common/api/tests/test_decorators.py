@@ -39,7 +39,8 @@ def flask_view(ret: FluxData) -> FluxData:
 class MarshalDecoratorTests(EduidAPITestCase[DecoratorTestApp]):
     app: DecoratorTestApp
 
-    def load_app(self, config: Mapping[str, Any]) -> DecoratorTestApp:
+    @classmethod
+    def load_app(cls, config: Mapping[str, Any]) -> DecoratorTestApp:
         """
         Called from the parent class, so we can provide the appropriate flask app for this test case.
         """

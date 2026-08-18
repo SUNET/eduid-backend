@@ -63,7 +63,8 @@ class BackdoorTests(EduidAPITestCase[BackdoorTestApp]):
         )
         return config
 
-    def load_app(self, config: Mapping[str, Any]) -> BackdoorTestApp:
+    @classmethod
+    def load_app(cls, config: Mapping[str, Any]) -> BackdoorTestApp:
         """
         Called from the parent class, so we can provide the appropriate flask app for this test case.
         """

@@ -52,7 +52,8 @@ class OrcidTests(EduidAPITestCase[OrcidApp]):
             created_by="orcid",
         )
 
-    def load_app(self, config: Mapping[str, Any]) -> OrcidApp:
+    @classmethod
+    def load_app(cls, config: Mapping[str, Any]) -> OrcidApp:
         """
         Called from the parent class, so we can provide the appropriate flask
         app for this test case.

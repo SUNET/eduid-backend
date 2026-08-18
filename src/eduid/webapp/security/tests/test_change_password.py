@@ -28,7 +28,8 @@ class ChangePasswordTests(EduidAPITestCase[SecurityApp]):
         self.test_user_email = "johnsmith@example.com"
         self.test_user_nin = "197801011235"
 
-    def load_app(self, config: Mapping[str, Any]) -> SecurityApp:
+    @classmethod
+    def load_app(cls, config: Mapping[str, Any]) -> SecurityApp:
         """
         Called from the parent class, so we can provide the appropriate flask
         app for this test case.

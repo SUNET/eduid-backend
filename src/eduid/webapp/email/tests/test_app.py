@@ -23,7 +23,8 @@ class EmailTests(EduidAPITestCase[EmailApp]):
     def setup(self, setup_api: None, mocker: MockerFixture) -> None:
         self.mocker = mocker
 
-    def load_app(self, config: Mapping[str, Any]) -> EmailApp:
+    @classmethod
+    def load_app(cls, config: Mapping[str, Any]) -> EmailApp:
         """
         Called from the parent class, so we can provide the appropriate flask
         app for this test case.

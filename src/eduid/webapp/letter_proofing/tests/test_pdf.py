@@ -134,7 +134,8 @@ class FormatAddressTest:
 
 
 class CreatePDFTest(EduidAPITestCase[LetterProofingApp]):
-    def load_app(self, config: dict[str, Any]) -> LetterProofingApp:
+    @classmethod
+    def load_app(cls, config: dict[str, Any]) -> LetterProofingApp:
         """
         Called from the parent class, so we can provide the appropriate flask
         app for this test case.

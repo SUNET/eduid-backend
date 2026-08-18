@@ -56,7 +56,8 @@ class LetterProofingTests(ProofingTests[LetterProofingApp]):
         self.test_user_wrong_nin = "190001021234"
         self.mocker = mocker
 
-    def load_app(self, config: dict[str, Any]) -> LetterProofingApp:
+    @classmethod
+    def load_app(cls, config: dict[str, Any]) -> LetterProofingApp:
         """
         Called from the parent class, so we can provide the appropriate flask
         app for this test case.

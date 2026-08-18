@@ -213,7 +213,8 @@ class EidasTests(ProofingTests[EidasApp]):
 </saml2p:Response>
 """
 
-    def load_app(self, config: Mapping[str, Any]) -> EidasApp:
+    @classmethod
+    def load_app(cls, config: Mapping[str, Any]) -> EidasApp:
         """
         Called from the parent class, so we can provide the appropriate flask
         app for this test case.

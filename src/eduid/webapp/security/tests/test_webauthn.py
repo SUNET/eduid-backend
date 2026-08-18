@@ -122,7 +122,8 @@ class SecurityWebauthnTests(EduidAPITestCase[SecurityApp]):
                 user.credentials.remove(credential.key)
         self.app.central_userdb.save(user)
 
-    def load_app(self, config: Mapping[str, Any]) -> SecurityApp:
+    @classmethod
+    def load_app(cls, config: Mapping[str, Any]) -> SecurityApp:
         """
         Called from the parent class, so we can provide the appropriate flask
         app for this test case.

@@ -190,7 +190,8 @@ class ExternalMfaSignupTestsBase(BaseSignupTests):
 class ExternalMfaSignupTests(ExternalMfaSignupTestsBase):
     """Tests for the /external-mfa-register endpoint."""
 
-    def load_app(self, config: Mapping[str, Any]) -> SignupApp:
+    @classmethod
+    def load_app(cls, config: Mapping[str, Any]) -> SignupApp:
         """
         Called from the parent class, so we can provide the appropriate flask
         app for this test case.
@@ -1151,7 +1152,8 @@ class ExternalMfaSignupTests(ExternalMfaSignupTestsBase):
 class ExternalMfaWebauthnVerificationTests(ExternalMfaSignupTestsBase):
     """Tests for webauthn credential verification via external MFA during signup."""
 
-    def load_app(self, config: Mapping[str, Any]) -> SignupApp:
+    @classmethod
+    def load_app(cls, config: Mapping[str, Any]) -> SignupApp:
         """
         Called from the parent class, so we can provide the appropriate flask
         app for this test case.

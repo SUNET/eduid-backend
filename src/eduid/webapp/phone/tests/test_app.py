@@ -22,7 +22,8 @@ class PhoneTests(EduidAPITestCase[PhoneApp]):
         self.mocker = mocker
         self.test_number = "+34609609609"
 
-    def load_app(self, config: Mapping[str, Any]) -> PhoneApp:
+    @classmethod
+    def load_app(cls, config: Mapping[str, Any]) -> PhoneApp:
         """
         Called from the parent class, so we can provide the appropriate flask
         app for this test case.

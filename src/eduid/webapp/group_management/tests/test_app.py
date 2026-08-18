@@ -56,7 +56,8 @@ class GroupManagementTests(EduidAPITestCase[GroupManagementApp]):
         self.test_user2.mail_addresses.remove(ElementKey("johnsmith@example.com"))
         self.app.central_userdb.save(self.test_user2)
 
-    def load_app(self, config: Mapping[str, Any]) -> GroupManagementApp:
+    @classmethod
+    def load_app(cls, config: Mapping[str, Any]) -> GroupManagementApp:
         """
         Called from the parent class, so we can provide the appropriate flask
         app for this test case.

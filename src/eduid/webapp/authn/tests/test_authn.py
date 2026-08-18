@@ -87,7 +87,8 @@ class AuthnAPITestBase(EduidAPITestCase[AuthnApp]):
         )
         return config
 
-    def load_app(self, config: Mapping[str, Any]) -> AuthnApp:
+    @classmethod
+    def load_app(cls, config: Mapping[str, Any]) -> AuthnApp:
         """
         Called from the parent class, so we can provide the appropriate flask
         app for this test case.
@@ -332,7 +333,8 @@ class TestUnAuthnAPI(EduidAPITestCase[AuthnTestApp]):
         )
         return config
 
-    def load_app(self, config: Mapping[str, Any]) -> AuthnTestApp:
+    @classmethod
+    def load_app(cls, config: Mapping[str, Any]) -> AuthnTestApp:
         """
         Called from the parent class, so we can provide the appropriate flask
         app for this test case.
@@ -375,7 +377,8 @@ class TestNoAuthnAPI(EduidAPITestCase[AuthnTestApp]):
         )
         return config
 
-    def load_app(self, config: Mapping[str, Any]) -> AuthnTestApp:
+    @classmethod
+    def load_app(cls, config: Mapping[str, Any]) -> AuthnTestApp:
         """
         Called from the parent class, so we can provide the appropriate flask
         app for this test case.

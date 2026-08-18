@@ -826,7 +826,8 @@ class BaseSignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
 class SignupTests(BaseSignupTests):
     copy_user_to_private = True
 
-    def load_app(self, config: Mapping[str, Any]) -> SignupApp:
+    @classmethod
+    def load_app(cls, config: Mapping[str, Any]) -> SignupApp:
         """
         Called from the parent class, so we can provide the appropriate flask
         app for this test case.

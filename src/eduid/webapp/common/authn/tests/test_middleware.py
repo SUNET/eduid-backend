@@ -19,7 +19,8 @@ class AuthnTestApp(AuthnBaseApp):
 
 
 class AuthnTests(EduidAPITestCase[AuthnTestApp]):
-    def load_app(self, config: dict[str, Any]) -> AuthnTestApp:
+    @classmethod
+    def load_app(cls, config: dict[str, Any]) -> AuthnTestApp:
         """
         Called from the parent class, so we can provide the appropriate flask
         app for this test case.
@@ -51,7 +52,8 @@ class AuthnTests(EduidAPITestCase[AuthnTestApp]):
 
 
 class UnAuthnTests(EduidAPITestCase[AuthnTestApp]):
-    def load_app(self, config: dict[str, Any]) -> AuthnTestApp:
+    @classmethod
+    def load_app(cls, config: dict[str, Any]) -> AuthnTestApp:
         """
         Called from the parent class, so we can provide the appropriate flask
         app for this test case.

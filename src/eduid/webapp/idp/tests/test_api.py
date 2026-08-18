@@ -121,7 +121,8 @@ class IdPAPITests(EduidAPITestCase[IdPApp]):
         self.saml2_client = Saml2Client(config=self.sp_config, identity_cache=self.pysaml2_identity)
         self.default_user = TestUser(eppn=self.test_user.eppn, password="bar")
 
-    def load_app(self, config: Mapping[str, Any] | None) -> IdPApp:
+    @classmethod
+    def load_app(cls, config: Mapping[str, Any] | None) -> IdPApp:
         """
         Called from the parent class, so we can provide the appropriate flask
         app for this test case.

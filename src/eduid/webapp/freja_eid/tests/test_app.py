@@ -123,7 +123,8 @@ class FrejaEIDTests(ProofingTests[FrejaEIDApp]):
             "token_endpoint": "https://example.com/op/oidc/token",
         }
 
-    def load_app(self, config: dict[str, Any]) -> FrejaEIDApp:
+    @classmethod
+    def load_app(cls, config: dict[str, Any]) -> FrejaEIDApp:
         """
         Called from the parent class, so we can provide the appropriate flask
         app for this test case.

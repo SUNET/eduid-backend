@@ -103,7 +103,8 @@ class TestFidoTokens(EduidAPITestCase[MockFidoApp]):
         self.webauthn_credential = webauthn_credential
         self.u2f_credential = u2f_credential
 
-    def load_app(self, config: Mapping[str, Any]) -> MockFidoApp:
+    @classmethod
+    def load_app(cls, config: Mapping[str, Any]) -> MockFidoApp:
         """
         Called from the parent class, so we can provide the appropriate flask
         app for this test case.

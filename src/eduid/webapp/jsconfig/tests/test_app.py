@@ -2,7 +2,7 @@ import json
 import os
 from collections.abc import Mapping
 from pathlib import PurePath
-from typing import Any, cast
+from typing import Any
 
 import pytest
 
@@ -18,14 +18,14 @@ class JSConfigTests(EduidAPITestCase[JSConfigApp]):
     def setup(self, setup_api: None) -> None:
         self.data_dir = str(PurePath(__file__).with_name("data"))
 
-    def load_app(self, config: Mapping[str, Any]) -> JSConfigApp:
+    @classmethod
+    def load_app(cls, config: Mapping[str, Any]) -> JSConfigApp:
         """
         Called from the parent class, so we can provide the appropriate flask
         app for this test case.
         """
         app = jsconfig_init_app(test_config=config)
         app.test_client_class = CSRFTestClient
-        self.browser = cast(CSRFTestClient, app.test_client(allow_subdomain_redirects=True))
         app.url_map.host_matching = False
         return app
 

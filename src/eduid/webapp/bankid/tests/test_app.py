@@ -121,7 +121,8 @@ class BankIDTests(ProofingTests[BankIDApp]):
   </saml2p:Status>
 </saml2p:Response>"""
 
-    def load_app(self, config: Mapping[str, Any]) -> BankIDApp:
+    @classmethod
+    def load_app(cls, config: Mapping[str, Any]) -> BankIDApp:
         """
         Called from the parent class, so we can provide the appropriate flask
         app for this test case.
