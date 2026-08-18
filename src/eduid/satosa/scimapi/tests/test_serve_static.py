@@ -42,6 +42,7 @@ class TestServeStatic:
         service = make_service(static_dir)
         response = service._handle(make_context("static/../secret.txt"))
         assert response.status == "404 Not Found"
+        assert response.message is not None
         assert b"top secret" not in response.message
 
     def test_rejects_deeply_nested_path_traversal(self, tmp_path: Path) -> None:
@@ -54,4 +55,5 @@ class TestServeStatic:
         # static_dir is tmp_path/jail/static; "../../" walks static -> jail -> tmp_path
         response = service._handle(make_context("static/../../outside.txt"))
         assert response.status == "404 Not Found"
+        assert response.message is not None
         assert b"outside the jail" not in response.message

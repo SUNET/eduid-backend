@@ -93,8 +93,7 @@ class MockedScimAPIMixin(MockedSyncAuthAPIMixin):
     def start_mocked_scim_api(self) -> None:
         self.start_mock_auth_api()
 
-        # set using="httpx" until https://github.com/lundberg/respx/issues/277 is fixed
-        self.mocked_scim_api = respx.mock(base_url="http://localhost/scim", assert_all_called=False, using="httpx")
+        self.mocked_scim_api = respx.mock(base_url="http://localhost/scim", assert_all_called=False)
         get_invite_route = self.mocked_scim_api.get(
             path__regex=r"^/Invites/[a-f0-9]{8}-?[a-f0-9]{4}-?4[a-f0-9]{3}-?[89ab][a-f0-9]{3}-?[a-f0-9]{12}\Z",
             name="get_invite_request",
