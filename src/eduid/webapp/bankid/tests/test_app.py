@@ -129,8 +129,9 @@ class BankIDTests(ProofingTests[BankIDApp]):
         return init_bankid_app("testing", config)
 
     @pytest.fixture(scope="class")
-    def update_config(self) -> dict[str, Any]:
-        config = self._get_base_config()
+    @classmethod
+    def update_config(cls) -> dict[str, Any]:
+        config = cls._get_base_config()
         saml_config = os.path.join(HERE, "saml2_settings.py")
         config.update(
             {
@@ -138,9 +139,9 @@ class BankIDTests(ProofingTests[BankIDApp]):
                 "safe_relay_domain": "localhost",
                 "magic_cookie": "",
                 "magic_cookie_name": "magic-cookie",
-                "magic_cookie_idp": self.test_idp,
+                "magic_cookie_idp": cls.test_idp,
                 "environment": "dev",
-                "bankid_idp": self.test_idp,
+                "bankid_idp": cls.test_idp,
                 "frontend_action_authn_parameters": {
                     FrontendAction.LOGIN_MFA_AUTHN.value: {
                         "force_authn": True,

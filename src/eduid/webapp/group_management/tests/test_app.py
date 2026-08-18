@@ -64,12 +64,13 @@ class GroupManagementTests(EduidAPITestCase[GroupManagementApp]):
         return init_group_management_app(test_config=config)
 
     @pytest.fixture(scope="class")
-    def update_config(self, neo4j_instance: Neo4jTemporaryInstance) -> dict[str, Any]:
+    @classmethod
+    def update_config(cls, neo4j_instance: Neo4jTemporaryInstance) -> dict[str, Any]:
         neo4j_uri = (
             f"bolt://{neo4j_instance.DEFAULT_USERNAME}:{neo4j_instance.DEFAULT_PASSWORD}"
             f"@localhost:{neo4j_instance.bolt_port}"
         )
-        config = self._get_base_config()
+        config = cls._get_base_config()
         config.update(
             {
                 "eduid_site_url": "https://test.eduid.se/",

@@ -131,8 +131,9 @@ class FrejaEIDTests(ProofingTests[FrejaEIDApp]):
         return freja_eid_init_app("testing", config)
 
     @pytest.fixture(scope="class")
-    def update_config(self) -> dict[str, Any]:
-        config = self._get_base_config()
+    @classmethod
+    def update_config(cls) -> dict[str, Any]:
+        config = cls._get_base_config()
         config.update(
             {
                 "freja_eid_client": {

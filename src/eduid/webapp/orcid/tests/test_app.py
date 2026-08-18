@@ -60,7 +60,8 @@ class OrcidTests(EduidAPITestCase[OrcidApp]):
         return init_orcid_app("testing", config)
 
     @pytest.fixture(scope="class")
-    def update_config(self, class_mocker: MockerFixture) -> dict[str, Any]:
+    @classmethod
+    def update_config(cls, class_mocker: MockerFixture) -> dict[str, Any]:
         oidc_provider_config = {
             "token_endpoint_auth_signing_alg_values_supported": ["RS256"],
             "id_token_signing_alg_values_supported": ["RS256"],
@@ -80,7 +81,7 @@ class OrcidTests(EduidAPITestCase[OrcidApp]):
             "oic.oic.Client.http_request",
             return_value=MockResponse(200, json.dumps(oidc_provider_config)),
         )
-        config = self._get_base_config()
+        config = cls._get_base_config()
         config.update(
             {
                 "provider_configuration_info": {"issuer": "https://example.com/op/"},

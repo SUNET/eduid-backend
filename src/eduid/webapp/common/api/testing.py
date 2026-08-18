@@ -191,7 +191,8 @@ class EduidAPITestCase[T: EduIDBaseApp](CommonTestCase):
             "Classes extending EduidAPITestCase must provide a method where they import the flask app and return it."
         )
 
-    def _get_base_config(self) -> dict[str, Any]:
+    @classmethod
+    def _get_base_config(cls) -> dict[str, Any]:
         """
         Non-fixture helper that returns the base test configuration dict.
         Override this in subclasses (instead of overriding the fixture) when
@@ -203,13 +204,14 @@ class EduidAPITestCase[T: EduIDBaseApp](CommonTestCase):
         return config
 
     @pytest.fixture(scope="class")
-    def update_config(self) -> dict[str, Any]:
+    @classmethod
+    def update_config(cls) -> dict[str, Any]:
         """
         Fixture that can be overridden by any subclass,
         where it can return configuration specific for that API
         before loading the app.
         """
-        return self._get_base_config()
+        return cls._get_base_config()
 
     @contextmanager
     def session_cookie(

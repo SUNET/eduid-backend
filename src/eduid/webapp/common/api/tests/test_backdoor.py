@@ -49,8 +49,9 @@ class BackdoorTests(EduidAPITestCase[BackdoorTestApp]):
         self.test_app_domain = "test.localhost"
 
     @pytest.fixture(scope="class")
-    def update_config(self) -> dict[str, Any]:
-        config = self._get_base_config()
+    @classmethod
+    def update_config(cls) -> dict[str, Any]:
+        config = cls._get_base_config()
         config.update(
             {
                 "available_languages": {"en": "English", "sv": "Svenska"},

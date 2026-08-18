@@ -128,7 +128,8 @@ class IdPAPITests(EduidAPITestCase[IdPApp]):
         """
         return init_idp_app(test_config=config)
 
-    def _get_base_config(self) -> dict[str, Any]:
+    @classmethod
+    def _get_base_config(cls) -> dict[str, Any]:
         config = super()._get_base_config()
         fn = PurePath(__file__).with_name("data") / "test_SSO_conf.py"
         config.update(
@@ -164,8 +165,9 @@ class IdPAPITests(EduidAPITestCase[IdPApp]):
         return config
 
     @pytest.fixture(scope="class")
-    def update_config(self) -> dict[str, Any]:
-        return self._get_base_config()
+    @classmethod
+    def update_config(cls) -> dict[str, Any]:
+        return cls._get_base_config()
 
     @staticmethod
     def get_cookie_val(cookie_name: str, cookies: str | None) -> str | None:

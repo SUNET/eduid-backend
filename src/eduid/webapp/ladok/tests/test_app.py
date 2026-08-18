@@ -63,7 +63,8 @@ class LadokTests(EduidAPITestCase[LadokApp]):
         """
         return init_ladok_app("testing", config)
 
-    def _get_base_config(self) -> dict[str, Any]:
+    @classmethod
+    def _get_base_config(cls) -> dict[str, Any]:
         config = super()._get_base_config()
         config["ladok_client"] = {
             "url": "http://localhost",
@@ -72,9 +73,10 @@ class LadokTests(EduidAPITestCase[LadokApp]):
         return config
 
     @pytest.fixture(scope="class")
-    def update_config(self, class_mocker: MockerFixture) -> dict[str, Any]:
+    @classmethod
+    def update_config(cls, class_mocker: MockerFixture) -> dict[str, Any]:
         class_mocker.patch("requests.get", return_value=MockResponse(200, _get_university_data()))
-        return self._get_base_config()
+        return cls._get_base_config()
 
     def _link_user(self, eppn: str, ladok_name: str) -> TestResponse:
         with self.session_cookie(self.browser, eppn) as browser:
@@ -222,8 +224,9 @@ class LadokDevTests(EduidAPITestCase[LadokApp]):
         return init_ladok_app("testing", config)
 
     @pytest.fixture(scope="class")
-    def update_config(self) -> dict[str, Any]:
-        config = self._get_base_config()
+    @classmethod
+    def update_config(cls) -> dict[str, Any]:
+        config = cls._get_base_config()
         config["environment"] = EduidEnvironment.dev.value
         config["ladok_client"] = {
             "url": "http://localhost",

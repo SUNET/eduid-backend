@@ -1043,8 +1043,9 @@ class TestIdPNewSignup(IdPAPITests):
     """Tests for the /signup_auth endpoint and its integration with /next."""
 
     @pytest.fixture(scope="class")
-    def update_config(self) -> dict[str, Any]:
-        config = self._get_base_config()
+    @classmethod
+    def update_config(cls) -> dict[str, Any]:
+        config = cls._get_base_config()
         config["allow_new_signup_logins"] = True
         return config
 
