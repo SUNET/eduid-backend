@@ -18,7 +18,8 @@ class LoggingTestApp(EduIDBaseApp):
 class LoggingTest(EduidAPITestCase[LoggingTestApp]):
     app: LoggingTestApp
 
-    def load_app(self, config: Mapping[str, Any]) -> LoggingTestApp:
+    @classmethod
+    def load_app(cls, config: Mapping[str, Any]) -> LoggingTestApp:
         """
         Called from the parent class, so we can provide the appropriate flask
         app for this test case.

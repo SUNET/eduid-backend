@@ -87,7 +87,8 @@ class EduidSessionTests(EduidAPITestCase[SessionTestApp]):
     def setup(self, setup_api: None) -> None:
         self.test_user_eppn = "hubba-bubba"
 
-    def load_app(self, config: Mapping[str, Any]) -> SessionTestApp:
+    @classmethod
+    def load_app(cls, config: Mapping[str, Any]) -> SessionTestApp:
         """
         Called from the parent class, so we can provide the appropriate flask
         app for this test case.
@@ -95,8 +96,9 @@ class EduidSessionTests(EduidAPITestCase[SessionTestApp]):
         return session_init_app("testing", config)
 
     @pytest.fixture(scope="class")
-    def update_config(self) -> dict[str, Any]:
-        config = self._get_base_config()
+    @classmethod
+    def update_config(cls) -> dict[str, Any]:
+        config = cls._get_base_config()
         config.update(
             {
                 "debug": True,

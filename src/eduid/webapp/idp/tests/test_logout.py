@@ -27,7 +27,7 @@ class LogoutState(Enum):
     S1_LOGGED_OUT = "logged_out"
 
 
-class IdPTestLogoutAPI(IdPAPITests):
+class TestIdPLogoutAPI(IdPAPITests):
     def test_basic_logout(self, mocker: MockerFixture) -> None:
         """This logs in, then out - but it calls the SOAP binding with the SSO cookie present"""
 

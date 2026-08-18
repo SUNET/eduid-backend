@@ -123,7 +123,8 @@ class FrejaEIDTests(ProofingTests[FrejaEIDApp]):
             "token_endpoint": "https://example.com/op/oidc/token",
         }
 
-    def load_app(self, config: dict[str, Any]) -> FrejaEIDApp:
+    @classmethod
+    def load_app(cls, config: dict[str, Any]) -> FrejaEIDApp:
         """
         Called from the parent class, so we can provide the appropriate flask
         app for this test case.
@@ -131,8 +132,9 @@ class FrejaEIDTests(ProofingTests[FrejaEIDApp]):
         return freja_eid_init_app("testing", config)
 
     @pytest.fixture(scope="class")
-    def update_config(self) -> dict[str, Any]:
-        config = self._get_base_config()
+    @classmethod
+    def update_config(cls) -> dict[str, Any]:
+        config = cls._get_base_config()
         config.update(
             {
                 "freja_eid_client": {

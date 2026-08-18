@@ -95,7 +95,7 @@ SAMPLE_WEBAUTHN_APP_CONFIG = {
 }
 
 
-class FidoTokensTestCase(EduidAPITestCase[MockFidoApp]):
+class TestFidoTokens(EduidAPITestCase[MockFidoApp]):
     app: MockFidoApp
 
     @pytest.fixture(autouse=True)
@@ -103,7 +103,8 @@ class FidoTokensTestCase(EduidAPITestCase[MockFidoApp]):
         self.webauthn_credential = webauthn_credential
         self.u2f_credential = u2f_credential
 
-    def load_app(self, config: Mapping[str, Any]) -> MockFidoApp:
+    @classmethod
+    def load_app(cls, config: Mapping[str, Any]) -> MockFidoApp:
         """
         Called from the parent class, so we can provide the appropriate flask
         app for this test case.
@@ -114,8 +115,9 @@ class FidoTokensTestCase(EduidAPITestCase[MockFidoApp]):
         return app
 
     @pytest.fixture(scope="class")
-    def update_config(self) -> dict[str, Any]:
-        config = self._get_base_config()
+    @classmethod
+    def update_config(cls) -> dict[str, Any]:
+        config = cls._get_base_config()
         config.update(
             {
                 "app_name": "testing",

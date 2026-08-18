@@ -37,7 +37,7 @@ logger = logging.getLogger(__name__)
 HERE = os.path.abspath(os.path.dirname(__file__))
 
 
-class IdPTestLoginAPI(IdPAPITests):
+class TestIdPLoginAPI(IdPAPITests):
     def test_login_start(self) -> None:
         result = self._try_login(test_user=TestUser(eppn=None, password=None))
 
@@ -654,7 +654,7 @@ class IdPTestLoginAPI(IdPAPITests):
         )
 
 
-class IdPTestLoginAPIManagedAccounts(IdPAPITests):
+class TestIdPLoginAPIManagedAccounts(IdPAPITests):
     @pytest.fixture(autouse=True)
     def setup_managed_accounts(self, setup_api: None) -> None:
         self.test_eppn = "ma-12345678"
@@ -1039,12 +1039,13 @@ class IdPTestLoginAPIManagedAccounts(IdPAPITests):
         )
 
 
-class IdPTestNewSignup(IdPAPITests):
+class TestIdPNewSignup(IdPAPITests):
     """Tests for the /signup_auth endpoint and its integration with /next."""
 
     @pytest.fixture(scope="class")
-    def update_config(self) -> dict[str, Any]:
-        config = self._get_base_config()
+    @classmethod
+    def update_config(cls) -> dict[str, Any]:
+        config = cls._get_base_config()
         config["allow_new_signup_logins"] = True
         return config
 

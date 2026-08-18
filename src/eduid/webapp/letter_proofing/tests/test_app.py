@@ -56,7 +56,8 @@ class LetterProofingTests(ProofingTests[LetterProofingApp]):
         self.test_user_wrong_nin = "190001021234"
         self.mocker = mocker
 
-    def load_app(self, config: dict[str, Any]) -> LetterProofingApp:
+    @classmethod
+    def load_app(cls, config: dict[str, Any]) -> LetterProofingApp:
         """
         Called from the parent class, so we can provide the appropriate flask
         app for this test case.
@@ -64,8 +65,9 @@ class LetterProofingTests(ProofingTests[LetterProofingApp]):
         return init_letter_proofing_app("testing", config)
 
     @pytest.fixture(scope="class")
-    def update_config(self) -> dict[str, Any]:
-        config = self._get_base_config()
+    @classmethod
+    def update_config(cls) -> dict[str, Any]:
+        config = cls._get_base_config()
         config.update(
             {
                 # 'ekopost_debug_pdf': devnull, # set to file path if debugging # noqa: ERA001

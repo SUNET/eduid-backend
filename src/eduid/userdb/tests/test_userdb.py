@@ -75,7 +75,7 @@ class TestUserDB(MongoTestCase):
             self.amdb.get_user_by_eppn("abc123")
 
 
-class UserMissingMeta(MongoTestCase):
+class TestUserMissingMeta(MongoTestCase):
     user: User
 
     @pytest.fixture(autouse=True)
@@ -110,7 +110,7 @@ class UserMissingMeta(MongoTestCase):
         self.amdb.save(user=db_user)
 
 
-class UpdateUser(MongoTestCase):
+class TestUpdateUser(MongoTestCase):
     @pytest.fixture(autouse=True)
     def setup(self, setup_mongo: None) -> None:
         _users = UserFixtures()

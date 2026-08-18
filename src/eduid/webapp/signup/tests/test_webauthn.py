@@ -59,12 +59,14 @@ class SignupWebauthnTests(EduidAPITestCase[SignupApp]):
     def setup(self, setup_api: None, mocker: MockerFixture) -> None:
         self.mocker = mocker
 
-    def load_app(self, config: Mapping[str, Any]) -> SignupApp:
+    @classmethod
+    def load_app(cls, config: Mapping[str, Any]) -> SignupApp:
         return signup_init_app(name="signup", test_config=config)
 
     @pytest.fixture(scope="class")
-    def update_config(self) -> dict[str, Any]:
-        config = self._get_base_config()
+    @classmethod
+    def update_config(cls) -> dict[str, Any]:
+        config = cls._get_base_config()
         config.update(
             {
                 "available_languages": {"en": "English", "sv": "Svenska"},

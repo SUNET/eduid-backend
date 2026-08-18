@@ -16,7 +16,7 @@ from eduid.webapp.common.authn.testing import MockVCCSClient
 from eduid.webapp.common.authn.vccs import CheckPasswordResult
 
 
-class VCCSTestCase(MongoTestCase):
+class TestVCCS(MongoTestCase):
     user: User
 
     @pytest.fixture(autouse=True)

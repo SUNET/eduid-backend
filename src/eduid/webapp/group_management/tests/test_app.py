@@ -56,7 +56,8 @@ class GroupManagementTests(EduidAPITestCase[GroupManagementApp]):
         self.test_user2.mail_addresses.remove(ElementKey("johnsmith@example.com"))
         self.app.central_userdb.save(self.test_user2)
 
-    def load_app(self, config: Mapping[str, Any]) -> GroupManagementApp:
+    @classmethod
+    def load_app(cls, config: Mapping[str, Any]) -> GroupManagementApp:
         """
         Called from the parent class, so we can provide the appropriate flask
         app for this test case.
@@ -64,12 +65,13 @@ class GroupManagementTests(EduidAPITestCase[GroupManagementApp]):
         return init_group_management_app(test_config=config)
 
     @pytest.fixture(scope="class")
-    def update_config(self, neo4j_instance: Neo4jTemporaryInstance) -> dict[str, Any]:
+    @classmethod
+    def update_config(cls, neo4j_instance: Neo4jTemporaryInstance) -> dict[str, Any]:
         neo4j_uri = (
             f"bolt://{neo4j_instance.DEFAULT_USERNAME}:{neo4j_instance.DEFAULT_PASSWORD}"
             f"@localhost:{neo4j_instance.bolt_port}"
         )
-        config = self._get_base_config()
+        config = cls._get_base_config()
         config.update(
             {
                 "eduid_site_url": "https://test.eduid.se/",

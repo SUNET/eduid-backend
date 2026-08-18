@@ -50,8 +50,9 @@ class AuthnAPITestBase(EduidAPITestCase[AuthnApp]):
         self.idp_url = "https://idp.example.com/simplesaml/saml2/idp/SSOService.php"
 
     @pytest.fixture(scope="class")
-    def update_config(self) -> dict[str, Any]:
-        config = self._get_base_config()
+    @classmethod
+    def update_config(cls) -> dict[str, Any]:
+        config = cls._get_base_config()
         saml_config = os.path.join(HERE, "saml2_settings.py")
         config.update(
             {
@@ -86,7 +87,8 @@ class AuthnAPITestBase(EduidAPITestCase[AuthnApp]):
         )
         return config
 
-    def load_app(self, config: Mapping[str, Any]) -> AuthnApp:
+    @classmethod
+    def load_app(cls, config: Mapping[str, Any]) -> AuthnApp:
         """
         Called from the parent class, so we can provide the appropriate flask
         app for this test case.
@@ -240,7 +242,7 @@ class AuthnAPITestBase(EduidAPITestCase[AuthnApp]):
         )
 
 
-class AuthnAPITestCase(AuthnAPITestBase):
+class TestAuthnAPI(AuthnAPITestBase):
     """
     Tests to check the different modes of authentication.
     """
@@ -311,14 +313,15 @@ class AuthnTestApp(AuthnBaseApp):
         super().__init__(config, **kwargs)
 
 
-class UnAuthnAPITestCase(EduidAPITestCase[AuthnTestApp]):
+class TestUnAuthnAPI(EduidAPITestCase[AuthnTestApp]):
     """Tests for a fictitious app based on AuthnBaseApp"""
 
     app: AuthnTestApp
 
     @pytest.fixture(scope="class")
-    def update_config(self) -> dict[str, Any]:
-        config = self._get_base_config()
+    @classmethod
+    def update_config(cls) -> dict[str, Any]:
+        config = cls._get_base_config()
         saml_config = os.path.join(HERE, "saml2_settings.py")
         config.update(
             {
@@ -330,7 +333,8 @@ class UnAuthnAPITestCase(EduidAPITestCase[AuthnTestApp]):
         )
         return config
 
-    def load_app(self, config: Mapping[str, Any]) -> AuthnTestApp:
+    @classmethod
+    def load_app(cls, config: Mapping[str, Any]) -> AuthnTestApp:
         """
         Called from the parent class, so we can provide the appropriate flask
         app for this test case.
@@ -352,14 +356,15 @@ class UnAuthnAPITestCase(EduidAPITestCase[AuthnTestApp]):
                 c.get("/")
 
 
-class NoAuthnAPITestCase(EduidAPITestCase[AuthnTestApp]):
+class TestNoAuthnAPI(EduidAPITestCase[AuthnTestApp]):
     """Tests for a fictitious app based on AuthnBaseApp"""
 
     app: AuthnTestApp
 
     @pytest.fixture(scope="class")
-    def update_config(self) -> dict[str, Any]:
-        config = self._get_base_config()
+    @classmethod
+    def update_config(cls) -> dict[str, Any]:
+        config = cls._get_base_config()
         saml_config = os.path.join(HERE, "saml2_settings.py")
         config.update(
             {
@@ -372,7 +377,8 @@ class NoAuthnAPITestCase(EduidAPITestCase[AuthnTestApp]):
         )
         return config
 
-    def load_app(self, config: Mapping[str, Any]) -> AuthnTestApp:
+    @classmethod
+    def load_app(cls, config: Mapping[str, Any]) -> AuthnTestApp:
         """
         Called from the parent class, so we can provide the appropriate flask
         app for this test case.

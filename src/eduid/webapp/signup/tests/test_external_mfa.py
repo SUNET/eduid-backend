@@ -190,7 +190,8 @@ class ExternalMfaSignupTestsBase(BaseSignupTests):
 class ExternalMfaSignupTests(ExternalMfaSignupTestsBase):
     """Tests for the /external-mfa-register endpoint."""
 
-    def load_app(self, config: Mapping[str, Any]) -> SignupApp:
+    @classmethod
+    def load_app(cls, config: Mapping[str, Any]) -> SignupApp:
         """
         Called from the parent class, so we can provide the appropriate flask
         app for this test case.
@@ -198,8 +199,9 @@ class ExternalMfaSignupTests(ExternalMfaSignupTestsBase):
         return signup_init_app(name="signup", test_config=config)
 
     @pytest.fixture(scope="class")
-    def update_config(self) -> dict[str, Any]:
-        config = self._get_base_config()
+    @classmethod
+    def update_config(cls) -> dict[str, Any]:
+        config = cls._get_base_config()
         config.update(
             {
                 "available_languages": {"en": "English", "sv": "Svenska"},
@@ -1150,7 +1152,8 @@ class ExternalMfaSignupTests(ExternalMfaSignupTestsBase):
 class ExternalMfaWebauthnVerificationTests(ExternalMfaSignupTestsBase):
     """Tests for webauthn credential verification via external MFA during signup."""
 
-    def load_app(self, config: Mapping[str, Any]) -> SignupApp:
+    @classmethod
+    def load_app(cls, config: Mapping[str, Any]) -> SignupApp:
         """
         Called from the parent class, so we can provide the appropriate flask
         app for this test case.
@@ -1158,8 +1161,9 @@ class ExternalMfaWebauthnVerificationTests(ExternalMfaSignupTestsBase):
         return signup_init_app(name="signup", test_config=config)
 
     @pytest.fixture(scope="class")
-    def update_config(self) -> dict[str, Any]:
-        config = self._get_base_config()
+    @classmethod
+    def update_config(cls) -> dict[str, Any]:
+        config = cls._get_base_config()
         config.update(
             {
                 "available_languages": {"en": "English", "sv": "Svenska"},

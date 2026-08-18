@@ -50,7 +50,8 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
         self.mocker = mocker
         self.other_test_user = UserFixtures().mocked_user_standard_2
 
-    def load_app(self, config: Mapping[str, Any] | None) -> ResetPasswordApp:
+    @classmethod
+    def load_app(cls, config: Mapping[str, Any] | None) -> ResetPasswordApp:
         """
         Called from the parent class, so we can provide the appropriate flask
         app for this test case.
@@ -58,8 +59,9 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
         return init_reset_password_app(test_config=config)
 
     @pytest.fixture(scope="class")
-    def update_config(self) -> dict[str, Any]:
-        config = self._get_base_config()
+    @classmethod
+    def update_config(cls) -> dict[str, Any]:
+        config = cls._get_base_config()
         config.update(
             {
                 "available_languages": {"en": "English", "sv": "Svenska"},
