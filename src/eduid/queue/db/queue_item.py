@@ -68,4 +68,10 @@ class QueueItem:
             payload=payload,
             processed_by=processed_by,
             processed_ts=processed_ts,
+            # Restore created_ts and retries explicitly. Both have dataclass defaults (a utc_now()
+            # default_factory and 0), so omitting them here silently discarded the stored values on
+            # every load: created_ts became the load time, and the retry counter reset to zero so it
+            # never reached max_retries.
+            created_ts=data["created_ts"],
+            retries=data.get("retries", 0),
         )
