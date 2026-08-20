@@ -1,5 +1,3 @@
-import os
-from collections.abc import Iterator
 from pathlib import PurePath
 from typing import ClassVar
 
@@ -25,17 +23,13 @@ class TestConfig(RootConfig):
 
 class TestInitConfig:
     @pytest.fixture(autouse=True)
-    def setup(self) -> Iterator[None]:
-        saved = os.environ.copy()
+    def setup(self) -> None:
         self.data_dir = PurePath(__file__).with_name("data")
-        yield
-        os.environ.clear()
-        os.environ.update(saved)
 
-    def test_YamlConfig(self) -> None:
-        os.environ["EDUID_CONFIG_NS"] = "/eduid/test/app_one"
-        os.environ["EDUID_CONFIG_COMMON_NS"] = "/eduid/test/common"
-        os.environ["EDUID_CONFIG_YAML"] = str(self.data_dir / "test.yaml")
+    def test_YamlConfig(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        monkeypatch.setenv("EDUID_CONFIG_NS", "/eduid/test/app_one")
+        monkeypatch.setenv("EDUID_CONFIG_COMMON_NS", "/eduid/test/common")
+        monkeypatch.setenv("EDUID_CONFIG_YAML", str(self.data_dir / "test.yaml"))
 
         config_one = load_config(typ=TestConfig, ns="test", app_name="app_one")
         assert config_one.debug
@@ -44,7 +38,7 @@ class TestInitConfig:
         assert config_one.number == 9
         assert config_one.only_default == 19
 
-        os.environ["EDUID_CONFIG_NS"] = "/eduid/test/app_two"
+        monkeypatch.setenv("EDUID_CONFIG_NS", "/eduid/test/app_two")
 
         config_two = load_config(typ=TestConfig, ns="test", app_name="app_two")
         assert config_two.debug
@@ -53,19 +47,19 @@ class TestInitConfig:
         assert config_two.number == 10
         assert config_two.only_default == 19
 
-    def test_YamlConfig_interpolation(self) -> None:
-        os.environ["EDUID_CONFIG_NS"] = "/eduid/test/test_interpolation"
-        os.environ["EDUID_CONFIG_COMMON_NS"] = "/eduid/test/common"
-        os.environ["EDUID_CONFIG_YAML"] = str(self.data_dir / "test.yaml")
+    def test_YamlConfig_interpolation(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        monkeypatch.setenv("EDUID_CONFIG_NS", "/eduid/test/test_interpolation")
+        monkeypatch.setenv("EDUID_CONFIG_COMMON_NS", "/eduid/test/common")
+        monkeypatch.setenv("EDUID_CONFIG_YAML", str(self.data_dir / "test.yaml"))
 
         config = load_config(typ=TestConfig, ns="test", app_name="test_interpolation")
         assert config.number == 3
         assert config.foo == "hi world"
 
-    def test_YamlConfig_missing_value(self) -> None:
-        os.environ["EDUID_CONFIG_NS"] = "/eduid/test/test_missing_value"
-        os.environ["EDUID_CONFIG_COMMON_NS"] = "/eduid/test/common"
-        os.environ["EDUID_CONFIG_YAML"] = str(self.data_dir / "test.yaml")
+    def test_YamlConfig_missing_value(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        monkeypatch.setenv("EDUID_CONFIG_NS", "/eduid/test/test_missing_value")
+        monkeypatch.setenv("EDUID_CONFIG_COMMON_NS", "/eduid/test/common")
+        monkeypatch.setenv("EDUID_CONFIG_YAML", str(self.data_dir / "test.yaml"))
 
         with pytest.raises(ValidationError) as exc_info:
             load_config(typ=TestConfig, ns="test", app_name="test_missing_value")
@@ -79,10 +73,10 @@ class TestInitConfig:
             }
         ], f"Wrong error message: {exc_info.value.errors()}"
 
-    def test_YamlConfig_wrong_type(self) -> None:
-        os.environ["EDUID_CONFIG_NS"] = "/eduid/test/test_wrong_type"
-        os.environ["EDUID_CONFIG_COMMON_NS"] = "/eduid/test/common"
-        os.environ["EDUID_CONFIG_YAML"] = str(self.data_dir / "test.yaml")
+    def test_YamlConfig_wrong_type(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        monkeypatch.setenv("EDUID_CONFIG_NS", "/eduid/test/test_wrong_type")
+        monkeypatch.setenv("EDUID_CONFIG_COMMON_NS", "/eduid/test/common")
+        monkeypatch.setenv("EDUID_CONFIG_YAML", str(self.data_dir / "test.yaml"))
 
         with pytest.raises(ValidationError) as exc_info:
             load_config(typ=TestConfig, ns="test", app_name="test_wrong_type")
@@ -96,21 +90,21 @@ class TestInitConfig:
             }
         ], f"Wrong error message: {exc_info.value.errors()}"
 
-    def test_YamlConfig_unknown_data(self) -> None:
+    def test_YamlConfig_unknown_data(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Unknown data should not be rejected because it is an operational nightmare"""
-        os.environ["EDUID_CONFIG_NS"] = "/eduid/test/test_unknown_data"
-        os.environ["EDUID_CONFIG_COMMON_NS"] = "/eduid/test/common"
-        os.environ["EDUID_CONFIG_YAML"] = str(self.data_dir / "test.yaml")
+        monkeypatch.setenv("EDUID_CONFIG_NS", "/eduid/test/test_unknown_data")
+        monkeypatch.setenv("EDUID_CONFIG_COMMON_NS", "/eduid/test/common")
+        monkeypatch.setenv("EDUID_CONFIG_YAML", str(self.data_dir / "test.yaml"))
 
         config = load_config(typ=TestConfig, ns="test", app_name="test_unknown_data")
         assert config.number == 0xFF
         assert config.foo == "bar"
 
-    def test_YamlConfig_mixed_case_keys(self) -> None:
+    def test_YamlConfig_mixed_case_keys(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """For legacy reasons, all keys should be lowercased"""
-        os.environ["EDUID_CONFIG_NS"] = "/eduid/test/test_mixed_case_keys"
-        os.environ["EDUID_CONFIG_COMMON_NS"] = "/eduid/test/common"
-        os.environ["EDUID_CONFIG_YAML"] = str(self.data_dir / "test.yaml")
+        monkeypatch.setenv("EDUID_CONFIG_NS", "/eduid/test/test_mixed_case_keys")
+        monkeypatch.setenv("EDUID_CONFIG_COMMON_NS", "/eduid/test/common")
+        monkeypatch.setenv("EDUID_CONFIG_YAML", str(self.data_dir / "test.yaml"))
 
         config = load_config(typ=TestConfig, ns="test", app_name="test_mixed_case_keys")
         assert config.number == 1
