@@ -119,29 +119,32 @@ class LoginContextSAML(LoginContext):
     _saml_req: IdP_SAMLRequest | None = None
 
     @property
-    def SAMLRequest(self) -> str:
+    def _saml_pending(self) -> IdP_SAMLPendingRequest:
+        """
+        The pending request, narrowed to the SAML variant.
+
+        pending_request returns the IdP_PendingRequest base type and raises RuntimeError
+        when there is nothing in the session, so all that is left to establish here is
+        which subclass it is - hence TypeError rather than ValueError.
+
+        :returns: The pending request as a SAML request
+        """
         pending = self.pending_request
         if not isinstance(pending, IdP_SAMLPendingRequest):
-            raise ValueError("Pending request not initialised (or not a SAML request)")
-        if not isinstance(pending.request, str):
-            raise ValueError("pending_request.request not initialised")
-        return pending.request
+            raise TypeError(f"Pending request is not a SAML request ({type(pending)})")
+        return pending
+
+    @property
+    def SAMLRequest(self) -> str:
+        return self._saml_pending.request
 
     @property
     def RelayState(self) -> str:
-        pending = self.pending_request
-        if not isinstance(pending, IdP_SAMLPendingRequest):
-            raise ValueError("Pending request not initialised (or not a SAML request)")
-        return pending.relay_state or ""
+        return self._saml_pending.relay_state or ""
 
     @property
     def binding(self) -> str:
-        pending = self.pending_request
-        if not isinstance(pending, IdP_SAMLPendingRequest):
-            raise ValueError("Pending request not initialised (or not a SAML request)")
-        if not isinstance(pending.binding, str):
-            raise ValueError("pending_request.binding not initialised")
-        return pending.binding
+        return self._saml_pending.binding
 
     @property
     def query_string(self) -> str:
