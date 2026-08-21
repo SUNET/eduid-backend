@@ -292,7 +292,7 @@ def process_assertion(
             _ctx = e.args[0]
         return goto_errors_response(
             current_app.conf.errors_url_template,
-            ctx=EduidErrorsContext.SAML_RESPONSE_FAIL,
+            ctx=_ctx,
             rp=current_app.conf.app_name,
         )
 
