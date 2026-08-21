@@ -166,10 +166,6 @@ ignore = [
   "BLE001", # blind-except (28)
   "D419", # empty-docstring (32)
   "RET501", # unnecessary-return-none (33)
-  # TRY004: 51 hits, of which 5 are inside pydantic validators and are permanently
-  # ignored per-file below. This blanket entry covers the remaining 46, which are
-  # being worked through - see the per-file block for why the validator ones stay.
-  "TRY004", # type-check-without-type-error (46 remaining)
   "TRY201", # verbose-raise (16)
 ]
 allowed-confusables = ["’", "х"]
