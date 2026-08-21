@@ -137,7 +137,7 @@ class SLO(Service):
         try:
             req_info = current_app.IDP.parse_logout_request(request, binding)
             if not isinstance(req_info, LogoutRequest):
-                raise RuntimeError(f"unexpected parse_logout_request type: {type(req_info).__name__}")
+                raise TypeError(f"unexpected parse_logout_request type: {type(req_info).__name__}")
             current_app.logger.debug(f"Parsed Logout request ({binding}):\n{req_info.message}")
         except Exception as e:
             current_app.logger.exception("Failed parsing logout request")
