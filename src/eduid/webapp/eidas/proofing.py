@@ -83,7 +83,7 @@ class FrejaProofingFunctions(SwedenConnectProofingFunctions[NinSessionInfo]):
         if proofing_log_entry.error:
             return VerifyUserResult(error=proofing_log_entry.error)
         if not isinstance(proofing_log_entry.data, NinProofingLogElement):
-            raise RuntimeError(f"unexpected proofing_log_entry.data type: {type(proofing_log_entry.data).__name__}")
+            raise TypeError(f"unexpected proofing_log_entry.data type: {type(proofing_log_entry.data).__name__}")
 
         # Verify NIN for user
         date_of_birth = self.session_info.attributes.date_of_birth
@@ -242,7 +242,7 @@ class EidasProofingFunctions(SwedenConnectProofingFunctions[ForeignEidSessionInf
         if proofing_log_entry.error:
             return VerifyUserResult(error=proofing_log_entry.error)
         if not isinstance(proofing_log_entry.data, ForeignIdProofingLogElement):
-            raise RuntimeError(f"unexpected proofing_log_entry.data type: {type(proofing_log_entry.data).__name__}")
+            raise TypeError(f"unexpected proofing_log_entry.data type: {type(proofing_log_entry.data).__name__}")
 
         # update the users names from the verified identity
         proofing_user = set_user_names_from_foreign_id(proofing_user, proofing_log_entry.data)

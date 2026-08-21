@@ -123,7 +123,7 @@ class VCCSPasswordFactor(VCCSFactor):
             raise ValueError("Invalid salt (not NDNv1H1)")
         self.salt = salt
         if not isinstance(credential_id, str):
-            raise ValueError(f"Non-string credential id: {credential_id!r}")
+            raise TypeError(f"Non-string credential id: {credential_id!r}")
         self.credential_id = credential_id
         (
             salt_bytes,

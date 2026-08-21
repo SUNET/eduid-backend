@@ -135,7 +135,7 @@ def _get_idp() -> str:
     # For now, we will only ever use the single configured IdP
     idp = next(iter(_configured_idps.keys()))
     if not isinstance(idp, str):
-        raise RuntimeError(f"unexpected idp key type: {type(idp).__name__}")
+        raise TypeError(f"unexpected idp key type: {type(idp).__name__}")
     return idp
 
 
@@ -197,7 +197,7 @@ def assertion_consumer_service() -> WerkzeugResponse:
     current_app.logger.debug(f"ACS action result: {result}")
 
     if not isinstance(args.authn_req, SP_AuthnRequest):
-        raise RuntimeError(f"unexpected authn_req type: {type(args.authn_req).__name__}")
+        raise TypeError(f"unexpected authn_req type: {type(args.authn_req).__name__}")
     formatted_finish_url = args.authn_req.formatted_finish_url(app_name=current_app.conf.app_name)
 
     if not result.success:

@@ -262,7 +262,7 @@ class ScimApiTestCase(MongoNeoTestCase):
             expected_location = f"http://localhost:8000/Events/{resource.scim_id}"
             expected_resource_type = "Event"
         else:
-            raise ValueError("Resource is neither ScimApiUser, ScimApiGroup, ScimApiInvite or ScimApiEvent")
+            raise TypeError("Resource is neither ScimApiUser, ScimApiGroup, ScimApiInvite or ScimApiEvent")
 
         assert str(resource.scim_id) == response.json().get("id"), "Unexpected id in parsed_response"
 

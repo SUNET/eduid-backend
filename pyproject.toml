@@ -166,7 +166,6 @@ ignore = [
   "BLE001", # blind-except (28)
   "D419", # empty-docstring (32)
   "RET501", # unnecessary-return-none (33)
-  "TRY004", # type-check-without-type-error (51)
   "TRY201", # verbose-raise (16)
 ]
 allowed-confusables = ["’", "х"]
@@ -189,6 +188,22 @@ eduid = ["ndnkdf"]
   ] 
 # "src/eduid/scimapi/**" = ["A001", "A002"] # builtin shadowing - filter is core concept of scim and builtin is not used
 "src/eduid/webapp/common/authn/vccs.py" = ["PLR2004"] # magic-value-comparison - allow magic numbers for password version
+# TRY004 (type-check-without-type-error) wants TypeError where an isinstance check
+# fails. Inside a pydantic validator that is not a style choice but a behaviour
+# change: pydantic converts ValueError and AssertionError into a ValidationError,
+# while any other exception - TypeError included - propagates uncaught and bypasses
+# validation error reporting entirely. Verified against pydantic 2.13.4.
+# These five files each contain exactly one TRY004 hit and it is inside a validator,
+# so the ignore suppresses nothing else. Do not "fix" these to TypeError.
+# The last entry is a validator's *helper* rather than the validator itself - the
+# exception still surfaces through pydantic, so the same reasoning applies one frame
+# down. Grepping for the decorator is not enough to find these.
+"src/eduid/common/models/saml_models.py" = ["TRY004"] # SAMLAttributes.unwind_value
+"src/eduid/userdb/mail.py" = ["TRY004"] # MailAddress.validate_email
+"src/eduid/userdb/proofing/element.py" = ["TRY004"] # EmailProofingElement.validate_email
+"src/eduid/webapp/idp/service.py" = ["TRY004"] # SAMLQueryParams.validate_request_ref
+"src/eduid/webapp/idp/settings/common.py" = ["TRY004"] # IdPConfig.validate_sso_session_lifetime
+"src/eduid/userdb/element.py" = ["TRY004"] # _validate_elements, called by _validate_element_values
 
 [tool.ruff.format]
 # From 0.16 the formatter also formats Python inside markdown code fences. There is

@@ -88,7 +88,7 @@ def run_verify_identity(
         return ACSResult(message=parsed.error)
 
     if not isinstance(parsed.info, (BaseSessionInfo, FrejaEIDDocumentUserInfo, SvipeDocumentUserInfo)):
-        raise RuntimeError(f"unexpected parsed.info type: {type(parsed.info).__name__}")
+        raise TypeError(f"unexpected parsed.info type: {type(parsed.info).__name__}")
 
     proofing = get_proofing_functions(
         session_info=parsed.info, app_name=app.name, config=app.conf, backdoor=args.backdoor
@@ -135,7 +135,7 @@ def run_verify_credential(
             return ret
 
     if not isinstance(args.authn_req, (SP_AuthnRequest, RP_AuthnRequest)):
-        raise RuntimeError(f"unexpected args.authn_req type: {type(args.authn_req).__name__}")
+        raise TypeError(f"unexpected args.authn_req type: {type(args.authn_req).__name__}")
 
     credential = user.credentials.find(args.authn_req.proofing_credential_id)
     if not isinstance(credential, FidoCredential):
@@ -154,7 +154,7 @@ def run_verify_credential(
         return ACSResult(message=parsed.error)
 
     if not isinstance(parsed.info, (BaseSessionInfo, FrejaEIDDocumentUserInfo, SvipeDocumentUserInfo)):
-        raise RuntimeError(f"unexpected parsed.info type: {type(parsed.info).__name__}")
+        raise TypeError(f"unexpected parsed.info type: {type(parsed.info).__name__}")
 
     proofing = get_proofing_functions(
         session_info=parsed.info, app_name=app.name, config=app.conf, backdoor=args.backdoor
@@ -227,7 +227,7 @@ def run_mfa_authenticate(
         return ACSResult(message=parsed.error)
 
     if not isinstance(parsed.info, (BaseSessionInfo, FrejaEIDDocumentUserInfo, SvipeDocumentUserInfo)):
-        raise RuntimeError(f"unexpected parsed.info type: {type(parsed.info).__name__}")
+        raise TypeError(f"unexpected parsed.info type: {type(parsed.info).__name__}")
 
     proofing = get_proofing_functions(
         session_info=parsed.info, app_name=app.name, config=app.conf, backdoor=args.backdoor
