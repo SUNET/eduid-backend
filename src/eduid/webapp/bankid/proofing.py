@@ -56,7 +56,7 @@ class BankIDProofingFunctions(ProofingFunctions[BankIDSessionInfo]):
         if proofing_log_entry.error:
             return VerifyUserResult(error=proofing_log_entry.error)
         if not isinstance(proofing_log_entry.data, NinProofingLogElement):
-            raise RuntimeError(f"unexpected proofing_log_entry.data type: {type(proofing_log_entry.data).__name__}")
+            raise TypeError(f"unexpected proofing_log_entry.data type: {type(proofing_log_entry.data).__name__}")
 
         # Verify NIN for user
         nin_element = NinProofingElement(

@@ -37,7 +37,7 @@ def set_user_names_from_nin_proofing[T: User](
     elif isinstance(proofing_log_entry, NinEIDProofingLogElement):
         user = set_user_names_from_nin_eid_proofing(user, proofing_log_entry)
     else:
-        raise RuntimeError("No given name, surname or user postal address found in proofing log entry")
+        raise TypeError(f"Cannot set user names from proofing log entry of type {type(proofing_log_entry).__name__}")
     return user
 
 

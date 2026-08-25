@@ -104,7 +104,7 @@ class SSOSession(BaseModel):
     def add_authn_credential(self, authn: AuthnData) -> None:
         """Add information about a credential successfully used in this session."""
         if not isinstance(authn, AuthnData):
-            raise ValueError(f"data should be AuthnData (not {type(authn)})")
+            raise TypeError(f"data should be AuthnData (not {type(authn)})")
 
         # Store only the latest use of a particular credential.
         _creds: dict[ElementKey, AuthnData] = {x.cred_id: x for x in self.authn_credentials}
