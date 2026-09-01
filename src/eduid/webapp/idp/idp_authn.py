@@ -297,7 +297,6 @@ class IdPAuthn:
             self.authn_store.credential_success(success)
         if success or failure:
             self.authn_store.update_user(user.user_id, success, failure)
-        return
 
 
 class AuthnInfoStore:

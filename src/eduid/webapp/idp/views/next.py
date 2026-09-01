@@ -566,8 +566,6 @@ def _log_user_agent() -> None:
     _safe_stat("login_finished_ua_os_family", ua.parsed.os.family)
     _safe_stat("login_finished_ua_browser", ua.parsed.browser.family)
 
-    return
-
 
 def _update_known_device_data(ticket: LoginContext, user: IdPUser, authn_info: AuthnInfo) -> None:
     """

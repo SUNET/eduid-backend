@@ -159,7 +159,6 @@ def remove_identity_from_user(security_user: SecurityUser, identity_type: Identi
     current_app.logger.debug(f"Request sync for user {security_user}")
     result = current_app.am_relay.request_user_sync(security_user)
     current_app.logger.info(f"Sync result for user {security_user}: {result}")
-    return
 
 
 def generate_suggested_password() -> str:

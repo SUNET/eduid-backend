@@ -146,7 +146,6 @@ def check_user_official_name(context: Context, queue_user: CleanerQueueUser, nav
     context.logger.info("Recorded verification in the proofing log")
     save_and_sync_user(context, user)
     context.stats.count(name="skv_name_updated")
-    return
 
 
 def terminate_user(context: Context, queue_user: CleanerQueueUser) -> None:

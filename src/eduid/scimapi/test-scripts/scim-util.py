@@ -180,7 +180,6 @@ def put_user(api: Api, scim_id: str, nutid_data: Mapping[str, Any]) -> None:
         requests.put, f"{api.url}/Users/{scim_id}", data=scim, headers=headers, token=api.token, verify=api.verify
     )
     logger.info(f"Update result:\n{json.dumps(res, sort_keys=True, indent=4)}")
-    return
 
 
 def put_group(api: Api, scim_id: str, data: dict[str, Any]) -> None:

@@ -534,4 +534,3 @@ class PrimaryElementList[ListElement: Element](VerifiedElementList[ListElement],
                 elem.is_primary = False
 
         self.remove(key)
-        return
