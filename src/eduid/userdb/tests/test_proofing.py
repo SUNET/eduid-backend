@@ -93,7 +93,6 @@ class ProofingStateTest:
         )
 
     def test_create_letterproofingstate_with_ninproofingelement_from_dict(self) -> None:
-        """ """
         state = LetterProofingState(
             eppn=EPPN,
             nin=NinProofingElement.from_dict(
@@ -124,7 +123,6 @@ class ProofingStateTest:
     def test_create_letterproofingstate_with_ninproofingelement_from_dict_with_created_ts(
         self,
     ) -> None:
-        """ """
         state = LetterProofingState(
             eppn=EPPN,
             nin=NinProofingElement.from_dict(
@@ -158,7 +156,6 @@ class ProofingStateTest:
         self._test_create_letterproofingstate(state, _nin_expected_keys)
 
     def test_create_letterproofingstate(self) -> None:
-        """ """
         state = LetterProofingState(
             eppn=EPPN,
             nin=NinProofingElement(

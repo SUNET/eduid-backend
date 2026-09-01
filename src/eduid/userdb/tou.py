@@ -30,7 +30,6 @@ class ToUEvent(Event):
 
     @classmethod
     def _from_dict_transform(cls: type[ToUEvent], data: dict[str, Any]) -> dict[str, Any]:
-        """ """
         data = super()._from_dict_transform(data)
 
         if "event_type" not in data:
