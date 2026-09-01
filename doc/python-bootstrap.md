@@ -56,7 +56,7 @@ toolchain into the freshly created environment.
 The target performs these steps:
 
 1. Install the locked development requirements from
-  `requirements/test_requirements.txt` with `uv pip`.
+  `requirements/test_requirements.txt` with `uv pip --require-hashes`.
 2. Install the repository itself into `.venv` in editable mode with
   `uv pip install --no-deps --no-build-isolation -e .`.
 3. Run `mypy --strict -p eduid` inside `.venv` after the locked stub packages

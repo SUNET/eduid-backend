@@ -35,14 +35,14 @@ bootstrap_venv:
 # Install the locked development toolchain into the freshly created virtualenv.
 #
 # Steps:
-# 1. Install the locked test/development requirements with uv pip.
+# 1. Install the locked test/development requirements with uv pip and hash verification.
 # 2. Install this repository in editable mode without dependency resolution,
 #    because the locked requirements already describe the environment.
 # 3. Run mypy with explicitly pinned stub packages already present in the
 #    environment, so type checking stays non-interactive.
 bootstrap: bootstrap_venv
 	$(info Installing locked development dependencies into $(VENV))
-	uv pip install --python $(VENV_PYTHON) -r requirements/test_requirements.txt
+	uv pip install --python $(VENV_PYTHON) --require-hashes -r requirements/test_requirements.txt
 	uv pip install --python $(VENV_PYTHON) --no-deps --no-build-isolation -e .
 	$(VENV_PYTHON) -m mypy --strict -p eduid
 

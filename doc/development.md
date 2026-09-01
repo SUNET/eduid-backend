@@ -22,7 +22,7 @@ What it does:
 - Requires a Python interpreter compatible with `pyproject.toml`
 - Treats `pyproject.toml` as the single source of truth for that requirement
 - Uses `uv` to resolve and provision a compatible interpreter from `pyproject.toml`
-- Installs the locked developer dependencies from `requirements/test_requirements.txt`
+- Installs the locked developer dependencies from `requirements/test_requirements.txt` with hash verification
 - Installs the repository itself into `.venv` in editable mode through `uv pip` so imports work without `PYTHONPATH`
 
 The install-first part uses a minimal packaging configuration in `pyproject.toml` only so developer tools can install the repo into `.venv`.

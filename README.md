@@ -33,7 +33,7 @@ What this does:
 - Requires the host system to provide `uv`
 - Treats `pyproject.toml` as the single source of truth for the project Python requirement
 - Uses `uv` to provision and use the pinned Python minor derived from `pyproject.toml`
-- Installs the locked dependencies from `requirements/test_requirements.txt`
+- Installs the locked dependencies from `requirements/test_requirements.txt` with hash verification
 - Installs the repo itself into `.venv` with an editable `uv pip install`
 
 The host system must provide `uv` before `make bootstrap` runs. `uv` provisions the pinned project interpreter from `pyproject.toml`, which currently requires Python 3.13. If `uv` is not installed, `make bootstrap` fails immediately. Install `uv` first, or use the devcontainer image that includes it.

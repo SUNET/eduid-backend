@@ -8,7 +8,7 @@ PYPROJECT=$(PROJECT_ROOT)/pyproject.toml
 # Common uv wrappers for lockfile compilation and environment syncing.
 # The compile flags preserve hashes and extras in the generated lockfiles.
 PIPCOMPILE=$(UV) pip compile --upgrade --generate-hashes --no-strip-extras --index-url https://pypi.sunet.se/simple --emit-index-url --project $(PROJECT_ROOT)
-PIPSYNC=$(UV) pip sync --index-url https://pypi.sunet.se/simple
+PIPSYNC=$(UV) pip sync --index-url https://pypi.sunet.se/simple --require-hashes
 LOCKFILES=main.txt fastapi_requirements.txt satosa_scim_requirements.txt test_requirements.txt webapp_requirements.txt worker_requirements.txt
 
 .PHONY: FORCE update_deps
