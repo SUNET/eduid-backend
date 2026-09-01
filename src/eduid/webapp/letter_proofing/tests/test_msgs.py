@@ -3,7 +3,6 @@ from eduid.webapp.letter_proofing.helpers import LetterMsg
 
 class MessagesTests:
     def test_messages(self) -> None:
-        """"""
         assert LetterMsg.no_state.value == "letter.no_state_found"
         assert LetterMsg.already_sent.value == "letter.already-sent"
         assert LetterMsg.letter_expired.value == "letter.expired"

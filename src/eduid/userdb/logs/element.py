@@ -25,8 +25,6 @@ logger = logging.getLogger(__name__)
 
 
 class LogElement(Element):
-    """ """
-
     # Application creating the log element
     created_by: str
     model_config = ConfigDict(str_min_length=1)
@@ -56,8 +54,6 @@ class LogElement(Element):
 
 
 class ProofingLogElement(LogElement):
-    """ """
-
     # eduPersonPrincipalName
     eppn: str = Field(alias="eduPersonPrincipalName")
     # Proofing method version number

@@ -3,7 +3,6 @@ from eduid.webapp.phone.helpers import PhoneMsg
 
 class MessagesTests:
     def test_messages(self) -> None:
-        """"""
         assert PhoneMsg.e164_error.value == "phone.e164_format"
         assert PhoneMsg.phone_invalid.value == "phone.phone_format"
         assert PhoneMsg.swedish_invalid.value == "phone.swedish_mobile_format"

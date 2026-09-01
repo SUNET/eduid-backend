@@ -8,8 +8,6 @@ __author__ = "ft"
 
 
 class Nin(PrimaryElement):
-    """ """
-
     number: str
 
     @property
