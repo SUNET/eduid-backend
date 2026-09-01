@@ -63,7 +63,7 @@ def reset_failure_info(key: str) -> None:
     current_app = get_current_app()
 
     if key not in current_app.failure_info:
-        return None
+        return
     info = current_app.failure_info.pop(key)
     current_app.logger.info(f"Check {key} back to normal. Resetting info {info}")
 

@@ -185,7 +185,7 @@ class QueueAsyncioTest(EduidQueueTestCase):
                 break
             if retry:
                 assert fetched is not None
-                return None
+                return
             logger.info(f"Queue item {queue_item.item_id} not processed yet")
         assert fetched is None
 

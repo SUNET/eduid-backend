@@ -243,7 +243,7 @@ class VCCSHSMKeyHasher(VCCSHasher):
         """
         # PKCS#11 uses PIN authentication when opening sessions
         # The PIN is already configured via HSMConfig.user_pin
-        return None
+        return
 
     def info(self) -> str:
         """Return information about the HSM connection."""

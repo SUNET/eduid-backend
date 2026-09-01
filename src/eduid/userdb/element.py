@@ -518,11 +518,11 @@ class PrimaryElementList[ListElement: Element](VerifiedElementList[ListElement],
         """
         elem = self.find(key)
         if not elem:
-            return None
+            return
 
         # Assure the type checking system that elements are PrimaryElement
         if not isinstance(elem, PrimaryElement):
-            return None
+            return
 
         if elem.is_primary:
             # Look for other verified elements
@@ -534,4 +534,4 @@ class PrimaryElementList[ListElement: Element](VerifiedElementList[ListElement],
                 elem.is_primary = False
 
         self.remove(key)
-        return None
+        return

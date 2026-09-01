@@ -481,17 +481,17 @@ def _geo_statistics(ticket: LoginContext, sso_session: SSOSession | None) -> Non
     """Log user statistics from login event"""
 
     if not sso_session:
-        return None
+        return
 
     if not current_app.conf.geo_statistics_secret_key or not current_app.conf.geo_statistics_url:
-        return None
+        return
 
     ua = get_user_agent()
     if not ua:
-        return None
+        return
 
     if ua.parsed.browser.family in ["Python Requests", "PingdomBot"] or ua.parsed.is_bot:
-        return None
+        return
 
     secret = urlsafe_b64decode(bytes(current_app.conf.geo_statistics_secret_key, "ascii"))
 
@@ -566,7 +566,7 @@ def _log_user_agent() -> None:
     _safe_stat("login_finished_ua_os_family", ua.parsed.os.family)
     _safe_stat("login_finished_ua_browser", ua.parsed.browser.family)
 
-    return None
+    return
 
 
 def _update_known_device_data(ticket: LoginContext, user: IdPUser, authn_info: AuthnInfo) -> None:

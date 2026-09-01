@@ -64,14 +64,14 @@ def update_modified_ts(user: User) -> None:
     except UserDBValueError:
         logger.debug(f"User {user} has no id, setting modified_ts to None")
         user.modified_ts = None
-        return None
+        return
 
     _private_userdb = get_from_current_app("private_userdb", UserDB)
     private_user = _private_userdb.get_user_by_id(user_id)
     if private_user is None:
         logger.debug(f"User {user} not found in {_private_userdb}, setting modified_ts to None")
         user.modified_ts = None
-        return None
+        return
 
     if private_user.modified_ts is None:
         private_user.modified_ts = utc_now()  # use current time

@@ -44,7 +44,7 @@ def log_failure_info(req: ContextRequest, key: str, msg: str, exc: Exception | N
 
 def reset_failure_info(req: ContextRequest, key: str) -> None:
     if key not in FAILURE_INFO:
-        return None
+        return
     info = FAILURE_INFO.pop(key)
     req.app.context.logger.info(f"Check {key} back to normal. Resetting info {info}")
 
