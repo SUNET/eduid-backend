@@ -288,7 +288,8 @@ class SamlEidTests(ProofingTests[SamlEidApp]):
 </saml2p:Response>
 """
 
-    def load_app(self, config: Mapping[str, Any]) -> SamlEidApp:
+    @classmethod
+    def load_app(cls, config: Mapping[str, Any]) -> SamlEidApp:
         """
         Called from the parent class, so we can provide the appropriate flask
         app for this test case.
@@ -296,8 +297,9 @@ class SamlEidTests(ProofingTests[SamlEidApp]):
         return init_samleid_app("testing", config)
 
     @pytest.fixture(scope="class")
-    def update_config(self) -> dict[str, Any]:
-        config = self._get_base_config()
+    @classmethod
+    def update_config(cls) -> dict[str, Any]:
+        config = cls._get_base_config()
         saml_config = os.path.join(HERE, "saml2_settings.py")
         config.update(
             {
@@ -305,13 +307,13 @@ class SamlEidTests(ProofingTests[SamlEidApp]):
                 "safe_relay_domain": "localhost",
                 "magic_cookie": "",
                 "magic_cookie_name": "magic-cookie",
-                "magic_cookie_idp": self.test_idp,
-                "magic_cookie_bankid_idp": self.test_idp,
-                "magic_cookie_foreign_id_idp": self.test_idp,
+                "magic_cookie_idp": cls.test_idp,
+                "magic_cookie_bankid_idp": cls.test_idp,
+                "magic_cookie_foreign_id_idp": cls.test_idp,
                 "environment": "dev",
-                "freja_idp": self.test_idp,
-                "bankid_idp": self.test_idp,
-                "foreign_identity_idp": self.test_idp,
+                "freja_idp": cls.test_idp,
+                "bankid_idp": cls.test_idp,
+                "foreign_identity_idp": cls.test_idp,
                 "errors_url_template": "http://localhost/errors?code={ERRORURL_CODE}&ts={ERRORURL_TS}&rp={ERRORURL_RP}"
                 "&tid={ERRORURL_TID}&ctx={ERRORURL_CTX}",
                 "frontend_action_authn_parameters": {

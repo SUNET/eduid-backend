@@ -12,8 +12,13 @@ PYTEST_WORKERS ?= 2  # override with e.g. make test PYTEST_WORKERS=4; use 1 for 
 # Do NOT use --dist=loadfile: xdist_group is only respected with loadgroup, not loadfile.
 
 # Default test entrypoint used locally and in CI reproductions.
-test:
+test: check_test_collection
 	pytest -vvv -ra --log-cli-level DEBUG -n $(PYTEST_WORKERS) --dist=loadgroup
+
+# Our test base classes are plain classes, not unittest.TestCase, so a test class whose
+# name does not match python_classes is skipped silently and the suite still goes green.
+check_test_collection:
+	$(TOPDIR)/scripts/check_test_collection.py
 
 # Create a virtualenv with an interpreter that satisfies project.requires-python.
 #

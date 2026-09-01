@@ -14,8 +14,6 @@ if TYPE_CHECKING:
 
 
 class Event(Element):
-    """ """
-
     data: dict[str, Any] | None = None
     event_type: str | None = None
     event_id: str = Field(default_factory=lambda: str(uuid4()), alias="id")

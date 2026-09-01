@@ -48,6 +48,29 @@ class SAMLResponseParams:
     missing_attributes: list[dict[str, str]] = field(default_factory=list)
 
 
+def _require_type[T](value: object, expected: type[T], what: str) -> T:
+    """
+    Narrow a value that pysaml2 hands back as Any to a concrete type.
+
+    pysaml2 is untyped, so everything read out of a parsed request or out of the
+    metadata arrives as Any. These are assertions about a library boundary, not
+    validation of user input: nothing catches them and reaching one means pysaml2
+    returned something we do not understand, so TypeError is the accurate exception.
+
+    Kept module-private on purpose. Other modules have the same problem, but a
+    three-line helper is not worth a shared home until there is a second caller -
+    move it somewhere common if one appears.
+
+    :param value: The value of unknown type
+    :param expected: The type it is required to have
+    :param what: What the value is, for the error message
+    :returns: The value, typed as expected
+    """
+    if not isinstance(value, expected):
+        raise TypeError(f"Unexpected {what} type ({type(value)})")
+    return value
+
+
 def gen_key(something: str | bytes) -> ReqSHA1:
     """
     Generate a unique (not strictly guaranteed) key based on `something'.
@@ -142,11 +165,10 @@ class IdP_SAMLRequest:
     def get_requested_authn_contexts(self) -> list[str]:
         """SAML requested authn context."""
         if self.raw_requested_authn_context:
-            res = [x.text for x in self.raw_requested_authn_context.authn_context_class_ref]
-            for this in res:
-                if not isinstance(this, str):
-                    raise ValueError(f"Invalid authnContextClassRef value ({this!r})")
-            return res
+            return [
+                _require_type(x.text, str, "authnContextClassRef")
+                for x in self.raw_requested_authn_context.authn_context_class_ref
+            ]
         return []
 
     def get_required_attributes(self) -> list[dict[str, str]]:
@@ -158,18 +180,12 @@ class IdP_SAMLRequest:
 
     @property
     def raw_sp_entity_id(self) -> Issuer:
-        _res = self._req_info.message.issuer
-        if not isinstance(_res, Issuer):
-            raise ValueError(f"Unknown issuer type ({type(_res)})")
-        return _res
+        return _require_type(self._req_info.message.issuer, Issuer, "issuer")
 
     @property
     def sp_entity_id(self) -> str:
         """The entity ID of the service provider as a string."""
-        _res = self.raw_sp_entity_id.text
-        if not isinstance(_res, str):
-            raise ValueError(f"Unknown SP entity id type ({type(_res)})")
-        return _res
+        return _require_type(self.raw_sp_entity_id.text, str, "SP entity id")
 
     @property
     def force_authn(self) -> bool:
@@ -183,16 +199,12 @@ class IdP_SAMLRequest:
         _res = self._req_info.message.force_authn
         if _res is None:
             return False
-        if not isinstance(_res, str):
-            raise ValueError(f"Unknown force authn type ({type(_res)})")
-        return _res == "1" or _res.lower() == "true"
+        _force_authn = _require_type(_res, str, "force authn")
+        return _force_authn == "1" or _force_authn.lower() == "true"
 
     @property
     def request_id(self) -> str:
-        _res = self._req_info.message.id
-        if not isinstance(_res, str):
-            raise ValueError(f"Unknown request id type ({type(_res)})")
-        return _res
+        return _require_type(self._req_info.message.id, str, "request id")
 
     @property
     def login_subject(self) -> str | None:
@@ -223,9 +235,7 @@ class IdP_SAMLRequest:
         try:
             _attrs = self._idp.metadata.entity_attributes(self.sp_entity_id)
             for k, v in _attrs.items():
-                if not isinstance(k, str):
-                    raise ValueError(f"Unknown entity attribute type ({type(k)})")
-                res[k] = v
+                res[_require_type(k, str, "entity attribute")] = v
         except KeyError:
             return {}
         return res
@@ -254,9 +264,7 @@ class IdP_SAMLRequest:
         try:
             _algs = self._idp.metadata.supported_algorithms(self.sp_entity_id)["digest_methods"]
             for this in _algs:
-                if not isinstance(this, str):
-                    raise ValueError(f"Unknown digest_methods type ({type(this)})")
-                res += [this]
+                res += [_require_type(this, str, "digest_methods")]
         except KeyError:
             return []
         return res
@@ -268,9 +276,7 @@ class IdP_SAMLRequest:
         try:
             _algs = self._idp.metadata.supported_algorithms(self.sp_entity_id)["signing_methods"]
             for this in _algs:
-                if not isinstance(this, str):
-                    raise ValueError(f"Unknown signing_methods type ({type(this)})")
-                res += [this]
+                res += [_require_type(this, str, "signing_methods")]
         except KeyError:
             return []
         return res
@@ -288,7 +294,7 @@ class IdP_SAMLRequest:
             logger.info(f"{log_prefix}: Service provider not known: {exc}")
             raise BadRequest("SAML_UNKNOWN_SP") from exc
         except SAMLError as e:
-            logger.exception(f"{log_prefix}: SAMLError: {e}")
+            logger.exception(f"{log_prefix}: SAMLError")
             raise BadRequest("Misconfigured SAML request") from e
 
         # Set digest_alg and sign_alg to a good default value
@@ -318,9 +324,7 @@ class IdP_SAMLRequest:
         saml_response = self._idp.create_authn_response(
             identity=attributes, userid=userid, authn=authn, sign_response=True, **resp_args
         )
-        if not isinstance(saml_response, str):
-            raise ValueError(f"Unknown saml_response type ({type(saml_response)})")
-        return SamlResponse(saml_response)
+        return SamlResponse(_require_type(saml_response, str, "saml_response"))
 
     def make_cancel_response(self, resp_args: ResponseArgs) -> SamlResponse:
         info = (samlp.STATUS_AUTHN_FAILED, "Request cancelled by user")
@@ -333,9 +337,7 @@ class IdP_SAMLRequest:
     def make_error_response(self, info: tuple[str, str], resp_args: ResponseArgs) -> SamlResponse:
         saml_response = self._idp.create_error_response(info=info, sign=True, **resp_args)
         logger.debug(f"Cancel SAML response:\n{saml_response}")
-        if not isinstance(saml_response, str):
-            raise ValueError(f"Unknown saml_response type ({type(saml_response)})")
-        return SamlResponse(saml_response)
+        return SamlResponse(_require_type(saml_response, str, "saml_response"))
 
     def apply_binding(self, resp_args: ResponseArgs, relay_state: str, saml_response: SamlResponse) -> HttpArgs:
         """Create the Javascript self-posting form that will take the user back to the SP with a SAMLResponse."""

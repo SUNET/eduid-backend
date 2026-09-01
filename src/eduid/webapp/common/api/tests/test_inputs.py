@@ -112,7 +112,8 @@ class InputsTestApp(EduIDBaseApp):
 
 
 class InputsTests(EduidAPITestCase[InputsTestApp]):
-    def load_app(self, config: Mapping[str, Any]) -> InputsTestApp:
+    @classmethod
+    def load_app(cls, config: Mapping[str, Any]) -> InputsTestApp:
         """
         Called from the parent class, so we can provide the appropriate flask
         app for this test case.

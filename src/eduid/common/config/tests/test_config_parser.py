@@ -1,6 +1,3 @@
-import os
-from collections.abc import Iterator
-
 import pytest
 
 from eduid.common.config.parsers import _choose_parser
@@ -10,15 +7,8 @@ __author__ = "lundberg"
 
 
 class TestInitConfig:
-    @pytest.fixture(autouse=True)
-    def restore_env(self) -> Iterator[None]:
-        saved = os.environ.copy()
-        yield
-        os.environ.clear()
-        os.environ.update(saved)
-
-    def test_YamlConfigParser(self) -> None:
-        os.environ["EDUID_CONFIG_NS"] = "/test/ns/"
-        os.environ["EDUID_CONFIG_YAML"] = "/config.yaml"
+    def test_YamlConfigParser(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        monkeypatch.setenv("EDUID_CONFIG_NS", "/test/ns/")
+        monkeypatch.setenv("EDUID_CONFIG_YAML", "/config.yaml")
         parser = _choose_parser()
         assert isinstance(parser, YamlConfigParser)

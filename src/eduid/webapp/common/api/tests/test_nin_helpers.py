@@ -59,7 +59,8 @@ class HelpersTestApp(EduIDBaseApp):
 
 
 class NinHelpersTest(ProofingTests[HelpersTestApp]):
-    def load_app(self, config: Mapping[str, Any]) -> HelpersTestApp:
+    @classmethod
+    def load_app(cls, config: Mapping[str, Any]) -> HelpersTestApp:
         """
         Called from the parent class, so we can provide the appropriate flask
         app for this test case.

@@ -6,7 +6,7 @@ from typing import Any
 from xml.etree.ElementTree import ParseError
 
 from dateutil.parser import parse as dt_parse
-from flask import abort, make_response, redirect, request
+from flask import abort, make_response, redirect
 from saml2 import BINDING_HTTP_POST, BINDING_HTTP_REDIRECT
 from saml2.client import Saml2Client
 from saml2.config import SPConfig
@@ -23,7 +23,7 @@ from eduid.userdb.exceptions import MultipleUsersReturned, UserDoesNotExist
 from eduid.userdb.user import User
 from eduid.webapp.authn.app import current_authn_app as current_app
 from eduid.webapp.common.api.errors import EduidErrorsContext, goto_errors_response
-from eduid.webapp.common.api.utils import sanitise_redirect_url, sanitize_for_log
+from eduid.webapp.common.api.utils import sanitize_for_log
 from eduid.webapp.common.authn.cache import IdentityCache, OutstandingQueriesCache, StateCache
 from eduid.webapp.common.authn.session_info import SessionInfo
 from eduid.webapp.common.authn.utils import get_saml_attribute
@@ -237,9 +237,7 @@ def saml_logout(sp_config: SPConfig, user: User, location: str) -> WerkzeugRespo
     # loresponse is a dict for REDIRECT binding, and LogoutResponse for SOAP binding
     if isinstance(loresponse, LogoutResponse):
         if loresponse.status_ok():
-            location = sanitise_redirect_url(
-                request.form.get("RelayState", location), current_app.conf.saml2_logout_redirect_url
-            )
+            # location is already sanitised by the only caller, the GET-only /logout view
             return redirect(location)
         else:
             logger.error(f"The logout response was not OK: {loresponse}")
@@ -294,7 +292,7 @@ def process_assertion(
             _ctx = e.args[0]
         return goto_errors_response(
             current_app.conf.errors_url_template,
-            ctx=EduidErrorsContext.SAML_RESPONSE_FAIL,
+            ctx=_ctx,
             rp=current_app.conf.app_name,
         )
 

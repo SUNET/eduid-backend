@@ -4,6 +4,7 @@ A microservice to serve static file(s) - based on a simular microservice in InAc
 
 import logging
 import mimetypes
+import os
 from typing import Any
 
 from satosa.context import Context
@@ -54,7 +55,12 @@ class ServeStatic(RequestMicroService):  # type: ignore[misc]
         target = path[len(endpoint) + 1 :]
         status = "200 OK"
 
-        file = f"{self.locations[endpoint]}/{target}"
+        base = os.path.realpath(self.locations[endpoint])
+        file = os.path.realpath(os.path.join(base, target))
+        if file != base and not file.startswith(base + os.sep):
+            logger.warning(f"{self.logprefix} rejected path traversal attempt: {endpoint!r} - {target!r}")
+            return Response(b"File not found", content="text/html", status="404 Not Found")
+
         try:
             with open(file, "rb") as f:
                 response = f.read()

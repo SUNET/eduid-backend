@@ -18,8 +18,6 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class ResetPasswordState:
-    """ """
-
     eppn: str
     id: bson.ObjectId = field(default_factory=bson.ObjectId)
     reference: str = field(init=False)
@@ -28,6 +26,9 @@ class ResetPasswordState:
     modified_ts: datetime.datetime | None = None
     extra_security: dict[str, Any] | None = None
     generated_password: bool = False
+    # Number of incorrect email_code submissions against this state. Capped by
+    # ResetPasswordConfig.email_code_max_bad_attempts.
+    bad_attempts: int = 0
 
     def __post_init__(self) -> None:
         self.reference = str(self.id)
@@ -69,16 +70,12 @@ class ResetPasswordState:
 
 @dataclass
 class _ResetPasswordEmailStateRequired:
-    """ """
-
     email_address: str
     email_code: CodeElement
 
 
 @dataclass
 class ResetPasswordEmailState(ResetPasswordState, _ResetPasswordEmailStateRequired):
-    """ """
-
     email_reference: str = field(default_factory=lambda: str(uuid4()))
 
     def __post_init__(self) -> None:
@@ -94,16 +91,12 @@ class ResetPasswordEmailState(ResetPasswordState, _ResetPasswordEmailStateRequir
 
 @dataclass
 class _ResetPasswordEmailAndPhoneStateRequired:
-    """ """
-
     phone_number: str
     phone_code: CodeElement
 
 
 @dataclass
 class ResetPasswordEmailAndPhoneState(ResetPasswordEmailState, _ResetPasswordEmailAndPhoneStateRequired):
-    """ """
-
     def __post_init__(self) -> None:
         super().__post_init__()
         self.method = "email_and_phone"

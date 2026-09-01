@@ -22,7 +22,8 @@ class SupportAppTests(EduidAPITestCase[SupportApp]):
         self.client = self.app.test_client()
         self.update_test_user()
 
-    def load_app(self, config: Mapping[str, Any]) -> SupportApp:
+    @classmethod
+    def load_app(cls, config: Mapping[str, Any]) -> SupportApp:
         """
         Called from the parent class, so we can provide the appropriate flask
         app for this test case.
@@ -30,8 +31,9 @@ class SupportAppTests(EduidAPITestCase[SupportApp]):
         return support_init_app("testing", config)
 
     @pytest.fixture(scope="class")
-    def update_config(self) -> dict[str, Any]:
-        config = self._get_base_config()
+    @classmethod
+    def update_config(cls) -> dict[str, Any]:
+        config = cls._get_base_config()
         config.update(
             {
                 "support_personnel": ["hubba-bubba"],

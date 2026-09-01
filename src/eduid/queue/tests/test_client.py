@@ -1,5 +1,6 @@
 from collections.abc import Iterator
 from datetime import timedelta
+from typing import Any
 
 import pytest
 
@@ -30,6 +31,57 @@ class TestClient:
         loaded_message_dict = QueueItem.from_dict(item.to_dict()).to_dict()
         assert normalised_data(item.to_dict()) == normalised_data(loaded_message_dict)
         assert normalised_data(payload.to_dict()) == normalised_data(item.payload.to_dict())
+
+    @staticmethod
+    def _queue_item(**overrides: Any) -> QueueItem:
+        payload = TestPayload(message="this is a test payload")
+        defaults: dict[str, Any] = {
+            "version": 1,
+            "expires_at": utc_now() + timedelta(days=180),
+            "discard_at": utc_now() + timedelta(days=187),
+            "sender_info": SenderInfo(hostname="testhost", node_id="userdb@testhost"),
+            "payload_type": payload.get_type(),
+            "payload": payload,
+        }
+        return QueueItem(**(defaults | overrides))
+
+    def test_queue_item_round_trip_preserves_created_ts(self) -> None:
+        """created_ts has a utc_now() default_factory, so from_dict must restore it explicitly.
+
+        Asserted on the exact value rather than via normalised_data, which truncates microseconds
+        and so only caught a dropped created_ts when the round trip happened to straddle a whole
+        second - making a real bug look like a flaky test on loaded CI runners.
+        """
+        created_ts = utc_now() - timedelta(hours=3)
+        item = self._queue_item(created_ts=created_ts)
+
+        assert QueueItem.from_dict(item.to_dict()).created_ts == created_ts
+
+    def test_queue_item_round_trip_preserves_retries(self) -> None:
+        """retries defaults to 0, so from_dict must restore it explicitly.
+
+        Without this the worker's retry counter reset on every load and never reached max_retries,
+        so a failing item was requeued indefinitely.
+        """
+        item = self._queue_item(retries=7)
+
+        assert QueueItem.from_dict(item.to_dict()).retries == 7
+
+    def test_queue_item_from_dict_defaults_retries_for_documents_without_it(self) -> None:
+        """Documents written before retries existed must still load, defaulting to 0."""
+        payload = TestPayload(message="this is a test payload")
+        item = QueueItem(
+            version=1,
+            expires_at=utc_now() + timedelta(days=180),
+            discard_at=utc_now() + timedelta(days=187),
+            sender_info=SenderInfo(hostname="testhost", node_id="userdb@testhost"),
+            payload_type=payload.get_type(),
+            payload=payload,
+        )
+        data = item.to_dict()
+        del data["retries"]
+
+        assert QueueItem.from_dict(data).retries == 0
 
 
 class TestMessage:

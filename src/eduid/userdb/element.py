@@ -287,6 +287,9 @@ class ElementList[ListElement: Element](BaseModel, ABC):
         # Ensure no elements have duplicate keys
         for this in values:
             if not isinstance(this, Element):
+                # ValueError, not TypeError: this runs inside a pydantic validator (via
+                # _validate_element_values), and pydantic only turns ValueError and
+                # AssertionError into a ValidationError. TRY004 is ignored for this file.
                 raise ValueError(f"Value is of type {type(this)} which is not an Element subclass")
             same_key = [x for x in values if x.key == this.key]
             if len(same_key) != 1:
@@ -294,7 +297,7 @@ class ElementList[ListElement: Element](BaseModel, ABC):
         return values
 
     @classmethod
-    def from_list_of_dicts[T: ElementList[Any]](cls: type[T], items: list[dict[str, Any]]) -> T:
+    def from_list_of_dicts(cls, items: list[dict[str, Any]]) -> Self:
         # must be implemented by subclass to get correct type information
         raise NotImplementedError()
 

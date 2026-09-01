@@ -3,7 +3,6 @@ from eduid.webapp.email.helpers import EmailMsg
 
 class MessagesTests:
     def test_messages(self) -> None:
-        """"""
         assert EmailMsg.missing.value == "emails.missing"
         assert EmailMsg.dupe.value == "emails.duplicated"
         assert EmailMsg.get_success.value == "emails.get-success"

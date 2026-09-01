@@ -29,7 +29,8 @@ class LookupMobileProofingTests(EduidAPITestCase[MobileProofingApp]):
         fifteen_years_ago = utc_now() - timedelta(days=15 * 365)
         self.test_user_nin_underage = f"{fifteen_years_ago.year}01023456"
 
-    def load_app(self, config: Mapping[str, Any]) -> MobileProofingApp:
+    @classmethod
+    def load_app(cls, config: Mapping[str, Any]) -> MobileProofingApp:
         """
         Called from the parent class, so we can provide the appropriate flask
         app for this test case.
@@ -37,8 +38,9 @@ class LookupMobileProofingTests(EduidAPITestCase[MobileProofingApp]):
         return init_lookup_mobile_proofing_app("testing", config)
 
     @pytest.fixture(scope="class")
-    def update_config(self) -> dict[str, Any]:
-        config = self._get_base_config()
+    @classmethod
+    def update_config(cls) -> dict[str, Any]:
+        config = cls._get_base_config()
         config.update(
             {
                 "environment": "dev",

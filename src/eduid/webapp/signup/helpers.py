@@ -471,7 +471,7 @@ def complete_and_update_invite(user: User, invite_code: str) -> None:
 
     if invite.invite_type == InviteType.SCIM:
         if not isinstance(invite.invite_reference, SCIMReference):
-            raise RuntimeError("Invite reference is not a SCIMReference")
+            raise TypeError("Invite reference is not a SCIMReference")
 
         scim_user = update_or_create_scim_user(invite=invite, signup_user=signup_user)
         # add scim profile to eduid user
@@ -502,7 +502,7 @@ def complete_and_update_invite(user: User, invite_code: str) -> None:
 
 def update_or_create_scim_user(invite: Invite, signup_user: SignupUser) -> UserResponse:
     if not isinstance(invite.invite_reference, SCIMReference):
-        raise RuntimeError("Invite reference is not a SCIMReference")
+        raise TypeError("Invite reference is not a SCIMReference")
 
     with current_app.get_scim_client_for(data_owner=invite.invite_reference.data_owner) as client:
         # update scim invite and create/update scim user

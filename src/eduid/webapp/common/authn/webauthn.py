@@ -74,7 +74,7 @@ def make_credentials(creds: Sequence[FidoCredential]) -> list[AttestedCredential
                 cred.keyhandle.encode("ascii"), cred.public_key.encode("ascii")
             )
         else:
-            raise ValueError(f"Unknown credential {cred!r}")
+            raise TypeError(f"Unknown credential {cred!r}")
         credentials.append(credential_data)
     return credentials
 

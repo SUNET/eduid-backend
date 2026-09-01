@@ -146,7 +146,6 @@ class MessageTests:
 
 class MessagesTests:
     def test_messages(self) -> None:
-        """"""
         assert CommonMsg.temp_problem.value == "Temporary technical problems"
         assert CommonMsg.form_errors.value == "form-errors"
         assert CommonMsg.out_of_sync.value == "user-out-of-sync"

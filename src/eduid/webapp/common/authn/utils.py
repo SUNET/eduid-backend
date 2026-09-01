@@ -241,7 +241,7 @@ def check_reauthn(
 
     conf = current_app.conf
     if not isinstance(conf, FrontendActionMixin):
-        raise RuntimeError(f"Could not find conf in {current_app}")
+        raise TypeError(f"conf for {current_app} is not a {FrontendActionMixin.__name__}")
 
     authn_status = validate_authn_for_action(
         config=conf, frontend_action=frontend_action, credential_requested=credential_requested, user=user

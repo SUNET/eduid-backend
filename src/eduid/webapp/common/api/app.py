@@ -119,8 +119,30 @@ class EduIDBaseApp(Flask, metaclass=ABCMeta):
             self.logger.debug(f"Profiler settings: {config.profiling}")
 
     @property
+    def has_central_userdb(self) -> bool:
+        """
+        Whether this app was initialised with access to the central user db.
+
+        Use this to test for availability. Accessing central_userdb on an app that was
+        created with init_central_userdb=False raises, so it must not be used as a probe.
+
+        :returns: True if central_userdb is available
+        """
+        return self._central_userdb is not None
+
+    @property
     def central_userdb(self) -> AmDB:
-        if not isinstance(self._central_userdb, AmDB):
+        """
+        The central user db.
+
+        Raises RuntimeError for apps created with init_central_userdb=False - check
+        has_central_userdb first if the app may be one of those. The condition is an
+        uninitialised attribute rather than a wrong type, so RuntimeError is deliberate
+        here and TypeError would be wrong.
+
+        :returns: The central user db
+        """
+        if self._central_userdb is None:
             raise RuntimeError("Central userdb not initialised")
         return self._central_userdb
 

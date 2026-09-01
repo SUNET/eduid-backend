@@ -25,7 +25,7 @@ def verify_identity_action(user: User, args: ACSArgs) -> ACSResult:
         return ACSResult(message=parsed.error)
 
     if not isinstance(parsed.info, SvipeDocumentUserInfo):
-        raise RuntimeError(f"unexpected parsed.info type: {type(parsed.info).__name__}")
+        raise TypeError(f"unexpected parsed.info type: {type(parsed.info).__name__}")
 
     proofing = get_proofing_functions(
         session_info=parsed.info, app_name=current_app.conf.app_name, config=current_app.conf, backdoor=args.backdoor

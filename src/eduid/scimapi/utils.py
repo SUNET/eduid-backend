@@ -28,7 +28,7 @@ def b64_decode[AnyStr: (bytes, str)](data: AnyStr) -> bytes:
     elif isinstance(data, bytes):
         _data = data
     else:
-        raise ValueError("b64_decode needs either str or bytes")
+        raise TypeError("b64_decode needs either str or bytes")
     _data += b"=" * (len(_data) % 4)
     return base64.urlsafe_b64decode(_data)
 

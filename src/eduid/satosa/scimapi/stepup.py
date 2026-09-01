@@ -476,7 +476,7 @@ class StepUp(ResponseMicroService):  # type: ignore[misc]
         if not isinstance(res, Response):
             # process() is a chain of calls to microservices. The last one in the chain will always return a Response,
             # but the call signature have to allow the InternalData to be returned as well.
-            raise RuntimeError("Unexpected response type")
+            raise TypeError("Unexpected response type")
         return res
 
     def _metadata_endpoint(self, context: satosa.context.Context, extra: object) -> CallbackReturnType:

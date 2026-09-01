@@ -8,8 +8,6 @@ __author__ = "ft"
 
 
 class PhoneNumber(PrimaryElement):
-    """ """
-
     number: str
 
     @property

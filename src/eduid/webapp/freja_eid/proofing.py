@@ -96,7 +96,7 @@ class FrejaEIDProofingFunctions(ProofingFunctions[FrejaEIDDocumentUserInfo]):
         if proofing_log_entry.error:
             return VerifyUserResult(error=proofing_log_entry.error)
         if not isinstance(proofing_log_entry.data, NinProofingLogElement):
-            raise RuntimeError(f"unexpected proofing_log_entry.data type: {type(proofing_log_entry.data).__name__}")
+            raise TypeError(f"unexpected proofing_log_entry.data type: {type(proofing_log_entry.data).__name__}")
 
         # Verify NIN for user
         date_of_birth = self.session_info.date_of_birth
@@ -174,7 +174,7 @@ class FrejaEIDProofingFunctions(ProofingFunctions[FrejaEIDDocumentUserInfo]):
         if proofing_log_entry.error:
             return VerifyUserResult(error=proofing_log_entry.error)
         if not isinstance(proofing_log_entry.data, FrejaEIDForeignProofing):
-            raise RuntimeError(f"unexpected proofing_log_entry.data type: {type(proofing_log_entry.data).__name__}")
+            raise TypeError(f"unexpected proofing_log_entry.data type: {type(proofing_log_entry.data).__name__}")
 
         # update the users names from the verified identity
         proofing_user = set_user_names_from_foreign_id(proofing_user, proofing_log_entry.data)

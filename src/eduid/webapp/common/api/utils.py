@@ -1,6 +1,6 @@
 import logging
-import os
 import re
+import secrets
 from datetime import datetime, timedelta
 from typing import TYPE_CHECKING, Any, cast
 from urllib.parse import urlparse
@@ -43,8 +43,7 @@ def get_unique_hash() -> str:
 
 def make_short_code(digits: int = 6) -> str:
     """Make a short decimal code, left-padded with zeros to the width specified by `digits'."""
-    code = int.from_bytes(os.urandom(4), byteorder="big") % 1000000
-    return str(code).zfill(digits)
+    return str(secrets.randbelow(10**digits)).zfill(digits)
 
 
 def update_modified_ts(user: User) -> None:
@@ -232,16 +231,32 @@ def sanitise_redirect_url(redirect_url: str | None, safe_default: str = "/") -> 
     logger.debug(f"Checking if redirect_url {redirect_url} is safe")
     url_scheme = get_from_current_app("conf", EduIDBaseAppConfig).flask.preferred_url_scheme
     safe_domain = get_from_current_app("conf", Pysaml2SPConfigMixin).safe_relay_domain
-    parsed_relay_state = urlparse(redirect_url)
+    # Browsers treat backslashes as forward slashes, so "/\evil.com" would parse here as a
+    # safe path-only URL while actually being an open redirect to //evil.com. Normalise
+    # backslashes to forward slashes before parsing so urlparse sees the real netloc.
+    normalised_relay_state = redirect_url.replace("\\", "/")
+    parsed_relay_state = urlparse(normalised_relay_state)
 
-    # If relay state is only a path
-    if (not parsed_relay_state.scheme and not parsed_relay_state.netloc) and parsed_relay_state.path:
+    # If relay state is only a path, rooted at exactly one slash. Browsers collapse any run of
+    # leading slashes (and backslashes) into the "//" that starts an authority, so "///evil.com"
+    # is an open redirect to evil.com. urlparse() does not agree: it consumes two slashes into an
+    # empty netloc and reports path="/evil.com", so the leading slashes have to be counted in the
+    # normalised input rather than in the parsed path.
+    if (
+        not parsed_relay_state.scheme
+        and not parsed_relay_state.netloc
+        and normalised_relay_state.startswith("/")
+        and not normalised_relay_state.startswith("//")
+    ):
         logger.debug(f"redirect_url {redirect_url} with only a path is considered safe")
         return redirect_url
 
-    # If schema matches PREFERRED_URL_SCHEME and fqdn ends with dot SAFE_RELAY_DOMAIN or equals SAFE_RELAY_DOMAIN
+    # If schema matches PREFERRED_URL_SCHEME and fqdn ends with dot SAFE_RELAY_DOMAIN or equals SAFE_RELAY_DOMAIN.
+    # Compare hostname rather than netloc, as netloc also holds any userinfo and port, and hostname
+    # is lowercased by urlparse() so the comparison is not case sensitive.
     if parsed_relay_state.scheme == url_scheme:
-        if parsed_relay_state.netloc.endswith("." + safe_domain) or parsed_relay_state.netloc == safe_domain:
+        _host = parsed_relay_state.hostname or ""
+        if _host == safe_domain or _host.endswith("." + safe_domain):
             logger.debug(f'redirect_url {redirect_url} to safe_domain "{safe_domain}" is considered safe')
             return redirect_url
 

@@ -114,7 +114,8 @@ class SvipeIdTests(ProofingTests[SvipeIdApp]):
             "acr_values_supported": ["face_present", "document_present", "face_and_document_present"],
         }
 
-    def load_app(self, config: dict[str, Any]) -> SvipeIdApp:
+    @classmethod
+    def load_app(cls, config: dict[str, Any]) -> SvipeIdApp:
         """
         Called from the parent class, so we can provide the appropriate flask
         app for this test case.
@@ -122,8 +123,9 @@ class SvipeIdTests(ProofingTests[SvipeIdApp]):
         return svipe_id_init_app("testing", config)
 
     @pytest.fixture(scope="class")
-    def update_config(self) -> dict[str, Any]:
-        config = self._get_base_config()
+    @classmethod
+    def update_config(cls) -> dict[str, Any]:
+        config = cls._get_base_config()
         config.update(
             {
                 "svipe_client": {

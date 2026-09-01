@@ -24,8 +24,8 @@ def get_code() -> str:
             result = f"dummy-code-for-{eppn}"
             current_app.logger.info(f"Endpoint get_code result: {result}")
             return result
-    except Exception as e:
-        current_app.logger.exception(f"get_code failed: {e}")
+    except Exception:
+        current_app.logger.exception("get_code failed")
 
     current_app.logger.info("Endpoint get_code aborting with a HTTP 400 error")
     abort(400)
@@ -49,8 +49,9 @@ class BackdoorTests(EduidAPITestCase[BackdoorTestApp]):
         self.test_app_domain = "test.localhost"
 
     @pytest.fixture(scope="class")
-    def update_config(self) -> dict[str, Any]:
-        config = self._get_base_config()
+    @classmethod
+    def update_config(cls) -> dict[str, Any]:
+        config = cls._get_base_config()
         config.update(
             {
                 "available_languages": {"en": "English", "sv": "Svenska"},
@@ -62,7 +63,8 @@ class BackdoorTests(EduidAPITestCase[BackdoorTestApp]):
         )
         return config
 
-    def load_app(self, config: Mapping[str, Any]) -> BackdoorTestApp:
+    @classmethod
+    def load_app(cls, config: Mapping[str, Any]) -> BackdoorTestApp:
         """
         Called from the parent class, so we can provide the appropriate flask app for this test case.
         """
@@ -73,13 +75,11 @@ class BackdoorTests(EduidAPITestCase[BackdoorTestApp]):
         return app
 
     def test_backdoor_get_code(self) -> None:
-        """"""
         with self.session_cookie_and_magic_cookie_anon(self.browser) as client:
             response = client.get(self.test_get_url)
             assert response.data == b"dummy-code-for-pepin-pepon"
 
     def test_no_backdoor_in_pro(self) -> None:
-        """"""
         self.app.conf.environment = EduidEnvironment("production")
 
         with self.session_cookie_and_magic_cookie_anon(self.browser) as client:
@@ -87,19 +87,16 @@ class BackdoorTests(EduidAPITestCase[BackdoorTestApp]):
             assert response.status_code == 400
 
     def test_no_backdoor_without_cookie(self) -> None:
-        """"""
         with self.session_cookie_anon(self.browser) as client:
             response = client.get(self.test_get_url)
             assert response.status_code == 400
 
     def test_wrong_cookie_no_backdoor(self) -> None:
-        """"""
         with self.session_cookie_and_magic_cookie_anon(self.browser, magic_cookie_value="no-magic") as client:
             response = client.get(self.test_get_url)
             assert response.status_code == 400
 
     def test_no_magic_cookie_no_backdoor(self) -> None:
-        """"""
         self.app.conf.magic_cookie = ""
 
         with self.session_cookie_and_magic_cookie_anon(self.browser) as client:
@@ -107,7 +104,6 @@ class BackdoorTests(EduidAPITestCase[BackdoorTestApp]):
             assert response.status_code == 400
 
     def test_no_magic_cookie_name_no_backdoor(self) -> None:
-        """"""
         self.app.conf.magic_cookie_name = ""
 
         with self.session_cookie_and_magic_cookie_anon(self.browser, magic_cookie_name="wrong_name") as client:

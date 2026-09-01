@@ -93,7 +93,7 @@ def check_state(state: LetterProofingState) -> StateExpireInfo:
     current_app.logger.info(f"Letter is sent for user with eppn {state.eppn!s}")
     # Check how long ago the letter was sent
     sent_dt = state.proofing_letter.sent_ts
-    if not isinstance(sent_dt, datetime):
+    if sent_dt is None:
         raise ValueError("SentLetterElement must have a datetime sent_ts attr if is_sent is True")
 
     expires_at = sent_dt + timedelta(hours=current_app.conf.letter_wait_time_hours)

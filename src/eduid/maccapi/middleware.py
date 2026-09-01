@@ -50,7 +50,7 @@ class AuthenticationMiddleware(BaseHTTPMiddleware, ContextRequestMixin):
             )
 
         _token = auth[len("Bearer ") :]
-        self.context.logger.info(f"Bearer token: {_token}")
+        self.context.logger.debug(f"Bearer token: {_token}")
         _jwt = jwt.JWT()
         try:
             _jwt.deserialize(_token, request.app.context.jwks)

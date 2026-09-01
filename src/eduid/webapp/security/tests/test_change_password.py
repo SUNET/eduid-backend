@@ -28,7 +28,8 @@ class ChangePasswordTests(EduidAPITestCase[SecurityApp]):
         self.test_user_email = "johnsmith@example.com"
         self.test_user_nin = "197801011235"
 
-    def load_app(self, config: Mapping[str, Any]) -> SecurityApp:
+    @classmethod
+    def load_app(cls, config: Mapping[str, Any]) -> SecurityApp:
         """
         Called from the parent class, so we can provide the appropriate flask
         app for this test case.
@@ -36,8 +37,9 @@ class ChangePasswordTests(EduidAPITestCase[SecurityApp]):
         return security_init_app("testing", config)
 
     @pytest.fixture(scope="class")
-    def update_config(self) -> dict[str, Any]:
-        config = self._get_base_config()
+    @classmethod
+    def update_config(cls) -> dict[str, Any]:
+        config = cls._get_base_config()
         config.update(
             {
                 "available_languages": {"en": "English", "sv": "Svenska"},

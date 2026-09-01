@@ -55,13 +55,13 @@ class ScimApiLinkedAccount:
     def from_dict(cls: type[Self], data: Mapping[str, Any]) -> Self:
         _issuer = data.get("issuer")
         if not isinstance(_issuer, str):
-            raise ValueError("ScimApiLinkedAccount.issuer must be a string")
+            raise TypeError("ScimApiLinkedAccount.issuer must be a string")
         _value = data.get("value")
         if not isinstance(_value, str):
-            raise ValueError("ScimApiLinkedAccount.value must be a string")
+            raise TypeError("ScimApiLinkedAccount.value must be a string")
         _parameters = data.get("parameters")
         if not isinstance(_parameters, dict):
-            raise ValueError("ScimApiLinkedAccount.parameters must be a dict")
+            raise TypeError("ScimApiLinkedAccount.parameters must be a dict")
         return cls(issuer=_issuer, value=_value, parameters=_parameters)
 
 
