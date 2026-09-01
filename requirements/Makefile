@@ -32,8 +32,10 @@ satosa_scim_requirements.txt: $(PYPROJECT) FORCE
 	CUSTOM_COMPILE_COMMAND="make update_deps" $(PIPCOMPILE) $(PYPROJECT) --extra satosa-scim -o $@
 
 # Full test and development environment, including all extras used in tests.
+# Normalize the generated group annotation to a stable relative path.
 test_requirements.txt: $(PYPROJECT) FORCE
 	CUSTOM_COMPILE_COMMAND="make update_deps" $(PIPCOMPILE) $(PYPROJECT) --all-extras --group test -o $@
+	sed -i 's|$(abspath $(PYPROJECT)):test|$(PYPROJECT):test|g' $@
 
 # Dependencies needed by the Flask webapp components.
 webapp_requirements.txt: $(PYPROJECT) FORCE
