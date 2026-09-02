@@ -93,3 +93,4 @@ This does not mean the repo now has a publishing workflow.
 ## More Detail
 
 See [doc/development.md](doc/development.md) for the fuller development guide.
+See [doc/environment-workflow-equivalence.md](doc/environment-workflow-equivalence.md) for how local IDEs, devcontainers, CI, and production-oriented installs map to the same repo workflow.
