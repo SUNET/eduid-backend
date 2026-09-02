@@ -32,7 +32,8 @@ These files define most of the behavior:
 - `.devcontainer/devcontainer.json`
   - Runs the same bootstrap flow as local development, but in `.venv-devcontainer`
 - `.github/workflows/run-tests.yaml`
-  - Uses the same repo bootstrap and the same `Makefile` targets in GitHub Actions
+  - Uses the same repo bootstrap and the same `Makefile` test and typecheck targets in GitHub Actions
+  - Uses a pinned Ruff GitHub Action for lint instead of `make lint`
 
 ## How Each Environment Uses The Same Workflow
 
@@ -110,7 +111,13 @@ It does this by:
 6. Activating `.venv`
 7. Running `make test` or `make typecheck`
 
-This is the strongest equivalence in the repo because it is literal command reuse. CI does not have a special hidden setup script for the main validation jobs; it runs the same bootstrap target and the same `Makefile` commands developers run locally.
+This is the strongest equivalence in the repo because it reuses the same bootstrap target and the same `Makefile` test and typecheck commands that developers run locally.
+
+The differences are explicit:
+
+- lint runs through the pinned Ruff GitHub Action rather than `make lint`
+- the runner selects Python through `actions/setup-python` before the repo bootstrap runs
+- the runner installs apt packages non-interactively before bootstrap and then executes the repo commands inside a clean GitHub-hosted environment
 
 There is also a separate CodeQL workflow in `.github/workflows/codeql-analysis.yml`. That workflow is not the same as the bootstrap-driven test workflow. It is static analysis infrastructure, not the primary runtime or developer environment contract.
 
@@ -198,6 +205,6 @@ PyCharm and VS Code are equivalent because both are expected to point at the sam
 
 The devcontainer is equivalent because it runs the same repo bootstrap and the same `Makefile` commands, but inside a container and with a separate virtualenv path.
 
-GitHub Actions is equivalent because it literally reuses the same bootstrap target and validation commands on a clean runner.
+GitHub Actions is equivalent for bootstrap, test, and typecheck because it reuses the same repo bootstrap target and validation commands on a clean runner. It differs for lint, which runs through the Ruff GitHub Action instead of `make lint`.
 
 Production is equivalent more narrowly: it should be built from the same Python and dependency definitions, but with runtime-only lockfiles rather than the full development and test environment.
