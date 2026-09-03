@@ -164,7 +164,6 @@ ignore = [
   # block is expected to be empty again in the near future - nothing should
   # linger here. Hit counts as of ruff 0.16.3.
   "BLE001", # blind-except (28)
-  "RET501", # unnecessary-return-none (33)
   "TRY201", # verbose-raise (16)
 ]
 allowed-confusables = ["’", "х"]

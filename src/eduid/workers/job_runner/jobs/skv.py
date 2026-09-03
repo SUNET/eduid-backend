@@ -41,7 +41,7 @@ def check_skv_users(context: Context) -> None:
     user = context.cleaner_queue.get_next_user(CleanerType.SKV)
     if user is None:
         context.logger.debug("Nothing to do")
-        return None
+        return
 
     context.stats.count("skv_users_checked")
     context.logger.debug(f"Checking if user with eppn {user.eppn} should be terminated")
@@ -55,13 +55,13 @@ def check_skv_users(context: Context) -> None:
     except MsgTaskFailed:
         context.logger.critical(f"Failed to get Navet data for user with eppn {user.eppn}")
         # The user will be requeued for a new check by the next run of gather_skv_users
-        return None
+        return
 
     # check if user is deregistered
     user_terminated = check_user_deregistered(context=context, user=user, navet_data=navet_data)
     if user_terminated:
         # User terminated, no more checks necessary
-        return None
+        return
     check_user_official_name(context=context, queue_user=user, navet_data=navet_data)
 
 
@@ -99,7 +99,7 @@ def check_user_official_name(context: Context, queue_user: CleanerQueueUser, nav
             f"User with eppn {queue_user.eppn} has no given name or surname in Navet. "
             f"Cannot update the official name in the central db."
         )
-        return None
+        return
 
     # Update the user from the central db as they might have updated their name since being placed in the queue.
     user = context.central_db.get_user_by_eppn(queue_user.eppn)
@@ -108,7 +108,7 @@ def check_user_official_name(context: Context, queue_user: CleanerQueueUser, nav
     # If the names are the same, do nothing.
     if user.given_name == navet_data.person.name.given_name and user.surname == navet_data.person.name.surname:
         context.logger.debug(f"User with eppn {user.eppn} has the same name in Navet and in the central db")
-        return None
+        return
 
     context.logger.info(
         f"User with eppn {user.eppn} has a different name in Navet than in the central db. "
@@ -141,12 +141,11 @@ def check_user_official_name(context: Context, queue_user: CleanerQueueUser, nav
     if not context.proofing_log.save(proofing_log_entry):
         context.logger.error("Proofing log write failed")
         context.logger.debug(f"proofing_log_entry: {proofing_log_entry}")
-        return None
+        return
 
     context.logger.info("Recorded verification in the proofing log")
     save_and_sync_user(context, user)
     context.stats.count(name="skv_name_updated")
-    return None
 
 
 def terminate_user(context: Context, queue_user: CleanerQueueUser) -> None:
@@ -156,7 +155,7 @@ def terminate_user(context: Context, queue_user: CleanerQueueUser) -> None:
     if context.dry_run:
         context.logger.info(f"Dry run: Would terminate user with eppn {queue_user.eppn}")
         context.logger.debug(f"CleanerQueueUser: {queue_user!r}")
-        return None
+        return
     user = context.central_db.get_user_by_eppn(queue_user.eppn)
     user.terminated = utc_now()
     save_and_sync_user(context, user)

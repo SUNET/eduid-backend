@@ -290,14 +290,13 @@ class IdPAuthn:
         """
         if user.is_managed_account:
             logger.debug("Skipping logging to the authn store for managed accounts")
-            return None
+            return
         if not self.authn_store:  # requires optional configuration
-            return None
+            return
         if success:
             self.authn_store.credential_success(success)
         if success or failure:
             self.authn_store.update_user(user.user_id, success, failure)
-        return None
 
 
 class AuthnInfoStore:

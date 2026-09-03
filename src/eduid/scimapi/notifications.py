@@ -47,7 +47,7 @@ class NotificationRelay:
         _urls = self._urls_for(data_owner)
         if not _urls:
             context.logger.debug(f"No notification urls for data owner {data_owner}")
-            return None
+            return
         for post_url in _urls:
             payload = EduidSCIMAPINotification(data_owner=data_owner, message=message, post_url=post_url)
             item = QueueItem(

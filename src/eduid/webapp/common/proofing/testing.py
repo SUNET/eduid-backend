@@ -105,7 +105,7 @@ class ProofingTests[T: EduIDBaseApp](EduidAPITestCase[T]):
                 assert (user_identity is None or user_identity.unique_value != identity.unique_value) is True, (
                     f"identity {identity} not expected to be present on user"
                 )
-                return None
+                return
             assert user_identity is not None, f"identity {identity} not present on user"
             assert user_identity.unique_value == identity.unique_value, (
                 "user_identity.unique_value != identity.unique_value"

@@ -180,7 +180,6 @@ def put_user(api: Api, scim_id: str, nutid_data: Mapping[str, Any]) -> None:
         requests.put, f"{api.url}/Users/{scim_id}", data=scim, headers=headers, token=api.token, verify=api.verify
     )
     logger.info(f"Update result:\n{json.dumps(res, sort_keys=True, indent=4)}")
-    return None
 
 
 def put_group(api: Api, scim_id: str, data: dict[str, Any]) -> None:
@@ -226,11 +225,11 @@ def post_event(
         resource = get_group_resource(api=api, scim_id=resource_scim_id)
     else:
         logger.warning(f"No event created for resource type {resource_type} - not implemented.")
-        return None
+        return
 
     if resource is None:
         logger.error(f"Event resource {resource_type} {resource_scim_id} not found.")
-        return None
+        return
 
     event = {
         "resource": {

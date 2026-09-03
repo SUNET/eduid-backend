@@ -148,7 +148,7 @@ class VCCSSoftHasher(VCCSHasher):
             self.keys[k] = unhexlify(v)
 
     def unlock(self) -> None:
-        return None
+        """Nothing to unlock - the keys are plain bytes, loaded from config in __init__."""
 
     def info(self) -> str:
         return f"key handles loaded: {list(self.keys.keys())}"
@@ -213,7 +213,7 @@ class VCCSHSMKeyHasher(VCCSHasher):
         """
         Initialize the HSMKey-based hasher.
 
-        :param config: HSMConfig with module_path, token_label, and user_pin
+        :param config: HSMKeyConfig with module_path, token_label, and user_pin
         :param lock: Lock for thread-safe HSM access
         :param debug: Enable debug logging
         """
@@ -235,15 +235,7 @@ class VCCSHSMKeyHasher(VCCSHasher):
         )
 
     def unlock(self) -> None:
-        """
-        Unlock is handled via user_pin in config for PKCS#11.
-
-        This method exists for API compatibility but PKCS#11 authentication
-        is done when opening sessions with the PIN provided in config.
-        """
-        # PKCS#11 uses PIN authentication when opening sessions
-        # The PIN is already configured via HSMConfig.user_pin
-        return None
+        """Nothing to unlock - PKCS#11 authenticates per session, using user_pin from HSMKeyConfig."""
 
     def info(self) -> str:
         """Return information about the HSM connection."""

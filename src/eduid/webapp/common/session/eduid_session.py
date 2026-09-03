@@ -481,7 +481,7 @@ class SessionFactory(SessionInterface):
             # Do not try to save the session and set the cookie if the session is not initialized
             # We have seen this happen...
             logger.warning(f"Session was not initialized when reaching save_session: sess={session}")
-            return None
+            return
         try:
             session.persist()
         except SessionOutOfSync:
