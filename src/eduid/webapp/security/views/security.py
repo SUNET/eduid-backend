@@ -2,6 +2,7 @@ from flask import Blueprint
 
 from eduid.common.config.base import FrontendAction
 from eduid.common.misc.timeutil import utc_now
+from eduid.common.proofing_utils import get_official_given_name, get_official_surname
 from eduid.common.rpc.exceptions import AmTaskFailed
 from eduid.userdb import User
 from eduid.userdb.credentials import FidoCredential
@@ -244,7 +245,7 @@ def refresh_user_data(user: User) -> FluxData:
     navet_data = current_app.msg_relay.get_all_navet_data(security_user.identities.nin.number)
     current_app.logger.debug(f"Navet data: {navet_data}")
 
-    if navet_data.person.name.given_name is None or navet_data.person.name.surname is None:
+    if get_official_given_name(navet_data.person.name) is None or get_official_surname(navet_data.person.name) is None:
         current_app.logger.info("Navet data incomplete for user")
         current_app.logger.debug(
             f"_given_name: {navet_data.person.name.given_name}, _surname: {navet_data.person.name.surname}"
