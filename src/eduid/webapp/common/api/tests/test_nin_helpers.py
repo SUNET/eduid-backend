@@ -7,7 +7,7 @@ from pytest_mock import MockerFixture
 
 from eduid.common.config.base import EduIDBaseAppConfig, MsgConfigMixin
 from eduid.common.config.parsers import load_config
-from eduid.common.proofing_utils import get_marked_given_name, get_official_surname
+from eduid.common.proofing_utils import get_marked_given_name, get_official_given_name, get_official_surname
 from eduid.common.rpc.exceptions import NoNavetData
 from eduid.common.rpc.msg_relay import FullPostalAddress, MsgRelay, Name
 from eduid.common.testing_base import MockAmRelay, normalised_data
@@ -608,6 +608,19 @@ class NinHelpersTest(ProofingTests[HelpersTestApp]):
         with self.app.app_context(), pytest.raises(RuntimeError):
             set_user_names_from_nin_proofing(user, proofing_element)
 
+    def test_set_user_names_from_official_address_blank_given_name(self) -> None:
+        user = ProofingUser.from_dict(data=self.test_userdata)
+        navet_response = self.navet_response()
+        navet_response.name.given_name = "   "
+        proofing_element = self._get_nin_navet_proofing_log_entry(
+            user=user,
+            created_by="test",
+            nin="190102031234",
+            navet_data=navet_response,
+        )
+        with self.app.app_context(), pytest.raises(RuntimeError):
+            set_user_names_from_nin_proofing(user, proofing_element)
+
     def test_set_user_names_from_eid(self) -> None:
         user = ProofingUser.from_dict(data=self.test_userdata)
         proofing_element = self._get_nin_eid_proofing_log_entry(
@@ -642,6 +655,18 @@ class NinHelpersTest(ProofingTests[HelpersTestApp]):
 
         assert get_marked_given_name("Jan-Erik Martin", "00") == "Jan-Erik Martin"
         assert get_marked_given_name("Jan-Erik Martin", None) == "Jan-Erik Martin"
+
+    @staticmethod
+    def test_get_official_given_name() -> None:
+        cases: list[tuple[Name, str | None]] = [
+            (Name(given_name="Testaren Test"), "Testaren Test"),
+            (Name(given_name=" Testaren Test "), "Testaren Test"),
+            (Name(given_name="   "), None),
+            (Name(given_name=""), None),
+            (Name(), None),
+        ]
+        for name, expected in cases:
+            assert get_official_given_name(name) == expected, f"Failed for {name}"
 
     @staticmethod
     def test_get_official_surname() -> None:

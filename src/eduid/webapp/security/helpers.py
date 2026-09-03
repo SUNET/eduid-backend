@@ -8,7 +8,11 @@ from fido2.webauthn import AuthenticatorAttachment
 
 from eduid.common.config.base import EduidEnvironment
 from eduid.common.misc.timeutil import utc_now
-from eduid.common.proofing_utils import get_official_surname, set_user_names_from_official_address
+from eduid.common.proofing_utils import (
+    get_official_given_name,
+    get_official_surname,
+    set_user_names_from_official_address,
+)
 from eduid.common.rpc.msg_relay import FullPostalAddress, NavetData
 from eduid.common.utils import generate_password
 from eduid.queue.client import init_queue_item
@@ -207,9 +211,12 @@ def update_user_official_name(security_user: SecurityUser, navet_data: NavetData
         return False
 
     navet_name = navet_data.person.name
-    # Compare current names with what we got from Navet. user.surname holds Navet's surname with
-    # any middle name merged in, so compare against the same merged surname.
-    if security_user.given_name != navet_name.given_name or security_user.surname != get_official_surname(navet_name):
+    official_given_name = get_official_given_name(navet_name)
+    official_surname = get_official_surname(navet_name)
+    # Compare current names with what we got from Navet. user.given_name/surname hold Navet's
+    # given_name/surname stripped (and, for surname, with any middle name merged in), so compare
+    # against the same normalized values.
+    if security_user.given_name != official_given_name or security_user.surname != official_surname:
         user_postal_address = FullPostalAddress(
             name=navet_data.person.name,
             official_address=navet_data.person.postal_addresses.official_address,

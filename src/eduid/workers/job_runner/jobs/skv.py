@@ -1,5 +1,9 @@
 from eduid.common.misc.timeutil import utc_now
-from eduid.common.proofing_utils import get_official_surname, set_user_names_from_official_address
+from eduid.common.proofing_utils import (
+    get_official_given_name,
+    get_official_surname,
+    set_user_names_from_official_address,
+)
 from eduid.common.rpc.exceptions import MsgTaskFailed
 from eduid.common.rpc.msg_relay import FullPostalAddress, NavetData
 from eduid.userdb.identity import IdentityList
@@ -96,7 +100,7 @@ def check_user_official_name(context: Context, queue_user: CleanerQueueUser, nav
     navet_name = navet_data.person.name
 
     # Make sure Navet returned given name and surname
-    if not navet_name.given_name or get_official_surname(navet_name) is None:
+    if get_official_given_name(navet_name) is None or get_official_surname(navet_name) is None:
         context.logger.warning(
             f"User with eppn {queue_user.eppn} has no given name or surname in Navet. "
             f"Cannot update the official name in the central db."
@@ -108,7 +112,7 @@ def check_user_official_name(context: Context, queue_user: CleanerQueueUser, nav
 
     # Compare current names with what we got from Navet and update if necessary.
     # If the names are the same, do nothing.
-    if user.given_name == navet_name.given_name and user.surname == get_official_surname(navet_name):
+    if user.given_name == get_official_given_name(navet_name) and user.surname == get_official_surname(navet_name):
         context.logger.debug(f"User with eppn {user.eppn} has the same name in Navet and in the central db")
         return
 

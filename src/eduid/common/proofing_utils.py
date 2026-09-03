@@ -52,6 +52,22 @@ def get_marked_given_name(given_name: str, given_name_marking: str | None) -> st
         return " ".join(_marked_names)
 
 
+def get_official_given_name(name: Name) -> str | None:
+    """
+    Navet may return a given name that is empty or made up solely of whitespace.
+
+    Use this - never Name.given_name directly - when checking or comparing a stored
+    user.given_name against Navet data.
+
+    :param name: Name as reported by Navet
+
+    :return: The given name, stripped, or None if Navet reported no usable given name
+    """
+    if not name.given_name or not name.given_name.strip():
+        return None
+    return name.given_name.strip()
+
+
 def get_official_surname(name: Name) -> str | None:
     """
     The surname eduID stores for a person is Navet's surname with any middle name (mellannamn)
@@ -78,7 +94,7 @@ def set_user_names_from_official_address[T: User](user: T, proofing_log_entry: N
     :returns: User object
     """
     official_name = proofing_log_entry.user_postal_address.name
-    user.given_name = official_name.given_name
+    user.given_name = get_official_given_name(official_name)
     # a middle name (mellannamn) is part of the surname
     user.surname = get_official_surname(official_name)
 
