@@ -47,4 +47,4 @@ class CleanerQueueTestCase(BaseDBTestCase):
         yield
 
         if self.cleaner_queue_db:
-            self.cleaner_queue_db._drop_whole_collection()
+            self.cleaner_queue_db._coll.delete_many({})

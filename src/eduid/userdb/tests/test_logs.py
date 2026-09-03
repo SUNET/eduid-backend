@@ -36,7 +36,7 @@ class TestProofingLog:
         self.proofing_log_db = ProofingLog(db_uri=self.tmp_db.uri)
         self.user = UserFixtures().mocked_user_standard
         yield
-        self.proofing_log_db._drop_whole_collection()
+        self.proofing_log_db._coll.delete_many({})
 
     def test_id_proofing_data(self) -> None:
         proofing_element = ProofingLogElement(
@@ -350,7 +350,7 @@ class TestUserChangeLog:
         self.tmp_db = mongo_instance
         self.user_log_db = UserChangeLog(db_uri=self.tmp_db.uri)
         yield
-        self.user_log_db._drop_whole_collection()
+        self.user_log_db._coll.delete_many({})
 
     def _insert_log_fixtures(self) -> None:
         data_1 = UserChangeLogElement(
