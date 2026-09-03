@@ -1,29 +1,55 @@
+## Resolve the uv executable once so the targets share the same installer frontend.
 UV=$(shell which uv)
+SUNET_PYPI_INDEX_URL=https://pypi.sunet.se/simple
+
+# All lockfile generation is anchored to the repository root pyproject metadata.
 PROJECT_ROOT=..
-PIPCOMPILE=$(UV) pip compile --upgrade --generate-hashes --no-strip-extras --index-url https://pypi.sunet.se/simple --emit-index-url --project $(PROJECT_ROOT)
-PIPSYNC=$(UV) pip sync --index-url https://pypi.sunet.se/simple
 PYPROJECT=$(PROJECT_ROOT)/pyproject.toml
 
-update_deps: main.txt fastapi_requirements.txt satosa_scim_requirements.txt test_requirements.txt webapp_requirements.txt worker_requirements.txt
+# Common uv wrappers for lockfile compilation and environment syncing.
+# The compile flags preserve hashes and extras in the generated lockfiles.
+PIPCOMPILE=$(UV) pip compile --upgrade --generate-hashes --no-strip-extras --index-url $(SUNET_PYPI_INDEX_URL) --emit-index-url --project $(PROJECT_ROOT)
+PIPSYNC=$(UV) pip sync --index-url $(SUNET_PYPI_INDEX_URL) --require-hashes
+LOCKFILES=main.txt fastapi_requirements.txt satosa_scim_requirements.txt test_requirements.txt webapp_requirements.txt worker_requirements.txt
 
-main.txt: $(PYPROJECT)
+.PHONY: FORCE update_deps
+# Force lockfile recompilation on every update_deps run; otherwise make can skip
+# uv pip compile when the generated files are newer than pyproject.toml.
+FORCE:
+
+# Regenerate every compiled requirements file from the single pyproject source of truth.
+update_deps: $(LOCKFILES)
+
+# Base dependency set used by the repository.
+main.txt: $(PYPROJECT) FORCE
 	CUSTOM_COMPILE_COMMAND="make update_deps" $(PIPCOMPILE) $(PYPROJECT) -o $@
 
-fastapi_requirements.txt: $(PYPROJECT)
+# Dependencies for FastAPI-based applications and services.
+fastapi_requirements.txt: $(PYPROJECT) FORCE
 	CUSTOM_COMPILE_COMMAND="make update_deps" $(PIPCOMPILE) $(PYPROJECT) --extra fastapi -o $@
 
-satosa_scim_requirements.txt: $(PYPROJECT)
+# Dependencies for the SATOSA SCIM integration.
+satosa_scim_requirements.txt: $(PYPROJECT) FORCE
 	CUSTOM_COMPILE_COMMAND="make update_deps" $(PIPCOMPILE) $(PYPROJECT) --extra satosa-scim -o $@
 
-test_requirements.txt: $(PYPROJECT)
+# Full test and development environment, including all extras used in tests.
+# Normalize the generated group annotation to a stable relative path.
+test_requirements.txt: $(PYPROJECT) FORCE
 	CUSTOM_COMPILE_COMMAND="make update_deps" $(PIPCOMPILE) $(PYPROJECT) --all-extras --group test -o $@
+	sed -i 's|$(abspath $(PYPROJECT)):test|$(PYPROJECT):test|g' $@
 
-webapp_requirements.txt: $(PYPROJECT)
+# Dependencies needed by the Flask webapp components.
+webapp_requirements.txt: $(PYPROJECT) FORCE
 	CUSTOM_COMPILE_COMMAND="make update_deps" $(PIPCOMPILE) $(PYPROJECT) --extra webapp -o $@
 
-worker_requirements.txt: $(PYPROJECT)
+# Dependencies needed by worker processes and background jobs.
+worker_requirements.txt: $(PYPROJECT) FORCE
 	CUSTOM_COMPILE_COMMAND="make update_deps" $(PIPCOMPILE) $(PYPROJECT) --extra worker -o $@
 
+# Synchronize an already-activated virtualenv to the compiled test requirements.
 dev_sync_deps:
 	@test $${VIRTUAL_ENV?virtual env not activated}
 	$(PIPSYNC) test_requirements.txt
+	# Reinstall the repository editable package because uv pip sync removes entries
+	# that are not present in the compiled lockfile, including the local checkout.
+	$(UV) pip install --python $${VIRTUAL_ENV}/bin/python --no-deps --no-build-isolation -e $(PROJECT_ROOT)
