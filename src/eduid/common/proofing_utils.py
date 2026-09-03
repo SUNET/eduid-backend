@@ -1,5 +1,6 @@
 import logging
 
+from eduid.common.rpc.msg_relay import Name
 from eduid.userdb.logs.element import NinNavetProofingLogElement
 from eduid.userdb.user import User
 
@@ -51,6 +52,24 @@ def get_marked_given_name(given_name: str, given_name_marking: str | None) -> st
         return " ".join(_marked_names)
 
 
+def get_official_surname(name: Name) -> str | None:
+    """
+    The surname eduID stores for a person is Navet's surname with any middle name (mellannamn)
+    prepended, as a middle name is legally part of a person's surname.
+    https://www4.skatteverket.se/rattsligvagledning/edition/2026.12/330287.html
+
+    Use this - never Name.surname directly - when comparing a stored user.surname to Navet data.
+
+    :param name: Name as reported by Navet
+
+    :return: The official surname, or None if Navet reported no usable surname
+    """
+    parts = [part.strip() for part in (name.middle_name, name.surname) if part and part.strip()]
+    if not parts:
+        return None
+    return " ".join(parts)
+
+
 def set_user_names_from_official_address[T: User](user: T, proofing_log_entry: NinNavetProofingLogElement) -> T:
     """
     :param user: Proofing app private userdb user
@@ -58,25 +77,24 @@ def set_user_names_from_official_address[T: User](user: T, proofing_log_entry: N
 
     :returns: User object
     """
-    user.given_name = proofing_log_entry.user_postal_address.name.given_name
-    user.surname = proofing_log_entry.user_postal_address.name.surname
-    user.legal_name = (
-        f"{proofing_log_entry.user_postal_address.name.given_name} "
-        f"{proofing_log_entry.user_postal_address.name.surname}"
-    )
+    official_name = proofing_log_entry.user_postal_address.name
+    user.given_name = official_name.given_name
+    # a middle name (mellannamn) is part of the surname
+    user.surname = get_official_surname(official_name)
 
-    # please mypy
-    if user.given_name is None or user.surname is None:
+    # please mypy, and guard against blank names from Navet
+    if not user.given_name or not user.surname:
         raise RuntimeError("No given name or surname found in proofing log user postal address")
 
     # Set chosen given name with given name marking if present
-    given_name_marking = proofing_log_entry.user_postal_address.name.given_name_marking
-    if given_name_marking:
-        _given_name = get_marked_given_name(user.given_name, given_name_marking)
-        user.chosen_given_name = _given_name
+    if official_name.given_name_marking:
+        user.chosen_given_name = get_marked_given_name(user.given_name, official_name.given_name_marking)
+
+    user.legal_name = f"{user.given_name} {user.surname}"
+
     logger.info("User names set from official address")
     logger.debug(
-        f"{proofing_log_entry.user_postal_address.name} resulted in given_name: {user.given_name}, "
+        f"{official_name} resulted in given_name: {user.given_name}, "
         f"chosen_given_name: {user.chosen_given_name}, surname: {user.surname} and legal_name: {user.legal_name}"
     )
     return user

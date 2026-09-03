@@ -13,10 +13,11 @@ from eduid.common.rpc.msg_relay import DeregisteredCauseCode, DeregistrationInfo
 from eduid.userdb import User
 from eduid.userdb.element import ElementKey
 from eduid.userdb.identity import IdentityType
+from eduid.userdb.security import SecurityUser
 from eduid.webapp.common.api.schemas.authn_status import AuthnActionStatus
 from eduid.webapp.common.api.testing import EduidAPITestCase
 from eduid.webapp.security.app import SecurityApp, security_init_app
-from eduid.webapp.security.helpers import SecurityMsg
+from eduid.webapp.security.helpers import SecurityMsg, update_user_official_name
 
 
 class SecurityTests(EduidAPITestCase[SecurityApp]):
@@ -486,6 +487,62 @@ class SecurityTests(EduidAPITestCase[SecurityApp]):
             type_="POST_SECURITY_REFRESH_OFFICIAL_USER_DATA_SUCCESS",
             msg=SecurityMsg.user_updated,
         )
+
+    def test_refresh_user_official_name_with_middle_name(self) -> None:
+        """
+        Refresh a verified users given name and surname from Navet data with middle name.
+        Make sure the users display name do not change.
+        """
+        user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
+        assert user.given_name == "John"
+        assert user.chosen_given_name is None
+        assert user.surname == "Smith"
+        assert user.legal_name is None
+
+        navet_data = self._get_all_navet_data()
+        navet_data.person.name.middle_name = "MiddleName"
+        response = self._refresh_user_data(user=user, navet_return_value=navet_data)
+        user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
+        assert user.given_name == "Testaren Test"
+        assert user.chosen_given_name == "Test"
+        assert user.surname == "MiddleName Testsson"
+        assert user.legal_name == "Testaren Test MiddleName Testsson"
+        self._check_success_response(
+            response,
+            type_="POST_SECURITY_REFRESH_OFFICIAL_USER_DATA_SUCCESS",
+            msg=SecurityMsg.user_updated,
+        )
+
+    def test_update_user_official_name_with_middle_name_no_perpetual_retrigger(self) -> None:
+        """
+        Regression test: once a middle name has been merged into user.surname, calling
+        update_user_official_name again with the same (unchanged) Navet data must not keep
+        seeing this as a name change, i.e. it must not write another proofing log entry or
+        request another user sync.
+        """
+        mock_request_user_sync = self.mocker.patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
+        mock_request_user_sync.side_effect = self.request_user_sync
+
+        navet_data = self._get_all_navet_data()
+        navet_data.person.name.middle_name = "MiddleName"
+
+        user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
+        with self.app.test_request_context():
+            security_user = SecurityUser.from_user(user, self.app.private_userdb)
+            assert update_user_official_name(security_user, navet_data) is True
+        assert self.app.proofing_log.db_count() == 1
+        assert mock_request_user_sync.call_count == 1
+
+        # Re-fetch the (now updated) user and call update_user_official_name again with the
+        # very same navet_data. Before the fix, user.surname (already holding the merged
+        # "MiddleName Testsson") was compared against the raw Navet surname ("Testsson"),
+        # which never matched and caused a spurious name-change update every single call.
+        user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
+        with self.app.test_request_context():
+            security_user = SecurityUser.from_user(user, self.app.private_userdb)
+            assert update_user_official_name(security_user, navet_data) is True
+        assert self.app.proofing_log.db_count() == 1
+        assert mock_request_user_sync.call_count == 1
 
     def test_refresh_user_official_name_no_chosen_given_name(self) -> None:
         """
