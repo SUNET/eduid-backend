@@ -68,7 +68,7 @@ class GroupDB(BaseGraphDB):
                         "An equivalent constraint already exists" not in e.message
                         and e.code not in acceptable_error_codes
                     ):
-                        raise e
+                        raise
                     # Constraints already set up
         logger.info(f"{self} setup done.")
 

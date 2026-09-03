@@ -302,10 +302,10 @@ def create_and_sync_user(
 
     try:
         save_and_sync_user(signup_user)
-    except UserOutOfSync as e:
+    except UserOutOfSync:
         revoke_passwords(user=signup_user, reason="UserOutOfSync during signup", application=current_app.conf.app_name)
         current_app.logger.error(f"Failed saving user {signup_user}, data out of sync")
-        raise e
+        raise
 
     current_app.stats.count(name="user_created")
     current_app.logger.info("Signup user created")
@@ -487,9 +487,9 @@ def complete_and_update_invite(user: User, invite_code: str) -> None:
     try:
         current_app.invite_db.save(invite=updated_invite, is_in_database=True)
         save_and_sync_user(signup_user)
-    except UserOutOfSync as e:
+    except UserOutOfSync:
         current_app.logger.error(f"Failed saving user {signup_user}, data out of sync")
-        raise e
+        raise
 
     if invite.finish_url:
         session.signup.invite.finish_url = invite.finish_url

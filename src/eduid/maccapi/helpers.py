@@ -110,7 +110,7 @@ def create_and_sync_user(
             context=context, managed_account=managed_account, reason="UserOutOfSync during create_and_sync_user"
         )
         context.logger.error(f"Failed saving user {managed_account} due to {e}")
-        raise e
+        raise
 
     context.logger.info(f"Created user {managed_account}")
     return managed_account
