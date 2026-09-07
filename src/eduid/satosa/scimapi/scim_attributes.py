@@ -195,11 +195,11 @@ class ScimAttributes(ResponseMicroService):  # type: ignore[misc]
 
         for member_group in user_groups.member:
             data.attributes["edupersonentitlement"].append(
-                f"{user_groups.data_owner}:group:{member_group.graph.identifier}#eduid-iam"
+                f"{user_groups.data_owner}:group:{member_group.scim_id!s}#eduid-iam"
             )
         for manager_group in user_groups.manager:
             data.attributes["edupersonentitlement"].append(
-                f"{user_groups.data_owner}:group:{manager_group.graph.identifier}:role=manager#eduid-iam"
+                f"{user_groups.data_owner}:group:{manager_group.scim_id!s}:role=manager#eduid-iam"
             )
 
         logger.debug(f"edupersonentitlement after groups: {data.attributes['edupersonentitlement']}")
@@ -276,7 +276,7 @@ class ScimAttributes(ResponseMicroService):  # type: ignore[misc]
             return None
 
         return UserGroups(
-            data_owner=groupdb.graphdb.scope,
+            data_owner=groupdb.scope,
             member=groupdb.get_groups_for_user_identifer(user.scim_id),
             manager=groupdb.get_groups_owned_by_user_identifier(user.scim_id),
         )

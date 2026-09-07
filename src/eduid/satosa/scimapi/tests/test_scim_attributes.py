@@ -1,5 +1,3 @@
-from unittest.mock import MagicMock
-
 import pytest
 from pytest_mock import MockerFixture
 
@@ -46,7 +44,7 @@ class TestGetGroupdbForDataOwner:
         mock_groupdb_cls.assert_not_called()
 
     def test_enabled_default_with_neo4j_uri_set_returns_groupdb(self, mocker: MockerFixture) -> None:
-        mock_groupdb_instance = MagicMock()
+        mock_groupdb_instance = mocker.MagicMock()
         mock_groupdb_cls = mocker.patch(
             "eduid.satosa.scimapi.scim_attributes.ScimApiGroupDB", return_value=mock_groupdb_instance
         )
@@ -64,7 +62,7 @@ class TestGetGroupdbForDataOwner:
         assert kwargs["setup_indexes"] is False
 
     def test_explicitly_enabled_with_neo4j_uri_set_returns_groupdb(self, mocker: MockerFixture) -> None:
-        mock_groupdb_instance = MagicMock()
+        mock_groupdb_instance = mocker.MagicMock()
         mocker.patch("eduid.satosa.scimapi.scim_attributes.ScimApiGroupDB", return_value=mock_groupdb_instance)
         scim_attributes = make_scim_attributes(
             Config(
