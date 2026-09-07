@@ -4,6 +4,12 @@ from datetime import timedelta
 from eduid.common.misc.timeutil import utc_now
 from eduid.common.models.saml2 import EduidAuthnContextClass
 
+# The NameID asserted by auth_response(). Shared so a caller building a
+# LogoutRequest for a user that logged in via auth_response() can assert the
+# same subject - the SP compares the full NameID (text, Format and
+# SPNameQualifier all included) between the session and the LogoutRequest.
+TEST_NAME_ID = "1f87035b4c1325b296a53d92097e6b3fa36d7e30ee82e3fcb0680d60243c1f03"
+
 
 def auth_response(session_id: str, eppn: str, accr: EduidAuthnContextClass | None = None) -> str:
     """Generates a fresh signed authentication response.
@@ -125,16 +131,23 @@ def logout_response(session_id: str) -> str:
     return saml_logout_response
 
 
-def logout_request(session_id: str, idp: str | None = None) -> str:
+def logout_request(session_id: str, idp: str | None = None, name_id: str | None = None) -> str:
     """
     Create a SAML logout request from a template.
 
-    TODO: The session_id is used as both SAML request id, NameID and SessionIndex. Which one is it???
+    session_id is used as both the SAML request ID and the SessionIndex - neither is
+    checked against any real prior state, so any value works for those two roles.
+    name_id is the actual SAML subject and must match whatever NameID the session
+    being logged out was established with (e.g. TEST_NAME_ID, if the login used
+    auth_response()) - the SP compares the full NameID (text, Format and
+    SPNameQualifier) between the session and the LogoutRequest and rejects a mismatch.
     """
     timestamp = utc_now() - timedelta(seconds=10)
     instant = timestamp.strftime("%Y-%m-%dT%H:%M:%SZ")
     if idp is None:
         idp = "https://idp.example.com/simplesaml/saml2/idp/metadata.php"
+    if name_id is None:
+        name_id = TEST_NAME_ID
     saml_logout_request = f"""
 <samlp:LogoutRequest xmlns:samlp="urn:oasis:names:tc:SAML:2.0:protocol"
                      xmlns:saml="urn:oasis:names:tc:SAML:2.0:assertion"
@@ -146,7 +159,7 @@ def logout_request(session_id: str, idp: str | None = None) -> str:
     <saml:Issuer>{idp}</saml:Issuer>
     <saml:NameID SPNameQualifier="http://test.localhost:6544/saml2-metadata"
                  Format="urn:oasis:names:tc:SAML:2.0:nameid-format:transient"
-                 >{session_id}</saml:NameID>
+                 >{name_id}</saml:NameID>
     <samlp:SessionIndex>{session_id}</samlp:SessionIndex>
 </samlp:LogoutRequest>"""
     return saml_logout_request
