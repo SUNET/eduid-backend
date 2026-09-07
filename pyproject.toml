@@ -137,6 +137,15 @@ ignore = [
   "SIM102", # collapsible-if
   "SIM103", # return-bool-condition-directly (keeping explicit if/else for clarity)
   "SIM108", # if-else-block-instead-of-if-exp
+  # BLE001 (blind-except) triggers on 28 sites, none of them narrowable without
+  # guessing at exception hierarchies pymongo/redis-py/pysaml3/json don't
+  # document: health checks and staging-only "backdoor" debug endpoints that
+  # must degrade to unhealthy/400 no matter what the underlying client raises,
+  # best-effort telemetry that must never fail a login, and debug-only
+  # formatting/logging fallbacks. Most predate this rule by years and were
+  # never revisited under it, so this is a functional read of the code, not a
+  # claim that BLE001 was weighed and rejected at each site.
+  "BLE001", # blind-except
   # Since we use ruff as a formatter, the following rules should be ignored.
   # Most are not enabled by our extend-select or by ruff's defaults today; they
   # are listed defensively so they cannot start conflicting with the formatter if
@@ -156,14 +165,6 @@ ignore = [
   "COM812",
   "COM819",
   "ISC002",
-  # TRANSIENT: rules from ruff's default rule set that we now inherit via
-  # extend-select and that currently trigger. Ignored only to keep the tree green
-  # while we work through them. Each one gets evaluated and then leaves this
-  # block: fixed and deleted where that is easy, or moved up to the permanent
-  # ignores above with a rationale where we decide to keep ignoring it. This
-  # block is expected to be empty again in the near future - nothing should
-  # linger here. Hit counts as of ruff 0.16.3.
-  "BLE001", # blind-except (28)
 ]
 allowed-confusables = ["’", "х"]
 
