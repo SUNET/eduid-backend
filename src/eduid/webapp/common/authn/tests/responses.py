@@ -1,3 +1,4 @@
+import uuid
 from datetime import timedelta
 
 from eduid.common.misc.timeutil import utc_now
@@ -5,7 +6,15 @@ from eduid.common.models.saml2 import EduidAuthnContextClass
 
 
 def auth_response(session_id: str, eppn: str, accr: EduidAuthnContextClass | None = None) -> str:
-    """Generates a fresh signed authentication response"""
+    """Generates a fresh signed authentication response.
+
+    The response and assertion IDs must be unique per call (not just per test):
+    pygamlastan enforces real assertion-ID replay protection (which pysaml2 never
+    did), so a fixed ID reused across tests in the same pytest process is
+    correctly rejected as a replay on the second and subsequent uses.
+    """
+    response_id = uuid.uuid4().hex
+    assertion_id = uuid.uuid4().hex
     timestamp = utc_now() - timedelta(seconds=10)
     tomorrow = utc_now() + timedelta(days=1)
     yesterday = utc_now() - timedelta(days=1)
@@ -20,7 +29,7 @@ def auth_response(session_id: str, eppn: str, accr: EduidAuthnContextClass | Non
                 xmlns:samlp="urn:oasis:names:tc:SAML:2.0:protocol"
                 xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
                 Destination="{sp_url}saml2-acs"
-                ID="id-88b9f586a2a3a639f9327485cc37c40a"
+                ID="id-{response_id}"
                 InResponseTo="{session_id}"
                 IssueInstant="{timestamp}"
                 Version="2.0">
@@ -30,7 +39,7 @@ def auth_response(session_id: str, eppn: str, accr: EduidAuthnContextClass | Non
     <samlp:Status>
         <samlp:StatusCode Value="urn:oasis:names:tc:SAML:2.0:status:Success" />
     </samlp:Status>
-    <saml:Assertion ID="id-093952102ceb73436e49cb91c58b0578"
+    <saml:Assertion ID="id-{assertion_id}"
                     IssueInstant="{timestamp}"
                     Version="2.0">
         <saml:Issuer Format="urn:oasis:names:tc:SAML:2.0:nameid-format:entity">
@@ -81,6 +90,8 @@ def auth_response(session_id: str, eppn: str, accr: EduidAuthnContextClass | Non
 
     return saml_response_tpl.format(
         uid=eppn,
+        response_id=response_id,
+        assertion_id=assertion_id,
         session_id=session_id,
         timestamp=timestamp.strftime("%Y-%m-%dT%H:%M:%SZ"),
         tomorrow=tomorrow.strftime("%Y-%m-%dT%H:%M:%SZ"),
@@ -92,11 +103,12 @@ def auth_response(session_id: str, eppn: str, accr: EduidAuthnContextClass | Non
 
 def logout_response(session_id: str) -> str:
     timestamp = utc_now() - timedelta(seconds=10)
+    response_id = uuid.uuid4().hex
 
     saml_logout_response = """
 <samlp:LogoutResponse xmlns:samlp="urn:oasis:names:tc:SAML:2.0:protocol"
                       xmlns:saml="urn:oasis:names:tc:SAML:2.0:assertion"
-                      ID="_57c8021aeb90bbf93d5a587f5c9c68cccfe42d95f6"
+                      ID="_{response_id}"
                       Version="2.0"
                       IssueInstant="{now}"
                       Destination="http://test.localhost:6544/saml2-ls"
@@ -106,7 +118,9 @@ def logout_response(session_id: str) -> str:
     <samlp:Status>
         <samlp:StatusCode Value="urn:oasis:names:tc:SAML:2.0:status:Success" />
     </samlp:Status>
-</samlp:LogoutResponse>""".format(now=timestamp.strftime("%Y-%m-%dT%H:%M:%SZ"), session_id=session_id)
+</samlp:LogoutResponse>""".format(
+        now=timestamp.strftime("%Y-%m-%dT%H:%M:%SZ"), session_id=session_id, response_id=response_id
+    )
 
     return saml_logout_response
 

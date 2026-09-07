@@ -2,6 +2,7 @@ import base64
 import datetime
 import logging
 import os
+import uuid
 from collections.abc import Mapping
 from datetime import timedelta
 from http import HTTPStatus
@@ -80,12 +81,12 @@ class EidasTests(ProofingTests[EidasApp]):
         self.default_redirect_url = "http://redirect.localhost/redirect"
 
         self.saml_response_tpl_success = """<?xml version='1.0' encoding='UTF-8'?>
-<samlp:Response xmlns:saml="urn:oasis:names:tc:SAML:2.0:assertion" xmlns:samlp="urn:oasis:names:tc:SAML:2.0:protocol" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Destination="{sp_url}saml2-acs" ID="id-88b9f586a2a3a639f9327485cc37c40a" InResponseTo="{session_id}" IssueInstant="{timestamp}" Version="2.0">
+<samlp:Response xmlns:saml="urn:oasis:names:tc:SAML:2.0:assertion" xmlns:samlp="urn:oasis:names:tc:SAML:2.0:protocol" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Destination="{sp_url}saml2-acs" ID="id-{response_id}" InResponseTo="{session_id}" IssueInstant="{timestamp}" Version="2.0">
   <saml:Issuer Format="urn:oasis:names:tc:SAML:2.0:nameid-format:entity">https://idp.example.com/simplesaml/saml2/idp/metadata.php</saml:Issuer>
   <samlp:Status>
     <samlp:StatusCode Value="urn:oasis:names:tc:SAML:2.0:status:Success" />
   </samlp:Status>
-  <saml:Assertion ID="id-093952102ceb73436e49cb91c58b0578" IssueInstant="{timestamp}" Version="2.0">
+  <saml:Assertion ID="id-{assertion_id}" IssueInstant="{timestamp}" Version="2.0">
     <saml:Issuer Format="urn:oasis:names:tc:SAML:2.0:nameid-format:entity">https://idp.example.com/simplesaml/saml2/idp/metadata.php</saml:Issuer>
     <saml:Subject>
       <saml:NameID Format="urn:oasis:names:tc:SAML:2.0:nameid-format:transient" NameQualifier="" SPNameQualifier="{sp_url}saml2-metadata">1f87035b4c1325b296a53d92097e6b3fa36d7e30ee82e3fcb0680d60243c1f03</saml:NameID>
@@ -124,7 +125,7 @@ class EidasTests(ProofingTests[EidasApp]):
   </saml:Assertion>
 </samlp:Response>"""
         self.saml_response_tpl_fail = """<?xml version="1.0" encoding="UTF-8"?>
-<saml2p:Response xmlns:saml2p="urn:oasis:names:tc:SAML:2.0:protocol" Destination="{sp_url}saml2-acs" ID="_ebad01e547857fa54927b020dba1edb1" InResponseTo="{session_id}" IssueInstant="{timestamp}" Version="2.0">
+<saml2p:Response xmlns:saml2p="urn:oasis:names:tc:SAML:2.0:protocol" Destination="{sp_url}saml2-acs" ID="_{response_id}" InResponseTo="{session_id}" IssueInstant="{timestamp}" Version="2.0">
   <saml2:Issuer xmlns:saml2="urn:oasis:names:tc:SAML:2.0:assertion">https://idp.example.com/simplesaml/saml2/idp/metadata.php</saml2:Issuer>
   <saml2p:Status>
     <saml2p:StatusCode Value="urn:oasis:names:tc:SAML:2.0:status:Requester">
@@ -135,7 +136,7 @@ class EidasTests(ProofingTests[EidasApp]):
 </saml2p:Response>"""
         self.saml_response_tpl_cancel = """
         <?xml version="1.0" encoding="UTF-8"?>
-<saml2p:Response xmlns:saml2p="urn:oasis:names:tc:SAML:2.0:protocol" Destination="{sp_url}saml2-acs" ID="_ebad01e547857fa54927b020dba1edb1" InResponseTo="{session_id}" IssueInstant="{timestamp}" Version="2.0">
+<saml2p:Response xmlns:saml2p="urn:oasis:names:tc:SAML:2.0:protocol" Destination="{sp_url}saml2-acs" ID="_{response_id}" InResponseTo="{session_id}" IssueInstant="{timestamp}" Version="2.0">
   <saml2:Issuer xmlns:saml2="urn:oasis:names:tc:SAML:2.0:assertion">https://idp.example.com/simplesaml/saml2/idp/metadata.php</saml2:Issuer>
   <saml2p:Status>
     <saml2p:StatusCode Value="urn:oasis:names:tc:SAML:2.0:status:Requester">
@@ -146,12 +147,12 @@ class EidasTests(ProofingTests[EidasApp]):
 </saml2p:Response>"""
         self.saml_response_foreign_eid_tpl_success = """
         <?xml version='1.0' encoding='UTF-8'?>
-<samlp:Response xmlns:saml="urn:oasis:names:tc:SAML:2.0:assertion" xmlns:samlp="urn:oasis:names:tc:SAML:2.0:protocol" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Destination="{sp_url}saml2-acs" ID="id-88b9f586a2a3a639f9327485cc37c40a" InResponseTo="{session_id}" IssueInstant="{timestamp}" Version="2.0">
+<samlp:Response xmlns:saml="urn:oasis:names:tc:SAML:2.0:assertion" xmlns:samlp="urn:oasis:names:tc:SAML:2.0:protocol" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Destination="{sp_url}saml2-acs" ID="id-{response_id}" InResponseTo="{session_id}" IssueInstant="{timestamp}" Version="2.0">
   <saml:Issuer Format="urn:oasis:names:tc:SAML:2.0:nameid-format:entity">https://idp.example.com/simplesaml/saml2/idp/metadata.php</saml:Issuer>
   <samlp:Status>
     <samlp:StatusCode Value="urn:oasis:names:tc:SAML:2.0:status:Success" />
   </samlp:Status>
-  <saml:Assertion ID="id-093952102ceb73436e49cb91c58b0578" IssueInstant="{timestamp}" Version="2.0">
+  <saml:Assertion ID="id-{assertion_id}" IssueInstant="{timestamp}" Version="2.0">
     <saml:Issuer Format="urn:oasis:names:tc:SAML:2.0:nameid-format:entity">https://idp.example.com/simplesaml/saml2/idp/metadata.php</saml:Issuer>
     <saml:Subject>
       <saml:NameID Format="urn:oasis:names:tc:SAML:2.0:nameid-format:transient" NameQualifier="" SPNameQualifier="{sp_url}saml2-metadata">1f87035b4c1325b296a53d92097e6b3fa36d7e30ee82e3fcb0680d60243c1f03</saml:NameID>
@@ -202,7 +203,7 @@ class EidasTests(ProofingTests[EidasApp]):
 
         self.saml_response_foreign_eid_loa_missmatch = """
 <?xml version="1.0" encoding="UTF-8"?>
-<saml2p:Response xmlns:saml2p="urn:oasis:names:tc:SAML:2.0:protocol" Destination="{sp_url}saml2-acs" ID="_ebad01e547857fa54927b020dba1edb1" InResponseTo="{session_id}" IssueInstant="{timestamp}" Version="2.0">
+<saml2p:Response xmlns:saml2p="urn:oasis:names:tc:SAML:2.0:protocol" Destination="{sp_url}saml2-acs" ID="_{response_id}" InResponseTo="{session_id}" IssueInstant="{timestamp}" Version="2.0">
   <saml2:Issuer xmlns:saml2="urn:oasis:names:tc:SAML:2.0:assertion">https://idp.example.com/simplesaml/saml2/idp/metadata.php</saml2:Issuer>
   <saml2p:Status>
     <saml2p:StatusCode Value="urn:oasis:names:tc:SAML:2.0:status:Responder">
@@ -293,9 +294,15 @@ class EidasTests(ProofingTests[EidasApp]):
         foreign_eid_loa: str | None = None,
     ) -> bytes:
         """
-        Generates a fresh signed authentication response
-        """
+        Generates a fresh signed authentication response.
 
+        The response and assertion IDs must be unique per call (not just per test):
+        pygamlastan enforces real assertion-ID replay protection (which pysaml2 never
+        did), so a fixed ID reused across tests in the same pytest process is
+        correctly rejected as a replay on the second and subsequent uses.
+        """
+        response_id = uuid.uuid4().hex
+        assertion_id = uuid.uuid4().hex
         timestamp = utc_now() - datetime.timedelta(seconds=age)
         tomorrow = utc_now() + datetime.timedelta(days=1)
         yesterday = utc_now() - datetime.timedelta(days=1)
@@ -323,6 +330,8 @@ class EidasTests(ProofingTests[EidasApp]):
 
         resp = " ".join(
             saml_response_tpl.format(
+                response_id=response_id,
+                assertion_id=assertion_id,
                 asserted_identity=asserted_identity,
                 date_of_birth=date_of_birth.strftime("%Y-%m-%d"),
                 session_id=request_id,
