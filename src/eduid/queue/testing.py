@@ -129,11 +129,11 @@ class EduidQueueTestCase:
             try:
                 self.client_db = QueueDB(db_uri=self.mongo_uri, collection=self.mongo_collection)
                 break
-            except pymongo.errors.NotPrimaryError as e:
+            except pymongo.errors.NotPrimaryError:
                 db_init_try += 1
                 time.sleep(db_init_try)
                 if db_init_try >= MAX_INIT_TRIES:
-                    raise e
+                    raise
                 continue
 
 
@@ -155,11 +155,11 @@ class QueueAsyncioTest(EduidQueueTestCase):
             try:
                 self.worker_db = await AsyncQueueDB.create(db_uri=self.mongo_uri, collection=self.mongo_collection)
                 break
-            except pymongo.errors.NotPrimaryError as e:
+            except pymongo.errors.NotPrimaryError:
                 db_init_try += 1
                 await asyncio.sleep(db_init_try)
                 if db_init_try >= MAX_INIT_TRIES:
-                    raise e
+                    raise
                 continue
 
     @staticmethod

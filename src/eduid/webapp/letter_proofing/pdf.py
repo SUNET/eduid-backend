@@ -78,7 +78,7 @@ def create_pdf(
         )
     except AddressFormatException as e:
         logger.error(f"Postal address formatting failed: {e!r}")
-        raise e
+        raise
 
     # Calculate the validity period of the verification
     # code that is to be shown in the letter.
