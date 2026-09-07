@@ -17,6 +17,7 @@ from eduid.scimapi.context_request import ScimApiContext
 from eduid.scimapi.notifications import NotificationRelay
 from eduid.scimapi.utils import load_jwks
 from eduid.userdb.scimapi import ScimApiEventDB, ScimApiGroup, ScimApiGroupDB
+from eduid.userdb.scimapi.basedb import scim_db_name
 from eduid.userdb.scimapi.invitedb import ScimApiInvite, ScimApiInviteDB
 from eduid.userdb.scimapi.userdb import ScimApiUser, ScimApiUserDB
 from eduid.userdb.signup.invitedb import SignupInviteDB
@@ -62,10 +63,7 @@ class Context:
 
     @staticmethod
     def _get_db_name(data_owner: DataOwnerName, data_owner_config: DataOwnerConfig) -> str:
-        if data_owner_config.db_name is not None:
-            # If data_owner.db_name is set for this data owner use that instead of the default db_name
-            return data_owner_config.db_name
-        return data_owner.replace(".", "_")  # replace dots with underscores
+        return scim_db_name(data_owner, data_owner_config.db_name)
 
     def _load_data_owner_dbs(self, data_owner: DataOwnerName) -> None:
         data_owner_config = self.config.data_owners.get(data_owner)

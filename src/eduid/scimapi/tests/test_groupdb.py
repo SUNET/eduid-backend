@@ -40,6 +40,13 @@ class TestGroupDB(ScimApiTestCase):
         logger.info(f"TEST saved group {group}")
         return group
 
+    def test_collection_name(self) -> None:
+        # Regression test for the collection-name derivation consolidated in
+        # eduid.userdb.scimapi.basedb.scim_db_name (see doc/group-migration-neo4j-to-mongodb.md,
+        # step 1c). The test config sets data_owners["eduid.se"].db_name = "eduid_se".
+        assert self.groupdb is not None
+        assert self.groupdb._coll_name == "eduid_se__groups"
+
     def test_full_search(self) -> None:
         assert self.groupdb is not None
         groups = self.groupdb.get_groups()
