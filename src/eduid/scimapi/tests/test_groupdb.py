@@ -2,6 +2,7 @@ import logging
 from collections.abc import Iterator
 from dataclasses import replace
 from datetime import timedelta
+from typing import Any
 from uuid import UUID, uuid4
 
 import pytest
@@ -352,6 +353,31 @@ class TestGroupMigrateOnRead(ScimApiTestCase):
         assert len(loaded.members) == 1
         assert loaded.owners is not None
         assert len(loaded.owners) == 1
+
+    def test_migrate_on_read_reloads_winning_document_after_lost_race(self, mocker: MockerFixture) -> None:
+        # Regression test: when _migrate_group's own update_one loses its compare-and-set
+        # because a concurrent save() (or migration) already won, that winning mongodb document
+        # may already disagree with the neo4j snapshot this call read - e.g. a member removed by
+        # that concurrent save(). Returning the stale neo4j-derived value as-is would resurrect
+        # that membership, which is exactly what this migration must not do, especially on the
+        # reverse-lookup union path. It must reload and return the winning document instead.
+        assert self.groupdb is not None
+        group = self._add_unmigrated_group()  # neo4j has 1 member, 1 owner; mongo has neither yet
+        real_update_one = self.groupdb._coll.update_one
+
+        def losing_update_one(*args: object, **kwargs: object) -> Any:  # noqa: ANN401
+            # Simulate a concurrent winner making exactly this write for real (removing the
+            # member), then report our own attempt as having lost the race.
+            real_update_one({"_id": group.group_id}, {"$set": {"members": [], "owners": []}})
+            return mocker.MagicMock(modified_count=0)
+
+        mocker.patch.object(self.groupdb._coll, "update_one", side_effect=losing_update_one)
+
+        loaded = self.groupdb.get_group_by_scim_id(str(group.scim_id))
+        assert loaded is not None
+        # Must reflect the winning document (empty), not the stale neo4j snapshot (1 member/1 owner).
+        assert loaded.members == set()
+        assert loaded.owners == set()
 
     def test_migrate_on_read_survives_mongodb_write_failure(self, mocker: MockerFixture) -> None:
         assert self.groupdb is not None

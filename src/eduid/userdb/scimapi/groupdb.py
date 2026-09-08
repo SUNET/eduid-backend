@@ -315,8 +315,19 @@ class ScimApiGroupDB(ScimApiBaseDB):
             )
             if res.modified_count == 0:
                 # Somebody else (a concurrent save() or a concurrent migration) won the race.
-                # Not an error - just use the value we read from neo4j.
-                logger.info(f"Group {group.scim_id} was migrated concurrently; using the value just read")
+                # Either way, mongodb is now authoritative and may disagree with the neo4j
+                # snapshot we just read - e.g. a concurrent save() could have removed a member
+                # that still appears in `group` here. Returning `group` as-is would resurrect
+                # that membership, which is exactly what this migration must not do (especially
+                # on the reverse-lookup union path). Reload the document that won instead.
+                logger.info(f"Group {group.scim_id} was migrated concurrently; reloading the winning document")
+                winning_doc = self._coll.find_one({"_id": group.group_id})
+                if winning_doc is not None and winning_doc.get("members") is not None:
+                    return ScimApiGroup.from_dict(winning_doc)
+                # Pathological: the race didn't resolve the way it should have (e.g. the
+                # document was deleted concurrently). Fall back to the neo4j-derived value
+                # rather than crashing a read; a later read will retry.
+                logger.warning(f"Group {group.scim_id}: concurrent migration race did not resolve as expected")
         except PyMongoError:
             # This is a read path - a mongodb write failure here must not turn a GET into a
             # 500. The members/owners we read from neo4j are still correct in memory even
