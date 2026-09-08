@@ -237,9 +237,7 @@ class ScimApiGroupDB(ScimApiBaseDB):
             # Truthy, not `is not None` - an explicitly-empty neo4j_uri="" is not a valid bolt
             # URI either, and GroupDB(db_uri="") raises ValueError("db_uri not supplied")
             # rather than behaving like "no neo4j configured".
-            GroupDB(db_uri=neo4j_uri, scope=scope, config=neo4j_config)
-            if neo4j_fallback and neo4j_uri
-            else None
+            GroupDB(db_uri=neo4j_uri, scope=scope, config=neo4j_config) if neo4j_fallback and neo4j_uri else None
         )
         logger.info(f"{self} initialised")
 
@@ -560,14 +558,24 @@ class ScimApiGroupDB(ScimApiBaseDB):
         mongodb (authoritative for every migrated group) and neo4j (fallback for groups not
         yet migrated), unioned by scim_id.
         """
-        key = "members.identifier" if role is GroupRole.MEMBER else "owners.identifier"
+        array_field = "members" if role is GroupRole.MEMBER else "owners"
         res: dict[str, ScimApiGroup] = {}
 
         # 1. mongodb leg - authoritative for every migrated group. A doc can only match this
         #    filter if its members/owners array already exists, i.e. it's already migrated, so
         #    _load_group() on it will never trigger a neo4j read - it's used here purely for
         #    consistency with every other read path.
-        for doc in self._get_documents_by_filter({key: identifier}):
+        # $elemMatch requires identifier AND member_type to match on the SAME array element.
+        # This method is only ever called with a user's identifier (every production caller
+        # passes a ScimApiUser.scim_id, never a group's); without the member_type filter, a
+        # plain dot-path query on "{array_field}.identifier" would also match a member GROUP
+        # entry whose identifier happens to equal this user's - an astronomically unlikely UUID
+        # collision, but the query should express "a user with this identifier", not "anything
+        # with this identifier", regardless of how unlikely the alternative is.
+        mongo_filter = {
+            array_field: {"$elemMatch": {"identifier": identifier, "member_type": GroupMemberType.USER.value}}
+        }
+        for doc in self._get_documents_by_filter(mongo_filter):
             group = self._load_group(doc)
             res[str(group.scim_id)] = self._project_for_role(group, identifier, role)
 
@@ -612,7 +620,11 @@ class ScimApiGroupDB(ScimApiBaseDB):
     @staticmethod
     def _matches_role(group: ScimApiGroup, identifier: str, role: GroupRole) -> bool:
         members = group.members if role is GroupRole.MEMBER else group.owners
-        return any(m.identifier == identifier for m in (members or set()))
+        # member_type must match too - identifier alone would also match a member/owner GROUP
+        # entry with a colliding identifier (see the comment on the mongodb $elemMatch query
+        # above; this method exists to re-evaluate that same "is this user a member/owner"
+        # question against a freshly-read document, so it must apply the same restriction).
+        return any(m.identifier == identifier and m.member_type is GroupMemberType.USER for m in (members or set()))
 
     @staticmethod
     def _project_for_role(group: ScimApiGroup, identifier: str, role: GroupRole) -> ScimApiGroup:
@@ -622,7 +634,12 @@ class ScimApiGroupDB(ScimApiBaseDB):
             # asymmetry is an authorization boundary (see the comment at
             # webapp/group_management/helpers.py around merge_group_lists/is_owner/is_member)
             # and must be preserved regardless of which leg (mongodb or neo4j) answered.
-            group.members = {m for m in (group.members or set()) if m.identifier == identifier}
+            # member_type must match too - see the comment on _matches_role above.
+            group.members = {
+                m
+                for m in (group.members or set())
+                if m.identifier == identifier and m.member_type is GroupMemberType.USER
+            }
             group.members_truncated = True
         return group
 
