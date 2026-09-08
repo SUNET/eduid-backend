@@ -5,23 +5,22 @@ name: Python package
 
 on: [push, pull_request]
 
+env:
+  UV_DEFAULT_INDEX: https://pypi.sunet.se/simple
+
 jobs:
 
   unittests:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        python-version: ["3.13"]
     env:
-      PIP_INDEX_URL: https://pypi.sunet.se/simple/
       NEO4J_VERSION: 4.4-enterprise
 
     steps:
-      - uses: actions/checkout@v6
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v6
+      - uses: actions/checkout@v7
+      - name: Set up Python from pyproject.toml
+        uses: actions/setup-python@v7
         with:
-          python-version: ${{ matrix.python-version }}
+          python-version-file: pyproject.toml
           cache: "pip"
           cache-dependency-path: |
             requirements/*main.txt
@@ -30,14 +29,17 @@ jobs:
       - name: Install packages
         run: |
           sudo apt update
-          # pysaml2 needs to find an xmlsec1 binary
-          # PIL/EpsImagePlugin.py needs to find a ghostscript binary
-          # xhtml2pdf needs libcairo-dev
-          sudo apt install xmlsec1 ghostscript libcairo2-dev
+          . .github/repo-system-packages.sh
+          sudo apt install -y $repo_system_packages
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          enable-cache: true
 
       - name: Install dependencies
         run: |
-          pip install --require-hashes -r requirements/test_requirements.txt
+          make bootstrap VENV=.venv
 
       - name: Fetch docker images
         run: |
@@ -48,17 +50,18 @@ jobs:
 
       - name: Test with pytest
         run: |
+          . .venv/bin/activate
           make test
 
   typecheck:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
-      - name: "Set up Python 3.13"
-        uses: actions/setup-python@v6
+      - name: Set up Python from pyproject.toml
+        uses: actions/setup-python@v7
         with:
-          python-version: "3.13"
+          python-version-file: pyproject.toml
           cache: "pip"
           cache-dependency-path: |
             requirements/*main.txt
@@ -67,27 +70,29 @@ jobs:
       - name: Install packages
         run: |
           sudo apt update
-          # pysaml2 needs to find an xmlsec1 binary
-          # PIL/EpsImagePlugin.py needs to find a ghostscript binary
-          # xhtml2pdf needs libcairo-dev
-          sudo apt install xmlsec1 ghostscript libcairo2-dev
+          . .github/repo-system-packages.sh
+          sudo apt install -y $repo_system_packages
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          enable-cache: true
 
       - name: Install dependencies
         run: |
-          pip install --require-hashes -r requirements/test_requirements.txt
+          make bootstrap VENV=.venv
 
       - name: Run mypy to check types
         run: |
+          . .venv/bin/activate
           mypy --version
           make typecheck
 
   lint:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: "Lint using ruff"
-        uses: astral-sh/ruff-action@v4.1.0
-        with:
-          version-file: "requirements/test_requirements.txt"
+        uses: astral-sh/ruff-action@278981a28ce3188b1e39527901f38254bf3aac89 # v4.1.0
 

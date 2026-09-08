@@ -1,18 +1,22 @@
 {
 	"name": "Python 3",
 	"build": {
-		"dockerfile": "Dockerfile"
+		"dockerfile": "Dockerfile",
+		"context": "..",
+		"options": ["--network=host"]
 	},
 	"customizations": {
 		"vscode": {
 			"settings": {
-				"python.defaultInterpreterPath": "/usr/local/bin/python",
-				"cSpell.language": "en-GB,en,sv"
+				"cSpell.language": "en-GB,en,sv",
+				"python.defaultInterpreterPath": "${workspaceFolder}/.venv-devcontainer/bin/python"
 			},
 			"extensions": [
 				"ms-python.python",
 				"ms-python.vscode-pylance",
 				"ms-python.mypy-type-checker",
+				"tamasfe.even-better-toml",
+				"ms-azuretools.vscode-docker",
 				"GitHub.copilot-chat",
 				"GitHub.vscode-pull-request-github",
 				"streetsidesoftware.code-spell-checker",
@@ -22,12 +26,12 @@
 			]
 		}
 	},
-	"postCreateCommand": "make vscode",
+	"postCreateCommand": "make bootstrap VENV=.venv-devcontainer",
 	"mounts": [
-		"type=bind,source=${localWorkspaceFolder}/../pysaml2,target=/workspaces/pysaml2",
 		"type=bind,source=/var/run/docker.sock,target=/var/run/docker.sock"
 	],
+	"init": true,
 	"remoteUser": "vscode",
-	"runArgs": ["--init", "--network=host"],
+	"runArgs": ["--network=host"],
 	"overrideCommand": false
 }
