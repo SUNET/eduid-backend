@@ -7,6 +7,7 @@ from eduid.common.config.parsers import load_config
 from eduid.queue.db.message import MessageDB
 from eduid.userdb.group_management import GroupManagementInviteStateDB
 from eduid.userdb.scimapi import ScimApiGroupDB
+from eduid.userdb.scimapi.basedb import scim_db_name
 from eduid.userdb.scimapi.userdb import ScimApiUserDB
 from eduid.webapp.common.api import translation
 from eduid.webapp.common.authn.middleware import AuthnBaseApp
@@ -23,13 +24,12 @@ class GroupManagementApp(AuthnBaseApp):
 
         # Init dbs
         self.invite_state_db = GroupManagementInviteStateDB(config.mongo_uri)
-        _owner = config.scim_data_owner.replace(
-            ".", "_"
-        )  # dot is a name separator in mongodb, so replace dots with underscores
+        _owner = scim_db_name(config.scim_data_owner)
         self.scimapi_userdb = ScimApiUserDB(db_uri=config.mongo_uri, collection=f"{_owner}__users", setup_indexes=False)
         self.scimapi_groupdb = ScimApiGroupDB(
             neo4j_uri=config.neo4j_uri,
             neo4j_config=config.neo4j_config,
+            neo4j_fallback=config.neo4j_fallback,
             scope=config.scim_data_owner,
             mongo_uri=config.mongo_uri,
             mongo_dbname="eduid_scimapi",

@@ -29,7 +29,7 @@ groups_router = APIRouter(
 @groups_router.get("/")
 async def on_get_all(req: ScimApiRequest) -> ListResponse:
     db_groups = req.context.require_groupdb().get_groups()
-    resources = [{"id": str(db_group.scim_id), "displayName": db_group.graph.display_name} for db_group in db_groups]
+    resources = [{"id": str(db_group.scim_id), "displayName": db_group.display_name} for db_group in db_groups]
     return ListResponse(total_results=len(db_groups), resources=resources)
 
 
