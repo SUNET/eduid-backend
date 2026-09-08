@@ -35,6 +35,12 @@ class Config:
     # neo4j_uri unset - see the check in get_groupdb_for_data_owner. Default True so behaviour is
     # unchanged for every deployment unless an operator explicitly sets this to False.
     group_lookups_enabled: bool = True
+    # A third, orthogonal flag: group_lookups_enabled=False disables group lookups entirely,
+    # while neo4j_fallback=False
+    # only affects whether an already-enabled groupdb still consults neo4j for groups not yet
+    # migrated to mongodb. Default True so behaviour is unchanged for every deployment unless an
+    # operator explicitly sets this to False.
+    neo4j_fallback: bool = True
 
 
 @dataclass
@@ -92,6 +98,7 @@ class ScimAttributes(ResponseMicroService):  # type: ignore[misc]
             self._groupdbs[data_owner] = ScimApiGroupDB(
                 neo4j_uri=self.config.neo4j_uri,
                 neo4j_config=self.config.neo4j_config,
+                neo4j_fallback=self.config.neo4j_fallback,
                 scope=data_owner,
                 mongo_uri=self.config.mongo_uri,
                 mongo_dbname="eduid_scimapi",

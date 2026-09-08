@@ -77,6 +77,7 @@ class Context:
             groupdb=ScimApiGroupDB(
                 neo4j_uri=self.config.neo4j_uri,
                 neo4j_config=self.config.neo4j_config,
+                neo4j_fallback=self.config.neo4j_fallback,
                 scope=data_owner,
                 mongo_uri=self.config.mongo_uri,
                 mongo_dbname="eduid_scimapi",

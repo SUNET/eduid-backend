@@ -20,9 +20,8 @@ def make_scim_attributes(config: Config) -> ScimAttributes:
 
 class TestGetGroupdbForDataOwner:
     """
-    Regression tests for the explicit group_lookups_enabled kill switch added in
-    doc/group-migration-neo4j-to-mongodb.md step 1b. It must be checked in addition to (not
-    instead of) the pre-existing implicit `neo4j_uri is None` kill switch.
+    Regression tests for the explicit group_lookups_enabled kill switch. It must be checked in
+    addition to (not instead of) the pre-existing implicit `neo4j_uri is None` kill switch.
     """
 
     @pytest.mark.parametrize("neo4j_uri", [None, "bolt://localhost:7687"])
@@ -73,3 +72,23 @@ class TestGetGroupdbForDataOwner:
         )
 
         assert scim_attributes.get_groupdb_for_data_owner("eduid.se") is mock_groupdb_instance
+
+    @pytest.mark.parametrize("neo4j_fallback", [True, False])
+    def test_neo4j_fallback_passed_through_to_groupdb(self, mocker: MockerFixture, neo4j_fallback: bool) -> None:
+        # neo4j_fallback is a third, orthogonal flag: it must be threaded through to
+        # ScimApiGroupDB regardless of group_lookups_enabled, which is a separate, full on/off
+        # switch for group lookups.
+        mock_groupdb_cls = mocker.patch("eduid.satosa.scimapi.scim_attributes.ScimApiGroupDB")
+        scim_attributes = make_scim_attributes(
+            Config(
+                mongo_uri="mongodb://localhost:27017",
+                neo4j_uri="bolt://localhost:7687",
+                neo4j_fallback=neo4j_fallback,
+            )
+        )
+
+        scim_attributes.get_groupdb_for_data_owner("eduid.se")
+
+        mock_groupdb_cls.assert_called_once()
+        _, kwargs = mock_groupdb_cls.call_args
+        assert kwargs["neo4j_fallback"] is neo4j_fallback

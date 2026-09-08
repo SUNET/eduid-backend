@@ -29,6 +29,7 @@ class GroupManagementApp(AuthnBaseApp):
         self.scimapi_groupdb = ScimApiGroupDB(
             neo4j_uri=config.neo4j_uri,
             neo4j_config=config.neo4j_config,
+            neo4j_fallback=config.neo4j_fallback,
             scope=config.scim_data_owner,
             mongo_uri=config.mongo_uri,
             mongo_dbname="eduid_scimapi",

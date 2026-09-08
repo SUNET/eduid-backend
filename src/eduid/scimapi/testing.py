@@ -142,7 +142,8 @@ class ScimApiTestCase(MongoNeoTestCase):
         # with background threads. Without explicit close they outlive the test session
         # and generate "I/O operation on closed file" noise on stderr.
         for dbs in self.context._dbs.values():
-            dbs.groupdb.graphdb.db.close()
+            if dbs.groupdb.graphdb is not None:
+                dbs.groupdb.graphdb.db.close()
 
     def _get_config(self) -> dict[str, Any]:
         config = super()._get_config()
