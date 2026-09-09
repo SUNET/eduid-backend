@@ -1,8 +1,8 @@
 import logging
 
-from saml2.config import SPConfig
-from saml2.md import EntityDescriptor
-from saml2.metadata import entity_descriptor
+from pygamlastan.compat.saml2.config import SPConfig
+from pygamlastan.compat.saml2.md import EntityDescriptor
+from pygamlastan.compat.saml2.metadata import entity_descriptor
 
 from eduid.common.misc.timeutil import utc_now
 from eduid.common.models.saml_models import BaseSessionInfo

@@ -2,7 +2,7 @@ from copy import deepcopy
 from dataclasses import dataclass
 
 from flask import Blueprint, make_response, redirect, request
-from saml2.request import AuthnRequest
+from pygamlastan.compat.saml2.samlp import AuthnRequest
 from werkzeug.wrappers import Response as WerkzeugResponse
 
 from eduid.common.config.base import EduidEnvironment, FrontendAction

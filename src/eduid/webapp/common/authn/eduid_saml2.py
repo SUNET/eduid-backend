@@ -8,13 +8,13 @@ from xml.etree.ElementTree import ParseError
 
 from dateutil.parser import parse as dt_parse
 from flask import abort, make_response, redirect
-from saml2 import BINDING_HTTP_POST, BINDING_HTTP_REDIRECT
-from saml2.client import Saml2Client
-from saml2.config import SPConfig
-from saml2.ident import decode
-from saml2.response import AuthnResponse, LogoutResponse, StatusError, UnsolicitedResponse
-from saml2.saml import Subject
-from saml2.typing import SAMLHttpArgs
+from pygamlastan.compat.saml2 import BINDING_HTTP_POST, BINDING_HTTP_REDIRECT
+from pygamlastan.compat.saml2.client import Saml2Client
+from pygamlastan.compat.saml2.config import SPConfig
+from pygamlastan.compat.saml2.ident import decode
+from pygamlastan.compat.saml2.response import AuthnResponse, LogoutResponse, StatusError, UnsolicitedResponse
+from pygamlastan.compat.saml2.saml import Subject
+from pygamlastan.compat.saml2.typing import SAMLHttpArgs
 from werkzeug.exceptions import Forbidden
 from werkzeug.wrappers import Response as WerkzeugResponse
 

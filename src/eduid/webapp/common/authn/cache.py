@@ -1,7 +1,7 @@
 from collections.abc import Iterator, MutableMapping
 from typing import Any
 
-from saml2.cache import Cache
+from pygamlastan.compat.saml2.cache import Cache
 
 from eduid.webapp.common.session.namespaces import AuthnRequestRef, PySAML2Dicts
 

@@ -6,9 +6,12 @@ from collections.abc import Sequence
 from typing import TYPE_CHECKING, cast
 
 from flask import current_app as flask_current_app
+from pygamlastan.compat.saml2.config import SPConfig
+from pygamlastan.compat.saml2.typing import SAMLHttpArgs
+
+# init_pysaml2 is IdP-only: it must stay on real pysaml2, since pygamlastan's IdP
+# surface (compat.saml2.server) isn't implemented yet (Phase 2).
 from saml2 import server
-from saml2.config import SPConfig
-from saml2.typing import SAMLHttpArgs
 
 from eduid.common.config.base import AuthnParameters, EduIDBaseAppConfig, FrontendAction, FrontendActionMixin
 from eduid.common.config.exceptions import BadConfiguration

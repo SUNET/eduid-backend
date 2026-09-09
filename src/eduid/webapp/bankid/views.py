@@ -34,7 +34,7 @@ from eduid.webapp.common.session.namespaces import AuthnRequestRef, SP_AuthnRequ
 
 __author__ = "lundberg"
 
-from saml2.typing import SAMLHttpArgs
+from pygamlastan.compat.saml2.typing import SAMLHttpArgs
 
 from eduid.webapp.bankid.schemas import (
     BankIDCommonRequestSchema,
