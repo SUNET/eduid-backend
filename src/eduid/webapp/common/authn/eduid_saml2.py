@@ -1,3 +1,4 @@
+import inspect
 import logging
 import pprint
 from collections.abc import Mapping
@@ -134,11 +135,35 @@ def get_authn_response(
     oq_cache = OutstandingQueriesCache(sp_data.pysaml2_dicts)
     outstanding_queries = oq_cache.outstanding_queries()
 
+    # SPs configured with more than one IdP (eidas/samleid) must tell the client which
+    # IdP each still-outstanding request was actually sent to - without it, a strict
+    # client correctly refuses to trust the response's own claimed Issuer, since nothing
+    # else ties a response back to the specific IdP the SP redirected the user to.
+    # Built from data already tracked per authn attempt; empty/unused for single-IdP SPs
+    # (authn/bankid), which resolve their one IdP some other way.
+    expected_idps = {
+        session_id: authn.idp_entity_id
+        for session_id, authn_ref in outstanding_queries.items()
+        if (authn := sp_data.authns.get(authn_ref)) is not None and authn.idp_entity_id is not None
+    }
+    parse_kwargs: dict[str, Any] = {}
+    if expected_idps and any(
+        p.kind is inspect.Parameter.VAR_KEYWORD
+        for p in inspect.signature(client.parse_authn_request_response).parameters.values()
+    ):
+        # Only pygamlastan's compat Saml2Client accepts this (via **kwargs); pysaml2's
+        # parse_authn_request_response has a fixed signature and would raise TypeError
+        # on an unrecognised keyword. Guarded so this stays safe if the pygamlastan
+        # import swap is ever reverted while this fix stays.
+        parse_kwargs["expected_idps"] = expected_idps
+
     try:
         # process the authentication response
-        response = client.parse_authn_request_response(raw_response, BINDING_HTTP_POST, outstanding_queries)
+        response = client.parse_authn_request_response(
+            raw_response, BINDING_HTTP_POST, outstanding_queries, **parse_kwargs
+        )
     except AssertionError as e:
-        logger.error("SAML response is not verified")
+        logger.error(f"SAML response is not verified: {e} / cause={e.__cause__!r}")
         raise BadSAMLResponse(EduidErrorsContext.SAML_RESPONSE_FAIL) from e
     except ParseError as e:
         logger.error(f"SAML response is not correctly formatted: {e!r}")

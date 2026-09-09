@@ -145,6 +145,9 @@ def _authn(sp_authn: SP_AuthnRequest, idp: str, authn_params: AuthnParameters) -
     session.authn.sp.authns = {
         k: v for k, v in session.authn.sp.authns.items() if v.frontend_action != sp_authn.frontend_action
     }
+    # authn only ever has one configured IdP (see _get_idp()), so this isn't strictly
+    # needed here - set for consistency with eidas/bankid/samleid's compat surface.
+    sp_authn.idp_entity_id = idp
     session.authn.sp.authns[sp_authn.authn_id] = sp_authn
 
     subject = None
