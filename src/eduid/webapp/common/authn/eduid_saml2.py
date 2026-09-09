@@ -147,6 +147,9 @@ def get_authn_response(
         if (authn := sp_data.authns.get(authn_ref)) is not None and authn.idp_entity_id is not None
     }
     parse_kwargs: dict[str, Any] = {}
+    # TODO(pygamlastan migration): once the import swap lands and Saml2Client is always
+    # pygamlastan's compat client, this signature check is dead weight - collapse to
+    # `if expected_idps: parse_kwargs["expected_idps"] = expected_idps`.
     if expected_idps and any(
         p.kind is inspect.Parameter.VAR_KEYWORD
         for p in inspect.signature(client.parse_authn_request_response).parameters.values()
