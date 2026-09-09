@@ -2,9 +2,9 @@ import logging
 from enum import unique
 from typing import Any
 
-from saml2 import BINDING_HTTP_REDIRECT
-from saml2.client import Saml2Client
-from saml2.typing import SAMLHttpArgs
+from pygamlastan.compat.saml2 import BINDING_HTTP_REDIRECT
+from pygamlastan.compat.saml2.client import Saml2Client
+from pygamlastan.compat.saml2.typing import SAMLHttpArgs
 
 from eduid.userdb.credentials.external import TrustFramework
 from eduid.webapp.bankid.app import current_bankid_app as current_app

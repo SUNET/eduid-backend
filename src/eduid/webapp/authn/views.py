@@ -1,9 +1,9 @@
 from flask import Blueprint, abort, make_response, redirect, request
-from saml2 import BINDING_HTTP_REDIRECT
-from saml2.client import Saml2Client
-from saml2.ident import decode
-from saml2.metadata import entity_descriptor
-from saml2.saml import NAMEID_FORMAT_UNSPECIFIED, NameID, Subject
+from pygamlastan.compat.saml2 import BINDING_HTTP_REDIRECT
+from pygamlastan.compat.saml2.client import Saml2Client
+from pygamlastan.compat.saml2.ident import decode
+from pygamlastan.compat.saml2.metadata import entity_descriptor
+from pygamlastan.compat.saml2.saml import NAMEID_FORMAT_UNSPECIFIED, NameID, Subject
 from werkzeug.wrappers import Response as WerkzeugResponse
 
 from eduid.common.config.base import AuthnParameters, FrontendAction

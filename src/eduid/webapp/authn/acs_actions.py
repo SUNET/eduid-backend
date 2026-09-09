@@ -1,4 +1,4 @@
-from saml2.ident import code
+from pygamlastan.compat.saml2.ident import code
 
 from eduid.userdb import User
 from eduid.webapp.authn.app import current_authn_app as current_app
