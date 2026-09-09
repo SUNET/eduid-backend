@@ -1,3 +1,4 @@
+import importlib.util
 import json
 import logging
 import re
@@ -13,6 +14,7 @@ from fido2.webauthn import AuthenticatorAttachment
 from pytest_mock import MockerFixture
 from saml2 import BINDING_HTTP_POST, BINDING_HTTP_REDIRECT
 from saml2.client import Saml2Client
+from saml2.config import SPConfig
 from saml2.response import AuthnResponse
 from werkzeug.test import TestResponse
 
@@ -26,7 +28,6 @@ from eduid.userdb.mail import MailAddress
 from eduid.userdb.user import User
 from eduid.webapp.common.api.testing import CSRFTestClient, EduidAPITestCase
 from eduid.webapp.common.authn.cache import IdentityCache, OutstandingQueriesCache, StateCache
-from eduid.webapp.common.authn.utils import get_saml2_config
 from eduid.webapp.common.session.namespaces import AuthnRequestRef, PySAML2Dicts
 from eduid.webapp.idp.app import IdPApp, init_idp_app
 from eduid.webapp.idp.helpers import IdPAction
@@ -37,6 +38,25 @@ from eduid.webapp.idp.views.mfa_auth import CheckResult
 __author__ = "ft"
 
 logger = logging.getLogger(__name__)
+
+
+def get_saml2_config(module_path: str, name: str = "SAML_CONFIG") -> SPConfig:
+    """Load a pysaml2 SPConfig from a Python module.
+
+    Deliberately independent of eduid.webapp.common.authn.utils.get_saml2_config():
+    that shared helper now returns pygamlastan's compat SPConfig, for the SP webapps
+    (authn/eidas/bankid/samleid) being migrated to it. These IdP tests build a real,
+    separate pysaml2 SP client purely to verify what the IdP itself produces -
+    unrelated to that migration - so it needs its own copy pinned to plain pysaml2.
+    """
+    spec = importlib.util.spec_from_file_location("saml2_settings", module_path)
+    if spec is None:
+        raise RuntimeError(f"Failed loading saml2_settings module: {module_path}")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)  # type: ignore[union-attr]
+    conf = SPConfig()
+    conf.load(module.__getattribute__(name))
+    return conf
 
 
 @dataclass

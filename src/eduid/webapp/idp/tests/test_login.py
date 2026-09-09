@@ -20,7 +20,6 @@ from eduid.userdb.maccapi.userdb import ManagedAccount
 from eduid.userdb.mail import MailAddressList
 from eduid.vccs.client import VCCSClient
 from eduid.webapp.common.api.testing import CSRFTestClient
-from eduid.webapp.common.authn.utils import get_saml2_config
 from eduid.webapp.common.session.namespaces import IdP_SAMLPendingRequest, LoginApplication, RequestRef
 from eduid.webapp.idp import assurance
 from eduid.webapp.idp.helpers import IdPAction, IdPMsg
@@ -32,6 +31,7 @@ from eduid.webapp.idp.tests.test_api import (
     NextResult,
     PwAuthResult,
     TestUser,
+    get_saml2_config,
 )
 from eduid.workers.am.common import AmCelerySingleton
 
