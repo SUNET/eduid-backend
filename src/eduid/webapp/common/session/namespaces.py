@@ -351,6 +351,11 @@ class BaseAuthnRequest(BaseModel, ABC):
 class SP_AuthnRequest(BaseAuthnRequest):
     authn_id: AuthnRequestRef = Field(default_factory=lambda: AuthnRequestRef(uuid4_str()))
     credentials_used: list[ElementKey] = Field(default_factory=list)
+    # the entity ID of the IdP this specific request was sent to - needed at response time
+    # to disambiguate which outstanding request a response answers, for SPs configured
+    # with more than one IdP (eidas/samleid). None for single-IdP SPs (authn/bankid),
+    # where it isn't needed.
+    idp_entity_id: str | None = None
     # the authentication contexts requested for this authentication
     req_authn_ctx: list[str] = Field(default_factory=list)
     # the authentication contexts asserted for this authentication
