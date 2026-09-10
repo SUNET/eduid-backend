@@ -48,8 +48,7 @@ def init_bankid_app(name: str = "bankid", test_config: Mapping[str, Any] | None 
     from . import acs_actions
 
     # Make sure pycharm doesn't think the import above is unused and removes it
-    if acs_actions.__author__:
-        pass
+    _ = acs_actions
 
     app = BankIDApp(config)
 
