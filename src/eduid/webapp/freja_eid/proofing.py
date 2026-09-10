@@ -49,7 +49,7 @@ class FrejaEIDProofingFunctions(ProofingFunctions[FrejaEIDDocumentUserInfo]):
     def is_swedish_document(self) -> bool:
         issuing_country = countries.get(self.session_info.document.country, None)
         sweden = countries.get("SE")
-        if not sweden:
+        if sweden is None:
             raise RuntimeError('Could not find country "SE" in iso3166')
         if not issuing_country:
             raise RuntimeError(f'Could not find country "{self.session_info.document.country}" in iso3166')

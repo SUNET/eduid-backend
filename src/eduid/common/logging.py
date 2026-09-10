@@ -209,9 +209,7 @@ class LocalContext:
     relative_time: bool = False  # use relative time as {asctime}
 
     def to_dict(self) -> dict[str, Any]:
-        res = asdict(self)
-        res["level"] = logging.getLevelName(self.level)
-        return res
+        return asdict(self)
 
 
 def make_local_context(config: LoggingConfigMixin) -> LocalContext:
