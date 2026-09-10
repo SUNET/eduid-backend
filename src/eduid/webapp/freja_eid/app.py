@@ -31,7 +31,7 @@ class FrejaEIDApp(AuthnBaseApp):
         self.msg_relay = MsgRelay(config)
 
         # Initialize the oidc_client
-        self.oidc_client = OAuth(self, cache=SessionOAuthCache())  # type: ignore[no-untyped-call]
+        self.oidc_client = OAuth(self, cache=SessionOAuthCache())
         client_kwargs = {}
         if self.conf.freja_eid_client.scopes:
             client_kwargs["scope"] = " ".join(self.conf.freja_eid_client.scopes)
