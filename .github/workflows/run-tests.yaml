@@ -76,9 +76,10 @@ jobs:
         run: |
           pip install --require-hashes -r requirements/test_requirements.txt
 
-      - name: Run mypy to check types
+      - name: Run mypy and ty to check types
         run: |
           mypy --version
+          ty version
           make typecheck
 
   lint:
