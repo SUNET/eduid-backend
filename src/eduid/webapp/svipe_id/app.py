@@ -28,7 +28,7 @@ class SvipeIdApp(AuthnBaseApp):
         self.am_relay = AmRelay(config)
 
         # Initialize the oidc_client
-        self.oidc_client = OAuth(self, cache=SessionOAuthCache())  # type: ignore[no-untyped-call]
+        self.oidc_client = OAuth(self, cache=SessionOAuthCache())
         client_kwargs = {}
         if self.conf.svipe_client.scopes:
             client_kwargs["scope"] = " ".join(self.conf.svipe_client.scopes)
