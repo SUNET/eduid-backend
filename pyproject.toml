@@ -86,6 +86,7 @@ test = [
   "pytest-mock",
   "pytest-xdist",
   "respx",
+  "ty",
   "uv",
   "celery-types",
   "motor-types",
@@ -258,7 +259,6 @@ exclude_lines = [
 ignore_errors = true
 omit = ["tests/*"]
 
-# Trying out new typechecker 'ty' via 'uvx ty check' i.e. not installing
 [tool.ty.environment]
 python-version = "3.13"
 
