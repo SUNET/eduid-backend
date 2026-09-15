@@ -19,6 +19,9 @@ class GroupManagementConfig(EduIDBaseAppConfig):
     eduid_site_url: str = "https://eduid.se"
     group_invite_url: str = "https://dashboard.eduid.se"
     neo4j_config: dict[str, Any] | None = None
-    neo4j_uri: str = ""
+    neo4j_uri: str | None = None
+    # When False, ScimApiGroupDB opens no neo4j connection at all and no group is ever
+    # consulted there as a fallback.
+    neo4j_fallback: bool = True
     scim_data_owner: str = "eduid.se"
     scim_external_id_scope: str = "eduid.se"

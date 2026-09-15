@@ -8,12 +8,11 @@ import pytest
 from werkzeug.test import TestResponse
 
 from eduid.common.testing_base import normalised_data
-from eduid.graphdb.groupdb import User as GraphUser
 from eduid.graphdb.testing import Neo4jTemporaryInstance
 from eduid.userdb import User
 from eduid.userdb.element import ElementKey
 from eduid.userdb.group_management import GroupRole
-from eduid.userdb.scimapi import GroupExtensions, ScimApiGroup
+from eduid.userdb.scimapi import GroupExtensions, GroupMemberType, ScimApiGroup, ScimApiGroupMember
 from eduid.userdb.scimapi.userdb import ScimApiUser
 from eduid.webapp.common.api.testing import EduidAPITestCase
 from eduid.webapp.group_management.app import GroupManagementApp, init_group_management_app
@@ -94,9 +93,10 @@ class GroupManagementTests(EduidAPITestCase[GroupManagementApp]):
     ) -> ScimApiGroup:
         if extensions is None:
             extensions = GroupExtensions()
-        group = ScimApiGroup(scim_id=scim_id, display_name=display_name, extensions=extensions)
+        group = ScimApiGroup(
+            scim_id=scim_id, display_name=display_name, extensions=extensions, members=set(), owners=set()
+        )
         self.app.scimapi_groupdb.save(group)
-        group.graph = self.app.scimapi_groupdb.graphdb.save(group.graph)
         return group
 
     def _invite(
@@ -171,8 +171,10 @@ class GroupManagementTests(EduidAPITestCase[GroupManagementApp]):
     def _invite_setup(self) -> None:
         # Add test user as group owner of two groups
         assert self.test_user.mail_addresses.primary is not None
-        graph_user = GraphUser(
-            identifier=str(self.scim_user1.scim_id), display_name=self.test_user.mail_addresses.primary.email
+        graph_user = ScimApiGroupMember(
+            identifier=str(self.scim_user1.scim_id),
+            display_name=self.test_user.mail_addresses.primary.email,
+            member_type=GroupMemberType.USER,
         )
         self.scim_group1.owners = {graph_user}
         self.app.scimapi_groupdb.save(self.scim_group1)
@@ -216,8 +218,10 @@ class GroupManagementTests(EduidAPITestCase[GroupManagementApp]):
     def test_get_groups(self) -> None:
         # Add test user as group member and owner
         assert self.test_user.mail_addresses.primary is not None
-        graph_user = GraphUser(
-            identifier=str(self.scim_user1.scim_id), display_name=self.test_user.mail_addresses.primary.email
+        graph_user = ScimApiGroupMember(
+            identifier=str(self.scim_user1.scim_id),
+            display_name=self.test_user.mail_addresses.primary.email,
+            member_type=GroupMemberType.USER,
         )
         self.scim_group1.members = {graph_user}
         self.scim_group1.owners = {graph_user}
@@ -282,8 +286,10 @@ class GroupManagementTests(EduidAPITestCase[GroupManagementApp]):
     def test_delete_group(self) -> None:
         # Add test user as group owner of two groups
         assert self.test_user.mail_addresses.primary is not None
-        graph_user = GraphUser(
-            identifier=str(self.scim_user1.scim_id), display_name=self.test_user.mail_addresses.primary.email
+        graph_user = ScimApiGroupMember(
+            identifier=str(self.scim_user1.scim_id),
+            display_name=self.test_user.mail_addresses.primary.email,
+            member_type=GroupMemberType.USER,
         )
         self.scim_group1.owners = {graph_user}
         self.app.scimapi_groupdb.save(self.scim_group1)
@@ -320,8 +326,10 @@ class GroupManagementTests(EduidAPITestCase[GroupManagementApp]):
     def test_delete_group_not_owner(self) -> None:
         # Add test user as group member
         assert self.test_user.mail_addresses.primary is not None
-        graph_user = GraphUser(
-            identifier=str(self.scim_user1.scim_id), display_name=self.test_user.mail_addresses.primary.email
+        graph_user = ScimApiGroupMember(
+            identifier=str(self.scim_user1.scim_id),
+            display_name=self.test_user.mail_addresses.primary.email,
+            member_type=GroupMemberType.USER,
         )
         self.scim_group1.members = {graph_user}
         self.app.scimapi_groupdb.save(self.scim_group1)
@@ -339,8 +347,10 @@ class GroupManagementTests(EduidAPITestCase[GroupManagementApp]):
     def test_delete_group_and_invites(self) -> None:
         # Add test user as group owner
         assert self.test_user.mail_addresses.primary is not None
-        graph_user = GraphUser(
-            identifier=str(self.scim_user1.scim_id), display_name=self.test_user.mail_addresses.primary.email
+        graph_user = ScimApiGroupMember(
+            identifier=str(self.scim_user1.scim_id),
+            display_name=self.test_user.mail_addresses.primary.email,
+            member_type=GroupMemberType.USER,
         )
         self.scim_group1.owners = {graph_user}
         self.app.scimapi_groupdb.save(self.scim_group1)
@@ -360,10 +370,14 @@ class GroupManagementTests(EduidAPITestCase[GroupManagementApp]):
 
     def test_remove_member(self) -> None:
         # Add test_user1 as group owner
-        graph_user1 = GraphUser(identifier=str(self.scim_user1.scim_id), display_name="Test User 1")
+        graph_user1 = ScimApiGroupMember(
+            identifier=str(self.scim_user1.scim_id), display_name="Test User 1", member_type=GroupMemberType.USER
+        )
         self.scim_group1.owners = {graph_user1}
         # Add test_user2 as group member
-        graph_user2 = GraphUser(identifier=str(self.scim_user2.scim_id), display_name="Test User 2")
+        graph_user2 = ScimApiGroupMember(
+            identifier=str(self.scim_user2.scim_id), display_name="Test User 2", member_type=GroupMemberType.USER
+        )
         self.scim_group1.members = {graph_user2}
 
         self.app.scimapi_groupdb.save(self.scim_group1)
@@ -371,7 +385,9 @@ class GroupManagementTests(EduidAPITestCase[GroupManagementApp]):
         # Check that test_user2 is a member of scim_group1
         group = self.app.scimapi_groupdb.get_group_by_scim_id(str(self.scim_group1.scim_id))
         assert group is not None
-        found_members = [member for member in group.graph.members if member.identifier == str(self.scim_user2.scim_id)]
+        found_members = [
+            member for member in (group.members or set()) if member.identifier == str(self.scim_user2.scim_id)
+        ]
         assert len(found_members) == 1
 
         with self.session_cookie(self.browser, self.test_user.eppn) as client:
@@ -391,12 +407,16 @@ class GroupManagementTests(EduidAPITestCase[GroupManagementApp]):
         # Check that test_user2 is no longer a member of scim_group1
         group = self.app.scimapi_groupdb.get_group_by_scim_id(str(self.scim_group1.scim_id))
         assert group is not None
-        found_members = [member for member in group.graph.members if member.identifier == str(self.scim_user2.scim_id)]
+        found_members = [
+            member for member in (group.members or set()) if member.identifier == str(self.scim_user2.scim_id)
+        ]
         assert len(found_members) == 0
 
     def test_remove_member_not_owner(self) -> None:
         # Add test_user2 as group member
-        graph_user2 = GraphUser(identifier=str(self.scim_user2.scim_id), display_name="Test User 2")
+        graph_user2 = ScimApiGroupMember(
+            identifier=str(self.scim_user2.scim_id), display_name="Test User 2", member_type=GroupMemberType.USER
+        )
         self.scim_group1.members = {graph_user2}
 
         self.app.scimapi_groupdb.save(self.scim_group1)
@@ -404,7 +424,9 @@ class GroupManagementTests(EduidAPITestCase[GroupManagementApp]):
         # Check that test_user2 is a member of scim_group1
         group = self.app.scimapi_groupdb.get_group_by_scim_id(str(self.scim_group1.scim_id))
         assert group is not None
-        found_members = [member for member in group.graph.members if member.identifier == str(self.scim_user2.scim_id)]
+        found_members = [
+            member for member in (group.members or set()) if member.identifier == str(self.scim_user2.scim_id)
+        ]
         assert len(found_members) == 1
 
         with self.session_cookie(self.browser, self.test_user.eppn) as client:
@@ -424,13 +446,19 @@ class GroupManagementTests(EduidAPITestCase[GroupManagementApp]):
         # Check that test_user2 is still a member of scim_group1
         group = self.app.scimapi_groupdb.get_group_by_scim_id(str(self.scim_group1.scim_id))
         assert group is not None
-        found_members = [member for member in group.graph.members if member.identifier == str(self.scim_user2.scim_id)]
+        found_members = [
+            member for member in (group.members or set()) if member.identifier == str(self.scim_user2.scim_id)
+        ]
         assert len(found_members) == 1
 
     def test_remove_owner(self) -> None:
         # Add test_user1 and test_user2 as group owner
-        graph_user1 = GraphUser(identifier=str(self.scim_user1.scim_id), display_name="Test User 1")
-        graph_user2 = GraphUser(identifier=str(self.scim_user2.scim_id), display_name="Test User 2")
+        graph_user1 = ScimApiGroupMember(
+            identifier=str(self.scim_user1.scim_id), display_name="Test User 1", member_type=GroupMemberType.USER
+        )
+        graph_user2 = ScimApiGroupMember(
+            identifier=str(self.scim_user2.scim_id), display_name="Test User 2", member_type=GroupMemberType.USER
+        )
         self.scim_group1.owners = {graph_user1, graph_user2}
         self.app.scimapi_groupdb.save(self.scim_group1)
 
@@ -462,14 +490,16 @@ class GroupManagementTests(EduidAPITestCase[GroupManagementApp]):
 
     def test_remove_last_owner(self) -> None:
         # Add test_user1 as group owner
-        graph_user1 = GraphUser(identifier=str(self.scim_user1.scim_id), display_name="Test User 1")
+        graph_user1 = ScimApiGroupMember(
+            identifier=str(self.scim_user1.scim_id), display_name="Test User 1", member_type=GroupMemberType.USER
+        )
         self.scim_group1.owners = {graph_user1}
         self.app.scimapi_groupdb.save(self.scim_group1)
 
         # Check that test_user1 is an owner of scim_group1
         group = self.app.scimapi_groupdb.get_group_by_scim_id(str(self.scim_group1.scim_id))
         assert group is not None
-        found_owners = [owner for owner in group.graph.owners if owner.identifier == str(self.scim_user1.scim_id)]
+        found_owners = [owner for owner in (group.owners or set()) if owner.identifier == str(self.scim_user1.scim_id)]
         assert len(found_owners) == 1
 
         with self.session_cookie(self.browser, self.test_user.eppn) as client:
@@ -487,12 +517,14 @@ class GroupManagementTests(EduidAPITestCase[GroupManagementApp]):
         # Check that test_user1 is still owner of scim_group1
         group = self.app.scimapi_groupdb.get_group_by_scim_id(str(self.scim_group1.scim_id))
         assert group is not None
-        found_owners = [owner for owner in group.graph.owners if owner.identifier == str(self.scim_user1.scim_id)]
+        found_owners = [owner for owner in (group.owners or set()) if owner.identifier == str(self.scim_user1.scim_id)]
         assert len(found_owners) == 1
 
     def test_remove_self_member(self) -> None:
         # Add test_user1 as group member
-        graph_user1 = GraphUser(identifier=str(self.scim_user1.scim_id), display_name="Test User 1")
+        graph_user1 = ScimApiGroupMember(
+            identifier=str(self.scim_user1.scim_id), display_name="Test User 1", member_type=GroupMemberType.USER
+        )
         self.scim_group1.members = {graph_user1}
 
         self.app.scimapi_groupdb.save(self.scim_group1)
@@ -523,7 +555,9 @@ class GroupManagementTests(EduidAPITestCase[GroupManagementApp]):
 
     def test_remove_non_existing_member(self) -> None:
         # Add test_user1 as group owner
-        graph_user1 = GraphUser(identifier=str(self.scim_user1.scim_id), display_name="Test User 1")
+        graph_user1 = ScimApiGroupMember(
+            identifier=str(self.scim_user1.scim_id), display_name="Test User 1", member_type=GroupMemberType.USER
+        )
         self.scim_group1.owners = {graph_user1}
 
         self.app.scimapi_groupdb.save(self.scim_group1)
@@ -531,7 +565,9 @@ class GroupManagementTests(EduidAPITestCase[GroupManagementApp]):
         # Check that test_user2 is not a member of scim_group1
         group = self.app.scimapi_groupdb.get_group_by_scim_id(str(self.scim_group1.scim_id))
         assert group is not None
-        found_members = [member for member in group.graph.members if member.identifier == str(self.scim_user2.scim_id)]
+        found_members = [
+            member for member in (group.members or set()) if member.identifier == str(self.scim_user2.scim_id)
+        ]
         assert len(found_members) == 0
 
         with self.session_cookie(self.browser, self.test_user.eppn) as client:
@@ -551,14 +587,18 @@ class GroupManagementTests(EduidAPITestCase[GroupManagementApp]):
         # Check that test_user2 is still not a member of scim_group1
         group = self.app.scimapi_groupdb.get_group_by_scim_id(str(self.scim_group1.scim_id))
         assert group is not None
-        found_members = [member for member in group.graph.members if member.identifier == str(self.scim_user2.scim_id)]
+        found_members = [
+            member for member in (group.members or set()) if member.identifier == str(self.scim_user2.scim_id)
+        ]
         assert len(found_members) == 0
 
     def test_invite_member(self) -> None:
         # Add test user as group owner
         assert self.test_user.mail_addresses.primary is not None
-        graph_user = GraphUser(
-            identifier=str(self.scim_user1.scim_id), display_name=self.test_user.mail_addresses.primary.email
+        graph_user = ScimApiGroupMember(
+            identifier=str(self.scim_user1.scim_id),
+            display_name=self.test_user.mail_addresses.primary.email,
+            member_type=GroupMemberType.USER,
         )
         self.scim_group1.owners = {graph_user}
         self.app.scimapi_groupdb.save(self.scim_group1)
@@ -591,8 +631,10 @@ class GroupManagementTests(EduidAPITestCase[GroupManagementApp]):
     def test_self_invite_member(self) -> None:
         # Add test user as group owner
         assert self.test_user.mail_addresses.primary is not None
-        graph_user = GraphUser(
-            identifier=str(self.scim_user1.scim_id), display_name=self.test_user.mail_addresses.primary.email
+        graph_user = ScimApiGroupMember(
+            identifier=str(self.scim_user1.scim_id),
+            display_name=self.test_user.mail_addresses.primary.email,
+            member_type=GroupMemberType.USER,
         )
         self.scim_group1.owners = {graph_user}
         self.app.scimapi_groupdb.save(self.scim_group1)
@@ -627,8 +669,10 @@ class GroupManagementTests(EduidAPITestCase[GroupManagementApp]):
     def test_accept_invite_member(self) -> None:
         # Add test user as group owner
         assert self.test_user.mail_addresses.primary is not None
-        graph_user = GraphUser(
-            identifier=str(self.scim_user1.scim_id), display_name=self.test_user.mail_addresses.primary.email
+        graph_user = ScimApiGroupMember(
+            identifier=str(self.scim_user1.scim_id),
+            display_name=self.test_user.mail_addresses.primary.email,
+            member_type=GroupMemberType.USER,
         )
         self.scim_group1.owners = {graph_user}
         self.app.scimapi_groupdb.save(self.scim_group1)
@@ -668,8 +712,10 @@ class GroupManagementTests(EduidAPITestCase[GroupManagementApp]):
     def test_decline_invite_member(self) -> None:
         # Add test user as group owner
         assert self.test_user.mail_addresses.primary is not None
-        graph_user = GraphUser(
-            identifier=str(self.scim_user1.scim_id), display_name=self.test_user.mail_addresses.primary.email
+        graph_user = ScimApiGroupMember(
+            identifier=str(self.scim_user1.scim_id),
+            display_name=self.test_user.mail_addresses.primary.email,
+            member_type=GroupMemberType.USER,
         )
         self.scim_group1.owners = {graph_user}
         self.app.scimapi_groupdb.save(self.scim_group1)
@@ -709,8 +755,10 @@ class GroupManagementTests(EduidAPITestCase[GroupManagementApp]):
     def test_delete_invite_member(self) -> None:
         # Add test user as group owner
         assert self.test_user.mail_addresses.primary is not None
-        graph_user = GraphUser(
-            identifier=str(self.scim_user1.scim_id), display_name=self.test_user.mail_addresses.primary.email
+        graph_user = ScimApiGroupMember(
+            identifier=str(self.scim_user1.scim_id),
+            display_name=self.test_user.mail_addresses.primary.email,
+            member_type=GroupMemberType.USER,
         )
         self.scim_group1.owners = {graph_user}
         self.app.scimapi_groupdb.save(self.scim_group1)
@@ -750,8 +798,10 @@ class GroupManagementTests(EduidAPITestCase[GroupManagementApp]):
     def test_invite_owner(self) -> None:
         # Add test user as group owner
         assert self.test_user.mail_addresses.primary is not None
-        graph_user = GraphUser(
-            identifier=str(self.scim_user1.scim_id), display_name=self.test_user.mail_addresses.primary.email
+        graph_user = ScimApiGroupMember(
+            identifier=str(self.scim_user1.scim_id),
+            display_name=self.test_user.mail_addresses.primary.email,
+            member_type=GroupMemberType.USER,
         )
         self.scim_group1.owners = {graph_user}
         self.app.scimapi_groupdb.save(self.scim_group1)
@@ -783,8 +833,10 @@ class GroupManagementTests(EduidAPITestCase[GroupManagementApp]):
     def test_self_invite_owner(self) -> None:
         # Add test user as group owner
         assert self.test_user.mail_addresses.primary is not None
-        graph_user = GraphUser(
-            identifier=str(self.scim_user1.scim_id), display_name=self.test_user.mail_addresses.primary.email
+        graph_user = ScimApiGroupMember(
+            identifier=str(self.scim_user1.scim_id),
+            display_name=self.test_user.mail_addresses.primary.email,
+            member_type=GroupMemberType.USER,
         )
         self.scim_group1.owners = {graph_user}
         self.app.scimapi_groupdb.save(self.scim_group1)
@@ -819,8 +871,10 @@ class GroupManagementTests(EduidAPITestCase[GroupManagementApp]):
     def test_accept_invite_owner(self) -> None:
         # Add test user as group owner
         assert self.test_user.mail_addresses.primary is not None
-        graph_user = GraphUser(
-            identifier=str(self.scim_user1.scim_id), display_name=self.test_user.mail_addresses.primary.email
+        graph_user = ScimApiGroupMember(
+            identifier=str(self.scim_user1.scim_id),
+            display_name=self.test_user.mail_addresses.primary.email,
+            member_type=GroupMemberType.USER,
         )
         self.scim_group1.owners = {graph_user}
         self.app.scimapi_groupdb.save(self.scim_group1)
@@ -860,8 +914,10 @@ class GroupManagementTests(EduidAPITestCase[GroupManagementApp]):
     def test_decline_invite_owner(self) -> None:
         # Add test user as group owner
         assert self.test_user.mail_addresses.primary is not None
-        graph_user = GraphUser(
-            identifier=str(self.scim_user1.scim_id), display_name=self.test_user.mail_addresses.primary.email
+        graph_user = ScimApiGroupMember(
+            identifier=str(self.scim_user1.scim_id),
+            display_name=self.test_user.mail_addresses.primary.email,
+            member_type=GroupMemberType.USER,
         )
         self.scim_group1.owners = {graph_user}
         self.app.scimapi_groupdb.save(self.scim_group1)
@@ -901,8 +957,10 @@ class GroupManagementTests(EduidAPITestCase[GroupManagementApp]):
     def test_delete_invite_owner(self) -> None:
         # Add test user as group owner
         assert self.test_user.mail_addresses.primary is not None
-        graph_user = GraphUser(
-            identifier=str(self.scim_user1.scim_id), display_name=self.test_user.mail_addresses.primary.email
+        graph_user = ScimApiGroupMember(
+            identifier=str(self.scim_user1.scim_id),
+            display_name=self.test_user.mail_addresses.primary.email,
+            member_type=GroupMemberType.USER,
         )
         self.scim_group1.owners = {graph_user}
         self.app.scimapi_groupdb.save(self.scim_group1)
@@ -1103,12 +1161,16 @@ class GroupManagementTests(EduidAPITestCase[GroupManagementApp]):
     def test_get_all_data_privacy(self) -> None:
         # Add test user as group member and owner, add test user 2 as member
         assert self.test_user.mail_addresses.primary is not None
-        graph_user1 = GraphUser(
-            identifier=str(self.scim_user1.scim_id), display_name=self.test_user.mail_addresses.primary.email
+        graph_user1 = ScimApiGroupMember(
+            identifier=str(self.scim_user1.scim_id),
+            display_name=self.test_user.mail_addresses.primary.email,
+            member_type=GroupMemberType.USER,
         )
         assert self.test_user2.mail_addresses.primary is not None
-        graph_user2 = GraphUser(
-            identifier=str(self.scim_user2.scim_id), display_name=self.test_user2.mail_addresses.primary.email
+        graph_user2 = ScimApiGroupMember(
+            identifier=str(self.scim_user2.scim_id),
+            display_name=self.test_user2.mail_addresses.primary.email,
+            member_type=GroupMemberType.USER,
         )
         self.scim_group1.members = {graph_user1, graph_user2}
         self.scim_group1.owners = {graph_user1}

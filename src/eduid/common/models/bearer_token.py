@@ -145,11 +145,11 @@ class AuthnBearerToken(BaseModel):
         account_manager_group = groupdb.get_group_by_display_name(display_name=account_manager_group_name)
         if account_manager_group is None:
             raise AuthenticationError('No "Account Managers" group found for data owner')
-        logger.debug(f"Found group {account_manager_group_name} with id {account_manager_group.graph.identifier}")
+        logger.debug(f"Found group {account_manager_group_name} with id {account_manager_group.scim_id!s}")
 
         # TODO: create a helper function to do this for all places where we do this dance in the repo
         # create the expected saml group id
-        saml_group_id = f"{groupdb.graphdb.scope}:group:{account_manager_group.graph.identifier}#eduid-iam"
+        saml_group_id = f"{groupdb.scope}:group:{account_manager_group.scim_id!s}#eduid-iam"
         # match against users entitlements
         entitlements = self.saml_entitlement or []
         if saml_group_id in entitlements:

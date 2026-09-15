@@ -3,11 +3,10 @@ from uuid import UUID
 
 from flask import Blueprint
 
-from eduid.graphdb.groupdb import User as GraphUser
 from eduid.userdb import User
 from eduid.userdb.exceptions import EduIDDBError
 from eduid.userdb.group_management import GroupRole
-from eduid.userdb.scimapi import ScimApiGroup
+from eduid.userdb.scimapi import GroupMemberType, ScimApiGroup, ScimApiGroupMember
 from eduid.webapp.common.api.decorators import MarshalWith, UnmarshalWith, require_user
 from eduid.webapp.common.api.messages import CommonMsg, FluxData, error_response, success_response
 from eduid.webapp.group_management.app import current_group_management_app as current_app
@@ -68,9 +67,10 @@ def get_groups(user: User) -> FluxData:
 def create_group(user: User, display_name: str) -> FluxData:
     scim_user = get_or_create_scim_user_by_eppn(user.eppn)
     _gu_name = user.mail_addresses.primary.email if user.mail_addresses.primary else user.eppn
-    graph_user = GraphUser(identifier=str(scim_user.scim_id), display_name=_gu_name)
-    group = ScimApiGroup(display_name=display_name)
-    group.owners = {graph_user}
+    owner = ScimApiGroupMember(
+        identifier=str(scim_user.scim_id), display_name=_gu_name, member_type=GroupMemberType.USER
+    )
+    group = ScimApiGroup(display_name=display_name, members=set(), owners={owner})
 
     if not current_app.scimapi_groupdb.save(group):
         current_app.logger.error(f"Failed to create ScimApiGroup with scim_id: {group.scim_id}")
@@ -133,7 +133,7 @@ def remove_user(user: User, group_identifier: UUID, user_identifier: UUID, role:
         return error_response(message=GroupManagementMsg.user_to_be_removed_does_not_exist)
 
     # Check so we don't remove the last owner of a group
-    if role == GroupRole.OWNER and len(group.owners) == 1:
+    if role == GroupRole.OWNER and len(group.owners or set()) == 1:
         current_app.logger.error(f"Can not remove the last owner in group with scim_id: {group_identifier}")
         return error_response(message=GroupManagementMsg.can_not_remove_last_owner)
 

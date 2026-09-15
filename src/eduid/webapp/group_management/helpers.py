@@ -4,14 +4,12 @@ from enum import unique
 from typing import Any
 from uuid import UUID
 
-from eduid.graphdb.groupdb import Group as GraphGroup
-from eduid.graphdb.groupdb import User as GraphUser
 from eduid.queue.client import init_queue_item
 from eduid.queue.db.message.payload import EduidGroupInviteCancelEmail, EduidGroupInviteEmail
 from eduid.userdb import User
 from eduid.userdb.exceptions import EduIDDBError
 from eduid.userdb.group_management import GroupInviteState, GroupRole
-from eduid.userdb.scimapi import ScimApiGroup
+from eduid.userdb.scimapi import GroupMemberType, ScimApiGroup, ScimApiGroupMember
 from eduid.userdb.scimapi.userdb import ScimApiUser
 from eduid.webapp.common.api.messages import TranslatableMsg
 from eduid.webapp.common.api.translation import get_user_locale
@@ -43,8 +41,8 @@ class UserGroup:
     display_name: str
     is_owner: bool
     is_member: bool
-    owners: set[GraphUser | GraphGroup]
-    members: set[GraphUser | GraphGroup]
+    owners: set[ScimApiGroupMember]
+    members: set[ScimApiGroupMember]
 
     @classmethod
     def from_scimapigroup(cls, group: ScimApiGroup, is_owner: bool = False, is_member: bool = False) -> "UserGroup":
@@ -53,8 +51,8 @@ class UserGroup:
             display_name=group.display_name,
             is_owner=is_owner,
             is_member=is_member,
-            owners=group.graph.owners,
-            members=group.graph.members,
+            owners=group.owners or set(),
+            members=group.members or set(),
         )
 
 
@@ -128,15 +126,17 @@ def is_member(scim_user: ScimApiUser, group_id: UUID) -> bool:
 
 
 def accept_group_invitation(scim_user: ScimApiUser, scim_group: ScimApiGroup, invite: GroupInviteState) -> None:
-    graph_user = GraphUser(identifier=str(scim_user.scim_id), display_name=invite.email_address)
+    new_member = ScimApiGroupMember(
+        identifier=str(scim_user.scim_id), display_name=invite.email_address, member_type=GroupMemberType.USER
+    )
     modified = False
     if invite.role == GroupRole.OWNER:
         if not is_owner(scim_user, scim_group.scim_id):
-            scim_group.add_owner(graph_user)
+            scim_group.add_owner(new_member)
             modified = True
     elif invite.role == GroupRole.MEMBER:
         if not is_member(scim_user, scim_group.scim_id):
-            scim_group.add_member(graph_user)
+            scim_group.add_member(new_member)
             modified = True
     else:
         raise NotImplementedError(f"Unknown role: {invite.role}")
@@ -152,12 +152,14 @@ def remove_user_from_group(scim_user: ScimApiUser, scim_group: ScimApiGroup, rol
     modified = False
     if role == GroupRole.OWNER:
         if is_owner(scim_user, scim_group.scim_id):
-            scim_group.owners = {owner for owner in scim_group.owners if owner.identifier != str(scim_user.scim_id)}
+            scim_group.owners = {
+                owner for owner in (scim_group.owners or set()) if owner.identifier != str(scim_user.scim_id)
+            }
             modified = True
     elif role == GroupRole.MEMBER:
         if is_member(scim_user, scim_group.scim_id):
             scim_group.members = {
-                member for member in scim_group.members if member.identifier != str(scim_user.scim_id)
+                member for member in (scim_group.members or set()) if member.identifier != str(scim_user.scim_id)
             }
             modified = True
     else:
@@ -217,7 +219,9 @@ def get_incoming_invites(user: User) -> list[dict[str, Any]]:
             current_app.logger.info(f"Removed invite to non existent group: {state}")
             continue
 
-        owners = [{"identifier": owner.identifier, "display_name": owner.display_name} for owner in group.owners]
+        owners = [
+            {"identifier": owner.identifier, "display_name": owner.display_name} for owner in (group.owners or set())
+        ]
         invites.append(
             {
                 "group_identifier": group.scim_id,
