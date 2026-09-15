@@ -74,7 +74,7 @@ def make_saml_request(class_refs: list[EduidAuthnContextClass | str]) -> str:
     xmlns:ns1="urn:oasis:names:tc:SAML:2.0:assertion"
         AssertionConsumerServiceURL="https://sp.example.edu/saml2/acs/"
         Destination="https://unittest-idp.example.edu/sso/post"
-        ID="id-57beb2b2f788ec50b10541dbe48e9626"
+        ID="id-{uuid4().hex}"
         IssueInstant="{saml2.time_util.instant()}"
         ProtocolBinding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST"
         Version="2.0">
@@ -1211,7 +1211,7 @@ class TestSSO(SSOIdPTests):
                   xmlns:ns1="urn:oasis:names:tc:SAML:2.0:assertion"
                   AssertionConsumerServiceURL="https://mfa-check.swamid.se/Shibboleth.sso/SAML2/POST"
                   Destination="https://unittest-idp.example.edu/sso/post" ForceAuthn="{value}"
-                  ID="_9f482d6c6ace2867a69c53671fbf09c6"
+                  ID="_{uuid4().hex}"
                   IssueInstant="2021-05-27T21:53:24Z" ProtocolBinding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST"
                   Version="2.0">
                 <ns1:Issuer>https://mfa-check.swamid.se/shibboleth</ns1:Issuer>
