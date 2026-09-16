@@ -1897,6 +1897,10 @@ pydantic-settings==2.15.0 \
     --hash=sha256:0ba092c291c94baceb5eff768aa0d56400a457585bc0175925a5a5510303da42 \
     --hash=sha256:694b793e84f766ba76a90ebdefc01d0a9a045dab0382bee70393da93712ad117
     # via oic
+pygamlastan==0.6.0 \
+    --hash=sha256:3a32fd0522f91bda3a6036c9e58814731abc514afaa97dfc8dcf9df349841c2a \
+    --hash=sha256:e3d9a3c89cbeef97c34fb299ea3fdace591c583ab5f2ea9562da89e2b1d2a367
+    # via eduid-backend (../pyproject.toml)
 pygments==2.21.0 \
     --hash=sha256:2363c69b61c4a97c838da3b130dcd6468f4848992b21a82f2a63ec34377137d9 \
     --hash=sha256:610ca751c9bc2492b38eb9a38a7fbc93edbbb2d7182edaf34e66ae493dee5c8c

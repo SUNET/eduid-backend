@@ -38,6 +38,7 @@ dependencies = [
   "pyOpenSSL",
   "pyXMLSecurity[PKCS11]",
   "pydantic",
+  "pygamlastan",
   "pymongo",
   "pysaml2==7.5.2+sunet4",
   "pysmscom",
