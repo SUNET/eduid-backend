@@ -50,10 +50,10 @@ def get_saml2_config(module_path: str, name: str = "SAML_CONFIG") -> SPConfig:
     unrelated to that migration - so it needs its own copy pinned to plain pysaml2.
     """
     spec = importlib.util.spec_from_file_location("saml2_settings", module_path)
-    if spec is None:
+    if spec is None or spec.loader is None:
         raise RuntimeError(f"Failed loading saml2_settings module: {module_path}")
     module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)  # type: ignore[union-attr]
+    spec.loader.exec_module(module)
     conf = SPConfig()
     conf.load(module.__getattribute__(name))
     return conf
