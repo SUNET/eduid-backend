@@ -16,6 +16,7 @@ from eduid.webapp.common.api.messages import AuthnStatusMsg, FluxData, Translata
 from eduid.webapp.common.api.schemas.authn_status import StatusRequestSchema, StatusResponseSchema
 from eduid.webapp.common.api.schemas.csrf import EmptyResponse
 from eduid.webapp.common.authn.acs_registry import ACSArgs, get_action
+from eduid.webapp.common.authn.session_info import SessionInfo
 from eduid.webapp.common.proofing.methods import get_proofing_method
 from eduid.webapp.common.session import session
 from eduid.webapp.common.session.namespaces import OIDCState, RP_AuthnRequest
@@ -210,7 +211,7 @@ def authn_callback(user: User) -> WerkzeugResponse:
     action = get_action(default_action=None, authndata=authn_req)
     backdoor = check_magic_cookie(config=current_app.conf)
     args = ACSArgs(
-        session_info=user_response,
+        session_info=SessionInfo(user_response),
         authn_req=authn_req,
         proofing_method=proofing_method,
         backdoor=backdoor,
