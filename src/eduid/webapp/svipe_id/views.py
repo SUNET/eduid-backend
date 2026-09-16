@@ -3,10 +3,10 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 from urllib.parse import parse_qs, urlparse
 
-from authlib.integrations.base_client import OAuthError
 from flask import Blueprint, make_response, redirect, request, url_for
 from werkzeug import Response as WerkzeugResponse
 
+from eduid.common.clients.oidc_client import OidcRpError
 from eduid.common.config.base import FrontendAction
 from eduid.userdb import User
 from eduid.webapp.common.api.decorators import MarshalWith, UnmarshalWith, require_user
@@ -94,16 +94,15 @@ def _authn(
         return AuthnResult(error=SvipeIDMsg.frontend_action_not_supported)
 
     try:
-        auth_redirect = current_app.oidc_client.svipe.authorize_redirect(
+        auth_url = current_app.oidc_client.authorization_url(
             redirect_uri=url_for("svipe_id.authn_callback", _external=True),
             # TODO: id_token instead of userinfo would be preferred but I can't get it to work
-            claims=json.dumps({"userinfo": current_app.conf.svipe_client.claims_request}),
+            extra_params={"claims": json.dumps({"userinfo": current_app.conf.svipe_client.claims_request})},
         )
-    except OAuthError:
+    except OidcRpError:
         current_app.logger.exception("Failed to create authorization request")
         return AuthnResult(error=SvipeIDMsg.authn_request_failed)
 
-    auth_url = auth_redirect.headers["Location"]
     auth_url_query = urlparse(auth_url).query
     try:
         # Ignore PyCharm warning "Expected type 'bytes' ..." for "state" lookup
@@ -180,16 +179,16 @@ def authn_callback(user: User) -> WerkzeugResponse:
     formatted_finish_url = authn_req.formatted_finish_url(app_name=current_app.conf.app_name)
 
     try:
-        token_response = current_app.oidc_client.svipe.authorize_access_token()
+        token_response = current_app.oidc_client.fetch_token()
         current_app.logger.debug(f"Got token response: {token_response}")
-        user_response = current_app.oidc_client.svipe.userinfo()
+        user_response = current_app.oidc_client.userinfo()
         current_app.logger.debug(f"Got user response: {user_response}")
         # TODO: look in to why we are not getting a full userinfo in token response anymore
         if token_response.get("userinfo", {}).get("sub") != user_response.get("sub"):  # sub must match
-            raise OAuthError("sub mismatch")
+            raise OidcRpError("sub mismatch")
         user_response.update(token_response.get("userinfo", {}))
         current_app.logger.debug(f"merged user response and token respose userinfo: {user_response}")
-    except (OAuthError, KeyError):
+    except (OidcRpError, KeyError):
         # catch any exception from the oidc client and also exceptions about missing request arguments
         current_app.logger.exception("Failed to get token response from Svipe ID")
         current_app.stats.count(name="token_response_failed")
@@ -203,11 +202,8 @@ def authn_callback(user: User) -> WerkzeugResponse:
 
     # end session after successful token response
     try:
-        metadata = current_app.oidc_client.svipe.load_server_metadata()
-        current_app.oidc_client.svipe.get(
-            metadata.get("end_session_endpoint"), params={"id_token_hint": token_response["id_token"]}
-        )
-    except OAuthError:
+        current_app.oidc_client.end_session(id_token=token_response["id_token"])
+    except OidcRpError:
         # keep going even if we can't end the session
         current_app.logger.exception("Failed to end OIDC session")
 

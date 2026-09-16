@@ -32,22 +32,22 @@ class SvipeIDMsg(TranslatableMsg):
     frontend_action_not_supported = "svipe_id.frontend_action_not_supported"
 
 
-class SessionOAuthCache:
+class SessionOidcCache:
     # Used to store json-encoded data (OAuth->BaseOAuth->FrameworkIntegration)
     @staticmethod
     def get(key: str) -> str | None:
-        logger.debug(f"Getting {key} from session.svipe_id.oauth_cache")
+        logger.debug(f"Getting {key} from session.svipe_id.rp.authlib_cache")
         return session.svipe_id.rp.authlib_cache.get(key)
 
     @staticmethod
     def set(key: str, value: str, expires: int | None = None) -> None:
         session.svipe_id.rp.authlib_cache[key] = value
-        logger.debug(f"Set {key}={value} (expires={expires}) in session.svipe_id.oauth_cache")
+        logger.debug(f"Set {key}={value} (expires={expires}) in session.svipe_id.rp.authlib_cache")
 
     @staticmethod
     def delete(key: str) -> None:
         del session.svipe_id.rp.authlib_cache[key]
-        logger.debug(f"Deleted {key} from session.svipe_id.oauth_cache")
+        logger.debug(f"Deleted {key} from session.svipe_id.rp.authlib_cache")
 
 
 class UserInfoBase(BaseModel):
