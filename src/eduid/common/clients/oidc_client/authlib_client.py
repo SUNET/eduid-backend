@@ -13,10 +13,11 @@ __author__ = "lundberg"
 
 # Anything raised by authlib itself (OAuth errors, ...), the underlying JOSE library (ID token
 # claims validation failures - nonce/issuer/audience/expiry mismatches - which authlib does not
-# wrap in AuthlibBaseError), and network-level failures from the underlying requests library,
-# should be turned into an OidcRpError so that webapps only ever have to handle a single error
-# type from this module.
-_CAUGHT_EXCEPTIONS = (AuthlibBaseError, JoseError, RequestException)
+# wrap in AuthlibBaseError), network-level failures from the underlying requests library, and
+# KeyError (raised by authlib's underlying implementation for missing request arguments, e.g. a
+# missing code/state in the callback query string), should be turned into an OidcRpError so that
+# webapps only ever have to handle a single error type from this module.
+_CAUGHT_EXCEPTIONS = (AuthlibBaseError, JoseError, RequestException, KeyError)
 
 
 class AuthlibOidcRpClient:

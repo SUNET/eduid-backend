@@ -430,12 +430,36 @@ class RPAuthnData(BaseModel):
     authlib_cache: dict[str, Any] = Field(default_factory=dict)
     authns: dict[OIDCState, RP_AuthnRequest] = Field(default_factory=dict)
 
-    @field_serializer("authns")
-    def authns_cleanup(self, authns: dict[OIDCState, RP_AuthnRequest]) -> dict[OIDCState, Any]:
+    def _retained_authn_states(self) -> set[OIDCState]:
+        """
+        The set of authn states that authns_cleanup would keep, i.e. all of them if there are at
+        most MAX_AUTHNS_TO_KEEP, otherwise the MAX_AUTHNS_TO_KEEP most recently created ones.
+        """
+        authns = self.authns
         if len(authns) > MAX_AUTHNS_TO_KEEP:
             items = sorted(authns.items(), reverse=True, key=lambda item: item[1].created_ts)
             authns = dict(items[:MAX_AUTHNS_TO_KEEP])
+        return set(authns.keys())
+
+    @field_serializer("authns")
+    def authns_cleanup(self, authns: dict[OIDCState, RP_AuthnRequest]) -> dict[OIDCState, Any]:
+        retained_states = self._retained_authn_states()
+        authns = {state: authn for state, authn in authns.items() if state in retained_states}
         return {k: v.model_dump() for k, v in authns.items()}
+
+    @field_serializer("authlib_cache")
+    def authlib_cache_cleanup(self, authlib_cache: dict[str, Any]) -> dict[str, Any]:
+        """
+        Keep authlib_cache from growing indefinitely with entries left behind by abandoned
+        (never-completed) authorization attempts. authlib's cache keys are of the form
+        "_state_{name}_{state}", correlated with the authns dict by the state value, so we
+        prune any cache entry whose state is not among the authns entries retained by
+        authns_cleanup.
+        """
+        retained_states = self._retained_authn_states()
+        return {
+            key: value for key, value in authlib_cache.items() if any(str(state) in key for state in retained_states)
+        }
 
 
 class SvipeIDNamespace(SessionNSBase):

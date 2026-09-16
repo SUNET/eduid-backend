@@ -274,8 +274,7 @@ def authn_callback() -> WerkzeugResponse:
     try:
         token_response = current_app.oidc_client.fetch_token()
         current_app.logger.debug(f"Got token response: {token_response}")
-    except (OidcRpError, KeyError):
-        # catch any exception from the oidc client and also exceptions about missing request arguments
+    except OidcRpError:
         current_app.logger.exception("Failed to get token response from Freja")
         current_app.stats.count(name="token_response_failed")
         authn_req.error = True

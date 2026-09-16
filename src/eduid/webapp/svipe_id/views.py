@@ -189,8 +189,7 @@ def authn_callback(user: User) -> WerkzeugResponse:
             raise OidcRpError("sub mismatch")
         user_response.update(token_response.get("userinfo", {}))
         current_app.logger.debug(f"merged user response and token respose userinfo: {user_response}")
-    except (OidcRpError, KeyError):
-        # catch any exception from the oidc client and also exceptions about missing request arguments
+    except OidcRpError:
         current_app.logger.exception("Failed to get token response from Svipe ID")
         current_app.stats.count(name="token_response_failed")
         authn_req.error = True

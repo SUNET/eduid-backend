@@ -131,7 +131,7 @@ def authn_callback(user: User) -> WerkzeugResponse:
         current_app.logger.debug(f"Got token response: {token_response}")
         userinfo_response = current_app.oidc_client.userinfo()
         current_app.logger.debug(f"Got userinfo response: {userinfo_response}")
-    except (OidcRpError, KeyError):
+    except OidcRpError:
         current_app.logger.exception("Failed to get token/userinfo response from ORCID")
         current_app.stats.count(name="token_response_failed")
         authn_req.error = True
