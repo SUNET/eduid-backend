@@ -23,7 +23,7 @@ class TestGatherSkvUsers(CleanerQueueTestCase):
     @pytest.fixture(autouse=True)
     def setup(self, setup_cleaner: None) -> Iterator[None]:
         self.amdb = AmDB(db_uri=self.mongo_uri)
-        self.amdb._drop_whole_collection()  # clean any leftovers from other tests on this worker
+        self.amdb._coll.delete_many({})  # clean any leftovers from other tests on this worker
         self.context = MockContext(
             central_db=self.amdb,
             cleaner_queue=self.cleaner_queue_db,
@@ -32,7 +32,7 @@ class TestGatherSkvUsers(CleanerQueueTestCase):
 
         yield
 
-        self.amdb._drop_whole_collection()
+        self.amdb._coll.delete_many({})
 
     def _create_user_with_verified_nin(self, eppn: str, nin_number: str) -> User:
         """Create and return a User with a verified NIN identity."""

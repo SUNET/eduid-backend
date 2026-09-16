@@ -11,15 +11,22 @@ from eduid.userdb.testing import MongoTemporaryInstance
 from eduid.webapp.common.session.testing import RedisTemporaryInstance
 
 
+def _cleanup_new_async_mongo_clients(async_clients_before: dict[str, object]) -> None:
+    for key, client in list(AsyncClientCache._clients.items()):
+        if async_clients_before.get(key) is client:
+            continue
+        client.close()
+        del AsyncClientCache._clients[key]
+
+
 @pytest.fixture
 def isolated_async_client_cache() -> Iterator[None]:
     """Ensure each test gets a fresh AsyncIOMotorClient by isolating the shared client cache."""
-    old = AsyncClientCache._clients
-    AsyncClientCache._clients = {}
+    async_clients_before = dict(AsyncClientCache._clients)
     try:
         yield
     finally:
-        AsyncClientCache._clients = old
+        _cleanup_new_async_mongo_clients(async_clients_before)
 
 
 @pytest.fixture(scope="session")
