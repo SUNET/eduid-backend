@@ -1,13 +1,22 @@
 from collections.abc import Mapping
 from typing import Any
 
-from authlib.integrations.base_client import OAuthError
+from authlib.common.errors import AuthlibBaseError
 from authlib.integrations.flask_client import OAuth
 from flask import Flask
+from joserfc.errors import JoseError
+from requests.exceptions import RequestException
 
 from eduid.common.clients.oidc_client.base import OidcRpClientConfig, OidcRpError, OidcStateCache
 
 __author__ = "lundberg"
+
+# Anything raised by authlib itself (OAuth errors, ...), the underlying JOSE library (ID token
+# claims validation failures - nonce/issuer/audience/expiry mismatches - which authlib does not
+# wrap in AuthlibBaseError), and network-level failures from the underlying requests library,
+# should be turned into an OidcRpError so that webapps only ever have to handle a single error
+# type from this module.
+_CAUGHT_EXCEPTIONS = (AuthlibBaseError, JoseError, RequestException)
 
 
 class AuthlibOidcRpClient:
@@ -19,7 +28,7 @@ class AuthlibOidcRpClient:
     def authorization_url(self, redirect_uri: str, extra_params: Mapping[str, str] | None = None) -> str:
         try:
             response = self._client.authorize_redirect(redirect_uri=redirect_uri, **(extra_params or {}))
-        except OAuthError as err:
+        except _CAUGHT_EXCEPTIONS as err:
             raise OidcRpError(str(err)) from err
         location: str = response.headers["Location"]
         return location
@@ -27,21 +36,21 @@ class AuthlibOidcRpClient:
     def fetch_token(self) -> dict[str, Any]:
         try:
             token_response: dict[str, Any] = self._client.authorize_access_token()
-        except OAuthError as err:
+        except _CAUGHT_EXCEPTIONS as err:
             raise OidcRpError(str(err)) from err
         return token_response
 
     def userinfo(self) -> dict[str, Any]:
         try:
             userinfo_response: dict[str, Any] = self._client.userinfo()
-        except OAuthError as err:
+        except _CAUGHT_EXCEPTIONS as err:
             raise OidcRpError(str(err)) from err
         return userinfo_response
 
     def server_metadata(self) -> Mapping[str, Any]:
         try:
             metadata: Mapping[str, Any] = self._client.load_server_metadata()
-        except OAuthError as err:
+        except _CAUGHT_EXCEPTIONS as err:
             raise OidcRpError(str(err)) from err
         return metadata
 
@@ -49,7 +58,7 @@ class AuthlibOidcRpClient:
         try:
             metadata = self._client.load_server_metadata()
             self._client.get(metadata.get("end_session_endpoint"), params={"id_token_hint": id_token})
-        except OAuthError as err:
+        except _CAUGHT_EXCEPTIONS as err:
             raise OidcRpError(str(err)) from err
 
 
@@ -79,7 +88,7 @@ def init_oidc_rp_client(
         client_secret=config.client_secret,
         client_kwargs=client_kwargs,
         authorize_params=authorize_params,
-        server_metadata_url=f"{config.issuer}/.well-known/openid-configuration",
+        server_metadata_url=f"{str(config.issuer).rstrip('/')}/.well-known/openid-configuration",
     )
     client = getattr(oauth, name)
     return AuthlibOidcRpClient(client)

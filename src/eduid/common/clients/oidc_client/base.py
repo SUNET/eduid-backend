@@ -24,7 +24,7 @@ class OidcRpClientConfig(BaseModel):
     client_id: str
     client_secret: str
     issuer: AnyUrl
-    code_challenge_method: str = Field(default="S256")
+    code_challenge_method: str | None = Field(default="S256")
     acr_values: list[str] = Field(default_factory=list)
     scopes: list[str] = Field(default=["openid"])
 

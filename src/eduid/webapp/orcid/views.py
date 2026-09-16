@@ -1,9 +1,10 @@
-from urllib.parse import urlencode
+import json
+from urllib.parse import parse_qs, urlparse
 
 from flask import Blueprint, make_response, redirect, request, url_for
-from oic.oic.message import AuthorizationResponse, Claims, ClaimsRequest
 from werkzeug.wrappers import Response as WerkzeugResponse
 
+from eduid.common.clients.oidc_client import OidcRpError
 from eduid.common.config.base import FrontendAction
 from eduid.userdb.proofing import ProofingUser
 from eduid.userdb.user import User
@@ -11,15 +12,13 @@ from eduid.webapp.common.api.decorators import MarshalWith, UnmarshalWith, requi
 from eduid.webapp.common.api.errors import EduidErrorsContext, goto_errors_response
 from eduid.webapp.common.api.messages import (
     AuthnStatusMsg,
-    CommonMsg,
     FluxData,
     error_response,
     success_response,
 )
-from eduid.webapp.common.api.oidc import OidcServiceUnavailableError
 from eduid.webapp.common.api.schemas.authn_status import StatusRequestSchema, StatusResponseSchema
 from eduid.webapp.common.api.schemas.csrf import EmptyRequest
-from eduid.webapp.common.api.utils import get_unique_hash, save_and_sync_user
+from eduid.webapp.common.api.utils import save_and_sync_user
 from eduid.webapp.common.authn.acs_registry import ACSArgs, get_action
 from eduid.webapp.common.authn.session_info import SessionInfo
 from eduid.webapp.common.session import session
@@ -68,24 +67,21 @@ def connect_orcid(user: User, frontend_action: str, frontend_state: str | None =
         current_app.logger.error(f"Frontend action {frontend_action} not supported")
         return error_response(message=OrcidMsg.frontend_action_not_supported)
 
-    state = get_unique_hash()
-    nonce = get_unique_hash()
-
     try:
-        claims_request = ClaimsRequest(userinfo=Claims(id=None))  # type: ignore[no-untyped-call]
-        oidc_args = {
-            "client_id": current_app.oidc_client.client_id,
-            "response_type": "code",
-            "scope": "openid",
-            "claims": claims_request.to_json(),  # type: ignore[no-untyped-call]
-            "redirect_uri": url_for("orcid.authn_callback", _external=True),
-            "state": state,
-            "nonce": nonce,
-        }
-        authorization_url = f"{current_app.oidc_client.authorization_endpoint}?{urlencode(oidc_args)}"
-    except OidcServiceUnavailableError as e:
-        current_app.logger.warning(f"ORCID service unavailable during authorization: {e}")
-        return error_response(message=CommonMsg.temp_problem)
+        authorization_url = current_app.oidc_client.authorization_url(
+            redirect_uri=url_for("orcid.authn_callback", _external=True),
+            extra_params={"claims": json.dumps({"userinfo": {"id": None}})},
+        )
+    except OidcRpError:
+        current_app.logger.exception("Failed to create authorization request")
+        return error_response(message=OrcidMsg.authz_error)
+
+    auth_url_query = urlparse(authorization_url).query
+    try:
+        state = parse_qs(auth_url_query)["state"][0]
+    except KeyError:
+        current_app.logger.error(f'Failed to parse "state" from authn request: {auth_url_query}')
+        return error_response(message=OrcidMsg.authz_error)
 
     oidc_state = OIDCState(state)
     authn_req = RP_AuthnRequest(
@@ -97,7 +93,6 @@ def connect_orcid(user: User, frontend_action: str, frontend_state: str | None =
         finish_url=authn_params.finish_url,
     )
     session.orcid.rp.authns[oidc_state] = authn_req
-    session.orcid.nonces[oidc_state] = nonce
 
     current_app.logger.debug(f"Stored RP_AuthnRequest[{oidc_state}]: {authn_req}")
     current_app.stats.count(name="authn_request")
@@ -131,70 +126,35 @@ def authn_callback(user: User) -> WerkzeugResponse:
     current_app.stats.count(name="authn_response")
     formatted_finish_url = authn_req.formatted_finish_url(app_name=current_app.conf.app_name)
 
-    # Parse authorization response
-    query_string = request.query_string.decode("utf-8")
     try:
-        authn_resp = current_app.oidc_client.parse_response(
-            AuthorizationResponse, info=query_string, sformat="urlencoded"
-        )
-    except OidcServiceUnavailableError as e:
-        current_app.logger.warning(f"ORCID service unavailable during authorization response: {e}")
-        authn_req.error = True
-        authn_req.status = CommonMsg.temp_problem.value
-        return redirect(formatted_finish_url)
-
-    if authn_resp.get("error"):  # type: ignore[no-untyped-call]
-        current_app.logger.error(
-            f"AuthorizationError: {authn_resp['error']} - {authn_resp.get('error_message')}"  # type: ignore[no-untyped-call]
-            f" ({authn_resp.get('error_description')})"  # type: ignore[no-untyped-call]
-        )
+        token_response = current_app.oidc_client.fetch_token()
+        current_app.logger.debug(f"Got token response: {token_response}")
+        userinfo_response = current_app.oidc_client.userinfo()
+        current_app.logger.debug(f"Got userinfo response: {userinfo_response}")
+    except (OidcRpError, KeyError):
+        current_app.logger.exception("Failed to get token/userinfo response from ORCID")
+        current_app.stats.count(name="token_response_failed")
         authn_req.error = True
         authn_req.status = OrcidMsg.authz_error.value
         return redirect(formatted_finish_url)
 
-    # Token request
-    args = {
-        "code": authn_resp["code"],
-        "redirect_uri": url_for("orcid.authn_callback", _external=True),
-    }
-    try:
-        token_resp = current_app.oidc_client.do_access_token_request(  # type: ignore[no-untyped-call]
-            scope="openid", state=authn_resp["state"], request_args=args, authn_method="client_secret_basic"
-        )
-        id_token = token_resp["id_token"]
+    current_app.logger.info("ORCID authorized for user")
 
-        # Validate nonce
-        expected_nonce = session.orcid.nonces.get(oidc_state)
-        if not expected_nonce or id_token["nonce"] != expected_nonce:
-            current_app.logger.error("The 'nonce' parameter does not match for user")
-            authn_req.error = True
-            authn_req.status = OrcidMsg.unknown_nonce.value
-            return redirect(formatted_finish_url)
-
-        # Nonce validated, remove it
-        del session.orcid.nonces[oidc_state]
-
-        current_app.logger.info("ORCID authorized for user")
-
-        # Userinfo request
-        userinfo_result = current_app.oidc_client.do_user_info_request(  # type: ignore[no-untyped-call]
-            method=current_app.conf.userinfo_endpoint_method, state=authn_resp["state"]
-        )
-    except OidcServiceUnavailableError as e:
-        current_app.logger.warning(f"ORCID service unavailable during token/userinfo request: {e}")
-        authn_req.error = True
-        authn_req.status = CommonMsg.temp_problem.value
-        return redirect(formatted_finish_url)
+    # authlib/joserfc leaves 'aud' as decoded from the JWT - ORCID issues it as a bare string, but
+    # OidcIdToken.aud is typed list[str], so normalize it here before building session_info.
+    id_token_claims = dict(token_response["userinfo"])
+    if isinstance(id_token_claims.get("aud"), str):
+        id_token_claims["aud"] = [id_token_claims["aud"]]
 
     # Build session_info for callback action
     session_info = SessionInfo(
         {
-            "id_token": dict(id_token),
-            "userinfo": dict(userinfo_result),
-            "access_token": token_resp["access_token"],
-            "token_type": token_resp["token_type"],
-            "expires_in": token_resp.get("expires_in"),
-            "refresh_token": token_resp.get("refresh_token"),
+            "id_token": id_token_claims,
+            "userinfo": dict(userinfo_response),
+            "access_token": token_response["access_token"],
+            "token_type": token_response["token_type"],
+            "expires_in": token_response.get("expires_in"),
+            "refresh_token": token_response.get("refresh_token"),
         }
     )
 

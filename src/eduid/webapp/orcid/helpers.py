@@ -1,9 +1,34 @@
+import logging
 from enum import unique
 
 from pydantic import BaseModel, Field
 
 from eduid.common.models.generic import HttpUrlStr
 from eduid.webapp.common.api.messages import TranslatableMsg
+from eduid.webapp.common.session import session
+
+__author__ = "lundberg"
+
+
+logger = logging.getLogger(__name__)
+
+
+class SessionOidcCache:
+    # Used to store json-encoded data (OAuth->BaseOAuth->FrameworkIntegration)
+    @staticmethod
+    def get(key: str) -> str | None:
+        logger.debug(f"Getting {key} from session.orcid.rp.authlib_cache")
+        return session.orcid.rp.authlib_cache.get(key)
+
+    @staticmethod
+    def set(key: str, value: str, expires: int | None = None) -> None:
+        session.orcid.rp.authlib_cache[key] = value
+        logger.debug(f"Set {key}={value} (expires={expires}) in session.orcid.rp.authlib_cache")
+
+    @staticmethod
+    def delete(key: str) -> None:
+        del session.orcid.rp.authlib_cache[key]
+        logger.debug(f"Deleted {key} from session.orcid.rp.authlib_cache")
 
 
 @unique
