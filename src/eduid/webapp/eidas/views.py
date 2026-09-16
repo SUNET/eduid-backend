@@ -2,7 +2,7 @@ from copy import deepcopy
 from dataclasses import dataclass
 
 from flask import Blueprint, make_response, redirect, request
-from pygamlastan.compat.saml2.samlp import AuthnRequest
+from pygamlastan.compat.saml2.typing import SAMLHttpArgs
 from werkzeug.wrappers import Response as WerkzeugResponse
 
 from eduid.common.config.base import EduidEnvironment, FrontendAction
@@ -183,7 +183,7 @@ def mfa_register(method: str, frontend_action: str, frontend_state: str | None =
 
 @dataclass
 class AuthnResult:
-    authn_req: AuthnRequest | None = None
+    authn_req: SAMLHttpArgs | None = None
     authn_id: AuthnRequestRef | None = None
     error: TranslatableMsg | None = None
     url: str | None = None

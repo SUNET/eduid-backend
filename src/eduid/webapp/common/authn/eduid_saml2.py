@@ -187,6 +187,9 @@ def get_authn_response(
         raise BadSAMLResponse(EduidErrorsContext.SAML_RESPONSE_FAIL)
 
     session_id = response.session_id()
+    if session_id is None:
+        logger.error("SAML response has no InResponseTo")
+        raise BadSAMLResponse(EduidErrorsContext.SAML_RESPONSE_FAIL)
     oq_cache.delete(session_id)
 
     authn_reqref = outstanding_queries[session_id]
@@ -337,7 +340,7 @@ def process_assertion(
     authn_data = sp_data.authns[authn_ref]
     current_app.logger.debug(f"Authentication request data retrieved from session: {authn_data}")
 
-    session_info = response.session_info()
+    session_info = SessionInfo(response.session_info())
     authn_data.authn_instant = dt_parse(session_info["authn_info"][0][2])
     authn_data.asserted_authn_ctx = get_authn_ctx(session_info)
 
