@@ -1,16 +1,16 @@
-from pydantic import Field
-
+from eduid.common.clients.oidc_client.base import OidcRpClientConfig
 from eduid.common.config.base import AmConfigMixin, EduIDBaseAppConfig, ErrorsConfigMixin, FrontendActionMixin
+
+__author__ = "lundberg"
+
+
+class OrcidClientConfig(OidcRpClientConfig):
+    # ORCID's discovery document does not advertise PKCE support
+    code_challenge_method: str | None = None
 
 
 class OrcidConfig(EduIDBaseAppConfig, AmConfigMixin, ErrorsConfigMixin, FrontendActionMixin):
     app_name: str = "orcid"
 
     # OIDC
-    client_registration_info: dict[str, str] = Field(default={"client_id": "", "client_secret": ""})
-    provider_configuration_info: dict[str, str] = Field(
-        default={
-            "issuer": "",
-        }
-    )
-    userinfo_endpoint_method: str = "GET"
+    orcid_client: OrcidClientConfig

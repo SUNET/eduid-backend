@@ -1,15 +1,15 @@
 from collections.abc import Mapping
 from typing import Any, cast
 
-from authlib.integrations.flask_client import OAuth
 from flask import current_app
 
+from eduid.common.clients.oidc_client import OidcRpClient, init_oidc_rp_client
 from eduid.common.config.parsers import load_config
 from eduid.common.rpc.am_relay import AmRelay
 from eduid.userdb.logs import ProofingLog
 from eduid.userdb.proofing.db import SvideIDProofingUserDB
 from eduid.webapp.common.authn.middleware import AuthnBaseApp
-from eduid.webapp.svipe_id.helpers import SessionOAuthCache
+from eduid.webapp.svipe_id.helpers import SessionOidcCache
 from eduid.webapp.svipe_id.settings.common import SvipeIdConfig
 
 __author__ = "lundberg"
@@ -28,22 +28,8 @@ class SvipeIdApp(AuthnBaseApp):
         self.am_relay = AmRelay(config)
 
         # Initialize the oidc_client
-        self.oidc_client = OAuth(self, cache=SessionOAuthCache())
-        client_kwargs = {}
-        if self.conf.svipe_client.scopes:
-            client_kwargs["scope"] = " ".join(self.conf.svipe_client.scopes)
-        if self.conf.svipe_client.code_challenge_method:
-            client_kwargs["code_challenge_method"] = self.conf.svipe_client.code_challenge_method
-        authorize_params = {}
-        if self.conf.svipe_client.acr_values:
-            authorize_params["acr_values"] = " ".join(self.conf.svipe_client.acr_values)
-        self.oidc_client.register(  # type: ignore[no-untyped-call]
-            name="svipe",
-            client_id=self.conf.svipe_client.client_id,
-            client_secret=self.conf.svipe_client.client_secret,
-            client_kwargs=client_kwargs,
-            authorize_params=authorize_params,
-            server_metadata_url=f"{self.conf.svipe_client.issuer}/.well-known/openid-configuration",
+        self.oidc_client: OidcRpClient = init_oidc_rp_client(
+            app=self, name="svipe", config=self.conf.svipe_client, cache=SessionOidcCache()
         )
 
 
