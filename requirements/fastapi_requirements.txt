@@ -1165,6 +1165,10 @@ pydantic-core==2.50.4 \
 pyhsm @ https://github.com/SUNET/python-pyhsm/archive/3b867ec8e0aa2c4444e9c84444228e95fc6aaabf.zip \
     --hash=sha256:f15aaa010f66fa884eea517a49ae690d865ca81965ae685a9c0414a9ad943717
     # via eduid-backend (../pyproject.toml)
+pygamlastan==0.6.0 \
+    --hash=sha256:3a32fd0522f91bda3a6036c9e58814731abc514afaa97dfc8dcf9df349841c2a \
+    --hash=sha256:e3d9a3c89cbeef97c34fb299ea3fdace591c583ab5f2ea9562da89e2b1d2a367
+    # via eduid-backend (../pyproject.toml)
 pykcs11==1.5.21 \
     --hash=sha256:057fa0de22389c97dfbc00631d1580af729e0ee61baab1d19000ce774f992444 \
     --hash=sha256:1146a20e19141defc2e16fd58a4c3c8bb8a7955e5807b4cc3d6faa7ff64655f9 \
