@@ -84,7 +84,11 @@ def logout(ref: str | None, sso_session: SSOSession | None) -> WerkzeugResponse:
 
     if _ref and old_saml_req:
         session.idp.pending_requests[_ref] = IdP_SAMLPendingRequest(
-            request=old_saml_req.request, binding=old_saml_req.binding, relay_state=old_saml_req.relay_state
+            request=old_saml_req.request,
+            binding=old_saml_req.binding,
+            relay_state=old_saml_req.relay_state,
+            authn_requirements=old_saml_req.authn_requirements,
+            service_info=old_saml_req.service_info,
         )
 
     payload: dict[str, Any] = {"finished": True}
