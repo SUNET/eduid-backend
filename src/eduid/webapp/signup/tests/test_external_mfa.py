@@ -810,6 +810,7 @@ class ExternalMfaSignupTests(ExternalMfaSignupTestsBase):
                     "user_created": True,
                     "idp_request_ref": None,
                     "idp_service_info": None,
+                    "idp_authn_requirements": None,
                 },
             },
         )

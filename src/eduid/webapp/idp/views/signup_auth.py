@@ -8,7 +8,7 @@ from eduid.webapp.common.api.decorators import MarshalWith, UnmarshalWith
 from eduid.webapp.common.api.messages import FluxData, error_response
 from eduid.webapp.common.api.schemas.models import FluxSuccessResponse
 from eduid.webapp.common.session import session
-from eduid.webapp.common.session.namespaces import LoginApplication
+from eduid.webapp.common.session.namespaces import IdP_SAMLPendingRequest, LoginApplication
 from eduid.webapp.idp.app import current_idp_app as current_app
 from eduid.webapp.idp.decorators import require_ticket, uses_sso_session
 from eduid.webapp.idp.helpers import IdPMsg, lookup_user
@@ -70,6 +70,19 @@ def signup_auth(ticket: LoginContext, sso_session: SSOSession | None) -> FluxDat
 
     # All checks passed
     current_app.logger.info(f"Accepting new signup as authentication for {session.common.eppn}")
+
+    # Defensive re-read for logging/stats only - never trust the signup-session copy of this
+    # for the actual SAML response, which is still gated by the normal login_next_step /
+    # response_authn pipeline evaluating the original request.
+    if isinstance(ticket.pending_request, IdP_SAMLPendingRequest) and ticket.pending_request.authn_requirements:
+        _requirements = ticket.pending_request.authn_requirements
+        current_app.logger.info(
+            f"{ticket.request_ref}: signup completed for a request with authn_requirements: {_requirements}"
+        )
+        if _requirements.require_mfa:
+            current_app.stats.count("signup_auth_completed_mfa_required")
+        if _requirements.minimum_assurance_level:
+            current_app.stats.count(f"signup_auth_completed_{_requirements.minimum_assurance_level}_required")
 
     user = lookup_user(session.common.eppn)
     if not user:
