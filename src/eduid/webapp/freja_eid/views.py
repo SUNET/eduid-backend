@@ -2,10 +2,10 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 from urllib.parse import parse_qs, urlparse
 
-from authlib.integrations.base_client import OAuthError
 from flask import Blueprint, make_response, redirect, request, url_for
 from werkzeug import Response as WerkzeugResponse
 
+from eduid.common.clients.oidc_client import OidcRpError
 from eduid.common.config.base import FrontendAction
 from eduid.userdb import User
 from eduid.userdb.credentials import FidoCredential
@@ -189,14 +189,13 @@ def _authn(
         return AuthnResult(error=FrejaEIDMsg.frontend_action_not_supported)
 
     try:
-        auth_redirect = current_app.oidc_client.freja_eid.authorize_redirect(
+        auth_url = current_app.oidc_client.authorization_url(
             redirect_uri=url_for("freja_eid.authn_callback", _external=True),
         )
-    except OAuthError:
+    except OidcRpError:
         current_app.logger.exception("Failed to create authorization request")
         return AuthnResult(error=FrejaEIDMsg.authn_request_failed)
 
-    auth_url = auth_redirect.headers["Location"]
     auth_url_query = urlparse(auth_url).query
     try:
         # Ignore PyCharm warning "Expected type 'bytes' ..." for "state" lookup
@@ -273,10 +272,9 @@ def authn_callback() -> WerkzeugResponse:
     formatted_finish_url = authn_req.formatted_finish_url(app_name=current_app.conf.app_name)
 
     try:
-        token_response = current_app.oidc_client.freja_eid.authorize_access_token()
+        token_response = current_app.oidc_client.fetch_token()
         current_app.logger.debug(f"Got token response: {token_response}")
-    except (OAuthError, KeyError):
-        # catch any exception from the oidc client and also exceptions about missing request arguments
+    except OidcRpError:
         current_app.logger.exception("Failed to get token response from Freja")
         current_app.stats.count(name="token_response_failed")
         authn_req.error = True

@@ -1,6 +1,6 @@
 from pydantic import Field
 
-from eduid.common.clients.oidc_client.base import AuthlibClientConfig
+from eduid.common.clients.oidc_client.base import OidcRpClientConfig
 from eduid.common.config.base import (
     AmConfigMixin,
     EduIDBaseAppConfig,
@@ -14,7 +14,7 @@ from eduid.common.config.base import (
 __author__ = "lundberg"
 
 
-class FrejaEIDClientConfig(AuthlibClientConfig):
+class FrejaEIDClientConfig(OidcRpClientConfig):
     acr_values: list[str] = Field(default=[])
     scopes: list[str] = Field(
         default=[
