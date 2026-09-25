@@ -364,6 +364,16 @@ make lint       # Verify code standard
 make typecheck  # Verify type correctness
 ```
 
+## Commit Policy
+
+All commits must be signed.
+
+If commit signing fails for any reason, stop the commit process and fix the signing setup before creating the commit.
+
+Agents must never run `git commit` and `git push` in the same command or chained command sequence.
+There must always be a pause after creating a commit so the committed changes can be reviewed.
+Pushes must always be performed manually by the user.
+
 ## Commit Message Convention
 
 Must create signed commits.
