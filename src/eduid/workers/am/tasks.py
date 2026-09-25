@@ -78,17 +78,17 @@ def update_attributes_keep_result(self: AttributeManager, app_name: str, user_id
         replace_locked = attribute_fetcher.get_replace_locked(_id)
     except UserDoesNotExist as e:
         logger.error(f"The user {_id} does not exist in the database for plugin {app_name}: {e}")
-        raise e
+        raise
     except ValueError as e:
         logger.error(f"Error syncing user {_id}:  {e}")
-        raise e
+        raise
 
     try:
         logger.debug(f"Checking locked identity during sync attempt from {app_name}")
         attributes = check_locked_identity(self.userdb, _id, attributes, app_name, replace_locked)
     except LockedIdentityViolation as e:
         logger.error(e)
-        raise e
+        raise
 
     # TODO: Update mongodb to >3.2 (partial index support) so we can optimistically update a user and run this check
     # TODO: if the update fails

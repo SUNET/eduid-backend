@@ -231,6 +231,7 @@ def _authn(
         proofing_credential_id=proofing_credential_id,
         method=proofing_method.method,
         finish_url=authn_params.finish_url,
+        idp_entity_id=idp,
     )
 
     authn_info = create_authn_info(

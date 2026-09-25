@@ -127,7 +127,7 @@ class MessageSender(Task[Any, Any]):
                 status = self.sms.send(msg_bytes, MsgCelerySingleton.worker_config.sms_sender, recipient, prio=2)
             except Exception as e:  # XXX: smscom only raises Exception right now
                 logger.error(f"SMS task failed: {e}")
-                raise e
+                raise
         else:
             logger.error(f"Unknown message type: {message_type}")
             raise NotImplementedError(f"message_type {message_type} is not implemented")

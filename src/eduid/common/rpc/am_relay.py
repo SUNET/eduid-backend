@@ -60,9 +60,9 @@ class AmRelay:
             result = cast(bool, rtask.get(timeout=timeout))
             logger.debug(f"Attribute Manager sync result: {result} for user {user}")
             return result
-        except LockedIdentityViolation as e:
+        except LockedIdentityViolation:
             rtask.forget()
-            raise e
+            raise
         except Exception as e:
             rtask.forget()
             logger.exception(f"Failed Attribute Manager sync request for user {user}")

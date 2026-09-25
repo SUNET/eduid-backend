@@ -37,6 +37,21 @@ SAML_CONFIG = {
             },
             # Do not check for signature during tests
             "want_response_signed": False,
+            # The test IdP's metadata has no signing certificate (see
+            # remote_metadata.xml), so there is no private key to sign test
+            # LogoutRequests with either. Development-only opt-in, mirrored in
+            # pygamlastan's compat shim.
+            # TODO(pygamlastan migration): this opt-in only proves the bypass
+            # exists, not that real signature verification works. Once
+            # pygamlastan is an actual dependency (not just spiked in a venv),
+            # add a dedicated test that generates a real test-IdP keypair,
+            # publishes its cert in remote_metadata.xml, and signs a
+            # LogoutRequest with saml2.sigver.CryptoBackendXmlSec1.sign_statement()
+            # - asserting both that a validly-signed request is accepted and
+            # that an invalid/missing one is still rejected. Do not bolt
+            # signing onto the shared logout_request() fixture for that; keep
+            # it a separate test so this unsigned-bypass path stays covered too.
+            "allow_unsigned_logout_requests": True,
             # in this section the list of IdPs we talk to are defined
             "idp": {
                 # we do not need a WAYF service since there is

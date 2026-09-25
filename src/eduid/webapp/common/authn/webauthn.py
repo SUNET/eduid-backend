@@ -90,9 +90,9 @@ def get_authenticator_information(
     # parse attestation object
     try:
         att = Attestation.from_attestation_object(attestation)
-    except ValueError as e:
+    except ValueError:
         logger.exception("Failed to parse attestation object")
-        raise e
+        raise
 
     user_present = att.auth_data.flags.user_present
     user_verified = att.auth_data.flags.user_verified
@@ -129,11 +129,11 @@ def get_authenticator_information(
     # verify attestation
     try:
         fido_mds.verify_attestation(attestation=att, client_data=client_data)
-    except AttestationVerificationError as e:
+    except AttestationVerificationError:
         logger.debug(f"attestation: {att}")
         logger.debug(f"client_data: {client_data!r}")
         logger.exception("Failed to get authenticator information")
-        raise e
+        raise
     except MetadataValidationError:
         logger.debug(f"attestation: {att}")
         logger.debug(f"client_data: {client_data!r}")

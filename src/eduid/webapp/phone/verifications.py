@@ -51,7 +51,7 @@ def send_verification_code(user: User, phone_number: str) -> None:
     except MsgTaskFailed as e:
         current_app.logger.error("Phone number verification sms NOT sent")
         current_app.logger.exception(e)
-        raise e
+        raise
 
     current_app.logger.info("Phone number verification sms sent")
     current_app.logger.debug(f"Phone number: {phone_number}")

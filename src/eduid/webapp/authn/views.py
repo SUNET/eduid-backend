@@ -27,7 +27,7 @@ from eduid.webapp.common.api.schemas.authn_status import StatusRequestSchema, St
 from eduid.webapp.common.api.utils import sanitise_redirect_url
 from eduid.webapp.common.authn.acs_enums import AuthnAcsAction
 from eduid.webapp.common.authn.acs_registry import ACSArgs, get_action
-from eduid.webapp.common.authn.cache import IdentityCache, StateCache
+from eduid.webapp.common.authn.cache import IdentityCache
 from eduid.webapp.common.authn.eduid_saml2 import get_authn_request, process_assertion, saml_logout
 from eduid.webapp.common.authn.utils import get_location
 from eduid.webapp.common.session import session
@@ -145,6 +145,9 @@ def _authn(sp_authn: SP_AuthnRequest, idp: str, authn_params: AuthnParameters) -
     session.authn.sp.authns = {
         k: v for k, v in session.authn.sp.authns.items() if v.frontend_action != sp_authn.frontend_action
     }
+    # authn only ever has one configured IdP (see _get_idp()), so this isn't strictly
+    # needed here - set for consistency with eidas/bankid/samleid's compat surface.
+    sp_authn.idp_entity_id = idp
     session.authn.sp.authns[sp_authn.authn_id] = sp_authn
 
     subject = None
@@ -269,9 +272,15 @@ def logout_service() -> WerkzeugResponse:
     """
     current_app.logger.debug("Logout service started")
 
-    state = StateCache(session.authn.sp.pysaml2_dicts)
     identity = IdentityCache(session.authn.sp.pysaml2_dicts)
-    client = Saml2Client(current_app.saml2_config, state_cache=state, identity_cache=identity)
+    # No state_cache: saml_logout() invalidates the session (and with it, any
+    # outstanding-LogoutRequest state) immediately after issuing the redirect to
+    # the IdP, before a LogoutResponse could ever come back. By the time one
+    # does arrive here, there is never real state left to correlate it against
+    # - pysaml2's parse_logout_request_response() doesn't even accept a state
+    # argument, confirming it never checked this either. handle_logout_request
+    # (the IdP-initiated branch below) doesn't use state_cache at all.
+    client = Saml2Client(current_app.saml2_config, identity_cache=identity)
 
     # Pick a 'next' destination from these alternatives (most preferred first):
     #   - RelayState from request.form

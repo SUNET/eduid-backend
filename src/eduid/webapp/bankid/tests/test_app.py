@@ -2,6 +2,7 @@ import base64
 import datetime
 import logging
 import os
+import uuid
 from collections.abc import Mapping
 from datetime import timedelta
 from http import HTTPStatus
@@ -54,12 +55,12 @@ class BankIDTests(ProofingTests[BankIDApp]):
         )
         self.default_redirect_url = "http://redirect.localhost/redirect"
         self.saml_response_tpl_success = """<?xml version="1.0"?>
-<samlp:Response xmlns:saml="urn:oasis:names:tc:SAML:2.0:assertion" xmlns:samlp="urn:oasis:names:tc:SAML:2.0:protocol" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Destination="{sp_url}saml2-acs" ID="id-88b9f586a2a3a639f9327485cc37c40a" InResponseTo="{session_id}" IssueInstant="{timestamp}" Version="2.0">
+<samlp:Response xmlns:saml="urn:oasis:names:tc:SAML:2.0:assertion" xmlns:samlp="urn:oasis:names:tc:SAML:2.0:protocol" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Destination="{sp_url}saml2-acs" ID="id-{response_id}" InResponseTo="{session_id}" IssueInstant="{timestamp}" Version="2.0">
     <saml:Issuer Format="urn:oasis:names:tc:SAML:2.0:nameid-format:entity">https://idp.example.com/simplesaml/saml2/idp/metadata.php</saml:Issuer>
     <samlp:Status>
         <samlp:StatusCode Value="urn:oasis:names:tc:SAML:2.0:status:Success" />
     </samlp:Status>
-    <saml2:Assertion xmlns:saml2="urn:oasis:names:tc:SAML:2.0:assertion" ID="_33e79bbdbd76a8498a9a93f5ddb7bf0b" IssueInstant="{timestamp}" Version="2.0">
+    <saml2:Assertion xmlns:saml2="urn:oasis:names:tc:SAML:2.0:assertion" ID="_{assertion_id}" IssueInstant="{timestamp}" Version="2.0">
       <saml2:Issuer>https://idp.example.com/simplesaml/saml2/idp/metadata.php</saml2:Issuer>
       <saml2:Subject>
         <saml2:NameID Format="urn:oasis:names:tc:SAML:2.0:nameid-format:persistent" NameQualifier="" SPNameQualifier="{sp_url}saml2-metadata">q7ghJ2fIxobbFJ8+5ZUGAOvIhW1wJEEam2nl8lu87EQ=</saml2:NameID>
@@ -100,7 +101,7 @@ class BankIDTests(ProofingTests[BankIDApp]):
     </saml2:Assertion>
 </samlp:Response>"""
         self.saml_response_tpl_fail = """<?xml version="1.0" encoding="UTF-8"?>
-<saml2p:Response xmlns:saml2p="urn:oasis:names:tc:SAML:2.0:protocol" Destination="{sp_url}saml2-acs" ID="_ebad01e547857fa54927b020dba1edb1" InResponseTo="{session_id}" IssueInstant="{timestamp}" Version="2.0">
+<saml2p:Response xmlns:saml2p="urn:oasis:names:tc:SAML:2.0:protocol" Destination="{sp_url}saml2-acs" ID="_{response_id}" InResponseTo="{session_id}" IssueInstant="{timestamp}" Version="2.0">
   <saml2:Issuer xmlns:saml2="urn:oasis:names:tc:SAML:2.0:assertion">https://idp.example.com/simplesaml/saml2/idp/metadata.php</saml2:Issuer>
   <saml2p:Status>
     <saml2p:StatusCode Value="urn:oasis:names:tc:SAML:2.0:status:Requester">
@@ -111,7 +112,7 @@ class BankIDTests(ProofingTests[BankIDApp]):
 </saml2p:Response>"""
         self.saml_response_tpl_cancel = """
         <?xml version="1.0" encoding="UTF-8"?>
-<saml2p:Response xmlns:saml2p="urn:oasis:names:tc:SAML:2.0:protocol" Destination="{sp_url}saml2-acs" ID="_ebad01e547857fa54927b020dba1edb1" InResponseTo="{session_id}" IssueInstant="{timestamp}" Version="2.0">
+<saml2p:Response xmlns:saml2p="urn:oasis:names:tc:SAML:2.0:protocol" Destination="{sp_url}saml2-acs" ID="_{response_id}" InResponseTo="{session_id}" IssueInstant="{timestamp}" Version="2.0">
   <saml2:Issuer xmlns:saml2="urn:oasis:names:tc:SAML:2.0:assertion">https://idp.example.com/simplesaml/saml2/idp/metadata.php</saml2:Issuer>
   <saml2p:Status>
     <saml2p:StatusCode Value="urn:oasis:names:tc:SAML:2.0:status:Requester">
@@ -189,9 +190,15 @@ class BankIDTests(ProofingTests[BankIDApp]):
         credentials_used: list[ElementKey] | None = None,
     ) -> bytes:
         """
-        Generates a fresh signed authentication response
-        """
+        Generates a fresh signed authentication response.
 
+        The response and assertion IDs must be unique per call (not just per test):
+        pygamlastan enforces real assertion-ID replay protection (which pysaml2 never
+        did), so a fixed ID reused across tests in the same pytest process is
+        correctly rejected as a replay on the second and subsequent uses.
+        """
+        response_id = uuid.uuid4().hex
+        assertion_id = uuid.uuid4().hex
         timestamp = utc_now() - datetime.timedelta(seconds=age)
         tomorrow = utc_now() + datetime.timedelta(days=1)
         yesterday = utc_now() - datetime.timedelta(days=1)
@@ -216,6 +223,8 @@ class BankIDTests(ProofingTests[BankIDApp]):
 
         resp = " ".join(
             saml_response_tpl.format(
+                response_id=response_id,
+                assertion_id=assertion_id,
                 asserted_identity=asserted_identity,
                 date_of_birth=date_of_birth.strftime("%Y-%m-%d"),
                 session_id=request_id,

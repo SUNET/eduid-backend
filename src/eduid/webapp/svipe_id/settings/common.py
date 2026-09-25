@@ -1,6 +1,6 @@
 from pydantic import Field
 
-from eduid.common.clients.oidc_client.base import AuthlibClientConfig
+from eduid.common.clients.oidc_client.base import OidcRpClientConfig
 from eduid.common.config.base import (
     AmConfigMixin,
     EduIDBaseAppConfig,
@@ -13,7 +13,7 @@ from eduid.common.config.base import (
 __author__ = "lundberg"
 
 
-class SvipeClientConfig(AuthlibClientConfig):
+class SvipeClientConfig(OidcRpClientConfig):
     acr_values: list[str] = Field(default=["face_present"])
     scopes: list[str] = Field(default=["openid"])
     claims_request: dict[str, dict[str, bool] | None] = Field(

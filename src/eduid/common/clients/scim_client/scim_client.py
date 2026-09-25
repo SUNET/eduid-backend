@@ -30,14 +30,14 @@ class SCIMClient(GNAPClient):
     def raise_on_4xx_5xx(response: httpx.Response) -> None:
         try:
             response.raise_for_status()
-        except httpx.HTTPStatusError as exc:
+        except httpx.HTTPStatusError:
             response.read()
             try:
                 if "detail" in response.json():
                     raise SCIMError(f"HTTP Error {response.status_code}: {response.json()['detail']}")
             except (ValueError, TypeError):
                 pass  # not json
-            raise exc
+            raise
 
     @staticmethod
     def _add_accept_header(request: httpx.Request) -> None:

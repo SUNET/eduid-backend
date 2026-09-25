@@ -1,9 +1,9 @@
 from collections.abc import Mapping
 from typing import Any, cast
 
-from authlib.integrations.flask_client import OAuth
 from flask import current_app
 
+from eduid.common.clients.oidc_client import OidcRpClient, init_oidc_rp_client
 from eduid.common.config.parsers import load_config
 from eduid.common.rpc.am_relay import AmRelay
 from eduid.common.rpc.msg_relay import MsgRelay
@@ -11,7 +11,7 @@ from eduid.userdb.logs import ProofingLog
 from eduid.userdb.proofing.db import FrejaEIDProofingUserDB
 from eduid.webapp.common.authn.middleware import AuthnBaseApp
 from eduid.webapp.common.authn.utils import no_authn_views
-from eduid.webapp.freja_eid.helpers import SessionOAuthCache
+from eduid.webapp.freja_eid.helpers import SessionOidcCache
 from eduid.webapp.freja_eid.settings.common import FrejaEIDConfig
 
 __author__ = "lundberg"
@@ -31,22 +31,8 @@ class FrejaEIDApp(AuthnBaseApp):
         self.msg_relay = MsgRelay(config)
 
         # Initialize the oidc_client
-        self.oidc_client = OAuth(self, cache=SessionOAuthCache())  # type: ignore[no-untyped-call]
-        client_kwargs = {}
-        if self.conf.freja_eid_client.scopes:
-            client_kwargs["scope"] = " ".join(self.conf.freja_eid_client.scopes)
-        if self.conf.freja_eid_client.code_challenge_method:
-            client_kwargs["code_challenge_method"] = self.conf.freja_eid_client.code_challenge_method
-        authorize_params = {}
-        if self.conf.freja_eid_client.acr_values:
-            authorize_params["acr_values"] = " ".join(self.conf.freja_eid_client.acr_values)
-        self.oidc_client.register(  # type: ignore[no-untyped-call]
-            name="freja_eid",
-            client_id=self.conf.freja_eid_client.client_id,
-            client_secret=self.conf.freja_eid_client.client_secret,
-            client_kwargs=client_kwargs,
-            authorize_params=authorize_params,
-            server_metadata_url=f"{self.conf.freja_eid_client.issuer}/.well-known/openid-configuration",
+        self.oidc_client: OidcRpClient = init_oidc_rp_client(
+            app=self, name="freja_eid", config=self.conf.freja_eid_client, cache=SessionOidcCache()
         )
 
 

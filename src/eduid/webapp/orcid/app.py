@@ -3,12 +3,13 @@ from typing import Any, cast
 
 from flask import current_app
 
+from eduid.common.clients.oidc_client import OidcRpClient, init_oidc_rp_client
 from eduid.common.config.parsers import load_config
 from eduid.common.rpc.am_relay import AmRelay
 from eduid.userdb.logs import ProofingLog
 from eduid.userdb.proofing import OrcidProofingUserDB
-from eduid.webapp.common.api.oidc import init_lazy_client
 from eduid.webapp.common.authn.middleware import AuthnBaseApp
+from eduid.webapp.orcid.helpers import SessionOidcCache
 from eduid.webapp.orcid.settings.common import OrcidConfig
 
 
@@ -25,13 +26,10 @@ class OrcidApp(AuthnBaseApp):
         # Init celery
         self.am_relay = AmRelay(config)
 
-        # Init lazy OIDC client with circuit breaker pattern
-        self.oidc_client = init_lazy_client(
-            client_registration_info=self.conf.client_registration_info,
-            provider_configuration_info=self.conf.provider_configuration_info,
-        ).client
-
-        self.logger.info("ORCID app initialized with lazy OIDC client loading")
+        # Initialize the oidc_client
+        self.oidc_client: OidcRpClient = init_oidc_rp_client(
+            app=self, name="orcid", config=self.conf.orcid_client, cache=SessionOidcCache()
+        )
 
 
 current_orcid_app: OrcidApp = cast(OrcidApp, current_app)

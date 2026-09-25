@@ -52,20 +52,17 @@ make reformat   # Fix imports + format code + extended checks
 
 ### Type Checking
 
-**Must run both type checkers before submitting changes:**
-
 ```bash
-# mypy (required)
-make typecheck
+make typecheck       # Run both mypy and ty (required)
 
-# ty - experimental type checker (required, run with venv activated)
-uvx ty check
+make typecheck_mypy  # mypy only
+make typecheck_ty    # ty only
 ```
 
 - **mypy**: Uses plugins `pydantic.mypy`, `marshmallow_dataclass.mypy`
 - **ty** (experimental): New type checker being evaluated in beta
     - Configuration in [pyproject.toml](pyproject.toml)
-  - Requires virtual environment to be activated first
+    - Installed as part of the `test` dependency group (`make dev_sync_deps` / `make update_deps`)
 
 Tool configuration is centralized in [pyproject.toml](pyproject.toml) for Ruff, import sorting, mypy, pytest, coverage, and ty.
 
@@ -328,7 +325,7 @@ Must run these commands after completing test changes:
 ```bash
 make reformat   # Fix imports and formatting
 make lint       # Verify code standard
-make typecheck  # Verify type correctness
+make typecheck  # Verify type correctness (mypy and ty)
 ```
 
 ## Commit Message Convention
@@ -375,7 +372,7 @@ src/eduid/
 
 GitHub Actions runs on push/PR:
 1. **unittests**: `make test` with Docker services
-2. **typecheck**: `make typecheck` (mypy)
+2. **typecheck**: `make typecheck` (mypy and ty)
 3. **lint**: ruff linting
 
-All three must pass for merge.
+All must pass for merge.

@@ -1,4 +1,6 @@
 import json
+import uuid
+from collections.abc import Iterator
 from datetime import date, datetime, timedelta
 from http import HTTPStatus
 from typing import Any, ClassVar
@@ -10,6 +12,8 @@ from iso3166 import Country, countries
 from pytest_mock import MockerFixture
 from werkzeug.test import TestResponse
 
+from eduid.common.clients.oidc_client.base import OidcRpClient
+from eduid.common.clients.oidc_client.testing import FakeOidcRpClient
 from eduid.common.config.base import FrontendAction
 from eduid.common.misc.timeutil import utc_now
 from eduid.userdb import SvipeIdentity
@@ -30,8 +34,11 @@ class SvipeIdTests(ProofingTests[SvipeIdApp]):
     api_users: ClassVar[list[str]] = ["hubba-bubba", "hubba-baar"]
 
     @pytest.fixture(autouse=True)
-    def setup(self, setup_api: None, mocker: MockerFixture) -> None:
+    def setup(self, setup_api: None, mocker: MockerFixture) -> Iterator[None]:
         self.mocker = mocker
+        # Save/restore the real oidc_client set up by the app, since some tests replace it with a
+        # FakeOidcRpClient and the app is shared (class-scoped) across all tests in this class.
+        self._real_oidc_client: OidcRpClient = self.app.oidc_client
         self.unverified_test_user = self.app.central_userdb.get_user_by_eppn("hubba-baar")
         self._user_setup()
 
@@ -113,6 +120,10 @@ class SvipeIdTests(ProofingTests[SvipeIdApp]):
             "id_token_signing_alg_values_supported": ["RS256"],
             "acr_values_supported": ["face_present", "document_present", "face_and_document_present"],
         }
+
+        yield
+
+        self.app.oidc_client = self._real_oidc_client
 
     @classmethod
     def load_app(cls, config: dict[str, Any]) -> SvipeIdApp:
@@ -201,28 +212,23 @@ class SvipeIdTests(ProofingTests[SvipeIdApp]):
         auth_url_query = urlparse(auth_url).query
         return parse_qs(auth_url_query)["state"][0], parse_qs(auth_url_query)["nonce"][0]
 
+    def _install_fake_oidc_client(self) -> FakeOidcRpClient:
+        fake_client = FakeOidcRpClient(
+            authorization_endpoint=str(self.oidc_provider_config["authorization_endpoint"]),
+            state=str(uuid.uuid4()),
+            nonce=str(uuid.uuid4()),
+        )
+        self.app.oidc_client = fake_client
+        return fake_client
+
     def mock_authorization_callback(
         self,
         state: str,
         nonce: str,
         userinfo: SvipeDocumentUserInfo,
     ) -> TestResponse:
-        mock_end_session = self.mocker.patch(
-            "authlib.integrations.requests_client.oauth2_session.OAuth2Session.request"
-        )
-        mock_parse_id_token = self.mocker.patch(
-            "authlib.integrations.base_client.sync_openid.OpenIDMixin.parse_id_token"
-        )
-        mock_userinfo = self.mocker.patch("authlib.integrations.base_client.sync_openid.OpenIDMixin.userinfo")
-        mock_fetch_access_token = self.mocker.patch(
-            "authlib.integrations.base_client.sync_app.OAuth2Mixin.fetch_access_token"
-        )
-        mock_metadata = self.mocker.patch("authlib.integrations.base_client.sync_app.OAuth2Mixin.load_server_metadata")
         with self.app.test_request_context():
             endpoint = url_for("svipe_id.authn_callback")
-
-        mock_metadata.return_value = self.oidc_provider_config
-        mock_end_session.return_value = True
 
         id_token = json.dumps(
             {
@@ -238,20 +244,35 @@ class SvipeIdTests(ProofingTests[SvipeIdApp]):
                 "azp": "azp",
             }
         )
-        mock_fetch_access_token.return_value = {
+        userinfo_dict = userinfo.model_dump()
+        fake_client = self.app.oidc_client
+        assert isinstance(fake_client, FakeOidcRpClient)
+        fake_client.token_response = {
             "access_token": "access_token",
             "token_type": "token_type",
             "expires_in": timedelta(minutes=5).total_seconds(),
             "expires_at": userinfo.exp,
             "refresh_token": "refresh_token",
             "id_token": id_token,
+            "userinfo": userinfo_dict,
         }
-
-        mock_parse_id_token.return_value = userinfo.model_dump()
-        mock_userinfo.return_value = userinfo.model_dump()
+        fake_client.userinfo_response = userinfo_dict
         return self.browser.get(f"{endpoint}?id_token=id_token&state={state}&code=mock_code")
 
     def _start_auth(self, endpoint: str, data: dict[str, Any], eppn: str) -> TestResponse:
+        self._install_fake_oidc_client()
+
+        with self.session_cookie(self.browser, eppn) as client:
+            with client.session_transaction() as sess:
+                csrf_token = sess.get_csrf_token()
+            _data = {
+                "csrf_token": csrf_token,
+            }
+            _data.update(data)
+            return client.post(endpoint, json=_data)
+
+    def _start_auth_with_real_oidc_client(self, endpoint: str, data: dict[str, Any], eppn: str) -> TestResponse:
+        """Like _start_auth, but exercises the real (authlib-backed) oidc_client instead of a fake one."""
         mock_metadata = self.mocker.patch("authlib.integrations.base_client.sync_app.OAuth2Mixin.load_server_metadata")
         mock_metadata.return_value = self.oidc_provider_config
 
@@ -300,14 +321,21 @@ class SvipeIdTests(ProofingTests[SvipeIdApp]):
         self._check_success_response(response, type_="GET_SVIPE_ID_SUCCESS")
 
     def test_verify_identity_request(self) -> None:
+        """
+        This test exercises the real authlib-backed oidc_client (rather than FakeOidcRpClient) as a
+        regression net for the authlib wiring done in init_oidc_rp_client/AuthlibOidcRpClient.
+        """
         with self.app.test_request_context():
             endpoint = url_for("svipe_id.verify_identity")
 
-        response = self._start_auth(endpoint=endpoint, data=self.default_frontend_data, eppn=self.test_user.eppn)
+        response = self._start_auth_with_real_oidc_client(
+            endpoint=endpoint, data=self.default_frontend_data, eppn=self.test_user.eppn
+        )
         assert response.status_code == HTTPStatus.OK
         self._check_success_response(response, type_="POST_SVIPE_ID_VERIFY_IDENTITY_SUCCESS")
-        assert self.get_response_payload(response)["location"].startswith("https://example.com/op/authorize")
-        query: dict[str, list[str]] = parse_qs(urlparse(self.get_response_payload(response)["location"]).query)
+        location = self.get_response_payload(response)["location"]
+        assert location.startswith("https://example.com/op/authorize")
+        query: dict[str, list[str]] = parse_qs(urlparse(location).query)
         assert query["response_type"] == ["code"]
         assert query["client_id"] == ["test_client_id"]
         assert query["redirect_uri"] == ["http://test.localhost/authn-callback"]
@@ -315,6 +343,14 @@ class SvipeIdTests(ProofingTests[SvipeIdApp]):
         assert query["code_challenge_method"] == ["S256"]
         assert query["acr_values"] == ["face_present"]
         assert query["claims"] == [json.dumps({"userinfo": self.app.conf.svipe_client.claims_request})]
+        assert len(query["state"][0]) > 0
+        assert len(query["nonce"][0]) > 0
+        assert len(query["code_challenge"][0]) > 0
+
+        # the state/nonce/code_verifier used for this request should have been cached in the session
+        with self.session_cookie(self.browser, self.test_user.eppn) as client:
+            with client.session_transaction() as sess:
+                assert len(sess.svipe_id.rp.authlib_cache) > 0
 
     def test_verify_nin_identity(self, mocker: MockerFixture) -> None:
         mocker.patch("eduid.webapp.common.api.helpers.get_reference_nin_from_navet_data", return_value=None)

@@ -23,10 +23,15 @@ reformat:
 lint:
 	ruff check
 
-typecheck:
+typecheck: typecheck_mypy typecheck_ty
+
+typecheck_mypy:
 	MYPYPATH=$(SRCDIR) mypy --install-types --non-interactive --strict -p eduid
 
-typecheck_strict: typecheck
+typecheck_strict: typecheck_mypy
+
+typecheck_ty:
+	ty check
 
 update_webapp_translations:
 	pybabel extract -k _ -k gettext -k ngettext --mapping=babel.cfg --width=120 --output=$(SOURCE)/webapp/translations/messages.pot $(SOURCE)/webapp/
