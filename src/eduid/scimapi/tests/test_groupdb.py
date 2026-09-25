@@ -6,16 +6,20 @@ from typing import Any
 from uuid import UUID, uuid4
 
 import pytest
+from bson import ObjectId
 from pymongo.errors import PyMongoError
 from pytest_mock import MockerFixture
 
 from eduid.common.config.parsers import load_config
 from eduid.common.misc.timeutil import utc_now
+from eduid.common.models.scim_base import SCIMSchema
 from eduid.graphdb.groupdb import Group as GraphGroup
 from eduid.graphdb.groupdb import User as GraphUser
 from eduid.scimapi.config import ScimApiConfig
 from eduid.scimapi.context import Context
+from eduid.scimapi.models.group import GroupUpdateRequest
 from eduid.scimapi.testing import ScimApiTestCase
+from eduid.userdb.exceptions import DocumentOutOfSync, GroupNotMigratedError
 from eduid.userdb.scimapi import GroupExtensions, GroupMemberType, ScimApiGroup, ScimApiGroupDB, ScimApiGroupMember
 
 logger = logging.getLogger(__name__)
@@ -70,6 +74,78 @@ def test_group_from_dict_absent_members_owners_is_none() -> None:
     reloaded = ScimApiGroup.from_dict(doc)
     assert reloaded.members is None
     assert reloaded.owners is None
+
+
+def test_read_accessors_raise_on_unhydrated_group() -> None:
+    # Bug fix regression test: member_users/member_groups/owner_users/owner_groups,
+    # has_member/has_owner and get_member_user/get_member_group/get_owner_user/get_owner_group
+    # must raise GroupNotMigratedError - not silently collapse "not loaded" (None) into
+    # "loaded and empty" (set()) - the same distinction save() already relies on.
+    group = ScimApiGroup(display_name="Unhydrated")
+    assert group.members is None
+    assert group.owners is None
+
+    some_uuid = uuid4()
+    with pytest.raises(GroupNotMigratedError):
+        _ = group.member_users
+    with pytest.raises(GroupNotMigratedError):
+        _ = group.member_groups
+    with pytest.raises(GroupNotMigratedError):
+        _ = group.owner_users
+    with pytest.raises(GroupNotMigratedError):
+        _ = group.owner_groups
+    with pytest.raises(GroupNotMigratedError):
+        group.has_member(some_uuid)
+    with pytest.raises(GroupNotMigratedError):
+        group.has_owner(some_uuid)
+    with pytest.raises(GroupNotMigratedError):
+        group.get_member_user(str(some_uuid))
+    with pytest.raises(GroupNotMigratedError):
+        group.get_member_group(str(some_uuid))
+    with pytest.raises(GroupNotMigratedError):
+        group.get_owner_user(str(some_uuid))
+    with pytest.raises(GroupNotMigratedError):
+        group.get_owner_group(str(some_uuid))
+
+
+def test_read_accessors_on_loaded_but_empty_group_behave_as_before() -> None:
+    # A properly loaded (migrated) group with genuinely empty members/owners must keep
+    # returning []/False/None, exactly as before this fix - only the None ("not loaded") case
+    # changes behavior.
+    group = ScimApiGroup(display_name="Loaded And Empty", members=set(), owners=set())
+    some_uuid = uuid4()
+
+    assert group.member_users == []
+    assert group.member_groups == []
+    assert group.owner_users == []
+    assert group.owner_groups == []
+    assert group.has_member(some_uuid) is False
+    assert group.has_owner(some_uuid) is False
+    assert group.get_member_user(str(some_uuid)) is None
+    assert group.get_member_group(str(some_uuid)) is None
+    assert group.get_owner_user(str(some_uuid)) is None
+    assert group.get_owner_group(str(some_uuid)) is None
+
+
+def test_read_accessors_on_loaded_group_with_members_behave_as_before() -> None:
+    # And a normal, populated group must still find its real members/owners.
+    member = ScimApiGroupMember(identifier=str(uuid4()), display_name="Member", member_type=GroupMemberType.USER)
+    group_member = ScimApiGroupMember(
+        identifier=str(uuid4()), display_name="Member Group", member_type=GroupMemberType.GROUP
+    )
+    owner = ScimApiGroupMember(identifier=str(uuid4()), display_name="Owner", member_type=GroupMemberType.USER)
+    group = ScimApiGroup(display_name="Loaded", members={member, group_member}, owners={owner})
+
+    assert group.member_users == [member]
+    assert group.member_groups == [group_member]
+    assert group.owner_users == [owner]
+    assert group.owner_groups == []
+    assert group.has_member(UUID(member.identifier)) is True
+    assert group.has_owner(UUID(owner.identifier)) is True
+    assert group.get_member_user(member.identifier) == member
+    assert group.get_member_group(group_member.identifier) == group_member
+    assert group.get_owner_user(owner.identifier) == owner
+    assert group.get_owner_group(owner.identifier) is None
 
 
 class TestGroupDB(ScimApiTestCase):
@@ -199,14 +275,14 @@ class TestGroupDB(ScimApiTestCase):
         assert self.groupdb is not None
         group = ScimApiGroup(display_name="Unhydrated Members", owners=set())
         assert group.members is None
-        with pytest.raises(RuntimeError):
+        with pytest.raises(GroupNotMigratedError):
             self.groupdb.save(group)
 
     def test_save_raises_on_unhydrated_owners(self) -> None:
         assert self.groupdb is not None
         group = ScimApiGroup(display_name="Unhydrated Owners", members=set())
         assert group.owners is None
-        with pytest.raises(RuntimeError):
+        with pytest.raises(GroupNotMigratedError):
             self.groupdb.save(group)
 
     def test_save_raises_on_truncated_members(self) -> None:
@@ -268,6 +344,100 @@ class TestGroupDB(ScimApiTestCase):
         for group in groups:
             assert group.members is not None
             assert group.owners is not None
+
+    def test_save_create_path_inserts_new_group(self) -> None:
+        # save() on a brand new, never-before-persisted ScimApiGroup must go through the
+        # insert path cleanly (this is what create_group relies on).
+        assert self.groupdb is not None
+        group = ScimApiGroup(display_name="Freshly Created", members=set(), owners=set())
+        assert self.groupdb.save(group) is True
+
+        raw = self.groupdb._coll.find_one({"_id": group.group_id})
+        assert raw is not None
+        assert raw["display_name"] == "Freshly Created"
+
+    def test_save_update_path_replaces_existing_group(self) -> None:
+        # A normal update (existing doc, matching version) must go through the replace path
+        # and produce a fresh version/last_modified, keyed off matched_count rather than
+        # modified_count (so a no-op content-identical replace still counts as success).
+        assert self.groupdb is not None
+        group = self.add_group(uuid4(), "To Be Updated")
+        original_version = group.version
+
+        group.display_name = "Updated Display Name"
+        assert self.groupdb.save(group) is True
+        assert group.version != original_version
+
+        reloaded = self.groupdb.get_group_by_scim_id(str(group.scim_id))
+        assert reloaded is not None
+        assert reloaded.display_name == "Updated Display Name"
+        assert reloaded.version == group.version
+
+    def test_save_update_with_identical_content_still_succeeds(self) -> None:
+        # matched_count (not modified_count) must be the signal for "did the filter match a
+        # document" - a replace_one whose new content is byte-identical to what's already
+        # stored would otherwise report modified_count == 0 and be misdiagnosed as a conflict.
+        assert self.groupdb is not None
+        group = self.add_group(uuid4(), "Identical Content")
+
+        # Re-save without changing anything at all.
+        assert self.groupdb.save(group) is True
+
+        raw = self.groupdb._coll.find_one({"_id": group.group_id})
+        assert raw is not None
+
+    def test_save_raises_on_stale_version_without_mutating_doc(self) -> None:
+        # Saving with a stale (no-longer-current) version must raise DocumentOutOfSync and
+        # fail fast, without touching the stored document at all.
+        assert self.groupdb is not None
+        group = self.add_group(uuid4(), "Stale Version Group")
+        raw_before = self.groupdb._coll.find_one({"_id": group.group_id})
+        assert raw_before is not None
+
+        stale_group = self.groupdb.get_group_by_scim_id(str(group.scim_id))
+        assert stale_group is not None
+        stale_group.version = ObjectId()  # does not match what's actually stored
+        stale_group.display_name = "Attempted Update With Stale Version"
+
+        with pytest.raises(DocumentOutOfSync):
+            self.groupdb.save(stale_group)
+
+        raw_after = self.groupdb._coll.find_one({"_id": group.group_id})
+        assert raw_after == raw_before
+
+    def test_save_on_deleted_doc_raises_and_does_not_resurrect(self) -> None:
+        # section 6: a group whose document was deleted out from under it must not be
+        # resurrected by save()'s create-path insert - that insert-on-miss fallback is exactly
+        # the bug being fixed. save() must recognize this object as previously persisted
+        # (_seen_in_db) and raise DocumentOutOfSync instead.
+        assert self.groupdb is not None
+        group = self.add_group(uuid4(), "Deleted Under Save")
+        assert self.groupdb._coll.find_one({"_id": group.group_id}) is not None
+
+        self.groupdb._coll.delete_one({"_id": group.group_id})
+        assert self.groupdb._coll.find_one({"_id": group.group_id}) is None
+
+        with pytest.raises(DocumentOutOfSync):
+            self.groupdb.save(group)
+
+        assert self.groupdb._coll.find_one({"_id": group.group_id}) is None
+
+    def test_save_on_deleted_doc_for_freshly_loaded_object_does_not_resurrect(self) -> None:
+        # Same as above, but for a group object obtained via get_group_by_scim_id() (i.e. via
+        # from_dict()) rather than reused from a prior save() call - both paths must mark the
+        # object as previously persisted.
+        assert self.groupdb is not None
+        group = self.add_group(uuid4(), "Deleted Under Save Reloaded")
+        loaded = self.groupdb.get_group_by_scim_id(str(group.scim_id))
+        assert loaded is not None
+
+        self.groupdb._coll.delete_one({"_id": group.group_id})
+        assert self.groupdb._coll.find_one({"_id": group.group_id}) is None
+
+        with pytest.raises(DocumentOutOfSync):
+            self.groupdb.save(loaded)
+
+        assert self.groupdb._coll.find_one({"_id": group.group_id}) is None
 
 
 class TestGroupMigrateOnRead(ScimApiTestCase):
@@ -342,17 +512,38 @@ class TestGroupMigrateOnRead(ScimApiTestCase):
         assert second is not None
         spy.assert_not_called()
 
-    def test_migrate_on_read_survives_concurrent_migration_race(self, mocker: MockerFixture) -> None:
+    def test_migrate_on_read_gives_up_after_bounded_retries(self, mocker: MockerFixture) -> None:
+        # If the migration race never resolves - update_one keeps reporting modified_count=0,
+        # and the re-read document keeps coming back still-unmigrated - _migrate_group must
+        # not spin forever, and must not fall back to the stale neo4j-derived value (which
+        # could disagree with a concurrent save()). It must give up after a bounded number of
+        # attempts and raise DocumentOutOfSync.
         assert self.groupdb is not None
         group = self._add_unmigrated_group()
         mocker.patch.object(self.groupdb._coll, "update_one", return_value=mocker.MagicMock(modified_count=0))
 
+        with pytest.raises(DocumentOutOfSync):
+            self.groupdb.get_group_by_scim_id(str(group.scim_id))
+
+    def test_migrate_on_read_returns_none_when_deleted_concurrently(self, mocker: MockerFixture) -> None:
+        # Regression test for fix #3: if the migration race is lost because the document was
+        # deleted concurrently (not because someone else won the migration), _migrate_group
+        # (and therefore _load_group) must return None rather than falling back to the stale
+        # neo4j-derived in-memory group - returning that would let a caller resurrect the
+        # deleted group by saving it back.
+        assert self.groupdb is not None
+        groupdb = self.groupdb
+        group = self._add_unmigrated_group()
+
+        def losing_update_one_then_delete(*args: object, **kwargs: object) -> Any:  # noqa: ANN401
+            # Simulate a concurrent delete_group winning the race instead of a migration.
+            groupdb._coll.delete_one({"_id": group.group_id})
+            return mocker.MagicMock(modified_count=0)
+
+        mocker.patch.object(self.groupdb._coll, "update_one", side_effect=losing_update_one_then_delete)
+
         loaded = self.groupdb.get_group_by_scim_id(str(group.scim_id))
-        assert loaded is not None
-        assert loaded.members is not None
-        assert len(loaded.members) == 1
-        assert loaded.owners is not None
-        assert len(loaded.owners) == 1
+        assert loaded is None
 
     def test_migrate_on_read_reloads_winning_document_after_lost_race(self, mocker: MockerFixture) -> None:
         # Regression test: when _migrate_group's own update_one loses its compare-and-set
@@ -621,6 +812,77 @@ class TestGroupReverseLookup(ScimApiTestCase):
         assert no_fallback_db.graphdb is None
         assert no_fallback_db.get_groups_for_user_identifer(UUID(member_id)) == []
         assert no_fallback_db.get_groups_owned_by_user_identifier(UUID(member_id)) == []
+
+    def _no_fallback_db(self) -> ScimApiGroupDB:
+        assert self.groupdb is not None
+        # Deliberately not closed - see the comment in test_neo4j_fallback_false_hides_unmigrated_groups.
+        return ScimApiGroupDB(
+            scope=self.groupdb.scope,
+            mongo_uri=self.test_config["mongo_uri"],
+            mongo_dbname="eduid_scimapi",
+            mongo_collection=self.groupdb._coll_name,
+            neo4j_uri=self.test_config.get("neo4j_uri"),
+            neo4j_config=self.test_config.get("neo4j_config"),
+            neo4j_fallback=False,
+            setup_indexes=False,
+        )
+
+    def test_neo4j_fallback_false_leaves_group_unhydrated(self) -> None:
+        # With neo4j fallback off, a not-yet-migrated group must come back with members/owners
+        # left as None (un-hydrated) rather than fabricated as empty sets - fabricating them
+        # would let save() silently persist an empty, "migrated"-looking group, permanently
+        # wiping membership that still only exists in neo4j and was never actually read.
+        assert self.groupdb is not None
+        group = self._save_group("Unmigrated No Fallback")
+        self.groupdb._coll.update_one({"_id": group.group_id}, {"$unset": {"members": "", "owners": ""}})
+
+        no_fallback_db = self._no_fallback_db()
+        assert no_fallback_db.graphdb is None
+
+        loaded = no_fallback_db.get_group_by_scim_id(str(group.scim_id))
+        assert loaded is not None
+        assert loaded.members is None
+        assert loaded.owners is None
+
+    def test_save_on_unhydrated_group_raises_group_not_migrated_error(self) -> None:
+        assert self.groupdb is not None
+        group = self._save_group("Unmigrated Save No Fallback")
+        self.groupdb._coll.update_one({"_id": group.group_id}, {"$unset": {"members": "", "owners": ""}})
+
+        no_fallback_db = self._no_fallback_db()
+        loaded = no_fallback_db.get_group_by_scim_id(str(group.scim_id))
+        assert loaded is not None
+
+        with pytest.raises(GroupNotMigratedError):
+            no_fallback_db.save(loaded)
+
+    def test_update_group_on_unhydrated_group_raises_instead_of_wiping(self) -> None:
+        # update_group must propagate GroupNotMigratedError (via save()) rather than silently
+        # persisting an empty owners/members set for a group it never actually hydrated.
+        assert self.groupdb is not None
+        group = self._save_group("Unmigrated Update No Fallback")
+        self.groupdb._coll.update_one({"_id": group.group_id}, {"$unset": {"members": "", "owners": ""}})
+
+        no_fallback_db = self._no_fallback_db()
+        loaded = no_fallback_db.get_group_by_scim_id(str(group.scim_id))
+        assert loaded is not None
+
+        update_request = GroupUpdateRequest(
+            id=loaded.scim_id,
+            schemas=[SCIMSchema.CORE_20_GROUP],
+            display_name=loaded.display_name,
+            members=[],
+        )
+
+        with pytest.raises(GroupNotMigratedError):
+            no_fallback_db.update_group(update_request=update_request, db_group=loaded)
+
+        # The mongodb document must still show the group as unmigrated (no members/owners keys)
+        # - update_group must not have silently persisted an empty, "migrated" group.
+        raw = self.groupdb._coll.find_one({"_id": group.group_id})
+        assert raw is not None
+        assert "members" not in raw
+        assert "owners" not in raw
 
     def test_remove_group_tolerates_neo4j_delete_failure(self, mocker: MockerFixture) -> None:
         assert self.groupdb is not None

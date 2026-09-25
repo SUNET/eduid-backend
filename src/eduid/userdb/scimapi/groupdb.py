@@ -12,7 +12,8 @@ from typing import Any, Self
 from uuid import UUID
 
 from bson import ObjectId
-from pymongo.errors import PyMongoError
+from pymongo.errors import DuplicateKeyError, PyMongoError
+from pymongo.results import InsertOneResult, UpdateResult
 
 from eduid.common.misc.timeutil import utc_now
 from eduid.graphdb.groupdb import Group as GraphGroup
@@ -20,7 +21,7 @@ from eduid.graphdb.groupdb import GroupDB
 from eduid.graphdb.groupdb import User as GraphUser
 from eduid.scimapi.models.group import GroupCreateRequest, GroupUpdateRequest
 from eduid.userdb.db import TUserDbDocument
-from eduid.userdb.exceptions import DocumentOutOfSync
+from eduid.userdb.exceptions import DocumentOutOfSync, GroupNotMigratedError
 from eduid.userdb.group_management import GroupRole
 from eduid.userdb.scimapi.basedb import ScimApiBaseDB
 from eduid.userdb.scimapi.common import ScimApiResourceBase
@@ -88,22 +89,51 @@ class ScimApiGroup(ScimApiResourceBase, _ScimApiGroupRequired):
     # where neo4j only returns the querying entity as a member, not the full membership. Not
     # persisted. A guardrail: save() refuses to persist such a group.
     members_truncated: bool = field(default=False, compare=False, repr=False)
+    # True once this Python object is known to correspond to a document that existed in
+    # mongodb at some point - set by from_dict() (reconstructed from a document that, by
+    # definition, existed when it was read) and by save() itself after a successful
+    # insert/replace. A plain ScimApiGroup(...) construction (e.g. in create_group()) leaves
+    # this False. save() uses this to tell a genuinely new object (never persisted - safe to
+    # insert_one) apart from one whose document has been deleted concurrently since it was
+    # last read or saved (must raise DocumentOutOfSync rather than resurrecting the deleted
+    # document via insert_one). Never persisted itself, and excluded from comparison/hash.
+    _seen_in_db: bool = field(default=False, compare=False, repr=False)
+
+    def _require_members(self) -> set[ScimApiGroupMember]:
+        """Return self.members, raising GroupNotMigratedError if the group is un-hydrated.
+
+        Un-hydrated (self.members is None) must never be silently treated as "loaded and
+        empty" - see the field docstring on `members` above. Every read accessor that needs
+        the member set goes through this instead of `self.members or set()`.
+        """
+        if self.members is None:
+            raise GroupNotMigratedError(f"Group {self.scim_id} members not loaded")
+        return self.members
+
+    def _require_owners(self) -> set[ScimApiGroupMember]:
+        """Return self.owners, raising GroupNotMigratedError if the group is un-hydrated.
+
+        See _require_members - same reasoning, for owners.
+        """
+        if self.owners is None:
+            raise GroupNotMigratedError(f"Group {self.scim_id} owners not loaded")
+        return self.owners
 
     @property
     def member_users(self) -> list[ScimApiGroupMember]:
-        return [m for m in (self.members or set()) if m.member_type is GroupMemberType.USER]
+        return [m for m in self._require_members() if m.member_type is GroupMemberType.USER]
 
     @property
     def member_groups(self) -> list[ScimApiGroupMember]:
-        return [m for m in (self.members or set()) if m.member_type is GroupMemberType.GROUP]
+        return [m for m in self._require_members() if m.member_type is GroupMemberType.GROUP]
 
     @property
     def owner_users(self) -> list[ScimApiGroupMember]:
-        return [m for m in (self.owners or set()) if m.member_type is GroupMemberType.USER]
+        return [m for m in self._require_owners() if m.member_type is GroupMemberType.USER]
 
     @property
     def owner_groups(self) -> list[ScimApiGroupMember]:
-        return [m for m in (self.owners or set()) if m.member_type is GroupMemberType.GROUP]
+        return [m for m in self._require_owners() if m.member_type is GroupMemberType.GROUP]
 
     @staticmethod
     def _first_with_identifier(items: list[ScimApiGroupMember], identifier: str) -> ScimApiGroupMember | None:
@@ -114,6 +144,12 @@ class ScimApiGroup(ScimApiResourceBase, _ScimApiGroupRequired):
 
     def get_member_group(self, identifier: str) -> ScimApiGroupMember | None:
         return self._first_with_identifier(self.member_groups, identifier)
+
+    def get_owner_user(self, identifier: str) -> ScimApiGroupMember | None:
+        return self._first_with_identifier(self.owner_users, identifier)
+
+    def get_owner_group(self, identifier: str) -> ScimApiGroupMember | None:
+        return self._first_with_identifier(self.owner_groups, identifier)
 
     def add_member(self, member: ScimApiGroupMember) -> None:
         if self.members is None:
@@ -126,10 +162,10 @@ class ScimApiGroup(ScimApiResourceBase, _ScimApiGroupRequired):
         self.owners.add(owner)
 
     def has_member(self, identifier: UUID) -> bool:
-        return str(identifier) in {m.identifier for m in (self.members or set())}
+        return str(identifier) in {m.identifier for m in self._require_members()}
 
     def has_owner(self, identifier: UUID) -> bool:
-        return str(identifier) in {o.identifier for o in (self.owners or set())}
+        return str(identifier) in {o.identifier for o in self._require_owners()}
 
     def to_dict(self) -> TUserDbDocument:
         # members/owners are cleared here, before asdict(), rather than popped from its result
@@ -141,6 +177,7 @@ class ScimApiGroup(ScimApiResourceBase, _ScimApiGroupRequired):
         res["scim_id"] = str(res["scim_id"])
         res["_id"] = res.pop("group_id")
         res.pop("members_truncated", None)
+        res.pop("_seen_in_db", None)
         res.pop("members", None)
         res.pop("owners", None)
         # Present (even []) means migrated; absent means not yet migrated - never write null.
@@ -160,7 +197,11 @@ class ScimApiGroup(ScimApiResourceBase, _ScimApiGroupRequired):
         # Must never default to set().
         this["members"] = _members_from_docs(this.get("members"))
         this["owners"] = _members_from_docs(this.get("owners"))
-        return cls(**this)
+        this.pop("_seen_in_db", None)  # never actually present in a mongodb document
+        result = cls(**this)
+        # Reconstructed from a document that existed at read time - see the field's docstring.
+        result._seen_in_db = True
+        return result
 
 
 def _member_sort_key(member: ScimApiGroupMember) -> tuple[str, str]:
@@ -256,10 +297,13 @@ class ScimApiGroupDB(ScimApiBaseDB):
         owners = {_member_from_graph_node(o) for o in graph.owners}
         return members, owners
 
-    def _load_group(self, doc: TUserDbDocument) -> ScimApiGroup:
+    def _load_group(self, doc: TUserDbDocument) -> ScimApiGroup | None:
         """
         Build a ScimApiGroup from a mongodb document, migrating it on read from neo4j if it
         has not been migrated yet.
+
+        Returns None if the group turned out to have been deleted concurrently (only
+        possible via the migration path below).
         """
         group = ScimApiGroup.from_dict(doc)
         if group.members is not None and group.owners is not None:
@@ -267,16 +311,22 @@ class ScimApiGroupDB(ScimApiBaseDB):
             return group
         if self.graphdb is None:
             # Fallback disabled (or never configured) and this group was never migrated.
-            # Treat it as an empty, migrated group rather than crashing every read forever.
-            logger.warning(f"Group {group.scim_id} has no members/owners in mongodb and neo4j fallback is unavailable")
-            group.members, group.owners = set(), set()
+            # Leave members/owners as None (un-hydrated) rather than fabricating an empty,
+            # "migrated"-looking group - save() would otherwise happily persist that and
+            # permanently wipe the group's real membership, which still only exists in
+            # neo4j and was never actually read here.
+            logger.error(f"Group {group.scim_id} has no members/owners in mongodb and neo4j fallback is unavailable")
             return group
         return self._migrate_group(doc, group)
 
-    def _migrate_group(self, doc: TUserDbDocument, group: ScimApiGroup) -> ScimApiGroup:
+    def _migrate_group(self, doc: TUserDbDocument, group: ScimApiGroup) -> ScimApiGroup | None:
         """
         Hydrate members/owners (and repair display_name) for a not-yet-migrated group from
         neo4j, and persist the result into mongodb without touching version/last_modified.
+
+        Returns None if the group was found to have been deleted concurrently. Raises
+        DocumentOutOfSync if a concurrent migration/save race could not be resolved within a
+        bounded number of retries.
         """
         if self.graphdb is None:  # please mypy, caller already checked
             raise RuntimeError(f"_migrate_group called for group {group.scim_id} without a configured graphdb")
@@ -298,39 +348,56 @@ class ScimApiGroupDB(ScimApiBaseDB):
             "owners": _serialize_members(group.owners),
             "display_name": display_name,
         }
-        try:
-            # $set only, and never version or last_modified - bumping either would break SCIM
-            # clients doing incremental sync or invalidate every held ETag. Guarded on the
-            # version we read plus members not already existing, so a concurrent save() (which
-            # guards its own replace_one on the same version) can never be clobbered by this
-            # write, and this write can't clobber a concurrent migration write either.
-            res = self._coll.update_one(
-                {"_id": group.group_id, "version": doc["version"], "members": {"$exists": False}},
-                {"$set": update},
-            )
-            if res.modified_count == 0:
-                # Somebody else (a concurrent save() or a concurrent migration) won the race.
-                # Either way, mongodb is now authoritative and may disagree with the neo4j
-                # snapshot we just read - e.g. a concurrent save() could have removed a member
-                # that still appears in `group` here. Returning `group` as-is would resurrect
-                # that membership, which is exactly what this migration must not do (especially
-                # on the reverse-lookup union path). Reload the document that won instead.
-                logger.info(f"Group {group.scim_id} was migrated concurrently; reloading the winning document")
-                winning_doc = self._coll.find_one({"_id": group.group_id})
-                if winning_doc is not None and winning_doc.get("members") is not None:
-                    return ScimApiGroup.from_dict(winning_doc)
-                # Pathological: the race didn't resolve the way it should have (e.g. the
-                # document was deleted concurrently). Fall back to the neo4j-derived value
-                # rather than crashing a read; a later read will retry.
-                logger.warning(f"Group {group.scim_id}: concurrent migration race did not resolve as expected")
-        except PyMongoError:
-            # This is a read path - a mongodb write failure here must not turn a GET into a
-            # 500. The members/owners we read from neo4j are still correct in memory even
-            # though persisting them failed; the next read will simply re-migrate. Narrowly
-            # scoped to PyMongoError (not Exception) so a real bug elsewhere isn't silently
-            # swallowed and misreported as a transient write failure.
-            logger.exception(f"Failed persisting migrated members/owners for group {group.scim_id}")
-        return group
+
+        current_doc = doc
+        max_attempts = 3
+        for _attempt in range(max_attempts):
+            try:
+                # $set only, and never version or last_modified - bumping either would break
+                # SCIM clients doing incremental sync or invalidate every held ETag. Guarded on
+                # the version we read plus members not already existing, so a concurrent
+                # save() (which guards its own replace_one on the same version) can never be
+                # clobbered by this write, and this write can't clobber a concurrent migration
+                # write either.
+                res = self._coll.update_one(
+                    {"_id": group.group_id, "version": current_doc["version"], "members": {"$exists": False}},
+                    {"$set": update},
+                )
+            except PyMongoError:
+                # This is a read path - a mongodb write failure here must not turn a GET into
+                # a 500. The members/owners we read from neo4j are still correct in memory
+                # even though persisting them failed; the next read will simply re-migrate.
+                # Narrowly scoped to PyMongoError (not Exception) so a real bug elsewhere
+                # isn't silently swallowed and misreported as a transient write failure.
+                logger.exception(f"Failed persisting migrated members/owners for group {group.scim_id}")
+                return group
+
+            if res.modified_count != 0:
+                return group
+
+            # Somebody else (a concurrent save() or a concurrent migration) won the race.
+            # Either way, mongodb is now authoritative and may disagree with the neo4j
+            # snapshot we just read - e.g. a concurrent save() could have removed a member
+            # that still appears in `group` here. Returning `group` as-is would resurrect
+            # that membership, which is exactly what this migration must not do (especially
+            # on the reverse-lookup union path). Reload the document that won instead.
+            logger.info(f"Group {group.scim_id} was migrated concurrently; reloading the winning document")
+            winning_doc = self._coll.find_one({"_id": group.group_id})
+            if winning_doc is None:
+                # The group was deleted concurrently. Do NOT fall back to the stale
+                # neo4j-derived in-memory `group` - a caller saving it back would resurrect
+                # the deleted group.
+                logger.warning(f"Group {group.scim_id} was deleted concurrently during migration")
+                return None
+            if winning_doc.get("members") is not None:
+                # Somebody else finished the migration (or otherwise wrote members/owners) -
+                # that document is now authoritative.
+                return ScimApiGroup.from_dict(winning_doc)
+            # Still unmigrated - retry the migration write against the fresh doc/version.
+            current_doc = winning_doc
+
+        logger.error(f"Group {group.scim_id}: migration race did not resolve after {max_attempts} attempts")
+        raise DocumentOutOfSync(f"Group {group.scim_id} could not be migrated after {max_attempts} attempts")
 
     @staticmethod
     def _merge_member_ts(
@@ -373,13 +440,15 @@ class ScimApiGroupDB(ScimApiBaseDB):
 
     def save(self, group: ScimApiGroup) -> bool:
         if group.members is None or group.owners is None:
-            raise RuntimeError(f"Refusing to save un-hydrated group {group.scim_id}")
+            raise GroupNotMigratedError(f"Refusing to save un-hydrated group {group.scim_id}")
         if group.members_truncated:
             raise RuntimeError(f"Refusing to save role-truncated group {group.scim_id}")
 
-        # Read the previously stored members/owners (if any), so their created_ts/modified_ts
-        # can be merged forward below instead of reset - see _merge_member_ts.
-        previous = self._coll.find_one({"_id": group.group_id}, {"members": 1, "owners": 1})
+        # Read the previously stored document (if any), both so members/owners
+        # created_ts/modified_ts can be merged forward below instead of reset (see
+        # _merge_member_ts), and so its version can be checked below without a second
+        # round trip on the common create/update paths.
+        previous = self._coll.find_one({"_id": group.group_id}, {"members": 1, "owners": 1, "version": 1})
         now = utc_now()
 
         previous_members = previous.get("members") if previous else None
@@ -393,20 +462,49 @@ class ScimApiGroupDB(ScimApiBaseDB):
         group_dict["members"] = self._merge_member_ts(group.members, previous_members, now)
         group_dict["owners"] = self._merge_member_ts(group.owners, previous_owners, now)
 
-        test_doc = {
-            "_id": group.group_id,
-            "version": group.version,
-        }
         # update the version number and last_modified timestamp
         group_dict["version"] = ObjectId()
         group_dict["last_modified"] = now
-        result = self._coll.replace_one(test_doc, group_dict, upsert=False)
-        if result.modified_count == 0:
-            db_group = self._coll.find_one({"_id": group.group_id})
-            if db_group:
+
+        result: InsertOneResult | UpdateResult
+        if previous is None:
+            if group._seen_in_db:
+                # This object is known to correspond to a document that existed at some
+                # earlier point (it was loaded via from_dict(), or a prior save() of this
+                # same object already succeeded) but find_one() just found nothing with this
+                # _id - it was deleted concurrently since then. Do NOT insert_one here - that
+                # would resurrect the deleted document, which is exactly the bug being fixed.
+                logger.debug(f"{self} FAILED Updating group {group} in {self._coll_name} - deleted concurrently")
+                raise DocumentOutOfSync("Group out of sync, please retry")
+            # No existing doc, and this object has never been observed as persisted - this is
+            # the create case. Insert directly; there is no insert-on-miss fallback inside the
+            # update path below any more, since that fallback is exactly what let a
+            # concurrently-deleted group be resurrected (see _migrate_group's handling of the
+            # same race).
+            try:
+                result = self._coll.insert_one(group_dict)
+            except DuplicateKeyError as e:
+                # Someone else concurrently created a document with this _id (a fresh
+                # ObjectId, so this is extremely unlikely, but handle it for correctness).
+                logger.debug(f"{self} FAILED Inserting group {group} in {self._coll_name}")
+                raise DocumentOutOfSync("Group out of sync, please retry") from e
+        else:
+            if previous.get("version") != group.version:
+                # Fail fast: don't bother with a replace_one that's guaranteed to not match.
                 logger.debug(f"{self} FAILED Updating group {group} in {self._coll_name}")
                 raise DocumentOutOfSync("Group out of sync, please retry")
-            self._coll.insert_one(group_dict)
+            test_doc = {
+                "_id": group.group_id,
+                "version": group.version,
+            }
+            update_result = self._coll.replace_one(test_doc, group_dict, upsert=False)
+            if update_result.matched_count == 0:
+                # The doc existed a moment ago (the find_one above) but the filter matched
+                # nothing now - it was deleted or its version changed concurrently. Do NOT
+                # fall back to insert_one here - that's the resurrection path being removed.
+                logger.debug(f"{self} FAILED Updating group {group} in {self._coll_name}")
+                raise DocumentOutOfSync("Group out of sync, please retry")
+            result = update_result
         # Nothing writes to neo4j from save() any more - mongodb is the sole write target.
 
         # put the new version number, last_modified and the merged members/owners in the group
@@ -417,6 +515,9 @@ class ScimApiGroupDB(ScimApiBaseDB):
         group.last_modified = group_dict["last_modified"]
         group.members = _members_from_docs(group_dict["members"])
         group.owners = _members_from_docs(group_dict["owners"])
+        # This object is now known to correspond to a persisted document - see the field's
+        # docstring on why save() needs this for a subsequent save() of this same object.
+        group._seen_in_db = True
         logger.debug(f"{self} Updated group {group} in {self._coll_name}")
 
         extra_debug = pprint.pformat(group_dict, width=120)
@@ -526,7 +627,8 @@ class ScimApiGroupDB(ScimApiBaseDB):
 
     def get_groups(self) -> list[ScimApiGroup]:
         docs = self._get_documents_by_filter({})
-        return [self._load_group(doc) for doc in docs]
+        groups = (self._load_group(doc) for doc in docs)
+        return [group for group in groups if group is not None]
 
     def get_group_by_scim_id(self, scim_id: str) -> ScimApiGroup | None:
         doc = self._get_document_by_attr("scim_id", scim_id)
@@ -546,7 +648,8 @@ class ScimApiGroupDB(ScimApiBaseDB):
         docs, count = self._get_documents_and_count_by_filter({key: value}, skip=skip, limit=limit)
         if not docs:
             return [], 0
-        return [self._load_group(doc) for doc in docs], count
+        groups = (self._load_group(doc) for doc in docs)
+        return [group for group in groups if group is not None], count
 
     def get_groups_for_user_identifer(self, member_identifier: UUID) -> list[ScimApiGroup]:
         return self._get_groups_for_role(str(member_identifier), GroupRole.MEMBER)
@@ -579,6 +682,8 @@ class ScimApiGroupDB(ScimApiBaseDB):
         }
         for doc in self._get_documents_by_filter(mongo_filter):
             group = self._load_group(doc)
+            if group is None:
+                continue
             res[str(group.scim_id)] = self._project_for_role(group, identifier, role)
 
         if self.graphdb is None:
@@ -612,7 +717,11 @@ class ScimApiGroupDB(ScimApiBaseDB):
                 if not self._matches_role(group, identifier, role):
                     continue
             else:
-                group = self._migrate_group(neo4j_doc, group)
+                migrated_group = self._migrate_group(neo4j_doc, group)
+                if migrated_group is None:
+                    # Deleted concurrently - nothing to include for this group.
+                    continue
+                group = migrated_group
                 if not self._matches_role(group, identifier, role):
                     continue
             res[str(group.scim_id)] = self._project_for_role(group, identifier, role)
@@ -651,7 +760,8 @@ class ScimApiGroupDB(ScimApiBaseDB):
         mongo_operator = self._get_mongo_operator(operator)
         spec = {"last_modified": {mongo_operator: value}}
         docs, total_count = self._get_documents_and_count_by_filter(spec=spec, limit=limit, skip=skip)
-        groups = [self._load_group(doc) for doc in docs]
+        loaded = (self._load_group(doc) for doc in docs)
+        groups = [group for group in loaded if group is not None]
         return groups, total_count
 
     def group_exists(self, scim_id: str) -> bool:
