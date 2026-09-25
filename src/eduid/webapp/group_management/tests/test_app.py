@@ -5,6 +5,7 @@ from typing import Any, ClassVar
 from uuid import UUID
 
 import pytest
+from pytest_mock import MockerFixture
 from werkzeug.test import TestResponse
 
 from eduid.common.testing_base import normalised_data
@@ -14,6 +15,7 @@ from eduid.userdb.element import ElementKey
 from eduid.userdb.group_management import GroupRole
 from eduid.userdb.scimapi import GroupExtensions, GroupMemberType, ScimApiGroup, ScimApiGroupMember
 from eduid.userdb.scimapi.userdb import ScimApiUser
+from eduid.webapp.common.api.messages import CommonMsg
 from eduid.webapp.common.api.testing import EduidAPITestCase
 from eduid.webapp.group_management.app import GroupManagementApp, init_group_management_app
 from eduid.webapp.group_management.helpers import GroupManagementMsg
@@ -412,6 +414,82 @@ class GroupManagementTests(EduidAPITestCase[GroupManagementApp]):
         ]
         assert len(found_members) == 0
 
+    def test_remove_user_on_unmigrated_group_without_neo4j_fallback_returns_temp_problem(self) -> None:
+        # Regression test: on a not-yet-migrated group with neo4j fallback unavailable, the
+        # owner authz check and the "can't remove the last owner" guard must not silently
+        # treat an un-hydrated (members/owners is None) group as empty - a real owner must not
+        # be falsely denied, and the last-owner guard must not be defeatable by this state. Both
+        # must now surface as temp_problem via GroupNotMigratedError instead.
+        graph_user1 = ScimApiGroupMember(
+            identifier=str(self.scim_user1.scim_id), display_name="Test User 1", member_type=GroupMemberType.USER
+        )
+        self.scim_group1.owners = {graph_user1}
+        graph_user2 = ScimApiGroupMember(
+            identifier=str(self.scim_user2.scim_id), display_name="Test User 2", member_type=GroupMemberType.USER
+        )
+        self.scim_group1.members = {graph_user2}
+        self.app.scimapi_groupdb.save(self.scim_group1)
+
+        # Now simulate a not-yet-migrated group with neo4j fallback disabled.
+        self.app.scimapi_groupdb._coll.update_one(
+            {"_id": self.scim_group1.group_id}, {"$unset": {"members": "", "owners": ""}}
+        )
+        self.app.scimapi_groupdb.graphdb = None
+
+        with self.session_cookie(self.browser, self.test_user.eppn) as client:
+            with self.app.test_request_context():
+                with client.session_transaction() as sess:
+                    data = {
+                        "group_identifier": str(self.scim_group1.scim_id),
+                        "user_identifier": str(self.scim_user2.scim_id),
+                        "role": "member",
+                        "csrf_token": sess.get_csrf_token(),
+                    }
+                response = client.post("/remove-user", data=json.dumps(data), content_type=self.content_type_json)
+        self._check_error_response(response, type_="POST_GROUP_MANAGEMENT_REMOVE_USER_FAIL", msg=CommonMsg.temp_problem)
+
+        raw = self.app.scimapi_groupdb._coll.find_one({"_id": self.scim_group1.group_id})
+        assert raw is not None
+        assert "members" not in raw
+        assert "owners" not in raw
+
+    def test_remove_member_does_not_hit_reverse_lookup(self, mocker: MockerFixture) -> None:
+        # Regression test: remove_user_from_group must decide membership from the
+        # already-loaded scim_group object in memory, not via a fresh reverse-lookup DB
+        # round trip.
+        graph_user1 = ScimApiGroupMember(
+            identifier=str(self.scim_user1.scim_id), display_name="Test User 1", member_type=GroupMemberType.USER
+        )
+        self.scim_group1.owners = {graph_user1}
+        graph_user2 = ScimApiGroupMember(
+            identifier=str(self.scim_user2.scim_id), display_name="Test User 2", member_type=GroupMemberType.USER
+        )
+        self.scim_group1.members = {graph_user2}
+        self.app.scimapi_groupdb.save(self.scim_group1)
+
+        spy_member_lookup = mocker.spy(self.app.scimapi_groupdb, "get_groups_for_user_identifer")
+        spy_owner_lookup = mocker.spy(self.app.scimapi_groupdb, "get_groups_owned_by_user_identifier")
+
+        with self.session_cookie(self.browser, self.test_user.eppn) as client:
+            with self.app.test_request_context():
+                with client.session_transaction() as sess:
+                    data = {
+                        "group_identifier": str(self.scim_group1.scim_id),
+                        "user_identifier": str(self.scim_user2.scim_id),
+                        "role": "member",
+                        "csrf_token": sess.get_csrf_token(),
+                    }
+                response = client.post("/remove-user", data=json.dumps(data), content_type=self.content_type_json)
+        self._check_success_response(response, type_="POST_GROUP_MANAGEMENT_REMOVE_USER_SUCCESS")
+
+        # The view builds its response payload via get_groups(), which legitimately calls both
+        # reverse lookups once each (to list all of the user's groups) - that's unrelated to
+        # this fix and expected. What must NOT happen any more is an *additional* call from the
+        # view's own owner authorization check or from remove_user_from_group()'s membership
+        # check, both of which now decide from the already-loaded scim_group object instead.
+        assert spy_member_lookup.call_count == 1
+        assert spy_owner_lookup.call_count == 1
+
     def test_remove_member_not_owner(self) -> None:
         # Add test_user2 as group member
         graph_user2 = ScimApiGroupMember(
@@ -708,6 +786,92 @@ class GroupManagementTests(EduidAPITestCase[GroupManagementApp]):
         )
         assert scim_user is not None
         assert scim_group.has_member(scim_user.scim_id) is True
+
+    def test_accept_invite_member_does_not_hit_reverse_lookup(self, mocker: MockerFixture) -> None:
+        # Regression test: accept_group_invitation must decide membership from the
+        # already-loaded scim_group object in memory, not via a fresh reverse-lookup DB
+        # round trip.
+        assert self.test_user.mail_addresses.primary is not None
+        graph_user = ScimApiGroupMember(
+            identifier=str(self.scim_user1.scim_id),
+            display_name=self.test_user.mail_addresses.primary.email,
+            member_type=GroupMemberType.USER,
+        )
+        self.scim_group1.owners = {graph_user}
+        self.app.scimapi_groupdb.save(self.scim_group1)
+
+        assert self.test_user2.mail_addresses.primary is not None
+        self._invite(
+            group_scim_id=str(self.scim_group1.scim_id),
+            inviter=self.test_user,
+            invite_address=self.test_user2.mail_addresses.primary.email,
+            role="member",
+        )
+
+        # Only spy across the accept step - create_invite (called by _invite above) still
+        # legitimately uses the reverse lookup via is_owner(), and that call site is
+        # deliberately left unchanged.
+        spy_member_lookup = mocker.spy(self.app.scimapi_groupdb, "get_groups_for_user_identifer")
+        spy_owner_lookup = mocker.spy(self.app.scimapi_groupdb, "get_groups_owned_by_user_identifier")
+
+        response = self._accept_invite(
+            group_scim_id=str(self.scim_group1.scim_id),
+            invitee=self.test_user2,
+            invite_address=self.test_user2.mail_addresses.primary.email,
+            role="member",
+        )
+        payload = self.get_response_payload(response)
+        assert len(payload["incoming"]) == 0
+
+        spy_member_lookup.assert_not_called()
+        spy_owner_lookup.assert_not_called()
+
+    def test_accept_invite_on_unmigrated_group_without_neo4j_fallback_returns_temp_problem(self) -> None:
+        # Regression test: a not-yet-migrated group whose neo4j fallback is unavailable must
+        # not be silently persisted as "empty and migrated" by accept_invite - it must surface
+        # a temp_problem response and leave the group's real (unread) neo4j membership
+        # untouched in mongodb rather than wiping it.
+        assert self.test_user.mail_addresses.primary is not None
+        graph_user = ScimApiGroupMember(
+            identifier=str(self.scim_user1.scim_id),
+            display_name=self.test_user.mail_addresses.primary.email,
+            member_type=GroupMemberType.USER,
+        )
+        self.scim_group1.owners = {graph_user}
+        self.app.scimapi_groupdb.save(self.scim_group1)
+
+        # Invite test user 2 to the group as member (while the group is still fully migrated,
+        # so the owner check above still works).
+        assert self.test_user2.mail_addresses.primary is not None
+        self._invite(
+            group_scim_id=str(self.scim_group1.scim_id),
+            inviter=self.test_user,
+            invite_address=self.test_user2.mail_addresses.primary.email,
+            role="member",
+        )
+
+        # Now simulate a not-yet-migrated group with neo4j fallback disabled.
+        self.app.scimapi_groupdb._coll.update_one(
+            {"_id": self.scim_group1.group_id}, {"$unset": {"members": "", "owners": ""}}
+        )
+        self.app.scimapi_groupdb.graphdb = None
+
+        with self.session_cookie(self.browser, self.test_user2.eppn) as client:
+            with self.app.test_request_context():
+                with client.session_transaction() as sess:
+                    data = {
+                        "group_identifier": str(self.scim_group1.scim_id),
+                        "email_address": self.test_user2.mail_addresses.primary.email,
+                        "role": "member",
+                        "csrf_token": sess.get_csrf_token(),
+                    }
+                response = client.post("/invites/accept", data=json.dumps(data), content_type=self.content_type_json)
+        self._check_error_response(response, type_="POST_GROUP_INVITE_INVITES_ACCEPT_FAIL", msg=CommonMsg.temp_problem)
+
+        raw = self.app.scimapi_groupdb._coll.find_one({"_id": self.scim_group1.group_id})
+        assert raw is not None
+        assert "members" not in raw
+        assert "owners" not in raw
 
     def test_decline_invite_member(self) -> None:
         # Add test user as group owner

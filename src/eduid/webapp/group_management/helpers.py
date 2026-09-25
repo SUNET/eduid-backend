@@ -131,11 +131,11 @@ def accept_group_invitation(scim_user: ScimApiUser, scim_group: ScimApiGroup, in
     )
     modified = False
     if invite.role == GroupRole.OWNER:
-        if not is_owner(scim_user, scim_group.scim_id):
+        if scim_group.get_owner_user(str(scim_user.scim_id)) is None:
             scim_group.add_owner(new_member)
             modified = True
     elif invite.role == GroupRole.MEMBER:
-        if not is_member(scim_user, scim_group.scim_id):
+        if scim_group.get_member_user(str(scim_user.scim_id)) is None:
             scim_group.add_member(new_member)
             modified = True
     else:
@@ -151,13 +151,13 @@ def accept_group_invitation(scim_user: ScimApiUser, scim_group: ScimApiGroup, in
 def remove_user_from_group(scim_user: ScimApiUser, scim_group: ScimApiGroup, role: GroupRole) -> None:
     modified = False
     if role == GroupRole.OWNER:
-        if is_owner(scim_user, scim_group.scim_id):
+        if scim_group.get_owner_user(str(scim_user.scim_id)) is not None:
             scim_group.owners = {
                 owner for owner in (scim_group.owners or set()) if owner.identifier != str(scim_user.scim_id)
             }
             modified = True
     elif role == GroupRole.MEMBER:
-        if is_member(scim_user, scim_group.scim_id):
+        if scim_group.get_member_user(str(scim_user.scim_id)) is not None:
             scim_group.members = {
                 member for member in (scim_group.members or set()) if member.identifier != str(scim_user.scim_id)
             }
