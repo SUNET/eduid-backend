@@ -445,7 +445,13 @@ class ScimApiGroupDB(ScimApiBaseDB):
 
     def update_group(self, update_request: GroupUpdateRequest, db_group: ScimApiGroup) -> tuple[ScimApiGroup, bool]:
         changed = False
-        updated_members: set[ScimApiGroupMember] = set()
+        # Keyed by (member_type, identifier) - the real identity of a member - rather than
+        # kept as a plain set of ScimApiGroupMember, since that dataclass's equality also
+        # includes display_name. A set would let two request entries with the same identity
+        # but different display text both survive as "distinct" members, producing duplicate
+        # members on save and leaving a later user deletion (which removes only the first
+        # match) unable to fully detach that identity.
+        updated_members_by_id: dict[tuple[GroupMemberType, str], ScimApiGroupMember] = {}
         logger.info(f"Updating group {db_group.scim_id!s}")
         # please mypy
         _member: ScimApiGroupMember | None
@@ -453,38 +459,37 @@ class ScimApiGroupDB(ScimApiBaseDB):
 
         for this in update_request.members:
             if this.is_user:
+                member_type = GroupMemberType.USER
                 _member = db_group.get_member_user(identifier=str(this.value))
-                _new_member = (
-                    None
-                    if _member
-                    else ScimApiGroupMember(
-                        identifier=str(this.value), display_name=this.display, member_type=GroupMemberType.USER
-                    )
-                )
             elif this.is_group:
+                member_type = GroupMemberType.GROUP
                 _member = db_group.get_member_group(identifier=str(this.value))
-                _new_member = (
-                    None
-                    if _member
-                    else ScimApiGroupMember(
-                        identifier=str(this.value), display_name=this.display, member_type=GroupMemberType.GROUP
-                    )
-                )
             else:
                 raise ValueError(f"Don't recognise member {this}")
 
+            member_key = (member_type, str(this.value))
+            # A duplicate identity earlier in this same request has already been recorded -
+            # let the later entry's display name win rather than keeping both.
+            _member = updated_members_by_id.get(member_key, _member)
+            _new_member = (
+                None
+                if _member
+                else ScimApiGroupMember(identifier=str(this.value), display_name=this.display, member_type=member_type)
+            )
+
             # Add a new member
             if _new_member is not None:
-                updated_members.add(_new_member)
+                updated_members_by_id[member_key] = _new_member
                 logger.debug(f"Added new member: {_new_member}")
             # Update member attributes if they changed
             elif _member is not None and _member.display_name != this.display:
                 logger.debug(f"Changed display name for existing member: {_member.display_name} -> {this.display}")
-                _member = replace(_member, display_name=this.display)
-                updated_members.add(_member)
+                updated_members_by_id[member_key] = replace(_member, display_name=this.display)
             elif _member is not None:
                 # no change, retain member as-is
-                updated_members.add(_member)
+                updated_members_by_id[member_key] = _member
+
+        updated_members = set(updated_members_by_id.values())
 
         if db_group.display_name != update_request.display_name:
             changed = True
