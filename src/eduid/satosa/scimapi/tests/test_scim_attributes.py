@@ -34,20 +34,32 @@ class TestGetGroupdbForDataOwner:
         assert scim_attributes.get_groupdb_for_data_owner("eduid.se") is None
         mock_groupdb_cls.assert_not_called()
 
-    def test_enabled_default_with_neo4j_uri_unset_returns_none(self, mocker: MockerFixture) -> None:
+    def test_legacy_default_with_neo4j_uri_unset_returns_none(self, mocker: MockerFixture) -> None:
+        # group_lookups_enabled left at its default (None): legacy behaviour, neo4j_uri unset
+        # means group lookups are off.
         mock_groupdb_cls = mocker.patch("eduid.satosa.scimapi.scim_attributes.ScimApiGroupDB")
-        # group_lookups_enabled defaults to True
         scim_attributes = make_scim_attributes(Config(mongo_uri="mongodb://localhost:27017", neo4j_uri=None))
 
         assert scim_attributes.get_groupdb_for_data_owner("eduid.se") is None
         mock_groupdb_cls.assert_not_called()
 
-    def test_enabled_default_with_neo4j_uri_set_returns_groupdb(self, mocker: MockerFixture) -> None:
+    def test_legacy_default_with_neo4j_uri_unset_logs_deprecation_notice(
+        self, mocker: MockerFixture, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        mocker.patch("eduid.satosa.scimapi.scim_attributes.ScimApiGroupDB")
+        scim_attributes = make_scim_attributes(Config(mongo_uri="mongodb://localhost:27017", neo4j_uri=None))
+
+        with caplog.at_level("INFO", logger="eduid.satosa.scimapi.scim_attributes"):
+            scim_attributes.get_groupdb_for_data_owner("eduid.se")
+
+        assert any("group_lookups_enabled" in record.message for record in caplog.records)
+
+    def test_legacy_default_with_neo4j_uri_set_returns_groupdb(self, mocker: MockerFixture) -> None:
         mock_groupdb_instance = mocker.MagicMock()
         mock_groupdb_cls = mocker.patch(
             "eduid.satosa.scimapi.scim_attributes.ScimApiGroupDB", return_value=mock_groupdb_instance
         )
-        # group_lookups_enabled defaults to True, matching behaviour before this change
+        # group_lookups_enabled defaults to None, matching behaviour before this change
         scim_attributes = make_scim_attributes(
             Config(mongo_uri="mongodb://localhost:27017", neo4j_uri="bolt://localhost:7687")
         )
@@ -72,6 +84,22 @@ class TestGetGroupdbForDataOwner:
         )
 
         assert scim_attributes.get_groupdb_for_data_owner("eduid.se") is mock_groupdb_instance
+
+    def test_explicitly_enabled_with_neo4j_uri_unset_returns_mongo_only_groupdb(self, mocker: MockerFixture) -> None:
+        # The new capability: an operator that has decommissioned neo4j can opt in explicitly
+        # to keep group lookups working purely off mongodb.
+        scim_attributes = make_scim_attributes(
+            Config(
+                mongo_uri="mongodb://localhost:27017",
+                neo4j_uri=None,
+                group_lookups_enabled=True,
+            )
+        )
+
+        result = scim_attributes.get_groupdb_for_data_owner("eduid.se")
+
+        assert result is not None
+        assert result.graphdb is None
 
     @pytest.mark.parametrize("neo4j_fallback", [True, False])
     def test_neo4j_fallback_passed_through_to_groupdb(self, mocker: MockerFixture, neo4j_fallback: bool) -> None:

@@ -31,10 +31,14 @@ class Config:
     mfa_stepup_issuer_to_entity_id: Mapping[str, str] = field(default_factory=dict)
     scope_to_data_owner: Mapping[str, str] = field(default_factory=dict)
     virt_idp_to_data_owner: Mapping[str, str] = field(default_factory=dict)
-    # Explicit kill switch for group lookups. Historically, group lookups were disabled by leaving
-    # neo4j_uri unset - see the check in get_groupdb_for_data_owner. Default True so behaviour is
-    # unchanged for every deployment unless an operator explicitly sets this to False.
-    group_lookups_enabled: bool = True
+    # Explicit kill switch for group lookups, tri-state:
+    #   False -> group lookups always off, regardless of neo4j_uri.
+    #   True  -> group lookups always on, even with neo4j_uri unset (mongodb-only operation).
+    #   None (default) -> legacy behaviour: on only if neo4j_uri is set, off (with a
+    #       deprecation notice logged) if it's unset. This preserves the historical behaviour
+    #       of using neo4j_uri as an implicit kill switch for every deployment that hasn't
+    #       explicitly opted in to mongodb-only group lookups yet.
+    group_lookups_enabled: bool | None = None
     # A third, orthogonal flag: group_lookups_enabled=False disables group lookups entirely,
     # while neo4j_fallback=False
     # only affects whether an already-enabled groupdb still consults neo4j for groups not yet
@@ -86,12 +90,19 @@ class ScimAttributes(ResponseMicroService):  # type: ignore[misc]
         return self._userdbs[data_owner]
 
     def get_groupdb_for_data_owner(self, data_owner: str) -> ScimApiGroupDB | None:
-        if not self.config.group_lookups_enabled:
+        if self.config.group_lookups_enabled is False:
             logger.info("group_lookups_enabled is False in config, group lookups will be turned off.")
             return None
-        if self.config.neo4j_uri is None:
-            # be able to turn off group lookups by unsetting neo4j_uri
-            logger.info("No neo4j_uri set in config, group lookups will be turned off.")
+        if self.config.group_lookups_enabled is None and self.config.neo4j_uri is None:
+            # Legacy behaviour: group lookups used to be turned off implicitly by leaving
+            # neo4j_uri unset. mongodb alone now has all the group data, so an operator that
+            # wants group lookups without neo4j should set group_lookups_enabled = True
+            # explicitly.
+            logger.info(
+                "No neo4j_uri set and group_lookups_enabled not set explicitly in config, group lookups "
+                "will be turned off. Set group_lookups_enabled = True explicitly to enable mongodb-only "
+                "group lookups without neo4j."
+            )
             return None
         if data_owner not in self._groupdbs:
             _owner = scim_db_name(data_owner)
