@@ -107,10 +107,7 @@ class ScimApiGroup(ScimApiResourceBase, _ScimApiGroupRequired):
 
     @staticmethod
     def _first_with_identifier(items: list[ScimApiGroupMember], identifier: str) -> ScimApiGroupMember | None:
-        for item in items:
-            if item.identifier == identifier:
-                return item
-        return None
+        return next((item for item in items if item.identifier == identifier), None)
 
     def get_member_user(self, identifier: str) -> ScimApiGroupMember | None:
         return self._first_with_identifier(self.member_users, identifier)
