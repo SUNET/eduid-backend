@@ -3,11 +3,10 @@ from uuid import UUID
 
 from flask import Blueprint
 
-from eduid.graphdb.groupdb import User as GraphUser
 from eduid.userdb import User
 from eduid.userdb.exceptions import EduIDDBError
 from eduid.userdb.group_management import GroupRole
-from eduid.userdb.scimapi import ScimApiGroup
+from eduid.userdb.scimapi import GroupMemberType, ScimApiGroup, ScimApiGroupMember
 from eduid.webapp.common.api.decorators import MarshalWith, UnmarshalWith, require_user
 from eduid.webapp.common.api.messages import CommonMsg, FluxData, error_response, success_response
 from eduid.webapp.group_management.app import current_group_management_app as current_app
@@ -68,9 +67,10 @@ def get_groups(user: User) -> FluxData:
 def create_group(user: User, display_name: str) -> FluxData:
     scim_user = get_or_create_scim_user_by_eppn(user.eppn)
     _gu_name = user.mail_addresses.primary.email if user.mail_addresses.primary else user.eppn
-    graph_user = GraphUser(identifier=str(scim_user.scim_id), display_name=_gu_name)
-    group = ScimApiGroup(display_name=display_name)
-    group.owners = {graph_user}
+    owner = ScimApiGroupMember(
+        identifier=str(scim_user.scim_id), display_name=_gu_name, member_type=GroupMemberType.USER
+    )
+    group = ScimApiGroup(display_name=display_name, members=set(), owners={owner})
 
     if not current_app.scimapi_groupdb.save(group):
         current_app.logger.error(f"Failed to create ScimApiGroup with scim_id: {group.scim_id}")
@@ -122,22 +122,24 @@ def remove_user(user: User, group_identifier: UUID, user_identifier: UUID, role:
         current_app.logger.error(f"Group with scim_id {group_identifier} not found")
         return error_response(message=GroupManagementMsg.group_not_found)
 
-    # Check that it is either the user or a group owner that removes the user from the group
-    if not _removing_self and not is_owner(scim_user, group_identifier):
-        current_app.logger.error(f"User is not owner of group with scim_id: {group_identifier}")
-        return error_response(message=GroupManagementMsg.user_not_owner)
-
     user_to_remove = current_app.scimapi_userdb.get_user_by_scim_id(scim_id=str(user_identifier))
     if not user_to_remove:
         current_app.logger.error("User to remove does not exist in scimapi_userdb")
         return error_response(message=GroupManagementMsg.user_to_be_removed_does_not_exist)
 
-    # Check so we don't remove the last owner of a group
-    if role == GroupRole.OWNER and len(group.owners) == 1:
-        current_app.logger.error(f"Can not remove the last owner in group with scim_id: {group_identifier}")
-        return error_response(message=GroupManagementMsg.can_not_remove_last_owner)
-
     try:
+        # Check that it is either the user or a group owner that removes the user from the group
+        if not _removing_self and group.get_owner_user(str(scim_user.scim_id)) is None:
+            current_app.logger.error(f"User is not owner of group with scim_id: {group_identifier}")
+            return error_response(message=GroupManagementMsg.user_not_owner)
+
+        # Check so we don't remove the last owner of a group. Goes through owner_users (not
+        # group.owners directly) so an un-hydrated group raises GroupNotMigratedError below
+        # instead of this guard silently no-op'ing (len(None or set()) is always 0).
+        if role == GroupRole.OWNER and len(group.owner_users) == 1:
+            current_app.logger.error(f"Can not remove the last owner in group with scim_id: {group_identifier}")
+            return error_response(message=GroupManagementMsg.can_not_remove_last_owner)
+
         remove_user_from_group(user_to_remove, group, role)
     except EduIDDBError:
         return error_response(message=CommonMsg.temp_problem)

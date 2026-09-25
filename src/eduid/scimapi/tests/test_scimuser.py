@@ -568,9 +568,9 @@ class TestUserResource(ScimApiTestUserResourceBase):
         group2 = self.add_member_to_group(group_identifier=str(group2.scim_id), user_identifier=str(extra_user.scim_id))
         assert group2
 
-        assert len(group1.members) == 1
-        assert len(group1.owners) == 1
-        assert len(group2.members) == 2
+        assert len(group1.members or set()) == 1
+        assert len(group1.owners or set()) == 1
+        assert len(group2.members or set()) == 2
 
         self.headers["IF-MATCH"] = make_etag(db_user.version)
         response = self.client.delete(url=f"/Users/{db_user.scim_id}", headers=self.headers)
@@ -583,11 +583,11 @@ class TestUserResource(ScimApiTestUserResourceBase):
         assert self.groupdb
         group1 = self.groupdb.get_group_by_scim_id(str(group1.scim_id))
         assert group1
-        assert len(group1.graph.members) == 0
-        assert len(group1.graph.owners) == 0
+        assert len(group1.members or set()) == 0
+        assert len(group1.owners or set()) == 0
         group2 = self.groupdb.get_group_by_scim_id(str(group2.scim_id))
         assert group2
-        assert len(group2.graph.members) == 1
+        assert len(group2.members or set()) == 1
 
         # check that the action resulted in an event in the database
         assert self.eventdb
@@ -888,7 +888,7 @@ class TestAsyncUserResource(ScimApiTestCase):
         assert self.groupdb
         group = self.groupdb.get_group_by_scim_id(str(self.group.scim_id))
         assert group is not None  # please mypy
-        assert len(group.members) == self.user_count
+        assert len(group.members or set()) == self.user_count
 
         # delete half of the users in parallel
         tasks = []
@@ -910,4 +910,4 @@ class TestAsyncUserResource(ScimApiTestCase):
 
         group = self.groupdb.get_group_by_scim_id(str(group.scim_id))
         assert group
-        assert len(group.graph.members) == self.user_count // 2
+        assert len(group.members or set()) == self.user_count // 2

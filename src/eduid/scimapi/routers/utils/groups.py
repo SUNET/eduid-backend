@@ -17,10 +17,10 @@ __author__ = "lundberg"
 
 def get_group_members(req: Request, db_group: ScimApiGroup) -> list[GroupMember]:
     members = []
-    for user_member in db_group.graph.member_users:
+    for user_member in db_group.member_users:
         ref = req.app.context.url_for("Users", user_member.identifier)
         members.append(GroupMember(value=UUID(user_member.identifier), ref=ref, display=user_member.display_name))
-    for group_member in db_group.graph.member_groups:
+    for group_member in db_group.member_groups:
         ref = req.app.context.url_for("Groups", group_member.identifier)
         members.append(GroupMember(value=UUID(group_member.identifier), ref=ref, display=group_member.display_name))
     return members
@@ -42,7 +42,7 @@ def db_group_to_response(req: ScimApiRequest, resp: Response, db_group: ScimApiG
         schemas.append(SCIMSchema.NUTID_GROUP_V1)
         nutid_group_v1 = NutidGroupExtensionV1(data=db_group.extensions.data)
     group = GroupResponse(
-        display_name=db_group.graph.display_name,
+        display_name=db_group.display_name,
         members=members,
         id=db_group.scim_id,
         external_id=db_group.external_id,

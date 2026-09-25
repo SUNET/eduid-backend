@@ -28,6 +28,11 @@ def check_neo4j(req: ContextRequest) -> bool:
         return False
     default_data_owner = next(iter(req.app.context.config.data_owners.keys()))
     group_db = req.app.context.get_groupdb(default_data_owner)
+    if group_db is None or group_db.graphdb is None:
+        # neo4j_fallback is False (or no neo4j_uri is configured). There is no neo4j connection
+        # to check in that configuration, so there is nothing to report as unhealthy.
+        reset_failure_info(req, "_check_neo4j")
+        return True
     try:
         q = """
             MATCH (n)
