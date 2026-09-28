@@ -482,7 +482,7 @@ class TestAuthnUserResource(ScimApiTestUserResourceBase):
             ],
             "saml_entitlement": [
                 "urn:mace:some:other:entitlement",
-                f"{self.groupdb.graphdb.scope}:group:{db_group.graph.identifier}#eduid-iam",
+                f"{self.groupdb.scope}:group:{db_group.scim_id!s}#eduid-iam",
             ],
         }
         token = self._make_bearer_token(claims=claims)

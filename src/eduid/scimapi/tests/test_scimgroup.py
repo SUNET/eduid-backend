@@ -13,12 +13,10 @@ from eduid.common.misc.timeutil import utc_now
 from eduid.common.models.scim_base import Meta, SCIMResourceType, SCIMSchema
 from eduid.common.testing_base import normalised_data
 from eduid.common.utils import make_etag
-from eduid.graphdb.groupdb import Group as GraphGroup
-from eduid.graphdb.groupdb import User as GraphUser
 from eduid.scimapi.models.group import GroupMember, GroupResponse
 from eduid.scimapi.testing import ScimApiTestCase
 from eduid.scimapi.tests.test_scimbase import TestScimBase
-from eduid.userdb.scimapi import EventStatus, GroupExtensions, ScimApiGroup
+from eduid.userdb.scimapi import EventStatus, GroupExtensions, GroupMemberType, ScimApiGroup, ScimApiGroupMember
 from eduid.userdb.scimapi.userdb import ScimApiUser
 
 logger = logging.getLogger(__name__)
@@ -65,18 +63,23 @@ class TestGroupResource(ScimApiTestCase):
     def add_group(self, scim_id: UUID, display_name: str, extensions: GroupExtensions | None = None) -> ScimApiGroup:
         if extensions is None:
             extensions = GroupExtensions()
-        group = ScimApiGroup(scim_id=scim_id, display_name=display_name, extensions=extensions)
+        group = ScimApiGroup(
+            scim_id=scim_id, display_name=display_name, extensions=extensions, members=set(), owners=set()
+        )
         assert self.groupdb  # mypy doesn't know setUp will be called
-        group.graph = GraphGroup(identifier=str(group.scim_id), display_name=display_name)
         self.groupdb.save(group)
         return group
 
     def add_member(self, group: ScimApiGroup, member: ScimApiUser | ScimApiGroup, display_name: str) -> ScimApiGroup:
         if isinstance(member, ScimApiUser):
-            user_member = GraphUser(identifier=str(member.scim_id), display_name=display_name)
+            user_member = ScimApiGroupMember(
+                identifier=str(member.scim_id), display_name=display_name, member_type=GroupMemberType.USER
+            )
             group.add_member(user_member)
         elif isinstance(member, ScimApiGroup):
-            group_member = GraphGroup(identifier=str(member.scim_id), display_name=display_name)
+            group_member = ScimApiGroupMember(
+                identifier=str(member.scim_id), display_name=display_name, member_type=GroupMemberType.GROUP
+            )
             group.add_member(group_member)
         assert self.groupdb  # mypy doesn't know setUp will be called
         self.groupdb.save(group)
@@ -174,7 +177,7 @@ class TestGroupResource_GET(TestGroupResource):
         assert [SCIMSchema.API_MESSAGES_20_LIST_RESPONSE.value] == response.json().get("schemas")
         resources = response.json().get("Resources")
         assert self.groupdb
-        expected_num_resources = self.groupdb.graphdb.db.count_nodes()
+        expected_num_resources = self.groupdb.db_count()
         assert expected_num_resources == len(resources), (
             f"Number of groups returned does not match number of groups in the database: {expected_num_resources}"
         )
@@ -359,9 +362,9 @@ class TestGroupResource_PUT(TestGroupResource):
         # Load group to verify it has two members
         _g1 = self.groupdb.get_group_by_scim_id(str(db_group.scim_id))
         assert _g1
-        assert len(_g1.graph.members) == 2, "Group loaded from database does not have two members"
-        assert len(_g1.graph.member_users) == 1, "Group loaded from database does not have one member user"
-        assert len(_g1.graph.member_groups) == 1, "Group loaded from database does not have one member group"
+        assert len(_g1.members or set()) == 2, "Group loaded from database does not have two members"
+        assert len(_g1.member_users) == 1, "Group loaded from database does not have one member user"
+        assert len(_g1.member_groups) == 1, "Group loaded from database does not have one member group"
 
         members = [
             {
@@ -386,9 +389,9 @@ class TestGroupResource_PUT(TestGroupResource):
         # Load group to verify it has one less member now
         _g2 = self.groupdb.get_group_by_scim_id(str(db_group.scim_id))
         assert _g2
-        assert len(_g2.graph.members) == 1, "Group loaded from database does not have two members"
-        assert len(_g2.graph.member_users) == 1, "Group loaded from database does not have one member user"
-        assert len(_g2.graph.member_groups) == 0, "Group loaded from database does not have one member group"
+        assert len(_g2.members or set()) == 1, "Group loaded from database does not have two members"
+        assert len(_g2.member_users) == 1, "Group loaded from database does not have one member user"
+        assert len(_g2.member_groups) == 0, "Group loaded from database does not have one member group"
 
     def test_update_group_id_mismatch(self) -> None:
         db_group = self.add_group(uuid4(), "Test Group 1")

@@ -15,13 +15,19 @@ from eduid.common.config.base import DataOwnerName
 from eduid.common.config.parsers import load_config
 from eduid.common.models.scim_base import SCIMSchema
 from eduid.common.testing_base import normalised_data
-from eduid.graphdb.groupdb import User as GraphUser
 from eduid.graphdb.testing import Neo4jTemporaryInstance
 from eduid.queue.db.message import MessageDB
 from eduid.scimapi.app import init_api
 from eduid.scimapi.config import ScimApiConfig
 from eduid.scimapi.context import Context
-from eduid.userdb.scimapi import ScimApiEvent, ScimApiGroup, ScimApiLinkedAccount, ScimApiName
+from eduid.userdb.scimapi import (
+    GroupMemberType,
+    ScimApiEvent,
+    ScimApiGroup,
+    ScimApiGroupMember,
+    ScimApiLinkedAccount,
+    ScimApiName,
+)
 from eduid.userdb.scimapi.common import ScimApiProfile
 from eduid.userdb.scimapi.invitedb import ScimApiInvite
 from eduid.userdb.scimapi.userdb import ScimApiUser
@@ -136,7 +142,8 @@ class ScimApiTestCase(MongoNeoTestCase):
         # with background threads. Without explicit close they outlive the test session
         # and generate "I/O operation on closed file" noise on stderr.
         for dbs in self.context._dbs.values():
-            dbs.groupdb.graphdb.db.close()
+            if dbs.groupdb.graphdb is not None:
+                dbs.groupdb.graphdb.db.close()
 
     def _get_config(self) -> dict[str, Any]:
         config = super()._get_config()
@@ -172,8 +179,14 @@ class ScimApiTestCase(MongoNeoTestCase):
         return saved_user
 
     def add_group_with_member(self, group_identifier: str, display_name: str, user_identifier: str) -> ScimApiGroup:
-        group = ScimApiGroup(scim_id=uuid.UUID(group_identifier), display_name=display_name)
-        group.add_member(GraphUser(identifier=user_identifier, display_name="Test Member 1"))
+        group = ScimApiGroup(
+            scim_id=uuid.UUID(group_identifier), display_name=display_name, members=set(), owners=set()
+        )
+        group.add_member(
+            ScimApiGroupMember(
+                identifier=user_identifier, display_name="Test Member 1", member_type=GroupMemberType.USER
+            )
+        )
         assert self.groupdb
         self.groupdb.save(group)
         saved_group = self.groupdb.get_group_by_scim_id(scim_id=group_identifier)
@@ -184,8 +197,14 @@ class ScimApiTestCase(MongoNeoTestCase):
         assert self.groupdb
         group = self.groupdb.get_group_by_scim_id(scim_id=group_identifier)
         assert group is not None  # please mypy
-        num_members = len(group.members)
-        group.add_member(GraphUser(identifier=user_identifier, display_name=f"Test Member {num_members + 1}"))
+        num_members = len(group.members or set())
+        group.add_member(
+            ScimApiGroupMember(
+                identifier=user_identifier,
+                display_name=f"Test Member {num_members + 1}",
+                member_type=GroupMemberType.USER,
+            )
+        )
         self.groupdb.save(group)
         return self.groupdb.get_group_by_scim_id(scim_id=group_identifier)
 
@@ -193,8 +212,14 @@ class ScimApiTestCase(MongoNeoTestCase):
         assert self.groupdb
         group = self.groupdb.get_group_by_scim_id(scim_id=group_identifier)
         assert group is not None  # please mypy
-        num_owners = len(group.owners)
-        group.add_owner(GraphUser(identifier=user_identifier, display_name=f"Test Owner {num_owners + 1}"))
+        num_owners = len(group.owners or set())
+        group.add_owner(
+            ScimApiGroupMember(
+                identifier=user_identifier,
+                display_name=f"Test Owner {num_owners + 1}",
+                member_type=GroupMemberType.USER,
+            )
+        )
         self.groupdb.save(group)
         return self.groupdb.get_group_by_scim_id(scim_id=group_identifier)
 

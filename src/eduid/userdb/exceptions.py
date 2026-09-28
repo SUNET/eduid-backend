@@ -41,6 +41,14 @@ class UserDoesNotExist(DocumentDoesNotExist):
     """
 
 
+class GroupNotMigratedError(EduIDDBError):
+    """
+    The group has not yet been migrated from neo4j to mongodb, and neo4j fallback is
+    unavailable, so its members/owners could not be hydrated. Saving such an un-hydrated
+    group would permanently wipe its real (not yet read) membership.
+    """
+
+
 class MultipleDocumentsReturned(EduIDDBError):
     pass
 

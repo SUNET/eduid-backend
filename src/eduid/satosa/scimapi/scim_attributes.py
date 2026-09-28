@@ -13,6 +13,7 @@ from satosa.routing import STATE_KEY as ROUTER_STATE_KEY
 
 from eduid.satosa.scimapi.common import MfaStepupAccount, get_metadata, store_mfa_stepup_accounts
 from eduid.userdb.scimapi import ScimApiGroup, ScimApiGroupDB
+from eduid.userdb.scimapi.basedb import scim_db_name
 from eduid.userdb.scimapi.userdb import ScimApiUser, ScimApiUserDB, ScimEduidUserDB
 
 logger = logging.getLogger(__name__)
@@ -30,6 +31,20 @@ class Config:
     mfa_stepup_issuer_to_entity_id: Mapping[str, str] = field(default_factory=dict)
     scope_to_data_owner: Mapping[str, str] = field(default_factory=dict)
     virt_idp_to_data_owner: Mapping[str, str] = field(default_factory=dict)
+    # Explicit kill switch for group lookups, tri-state:
+    #   False -> group lookups always off, regardless of neo4j_uri.
+    #   True  -> group lookups always on, even with neo4j_uri unset (mongodb-only operation).
+    #   None (default) -> legacy behaviour: on only if neo4j_uri is set, off (with a
+    #       deprecation notice logged) if it's unset. This preserves the historical behaviour
+    #       of using neo4j_uri as an implicit kill switch for every deployment that hasn't
+    #       explicitly opted in to mongodb-only group lookups yet.
+    group_lookups_enabled: bool | None = None
+    # A third, orthogonal flag: group_lookups_enabled=False disables group lookups entirely,
+    # while neo4j_fallback=False
+    # only affects whether an already-enabled groupdb still consults neo4j for groups not yet
+    # migrated to mongodb. Default True so behaviour is unchanged for every deployment unless an
+    # operator explicitly sets this to False.
+    neo4j_fallback: bool = True
 
 
 @dataclass
@@ -64,7 +79,7 @@ class ScimAttributes(ResponseMicroService):  # type: ignore[misc]
 
     def get_userdb_for_data_owner(self, data_owner: str) -> ScimApiUserDB:
         if data_owner not in self._userdbs:
-            _owner = data_owner.replace(".", "_")  # replace dots with underscores
+            _owner = scim_db_name(data_owner)
             coll = f"{_owner}__users"
             # TODO: rename old collection and remove this
             if data_owner == "eduid.se":
@@ -75,19 +90,31 @@ class ScimAttributes(ResponseMicroService):  # type: ignore[misc]
         return self._userdbs[data_owner]
 
     def get_groupdb_for_data_owner(self, data_owner: str) -> ScimApiGroupDB | None:
-        if self.config.neo4j_uri is None:
-            # be able to turn off group lookups by unsetting neo4j_uri
-            logger.info("No neo4j_uri set in config, group lookups will be turned off.")
+        if self.config.group_lookups_enabled is False:
+            logger.info("group_lookups_enabled is False in config, group lookups will be turned off.")
+            return None
+        if self.config.group_lookups_enabled is None and self.config.neo4j_uri is None:
+            # Legacy behaviour: group lookups used to be turned off implicitly by leaving
+            # neo4j_uri unset. mongodb alone now has all the group data, so an operator that
+            # wants group lookups without neo4j should set group_lookups_enabled = True
+            # explicitly.
+            logger.info(
+                "No neo4j_uri set and group_lookups_enabled not set explicitly in config, group lookups "
+                "will be turned off. Set group_lookups_enabled = True explicitly to enable mongodb-only "
+                "group lookups without neo4j."
+            )
             return None
         if data_owner not in self._groupdbs:
-            _owner = data_owner.replace(".", "_")  # replace dots with underscores
+            _owner = scim_db_name(data_owner)
             self._groupdbs[data_owner] = ScimApiGroupDB(
                 neo4j_uri=self.config.neo4j_uri,
                 neo4j_config=self.config.neo4j_config,
+                neo4j_fallback=self.config.neo4j_fallback,
                 scope=data_owner,
                 mongo_uri=self.config.mongo_uri,
                 mongo_dbname="eduid_scimapi",
                 mongo_collection=f"{_owner}__groups",
+                setup_indexes=False,
             )
         return self._groupdbs[data_owner]
 
@@ -186,11 +213,11 @@ class ScimAttributes(ResponseMicroService):  # type: ignore[misc]
 
         for member_group in user_groups.member:
             data.attributes["edupersonentitlement"].append(
-                f"{user_groups.data_owner}:group:{member_group.graph.identifier}#eduid-iam"
+                f"{user_groups.data_owner}:group:{member_group.scim_id!s}#eduid-iam"
             )
         for manager_group in user_groups.manager:
             data.attributes["edupersonentitlement"].append(
-                f"{user_groups.data_owner}:group:{manager_group.graph.identifier}:role=manager#eduid-iam"
+                f"{user_groups.data_owner}:group:{manager_group.scim_id!s}:role=manager#eduid-iam"
             )
 
         logger.debug(f"edupersonentitlement after groups: {data.attributes['edupersonentitlement']}")
@@ -267,7 +294,7 @@ class ScimAttributes(ResponseMicroService):  # type: ignore[misc]
             return None
 
         return UserGroups(
-            data_owner=groupdb.graphdb.scope,
+            data_owner=groupdb.scope,
             member=groupdb.get_groups_for_user_identifer(user.scim_id),
             manager=groupdb.get_groups_owned_by_user_identifier(user.scim_id),
         )

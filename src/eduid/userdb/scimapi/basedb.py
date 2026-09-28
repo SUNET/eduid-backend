@@ -6,6 +6,17 @@ from eduid.userdb.db import BaseDB, TUserDbDocument
 __author__ = "lundberg"
 
 
+def scim_db_name(data_owner: str, db_name: str | None = None) -> str:
+    """
+    Derive the mongodb database/collection name fragment for a scimapi data owner.
+
+    Honours an explicit override (e.g. `DataOwnerConfig.db_name`) when given, and otherwise
+    falls back to replacing dots with underscores in the data owner string - dots are a name
+    separator in mongodb.
+    """
+    return db_name if db_name is not None else data_owner.replace(".", "_")
+
+
 class ScimApiBaseDB(BaseDB):
     def _get_documents_and_count_by_filter(
         self,

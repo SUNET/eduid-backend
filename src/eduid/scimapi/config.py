@@ -19,8 +19,11 @@ class ScimApiConfig(AuthnBearerTokenConfig, LoggingConfigMixin, AWSMixin):
     Configuration for the SCIM API app
     """
 
-    neo4j_uri: str = ""
+    neo4j_uri: str | None = None
     neo4j_config: dict[str, Any] = Field(default_factory=dict)
+    # When False, ScimApiGroupDB opens no neo4j connection at all and no group is ever
+    # consulted there as a fallback.
+    neo4j_fallback: bool = True
     signing_key_id: str
     login_enabled: bool = False
     no_authn_urls: list[str] = Field(

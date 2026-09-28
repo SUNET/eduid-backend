@@ -38,12 +38,14 @@ def remove_user_from_all_groups(req: ScimApiRequest, db_user: ScimApiUser) -> No
         group = req.context.require_groupdb().get_group_by_scim_id(str(member_group.scim_id))
         if group is None:
             raise RuntimeError(f"Group {member_group.scim_id} missing from db while member list iterated")
-        for member in group.graph.members.copy():
+        if group.members is None:
+            raise RuntimeError(f"Group {group.scim_id} has no members loaded")
+        for member in group.members.copy():
             if member.identifier == str(db_user.scim_id):
                 req.app.context.logger.debug(
                     f"Removing member {db_user.scim_id} from group {group.scim_id} ({group.display_name}"
                 )
-                group.graph.members.remove(member)
+                group.members.remove(member)
                 req.context.require_groupdb().save(group)
                 add_api_event(
                     context=req.app.context,
@@ -57,12 +59,14 @@ def remove_user_from_all_groups(req: ScimApiRequest, db_user: ScimApiUser) -> No
                 break
 
     for owner_group in req.context.require_groupdb().get_groups_owned_by_user_identifier(db_user.scim_id):
-        for owner in owner_group.graph.owners.copy():
+        if owner_group.owners is None:
+            raise RuntimeError(f"Group {owner_group.scim_id} has no owners loaded")
+        for owner in owner_group.owners.copy():
             if owner.identifier == str(db_user.scim_id):
                 req.app.context.logger.debug(
                     f"Removing member {db_user.scim_id} from group {owner_group.scim_id} ({owner_group.display_name}"
                 )
-                owner_group.graph.owners.remove(owner)
+                owner_group.owners.remove(owner)
                 req.context.require_groupdb().save(owner_group)
                 add_api_event(
                     context=req.app.context,

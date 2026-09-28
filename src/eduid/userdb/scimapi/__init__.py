@@ -15,19 +15,27 @@ from eduid.userdb.scimapi.eventdb import (
     ScimApiEventDB,
     ScimApiEventResource,
 )
-from eduid.userdb.scimapi.groupdb import GroupExtensions, ScimApiGroup, ScimApiGroupDB
+from eduid.userdb.scimapi.groupdb import (
+    GroupExtensions,
+    GroupMemberType,
+    ScimApiGroup,
+    ScimApiGroupDB,
+    ScimApiGroupMember,
+)
 from eduid.userdb.scimapi.userdb import ScimApiUser, ScimApiUserDB
 
 __all__ = [
     "EventLevel",
     "EventStatus",
     "GroupExtensions",
+    "GroupMemberType",
     "ScimApiEmail",
     "ScimApiEvent",
     "ScimApiEventDB",
     "ScimApiEventResource",
     "ScimApiGroup",
     "ScimApiGroupDB",
+    "ScimApiGroupMember",
     "ScimApiLinkedAccount",
     "ScimApiName",
     "ScimApiPhoneNumber",
