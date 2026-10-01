@@ -25,6 +25,7 @@ from eduid.webapp.common.authn.webauthn import (
 from eduid.webapp.common.session import session
 from eduid.webapp.common.session.namespaces import (
     AuthnRequestRef,
+    IdP_SAMLPendingRequest,
     LoginApplication,
     OIDCState,
     RequestRef,
@@ -411,8 +412,13 @@ def webauthn_register_complete(
 @UnmarshalWith(ReturnToAuthRequest)
 @MarshalWith(SignupStatusResponse)
 @require_not_logged_in
-def return_to_auth(ref: str, service_info: dict[str, dict[str, str]]) -> FluxData:
-    """Store a reference to a pending IdP SAML request for resumption after signup."""
+def return_to_auth(ref: str) -> FluxData:
+    """Store a reference to a pending IdP SAML request for resumption after signup.
+
+    The requirements (MFA/AL) and service info are read from the IdP's own pending request in
+    the shared session - not from the frontend, which can neither be trusted with, nor is
+    expected to know, what the SP actually requires.
+    """
     current_app.logger.info("Setting IdP request ref for post-signup auth resumption")
 
     if session.signup.user_created:
@@ -420,12 +426,17 @@ def return_to_auth(ref: str, service_info: dict[str, dict[str, str]]) -> FluxDat
         return error_response(message=SignupMsg.user_already_exists)
 
     request_ref = RequestRef(ref)
-    if request_ref not in session.idp.pending_requests:
+    pending = session.idp.pending_requests.get(request_ref)
+    if pending is None:
         current_app.logger.info(f"Request ref {ref} not found in IdP pending requests")
+        return error_response(message=SignupMsg.idp_request_ref_not_found)
+    if not isinstance(pending, IdP_SAMLPendingRequest):
+        current_app.logger.info(f"Request ref {ref} is not a SAML pending request ({type(pending)})")
         return error_response(message=SignupMsg.idp_request_ref_not_found)
 
     session.signup.idp_request_ref = request_ref
-    session.signup.idp_service_info = service_info
+    session.signup.idp_authn_requirements = pending.authn_requirements
+    session.signup.idp_service_info = pending.service_info
     current_app.logger.info(f"Stored idp_request_ref: {request_ref}")
     return success_response(payload={"state": session.signup.to_dict()})
 

@@ -95,7 +95,7 @@ from eduid.webapp.idp.assurance import (
 )
 from eduid.webapp.idp.assurance_data import AuthnInfo
 from eduid.webapp.idp.helpers import IdPMsg, lookup_user
-from eduid.webapp.idp.idp_saml import ResponseArgs, SamlResponse, SAMLResponseParams
+from eduid.webapp.idp.idp_saml import IdP_SAMLRequest, ResponseArgs, SamlResponse, SAMLResponseParams
 from eduid.webapp.idp.login_context import LoginContext, LoginContextOtherDevice, LoginContextSAML
 from eduid.webapp.idp.mfa_action import need_security_key
 from eduid.webapp.idp.mischttp import get_user_agent
@@ -588,8 +588,26 @@ def _add_saml_request_to_session(info: SAMLQueryParams, binding: str) -> Request
     if not info.SAMLRequest or binding is None:
         raise ValueError(f"Can't add incomplete query params to session: {info}, binding {binding}")
     request_ref = RequestRef(str(uuid4()))
+
+    # Eagerly derive the signup UX hints (MFA/AL requirements) and the SP's service info here,
+    # while we have the SAML request at hand, so they are available to every later step
+    # (/next, return-to-auth, signup_auth) without re-parsing the request. Signup in particular
+    # can't do this itself - it is a separate process with no access to the IdP's SAML metadata.
+    authn_requirements = None
+    service_info = None
+    try:
+        saml_req = IdP_SAMLRequest(info.SAMLRequest, binding, current_app.IDP, debug=current_app.conf.debug)
+        authn_requirements = saml_req.get_signup_authn_requirements()
+        service_info = saml_req.service_info
+    except Exception:
+        current_app.logger.exception(f"Failed deriving signup authn requirements for ref {request_ref}")
+
     session.idp.pending_requests[request_ref] = IdP_SAMLPendingRequest(
-        request=info.SAMLRequest, binding=binding, relay_state=info.RelayState
+        request=info.SAMLRequest,
+        binding=binding,
+        relay_state=info.RelayState,
+        authn_requirements=authn_requirements,
+        service_info=service_info,
     )
     return request_ref
 

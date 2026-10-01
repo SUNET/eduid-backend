@@ -208,6 +208,23 @@ class SignupExternalMfa(BaseModel):
     )
 
 
+class IdPAuthnRequirements(BaseModel):
+    """UX hints derived from the SAML AuthnRequest and the SP's metadata, for the signup flow.
+
+    These are informational only: they let signup steer its UI (e.g. suggest registering a
+    security key, or verifying via BankID/Freja) but must never block account creation. The
+    IdP's own assurance pipeline (``idp/assurance.py``) remains the sole authoritative gate
+    when the user later returns from signup to complete the original SAML request.
+    """
+
+    requested_authn_contexts: list[str] = Field(default_factory=list)
+    # Raw SAML RequestedAuthnContext/@Comparison value ("exact"/"minimum"/"better"/"maximum"),
+    # kept for fidelity. Interpretation is a frontend/future concern.
+    comparison: str | None = None
+    require_mfa: bool = False
+    minimum_assurance_level: str | None = None  # "al1" | "al2" | "al3"
+
+
 class Signup(TimestampedNS):
     user_created: bool = False
     user_created_at: datetime | None = None
@@ -220,6 +237,7 @@ class Signup(TimestampedNS):
     credentials: Credentials = Field(default_factory=Credentials)
     idp_request_ref: RequestRef | None = None
     idp_service_info: dict[str, dict[str, str]] | None = None
+    idp_authn_requirements: IdPAuthnRequirements | None = None
     external_mfa: SignupExternalMfa | None = None
 
     @property
@@ -252,6 +270,14 @@ class IdP_SAMLPendingRequest(IdP_PendingRequest):
     relay_state: str | None = None
     # a pointer to an ongoing request to login using another device
     other_device_state_id: OtherDeviceId | None = None
+    # UX hints (MFA/AL) derived from this request + the SP's metadata, for signup to consume
+    # via /return-to-auth. Populated eagerly when the pending request is created (login.py).
+    authn_requirements: IdPAuthnRequirements | None = None
+    # MDUI display_name for the SP, read once from metadata at the same time as
+    # authn_requirements. Kept as a plain dict (not the idp_saml.ServiceInfo model) to avoid
+    # an import cycle between this module and idp/idp_saml.py, and because signup (a separate
+    # Flask app/process with no SAML metadata of its own) can't re-derive it later.
+    service_info: dict[str, dict[str, str]] | None = None
 
 
 class IdP_OtherDevicePendingRequest(IdP_PendingRequest):

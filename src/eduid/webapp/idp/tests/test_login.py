@@ -1,6 +1,7 @@
 import json
 import logging
 import os
+from collections.abc import Mapping
 from datetime import datetime, timedelta
 from typing import Any, cast
 
@@ -19,7 +20,7 @@ from eduid.userdb.mail import MailAddressList
 from eduid.vccs.client import VCCSClient
 from eduid.webapp.common.api.testing import CSRFTestClient
 from eduid.webapp.common.authn.utils import get_saml2_config
-from eduid.webapp.common.session.namespaces import LoginApplication, RequestRef
+from eduid.webapp.common.session.namespaces import IdP_SAMLPendingRequest, LoginApplication, RequestRef
 from eduid.webapp.idp.helpers import IdPAction, IdPMsg
 from eduid.webapp.idp.other_device.data import OtherDeviceState
 from eduid.webapp.idp.tests.test_api import (
@@ -647,6 +648,129 @@ class TestIdPLoginAPI(IdPAPITests):
         result = self._try_login()
         assert mock_post.call_count == 1
 
+        self._check_login_result(
+            result=result,
+            visit_order=[IdPAction.USERNAMEPWAUTH, IdPAction.FINISHED],
+            finish_result=FinishedResultAPI(payload={"message": IdPMsg.finished.value}),
+        )
+
+
+class TestSignupAuthnRequirements(IdPAPITests):
+    """Verify that IdPAuthnRequirements (MFA/AL UX hints for signup) are stored on the pending
+    request as soon as it is created, per SP metadata entity-category and RequestedAuthnContext.
+    """
+
+    def _get_ref(
+        self,
+        authn_context: Mapping[str, Any] | None = None,
+        saml2_client: Saml2Client | None = None,
+    ) -> RequestRef:
+        ref_result = self._get_login_ref(self.browser, saml2_client or self.saml2_client, authn_context, False, None)
+        assert isinstance(ref_result, tuple), f"Expected (ref, response) tuple, got {ref_result}"
+        ref, _ = ref_result
+        return RequestRef(ref)
+
+    def _get_pending(self, ref: RequestRef) -> IdP_SAMLPendingRequest:
+        with self.session_cookie_anon(self.browser) as client:
+            with client.session_transaction() as sess:
+                pending = sess.idp.pending_requests[ref]
+        assert isinstance(pending, IdP_SAMLPendingRequest)
+        return pending
+
+    def test_no_requirements(self) -> None:
+        """SFA-only request against the default SP metadata: no requirements at all."""
+        ref = self._get_ref()
+        pending = self._get_pending(ref)
+        assert pending.authn_requirements is not None
+        assert pending.authn_requirements.require_mfa is False
+        assert pending.authn_requirements.minimum_assurance_level is None
+        assert pending.authn_requirements.requested_authn_contexts == []
+
+    def test_refeds_mfa(self) -> None:
+        ref = self._get_ref(
+            authn_context={
+                "authn_context_class_ref": [EduidAuthnContextClass.REFEDS_MFA.value],
+                "comparison": "exact",
+            }
+        )
+        pending = self._get_pending(ref)
+        assert pending.authn_requirements is not None
+        assert pending.authn_requirements.require_mfa is True
+        assert pending.authn_requirements.minimum_assurance_level is None
+        assert pending.authn_requirements.comparison == "exact"
+
+    def test_digg_loa2_implies_mfa_and_al3_floor(self) -> None:
+        ref = self._get_ref(
+            authn_context={
+                "authn_context_class_ref": [EduidAuthnContextClass.DIGG_LOA2.value],
+                "comparison": "minimum",
+            }
+        )
+        pending = self._get_pending(ref)
+        assert pending.authn_requirements is not None
+        assert pending.authn_requirements.require_mfa is True
+        assert pending.authn_requirements.minimum_assurance_level == "al3"
+
+    def test_unknown_requested_context_fails_soft(self) -> None:
+        """An AuthnContextClassRef we don't recognise must not blow up request creation."""
+        ref = self._get_ref(
+            authn_context={"authn_context_class_ref": ["urn:some:unknown:context"], "comparison": "exact"}
+        )
+        pending = self._get_pending(ref)
+        assert pending.authn_requirements is not None
+        assert pending.authn_requirements.require_mfa is False
+        assert pending.authn_requirements.requested_authn_contexts == ["urn:some:unknown:context"]
+
+    def test_entity_category_al2(self) -> None:
+        sp_config = get_saml2_config(self.app.conf.pysaml2_config, name="AL2_SP_CONFIG")
+        saml2_client = Saml2Client(config=sp_config)
+        ref = self._get_ref(saml2_client=saml2_client)
+        pending = self._get_pending(ref)
+        assert pending.authn_requirements is not None
+        assert pending.authn_requirements.minimum_assurance_level == "al2"
+        assert pending.authn_requirements.require_mfa is False
+
+    def test_entity_category_al2_and_al3_highest_wins(self) -> None:
+        sp_config = get_saml2_config(self.app.conf.pysaml2_config, name="AL2_AL3_SP_CONFIG")
+        saml2_client = Saml2Client(config=sp_config)
+        ref = self._get_ref(saml2_client=saml2_client)
+        pending = self._get_pending(ref)
+        assert pending.authn_requirements is not None
+        assert pending.authn_requirements.minimum_assurance_level == "al3"
+        # SWAMID policy: AL3 implies MFA even though nothing requested it explicitly
+        assert pending.authn_requirements.require_mfa is True
+
+    def test_unknown_entity_category_fails_soft(self) -> None:
+        """An entity category we don't recognise must not blow up request creation."""
+        sp_config = get_saml2_config(self.app.conf.pysaml2_config, name="UNKNOWN_CATEGORY_SP_CONFIG")
+        saml2_client = Saml2Client(config=sp_config)
+        ref = self._get_ref(saml2_client=saml2_client)
+        pending = self._get_pending(ref)
+        assert pending.authn_requirements is not None
+        assert pending.authn_requirements.minimum_assurance_level is None
+
+    def test_malformed_sp_entity_attributes_fails_soft(self, mocker: MockerFixture) -> None:
+        """If reading the SP's entity attributes from metadata blows up, still get a pending
+        request with default (no) requirements - never a failed login.
+        """
+        mocker.patch(
+            "eduid.webapp.idp.idp_saml.IdP_SAMLRequest.sp_entity_attributes",
+            new_callable=mocker.PropertyMock,
+            side_effect=RuntimeError("simulated malformed metadata"),
+        )
+        ref = self._get_ref()
+        pending = self._get_pending(ref)
+        assert pending.authn_requirements is not None
+        assert pending.authn_requirements.minimum_assurance_level is None
+        assert pending.authn_requirements.require_mfa is False
+
+    def test_next_unaffected_by_authn_requirements(self, mocker: MockerFixture) -> None:
+        """/next behaviour for an ordinary login is unchanged by this feature."""
+        # pre-accept ToU for this test
+        self.add_test_user_tou()
+
+        mocker.patch.object(VCCSClient, "authenticate", return_value=True)
+        result = self._try_login()
         self._check_login_result(
             result=result,
             visit_order=[IdPAction.USERNAMEPWAUTH, IdPAction.FINISHED],

@@ -13,6 +13,19 @@ from eduid.webapp.signup.app import current_signup_app as current_app
 __author__ = "lundberg"
 
 
+class IdPAuthnRequirementsSchema(EduidSchema):
+    """Serialization of ``common.session.namespaces.IdPAuthnRequirements`` for the frontend.
+
+    Kept as a separate Marshmallow schema from the Pydantic model it mirrors - the model lives
+    in the session namespace (server-side, authoritative), this schema is purely presentational.
+    """
+
+    requested_authn_contexts = fields.List(fields.String(), required=True)
+    comparison = fields.String(required=False, dump_default=None)
+    require_mfa = fields.Boolean(required=True)
+    minimum_assurance_level = fields.String(required=False, dump_default=None)
+
+
 class SignupStatusResponse(FluxStandardAction):
     class StatusSchema(EduidSchema, CSRFResponseMixin):
         class State(EduidSchema):
@@ -80,6 +93,7 @@ class SignupStatusResponse(FluxStandardAction):
             user_created = fields.Boolean(required=True)
             idp_request_ref = fields.String(required=False, load_default=None)
             idp_service_info = fields.Nested(nested=ServiceInfo, required=False, load_default=None)
+            idp_authn_requirements = fields.Nested(nested=IdPAuthnRequirementsSchema, required=False, load_default=None)
 
         state = fields.Nested(State, required=True)
 
@@ -219,7 +233,6 @@ class WebauthnRegisterCompleteRequest(EduidSchema, CSRFRequestMixin):
 
 class ReturnToAuthRequest(EduidSchema, CSRFRequestMixin):
     ref = fields.String(required=True)
-    service_info = fields.Dict(required=True)
 
 
 class ExternalMfaRegisterRequest(EduidSchema, CSRFRequestMixin):

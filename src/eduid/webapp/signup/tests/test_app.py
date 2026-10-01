@@ -886,6 +886,7 @@ class SignupTests(BaseSignupTests):
             "user_created": False,
             "idp_request_ref": None,
             "idp_service_info": None,
+            "idp_authn_requirements": None,
         }, f"actual state is {state}"
 
     def test_get_state_initial_logged_in(self) -> None:
@@ -911,6 +912,7 @@ class SignupTests(BaseSignupTests):
             "user_created": False,
             "idp_request_ref": None,
             "idp_service_info": None,
+            "idp_authn_requirements": None,
         }, f"actual state is {state}"
 
     def test_accept_tou(self) -> None:
@@ -1496,6 +1498,7 @@ class SignupTests(BaseSignupTests):
             "user_created": False,
             "idp_request_ref": None,
             "idp_service_info": None,
+            "idp_authn_requirements": None,
         }, f"Actual state {normalised_data(state, exclude_keys=['expires_time_left', 'throttle_time_left', 'sent_at'])}"
 
     def test_complete_invite_new_user(self) -> None:
@@ -1621,8 +1624,16 @@ class SignupTests(BaseSignupTests):
         assert client1 is not client2
 
     def test_return_to_auth(self) -> None:
-        """Happy path: store a pending IdP request ref in session."""
-        from eduid.webapp.common.session.namespaces import IdP_SAMLPendingRequest, RequestRef
+        """Happy path: store a pending IdP request ref in session.
+
+        The requirements and service info are read server-side from the IdP's pending
+        request - the frontend only ever sends the ref.
+        """
+        from eduid.webapp.common.session.namespaces import (
+            IdP_SAMLPendingRequest,
+            IdPAuthnRequirements,
+            RequestRef,
+        )
 
         with self.session_cookie(self.browser, eppn=None) as client:
             with self.app.test_request_context():
@@ -1632,10 +1643,16 @@ class SignupTests(BaseSignupTests):
                         request="<fake-saml-request>",
                         binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST",
                         relay_state="https://sp.example.com",
+                        authn_requirements=IdPAuthnRequirements(
+                            requested_authn_contexts=["https://refeds.org/profile/mfa"],
+                            comparison="exact",
+                            require_mfa=True,
+                            minimum_assurance_level="al2",
+                        ),
+                        service_info={"display_name": {"sv": "eduID Sverige"}},
                     )
                     data = {
                         "ref": "test-ref",
-                        "service_info": {"display_name": {"sv": "eduID Sverige"}},
                         "csrf_token": sess.get_csrf_token(),
                     }
 
@@ -1649,6 +1666,41 @@ class SignupTests(BaseSignupTests):
         payload = self.get_response_payload(response)
         assert payload["state"]["idp_request_ref"] == "test-ref"
         assert payload["state"]["idp_service_info"] == {"display_name": {"sv": "eduID Sverige"}}
+        assert payload["state"]["idp_authn_requirements"] == {
+            "requested_authn_contexts": ["https://refeds.org/profile/mfa"],
+            "comparison": "exact",
+            "require_mfa": True,
+            "minimum_assurance_level": "al2",
+        }
+
+    def test_return_to_auth_no_requirements(self) -> None:
+        """A pending request with no authn_requirements/service_info yields None for both, not an error."""
+        from eduid.webapp.common.session.namespaces import IdP_SAMLPendingRequest, RequestRef
+
+        with self.session_cookie(self.browser, eppn=None) as client:
+            with self.app.test_request_context():
+                endpoint = url_for("signup.return_to_auth")
+                with client.session_transaction() as sess:
+                    sess.idp.pending_requests[RequestRef("test-ref")] = IdP_SAMLPendingRequest(
+                        request="<fake-saml-request>",
+                        binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST",
+                        relay_state="https://sp.example.com",
+                    )
+                    data = {
+                        "ref": "test-ref",
+                        "csrf_token": sess.get_csrf_token(),
+                    }
+
+            response = client.post(endpoint, data=json.dumps(data), content_type=self.content_type_json)
+
+        self._check_api_response(
+            response,
+            status=200,
+            type_="POST_SIGNUP_RETURN_TO_AUTH_SUCCESS",
+        )
+        payload = self.get_response_payload(response)
+        assert payload["state"]["idp_service_info"] is None
+        assert payload["state"]["idp_authn_requirements"] is None
 
     def test_return_to_auth_invalid_ref(self) -> None:
         """Call with a ref that doesn't exist in pending_requests."""
@@ -1658,7 +1710,6 @@ class SignupTests(BaseSignupTests):
                 with client.session_transaction() as sess:
                     data = {
                         "ref": "nonexistent-ref",
-                        "service_info": {"display_name": {"sv": "eduID Sverige"}},
                         "csrf_token": sess.get_csrf_token(),
                     }
 
@@ -1670,6 +1721,47 @@ class SignupTests(BaseSignupTests):
             type_="POST_SIGNUP_RETURN_TO_AUTH_FAIL",
             message=SignupMsg.idp_request_ref_not_found,
         )
+
+    def test_return_to_auth_non_saml_pending_request(self) -> None:
+        """A ref that points to a non-SAML pending request (e.g. other-device) is rejected."""
+        from eduid.webapp.common.session.namespaces import IdP_OtherDevicePendingRequest, RequestRef
+
+        with self.session_cookie(self.browser, eppn=None) as client:
+            with self.app.test_request_context():
+                endpoint = url_for("signup.return_to_auth")
+                with client.session_transaction() as sess:
+                    sess.idp.pending_requests[RequestRef("test-ref")] = IdP_OtherDevicePendingRequest()
+                    data = {
+                        "ref": "test-ref",
+                        "csrf_token": sess.get_csrf_token(),
+                    }
+
+            response = client.post(endpoint, data=json.dumps(data), content_type=self.content_type_json)
+
+        self._check_api_response(
+            response,
+            status=200,
+            type_="POST_SIGNUP_RETURN_TO_AUTH_FAIL",
+            message=SignupMsg.idp_request_ref_not_found,
+        )
+
+    def test_return_to_auth_rejects_service_info_from_frontend(self) -> None:
+        """The frontend can no longer supply service_info - it is now a server-only source."""
+        with self.session_cookie(self.browser, eppn=None) as client:
+            with self.app.test_request_context():
+                endpoint = url_for("signup.return_to_auth")
+                with client.session_transaction() as sess:
+                    data = {
+                        "ref": "test-ref",
+                        "service_info": {"display_name": {"sv": "eduID Sverige"}},
+                        "csrf_token": sess.get_csrf_token(),
+                    }
+
+            response = client.post(endpoint, data=json.dumps(data), content_type=self.content_type_json)
+
+        assert response.status_code == 200
+        assert response.json is not None
+        assert "service_info" in response.json["payload"]["error"]
 
     def test_return_to_auth_already_created(self) -> None:
         """Reject setting idp_request_ref when user already created."""
@@ -1687,7 +1779,6 @@ class SignupTests(BaseSignupTests):
                     )
                     data = {
                         "ref": "test-ref",
-                        "service_info": {"display_name": {"sv": "eduID Sverige"}},
                         "csrf_token": sess.get_csrf_token(),
                     }
 
@@ -1699,6 +1790,44 @@ class SignupTests(BaseSignupTests):
             type_="POST_SIGNUP_RETURN_TO_AUTH_FAIL",
             message=SignupMsg.user_already_exists,
         )
+
+    def test_create_user_not_blocked_by_mfa_requirement(self) -> None:
+        """Password-only signup succeeds even when the IdP request signalled MFA required (hint only)."""
+        from eduid.webapp.common.session.namespaces import IdPAuthnRequirements
+
+        given_name = "Testaren Test"
+        surname = "Test"
+        email = "test@example.com"
+        self._prepare_for_create_user(given_name=given_name, surname=surname, email=email)
+        with self.session_cookie(self.browser, eppn=None) as client:
+            with client.session_transaction() as sess:
+                sess.signup.idp_authn_requirements = IdPAuthnRequirements(
+                    requested_authn_contexts=["https://refeds.org/profile/mfa"],
+                    comparison="exact",
+                    require_mfa=True,
+                    minimum_assurance_level=None,
+                )
+        response = self._create_user(expect_success=True)
+        assert response.reached_state == SignupState.S6_CREATE_USER
+
+    def test_create_user_not_blocked_by_al_requirement(self) -> None:
+        """Email-only signup succeeds even when the IdP request signalled AL2+/AL3 required (hint only)."""
+        from eduid.webapp.common.session.namespaces import IdPAuthnRequirements
+
+        given_name = "Testaren Test"
+        surname = "Test"
+        email = "test@example.com"
+        self._prepare_for_create_user(given_name=given_name, surname=surname, email=email)
+        with self.session_cookie(self.browser, eppn=None) as client:
+            with client.session_transaction() as sess:
+                sess.signup.idp_authn_requirements = IdPAuthnRequirements(
+                    requested_authn_contexts=[],
+                    comparison=None,
+                    require_mfa=True,
+                    minimum_assurance_level="al3",
+                )
+        response = self._create_user(expect_success=True)
+        assert response.reached_state == SignupState.S6_CREATE_USER
 
     # --- external_mfa state tests ---
 

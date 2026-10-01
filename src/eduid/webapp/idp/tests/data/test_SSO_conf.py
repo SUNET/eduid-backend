@@ -25,6 +25,9 @@ idp_metadata_path = os.path.join(here, "idp_metadata.xml")
 swamid_sp_metadata_path = os.path.join(here, "swamid_sp_metadata.xml")
 coco_sp_metadata_path = os.path.join(here, "coco_sp_metadata.xml")
 esi_coco_sp_metadata_path = os.path.join(here, "esi_coco_sp_metadata.xml")
+al2_sp_metadata_path = os.path.join(here, "al2_sp_metadata.xml")
+al2_al3_sp_metadata_path = os.path.join(here, "al2_al3_sp_metadata.xml")
+unknown_category_sp_metadata_path = os.path.join(here, "unknown_category_sp_metadata.xml")
 
 # IdP config
 CONFIG = {
@@ -88,7 +91,16 @@ CONFIG = {
         },
     },
     "debug": True,
-    "metadata": {"local": [swamid_sp_metadata_path, coco_sp_metadata_path, esi_coco_sp_metadata_path]},
+    "metadata": {
+        "local": [
+            swamid_sp_metadata_path,
+            coco_sp_metadata_path,
+            esi_coco_sp_metadata_path,
+            al2_sp_metadata_path,
+            al2_al3_sp_metadata_path,
+            unknown_category_sp_metadata_path,
+        ]
+    },
     "key_file": key_path,
     "cert_file": cert_path,
     "xmlsec_binary": xmlsec_path,
@@ -155,3 +167,6 @@ SP_CONFIG = get_sp_config("https://sp.example.edu/saml2")
 UNKNOWN_SP_CONFIG = get_sp_config("https://unknown-sp.example.org/foo")
 COCO_SP_CONFIG = get_sp_config("https://coco.example.edu/saml2")
 ESI_COCO_SP_CONFIG = get_sp_config("https://esi-coco.example.edu/saml2")
+AL2_SP_CONFIG = get_sp_config("https://al2.example.edu/saml2")
+AL2_AL3_SP_CONFIG = get_sp_config("https://al2al3.example.edu/saml2")
+UNKNOWN_CATEGORY_SP_CONFIG = get_sp_config("https://unknowncat.example.edu/saml2")
