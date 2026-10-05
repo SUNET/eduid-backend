@@ -78,6 +78,8 @@ class LoginContext(ABC, BaseModel):
     @property
     def sp_minimum_assurance_level(self) -> str | None:
         """The minimum assurance level ("al2"/"al3") the service requires, if any."""
+        # Intentionally None here: LoginContextOtherDevice (device #2) has no SP metadata to read it from.
+        # Device #1 reports it when it finishes as a LoginContextSAML.
         return None
 
     @property
