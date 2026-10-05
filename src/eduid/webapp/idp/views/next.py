@@ -304,10 +304,14 @@ def _handle_proceed(
     if isinstance(ticket, LoginContextSAML):
         saml_params = sso.get_response_params(_next.authn_info, ticket, user)
         authn_options = _get_authn_options(ticket=ticket, sso_session=sso_session, eppn=required_user.eppn)
+        assurance = None
+        try:
+            # The assurance info is informational, make sure we never fail a login because of it
+            assurance = _get_assurance_info(ticket, _next.authn_info)
+        except Exception:
+            current_app.logger.exception("Producing assurance info failed")
         return create_saml_sp_response(
-            saml_params=saml_params,
-            authn_options=authn_options.to_dict(),
-            assurance=_get_assurance_info(ticket, _next.authn_info),
+            saml_params=saml_params, authn_options=authn_options.to_dict(), assurance=assurance
         )
     elif isinstance(ticket, LoginContextOtherDevice):
         if not ticket.is_other_device_2:
