@@ -22,6 +22,7 @@ from eduid.vccs.client import VCCSClient
 from eduid.webapp.common.api.testing import CSRFTestClient
 from eduid.webapp.common.authn.utils import get_saml2_config
 from eduid.webapp.common.session.namespaces import IdP_SAMLPendingRequest, LoginApplication, RequestRef
+from eduid.webapp.idp import assurance
 from eduid.webapp.idp.helpers import IdPAction, IdPMsg
 from eduid.webapp.idp.other_device.data import OtherDeviceState
 from eduid.webapp.idp.tests.test_api import (
@@ -824,6 +825,21 @@ class TestFinishedAssuranceInfo(IdPAPITests):
         self._set_user_verified(True)
         payload = self._login(mocker, "AL2_AL3_SP_CONFIG")
         assert payload["assurance"] == {"required_level": "al3", "current_level": "al2", "fulfilled": False}
+
+    def test_reported_level_matches_saml_assurance(self, mocker: MockerFixture) -> None:
+        """The level reported to the frontend is the one asserted as eduPersonAssurance to the SP."""
+        self._set_user_verified(True)
+        spy = mocker.spy(assurance, "response_authn")
+        payload = self._login(mocker, "AL2_SP_CONFIG")
+        authn_info = spy.spy_return
+        level = payload["assurance"]["current_level"]
+        assert level == authn_info.asserted_level.value
+        profiles = {
+            "al1": self.app.conf.swamid_assurance_profile_1,
+            "al2": self.app.conf.swamid_assurance_profile_2,
+            "al3": self.app.conf.swamid_assurance_profile_3,
+        }
+        assert authn_info.authn_attributes["eduPersonAssurance"] == [item.value for item in profiles[level]]
 
     def test_no_requirement_no_assurance(self, mocker: MockerFixture) -> None:
         self._set_user_verified(False)

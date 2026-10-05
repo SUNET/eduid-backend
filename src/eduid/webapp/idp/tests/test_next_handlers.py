@@ -8,7 +8,7 @@ from eduid.common.misc.timeutil import utc_now
 from eduid.common.models.saml2 import EduidAuthnContextClass
 from eduid.webapp.common.api.schemas.models import FluxResponseStatus
 from eduid.webapp.idp.assurance import AuthnState
-from eduid.webapp.idp.assurance_data import AuthnInfo
+from eduid.webapp.idp.assurance_data import AssuranceLevel, AuthnInfo
 from eduid.webapp.idp.helpers import IdPAction, IdPMsg
 from eduid.webapp.idp.login import NextResult as LoginNextResult
 from eduid.webapp.idp.login_context import LoginContext, LoginContextOtherDevice
@@ -188,7 +188,12 @@ class TestNextHandlers(IdPAPITests):
         sso_session = self.mocker.MagicMock(spec=SSOSession)
         sso_session.eppn = self.test_user.eppn
         authn_state = self.mocker.MagicMock(spec=AuthnState)
-        authn_info = AuthnInfo(class_ref=EduidAuthnContextClass.PASSWORD_PT, authn_attributes={}, instant=utc_now())
+        authn_info = AuthnInfo(
+            class_ref=EduidAuthnContextClass.PASSWORD_PT,
+            authn_attributes={},
+            instant=utc_now(),
+            asserted_level=AssuranceLevel.AL1,
+        )
         _next = LoginNextResult(message=IdPMsg.proceed, authn_info=authn_info, authn_state=authn_state)
         with self.app.test_request_context():
             result = _handle_proceed(ticket, cast(SSOSession, sso_session), _next, required_user)

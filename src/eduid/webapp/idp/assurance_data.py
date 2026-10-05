@@ -56,9 +56,10 @@ class AuthnInfo(BaseModel):
     class_ref: EduidAuthnContextClass
     authn_attributes: dict[str, Any]  # these are added to the user attributes
     instant: datetime
+    asserted_level: AssuranceLevel  # the SWAMID AL reflected in eduPersonAssurance (authn_attributes)
 
     def __str__(self) -> str:
         return (
             f"<{self.__class__.__name__}: accr={self.class_ref.name}, attributes={self.authn_attributes}, "
-            f"instant={self.instant.isoformat()}>"
+            f"instant={self.instant.isoformat()}, level={self.asserted_level.value}>"
         )

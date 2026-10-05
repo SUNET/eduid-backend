@@ -12,12 +12,7 @@ from eduid.userdb.idp import IdPUser
 from eduid.webapp.common.api.decorators import MarshalWith, UnmarshalWith
 from eduid.webapp.common.api.messages import FluxData, error_response, success_response
 from eduid.webapp.idp.app import current_idp_app as current_app
-from eduid.webapp.idp.assurance import (
-    AuthnState,
-    get_asserted_assurance_level,
-    is_assurance_level_fulfilled,
-)
-from eduid.webapp.idp.assurance_data import AuthnInfo
+from eduid.webapp.idp.assurance_data import AssuranceLevel, AuthnInfo
 from eduid.webapp.idp.decorators import require_ticket, uses_sso_session
 from eduid.webapp.idp.helpers import IdPAction, IdPMsg, create_saml_sp_response, lookup_user
 from eduid.webapp.idp.idp_saml import authn_context_class_not_supported, cancel_saml_request
@@ -312,7 +307,7 @@ def _handle_proceed(
         return create_saml_sp_response(
             saml_params=saml_params,
             authn_options=authn_options.to_dict(),
-            assurance=_get_assurance_info(ticket, _next.authn_state),
+            assurance=_get_assurance_info(ticket, _next.authn_info),
         )
     elif isinstance(ticket, LoginContextOtherDevice):
         if not ticket.is_other_device_2:
@@ -325,15 +320,15 @@ def _handle_proceed(
     return error_response(message=IdPMsg.general_failure)
 
 
-def _get_assurance_info(ticket: LoginContext, authn_state: AuthnState) -> dict[str, Any] | None:
+def _get_assurance_info(ticket: LoginContext, authn_info: AuthnInfo) -> dict[str, Any] | None:
     """Tell the frontend which assurance level the SP requires and what the user has, if the SP requires any."""
     required = ticket.sp_minimum_assurance_level
     if required is None:
         return None
     return {
         "required_level": required,
-        "current_level": get_asserted_assurance_level(authn_state).value,
-        "fulfilled": is_assurance_level_fulfilled(required, authn_state),
+        "current_level": authn_info.asserted_level.value,
+        "fulfilled": authn_info.asserted_level.satisfies(AssuranceLevel(required)),
     }
 
 

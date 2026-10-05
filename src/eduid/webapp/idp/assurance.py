@@ -322,11 +322,6 @@ def get_asserted_assurance_level(authn: AuthnState) -> AssuranceLevel:
     return AssuranceLevel.AL1
 
 
-def is_assurance_level_fulfilled(required: str, authn: AuthnState) -> bool:
-    """Does the asserted assurance level meet (or exceed) the required one?"""
-    return get_asserted_assurance_level(authn).satisfies(AssuranceLevel(required))
-
-
 def response_authn(authn: AuthnState, ticket: LoginContext, user: IdPUser) -> AuthnInfo:
     """
     Figure out what AuthnContext to assert in a SAML response,
@@ -359,7 +354,8 @@ def response_authn(authn: AuthnState, ticket: LoginContext, user: IdPUser) -> Au
         AssuranceLevel.AL2: current_app.conf.swamid_assurance_profile_2,
         AssuranceLevel.AL3: current_app.conf.swamid_assurance_profile_3,
     }
-    attributes["eduPersonAssurance"] = [item.value for item in _profiles[get_asserted_assurance_level(authn)]]
+    _level = get_asserted_assurance_level(authn)
+    attributes["eduPersonAssurance"] = [item.value for item in _profiles[_level]]
 
     logger.info(f"Assurances for {user} was evaluated to: {response_accr.name} with attributes {attributes}")
 
@@ -371,4 +367,4 @@ def response_authn(authn: AuthnState, ticket: LoginContext, user: IdPUser) -> Au
             _instant = this.ts
 
     logger.debug(f"Authn instant: {_instant.isoformat()}")
-    return AuthnInfo(class_ref=response_accr, authn_attributes=attributes, instant=_instant)
+    return AuthnInfo(class_ref=response_accr, authn_attributes=attributes, instant=_instant, asserted_level=_level)
