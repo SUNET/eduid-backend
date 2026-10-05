@@ -76,6 +76,11 @@ class LoginContext(ABC, BaseModel):
         raise NotImplementedError("Subclass must implement service_requested_eppn")
 
     @property
+    def sp_minimum_assurance_level(self) -> str | None:
+        """The minimum assurance level ("al2"/"al3") the service requires, if any."""
+        return None
+
+    @property
     def other_device_state_id(self) -> OtherDeviceId | None:
         """Get the state_id for the OtherDevice state, if the user wants to log in using another device."""
         raise NotImplementedError("Subclass must implement other_device_state_id")
@@ -204,6 +209,10 @@ class LoginContextSAML(LoginContext):
         if not _info:
             return None
         return ServiceInfo(display_name=_info.get("display_name", {}))
+
+    @property
+    def sp_minimum_assurance_level(self) -> str | None:
+        return self.saml_req.get_sp_minimum_assurance_level()
 
     @property
     def other_device_state_id(self) -> OtherDeviceId | None:

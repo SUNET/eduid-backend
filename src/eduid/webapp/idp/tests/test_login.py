@@ -15,6 +15,7 @@ from eduid.common.misc.timeutil import utc_now
 from eduid.common.models.saml2 import EduidAuthnContextClass
 from eduid.userdb import MailAddress
 from eduid.userdb.credentials import Password
+from eduid.userdb.identity import IdentityList, IdentityProofingMethod, NinIdentity
 from eduid.userdb.maccapi.userdb import ManagedAccount
 from eduid.userdb.mail import MailAddressList
 from eduid.vccs.client import VCCSClient
@@ -776,6 +777,76 @@ class TestSignupAuthnRequirements(IdPAPITests):
             visit_order=[IdPAction.USERNAMEPWAUTH, IdPAction.FINISHED],
             finish_result=FinishedResultAPI(payload={"message": IdPMsg.finished.value}),
         )
+
+
+class TestFinishedAssuranceInfo(IdPAPITests):
+    """The FINISHED response tells the frontend which AL the SP requires and what the user has."""
+
+    def _set_user_verified(self, verified: bool) -> None:
+        user = self.app.userdb.lookup_user(self.test_user.eppn)
+        assert user is not None
+        user.identities = IdentityList()
+        if verified:
+            user.identities.add(
+                NinIdentity(
+                    number="190001010101",
+                    created_by="unittest",
+                    created_ts=utc_now(),
+                    verified_by="unittest",
+                    is_verified=True,
+                    proofing_method=IdentityProofingMethod.TELEADRESS,
+                )
+            )
+        self.request_user_sync(user)
+
+    def _login(self, mocker: MockerFixture, sp_name: str | None, **kwargs: Any) -> dict[str, Any]:
+        self.add_test_user_tou()
+        mocker.patch.object(VCCSClient, "authenticate", return_value=True)
+        saml2_client = None
+        if sp_name is not None:
+            saml2_client = Saml2Client(config=get_saml2_config(self.app.conf.pysaml2_config, name=sp_name))
+        result = self._try_login(saml2_client=saml2_client, **kwargs)
+        assert result.visit_order[-1] == IdPAction.FINISHED, f"unexpected result: {result}"
+        assert result.finished_result is not None
+        return result.finished_result.payload
+
+    def test_al2_required_user_unverified(self, mocker: MockerFixture) -> None:
+        self._set_user_verified(False)
+        payload = self._login(mocker, "AL2_SP_CONFIG")
+        assert payload["assurance"] == {"required_level": "al2", "current_level": "al1", "fulfilled": False}
+
+    def test_al2_required_user_verified(self, mocker: MockerFixture) -> None:
+        self._set_user_verified(True)
+        payload = self._login(mocker, "AL2_SP_CONFIG")
+        assert payload["assurance"] == {"required_level": "al2", "current_level": "al2", "fulfilled": True}
+
+    def test_al3_required_password_only(self, mocker: MockerFixture) -> None:
+        self._set_user_verified(True)
+        payload = self._login(mocker, "AL2_AL3_SP_CONFIG")
+        assert payload["assurance"] == {"required_level": "al3", "current_level": "al2", "fulfilled": False}
+
+    def test_no_requirement_no_assurance(self, mocker: MockerFixture) -> None:
+        self._set_user_verified(False)
+        payload = self._login(mocker, None)
+        assert "assurance" not in payload
+
+    def test_digg_loa2_context_does_not_report_unfulfilled(self, mocker: MockerFixture) -> None:
+        """The DIGG AL3 floor only applies to signup hints, not to the exposed SP requirement."""
+        self._set_user_verified(True)
+        cred = self.add_test_user_external_mfa_cred()
+        payload = self._login(
+            mocker,
+            None,
+            mfa_credential=cred,
+            authn_context={
+                "authn_context_class_ref": [
+                    EduidAuthnContextClass.DIGG_LOA2.value,
+                    EduidAuthnContextClass.REFEDS_MFA.value,
+                ],
+                "comparison": "minimum",
+            },
+        )
+        assert "assurance" not in payload
 
 
 class TestIdPLoginAPIManagedAccounts(IdPAPITests):
