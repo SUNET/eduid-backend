@@ -845,6 +845,7 @@ class TestFinishedAssuranceInfo(IdPAPITests):
         self._set_user_verified(False)
         payload = self._login(mocker, None)
         assert "assurance" not in payload
+        assert "service_info" in payload  # key is always present in FINISHED payload
 
     def test_digg_loa2_context_does_not_report_unfulfilled(self, mocker: MockerFixture) -> None:
         """The DIGG AL3 floor only applies to signup hints, not to the exposed SP requirement."""

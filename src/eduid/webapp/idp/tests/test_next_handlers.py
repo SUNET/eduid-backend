@@ -50,9 +50,46 @@ class TestNextHandlers(IdPAPITests):
 
     def test_handle_unknown_device(self) -> None:
         with self.app.test_request_context():
-            result = _handle_unknown_device()
+            result = _handle_unknown_device(self._mock_ticket())
         assert result.status == FluxResponseStatus.OK
         assert result.payload["action"] == IdPAction.NEW_DEVICE.value
+        assert result.payload["service_info"] == {}
+
+    def test_handle_tou_required_has_service_info(self) -> None:
+        ticket = self._mock_ticket()
+        with self.app.test_request_context():
+            result = _handle_tou_required(ticket, None, RequiredUserResult(eppn=self.test_user.eppn))
+        assert result.status == FluxResponseStatus.OK
+        assert result.payload["action"] == IdPAction.TOU.value
+        assert result.payload["service_info"] == {}
+
+    def test_handle_security_key_required_has_service_info(self) -> None:
+        ticket = self._mock_ticket()
+        with self.app.test_request_context():
+            result = _handle_security_key_required(ticket, None, RequiredUserResult(eppn=self.test_user.eppn))
+        assert result.status == FluxResponseStatus.OK
+        assert result.payload["action"] == IdPAction.MFA.value
+        assert result.payload["service_info"] == {}
+
+    def test_handle_mfa_required_has_service_info(self) -> None:
+        ticket = self._mock_ticket()
+        _next = LoginNextResult(message=IdPMsg.mfa_required, authn_state=None)
+        with self.app.test_request_context():
+            result = _handle_mfa_required(ticket, None, _next, RequiredUserResult(eppn=self.test_user.eppn))
+        assert result.payload["service_info"] == {}
+
+    def test_handle_aborted_other_device_has_service_info(self) -> None:
+        ticket = self.mocker.MagicMock(spec=LoginContextOtherDevice)
+        ticket.service_info = None
+        state = self.mocker.MagicMock()
+        state.state = OtherDeviceState.NEW
+        ticket.other_device_req = state
+        self.mocker.patch.object(self.app.other_device_db, "abort", return_value=True)
+        with self.app.test_request_context():
+            result = _handle_aborted(cast(LoginContext, ticket), None)
+        assert result.status == FluxResponseStatus.OK
+        assert result.payload["action"] == IdPAction.FINISHED.value
+        assert result.payload["service_info"] == {}
 
     def test_handle_must_authenticate_no_eppn(self) -> None:
         """When eppn is None, should offer username+password auth."""

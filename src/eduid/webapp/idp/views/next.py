@@ -47,7 +47,7 @@ def next_view(ticket: LoginContext, sso_session: SSOSession | None) -> FluxData:
     # --- Handlers that do NOT need a resolved user ---
 
     if _next.message == IdPMsg.unknown_device:
-        return _handle_unknown_device()
+        return _handle_unknown_device(ticket)
 
     if _next.message == IdPMsg.aborted:
         return _handle_aborted(ticket, sso_session)
@@ -108,15 +108,21 @@ class RequiredUserResult:
 # ---------------------------------------------------------------------------
 
 
-def _handle_unknown_device() -> FluxData:
-    return success_response(payload={"action": IdPAction.NEW_DEVICE.value})
+def _handle_unknown_device(ticket: LoginContext) -> FluxData:
+    return success_response(
+        payload={"action": IdPAction.NEW_DEVICE.value, "service_info": _get_service_info(ticket)},
+    )
 
 
 def _handle_aborted(ticket: LoginContext, sso_session: SSOSession | None) -> FluxData:
     if isinstance(ticket, LoginContextSAML):
         saml_params = cancel_saml_request(ticket, current_app.conf)
         authn_options = _get_authn_options(ticket=ticket, sso_session=sso_session, eppn=None)
-        return create_saml_sp_response(saml_params=saml_params, authn_options=authn_options.to_dict())
+        return create_saml_sp_response(
+            saml_params=saml_params,
+            authn_options=authn_options.to_dict(),
+            service_info=_get_service_info(ticket),
+        )
     elif isinstance(ticket, LoginContextOtherDevice):
         state = ticket.other_device_req
         if state.state in [OtherDeviceState.NEW, OtherDeviceState.IN_PROGRESS, OtherDeviceState.AUTHENTICATED]:
@@ -133,6 +139,7 @@ def _handle_aborted(ticket: LoginContext, sso_session: SSOSession | None) -> Flu
                 payload={
                     "action": IdPAction.FINISHED.value,
                     "target": url_for("other_device.use_other_2", _external=True),
+                    "service_info": _get_service_info(ticket),
                 },
             )
         else:
@@ -146,7 +153,11 @@ def _handle_assurance_failure(ticket: LoginContext, sso_session: SSOSession | No
     if isinstance(ticket, LoginContextSAML):
         saml_params = authn_context_class_not_supported(ticket, current_app.conf)
         authn_options = _get_authn_options(ticket=ticket, sso_session=sso_session, eppn=None)
-        return create_saml_sp_response(saml_params=saml_params, authn_options=authn_options.to_dict())
+        return create_saml_sp_response(
+            saml_params=saml_params,
+            authn_options=authn_options.to_dict(),
+            service_info=_get_service_info(ticket),
+        )
     current_app.logger.error(f"Don't know how to send error response for request {ticket}")
     return error_response(message=IdPMsg.general_failure)
 
@@ -239,6 +250,7 @@ def _handle_security_key_required(
             "authn_options": _get_authn_options(
                 ticket=ticket, sso_session=sso_session, eppn=required_user.eppn
             ).to_dict(),
+            "service_info": _get_service_info(ticket),
         },
     )
 
@@ -254,6 +266,7 @@ def _handle_tou_required(
             "authn_options": _get_authn_options(
                 ticket=ticket, sso_session=sso_session, eppn=required_user.eppn
             ).to_dict(),
+            "service_info": _get_service_info(ticket),
         },
     )
 
@@ -311,7 +324,10 @@ def _handle_proceed(
         except Exception:
             current_app.logger.exception("Producing assurance info failed")
         return create_saml_sp_response(
-            saml_params=saml_params, authn_options=authn_options.to_dict(), assurance=assurance
+            saml_params=saml_params,
+            authn_options=authn_options.to_dict(),
+            assurance=assurance,
+            service_info=_get_service_info(ticket),
         )
     elif isinstance(ticket, LoginContextOtherDevice):
         if not ticket.is_other_device_2:

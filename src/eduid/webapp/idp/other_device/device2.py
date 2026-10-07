@@ -48,6 +48,7 @@ def device2_finish(ticket: LoginContextOtherDevice, sso_session: SSOSession, aut
         payload={
             "action": IdPAction.FINISHED.value,
             "target": url_for("other_device.use_other_2", _external=True),
+            "service_info": ticket.service_info.to_dict() if ticket.service_info is not None else {},
         },
     )
 

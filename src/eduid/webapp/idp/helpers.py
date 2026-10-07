@@ -76,7 +76,10 @@ def lookup_user(username: str, managed_account_allowed: bool = False) -> IdPUser
 
 
 def create_saml_sp_response(
-    saml_params: SAMLResponseParams, authn_options: dict[str, Any], assurance: dict[str, Any] | None = None
+    saml_params: SAMLResponseParams,
+    authn_options: dict[str, Any],
+    assurance: dict[str, Any] | None = None,
+    service_info: dict[str, Any] | None = None,
 ) -> FluxData:
     """
     Create a response to frontend that should be posted to the SP
@@ -90,6 +93,7 @@ def create_saml_sp_response(
         "parameters": saml_params.post_params,
         "missing_attributes": saml_params.missing_attributes,
         "authn_options": authn_options,
+        "service_info": service_info or {},
     }
     if assurance is not None:
         payload["assurance"] = assurance
