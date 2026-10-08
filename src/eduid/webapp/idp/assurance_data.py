@@ -31,15 +31,35 @@ class SwedenConnectAssurance(StrEnum):
     UNCERTIFIED_LOA3 = "http://id.swedenconnect.se/loa/1.0/uncertified-loa3"
 
 
+class AssuranceLevel(StrEnum):
+    """SWAMID assurance levels, in increasing order."""
+
+    AL1 = "al1"
+    AL2 = "al2"
+    AL3 = "al3"
+
+    @property
+    def rank(self) -> int:
+        return _AL_RANK[self]
+
+    def satisfies(self, required: "AssuranceLevel") -> bool:
+        """True if this level is at least as high as `required`."""
+        return self.rank >= required.rank
+
+
+_AL_RANK = {AssuranceLevel.AL1: 0, AssuranceLevel.AL2: 1, AssuranceLevel.AL3: 2}
+
+
 class AuthnInfo(BaseModel):
     """Information about what AuthnContextClass etc. to put in SAML Authn responses."""
 
     class_ref: EduidAuthnContextClass
     authn_attributes: dict[str, Any]  # these are added to the user attributes
     instant: datetime
+    asserted_level: AssuranceLevel  # the SWAMID AL reflected in eduPersonAssurance (authn_attributes)
 
     def __str__(self) -> str:
         return (
             f"<{self.__class__.__name__}: accr={self.class_ref.name}, attributes={self.authn_attributes}, "
-            f"instant={self.instant.isoformat()}>"
+            f"instant={self.instant.isoformat()}, level={self.asserted_level.value}>"
         )

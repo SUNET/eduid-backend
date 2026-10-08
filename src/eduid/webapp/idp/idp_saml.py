@@ -18,7 +18,7 @@ from werkzeug.exceptions import BadRequest
 
 from eduid.common.models.saml2 import EduidAuthnContextClass
 from eduid.webapp.common.session.namespaces import IdPAuthnRequirements
-from eduid.webapp.idp.assurance_data import AuthnInfo, SwamidAssurance
+from eduid.webapp.idp.assurance_data import AssuranceLevel, AuthnInfo, SwamidAssurance
 from eduid.webapp.idp.mischttp import HttpArgs
 from eduid.webapp.idp.settings.common import IdPConfig
 
@@ -39,10 +39,9 @@ _MFA_REQUIRED_CONTEXTS = frozenset(
 # Only one of these entity categories is expected to be registered for an SP. If more than
 # one is present, the highest wins - hence an explicit order, never string sorting.
 _ENTITY_CATEGORY_TO_AL = {
-    SwamidAssurance.SWAMID_AL2.value: "al2",
-    SwamidAssurance.SWAMID_AL3.value: "al3",
+    SwamidAssurance.SWAMID_AL2.value: AssuranceLevel.AL2,
+    SwamidAssurance.SWAMID_AL3.value: AssuranceLevel.AL3,
 }
-_AL_ORDER = {"al1": 0, "al2": 1, "al3": 2}
 _DIGG_LOA2 = EduidAuthnContextClass.DIGG_LOA2.value
 
 ResponseArgs = NewType("ResponseArgs", dict[str, Any])
@@ -193,6 +192,28 @@ class IdP_SAMLRequest:
             ]
         return []
 
+    def get_sp_minimum_assurance_level(self) -> str | None:
+        """The minimum assurance level ("al2"/"al3") the SP has requested through entity categories, if any.
+
+        Only the SP's entity categories are considered (no AuthnContext based floors). Never raises.
+        """
+        minimum: AssuranceLevel | None = None
+        try:
+            categories = self.sp_entity_attributes.get("http://macedir.org/entity-category", [])
+            if not isinstance(categories, list | tuple | set):
+                logger.warning(f"Unexpected entity-category attribute value, ignoring it: {categories!r}")
+                categories = []
+            for category in categories:
+                al = _ENTITY_CATEGORY_TO_AL.get(category)
+                if al is None:
+                    continue
+                if minimum is None or al.rank > minimum.rank:
+                    minimum = al
+        except Exception:
+            logger.exception("Failed deriving minimum assurance level from SP entity attributes")
+            return None
+        return minimum.value if minimum else None
+
     def get_signup_authn_requirements(self) -> IdPAuthnRequirements:
         """Derive UX hints for signup from this request's RequestedAuthnContext and the SP's metadata.
 
@@ -211,31 +232,19 @@ class IdP_SAMLRequest:
 
         require_mfa = any(ctx in _MFA_REQUIRED_CONTEXTS for ctx in requested_contexts)
 
-        minimum_assurance_level: str | None = None
-        try:
-            categories = self.sp_entity_attributes.get("http://macedir.org/entity-category", [])
-            if not isinstance(categories, list | tuple | set):
-                logger.warning(f"Unexpected entity-category attribute value, ignoring it: {categories!r}")
-                categories = []
-            for category in categories:
-                al = _ENTITY_CATEGORY_TO_AL.get(category)
-                if al is None:
-                    continue
-                if minimum_assurance_level is None or _AL_ORDER[al] > _AL_ORDER[minimum_assurance_level]:
-                    minimum_assurance_level = al
-        except Exception:
-            logger.exception("Failed deriving minimum assurance level from SP entity attributes")
-            minimum_assurance_level = None
+        minimum_assurance_level = self.get_sp_minimum_assurance_level()
 
         # SWAMID policy: AL3 implies MFA, regardless of what was requested in the AuthnRequest.
-        if minimum_assurance_level == "al3":
+        if minimum_assurance_level == AssuranceLevel.AL3.value:
             require_mfa = True
 
         # DIGG LOA2 implies an AL3 floor per _check_digg_loa2 (swamid_al3_used required); require_mfa
         # is already True via _MFA_REQUIRED_CONTEXTS above.
         if _DIGG_LOA2 in requested_contexts:
-            if minimum_assurance_level is None or _AL_ORDER[minimum_assurance_level] < _AL_ORDER["al3"]:
-                minimum_assurance_level = "al3"
+            if minimum_assurance_level is None or not AssuranceLevel(minimum_assurance_level).satisfies(
+                AssuranceLevel.AL3
+            ):
+                minimum_assurance_level = AssuranceLevel.AL3.value
 
         return IdPAuthnRequirements(
             requested_authn_contexts=requested_contexts,
