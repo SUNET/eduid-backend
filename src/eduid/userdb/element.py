@@ -51,7 +51,7 @@ from abc import ABC
 from collections.abc import Mapping
 from datetime import datetime
 from enum import Enum
-from typing import Any, NewType, Self, cast
+from typing import Any, NewType, Self
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
@@ -387,7 +387,7 @@ class VerifiedElementList[ListElement: Element](ElementList[ListElement], ABC):
         Get all the verified elements in the ElementList.
 
         """
-        return cast(list[ListElement], [e for e in self.elements if isinstance(e, VerifiedElement) and e.is_verified])
+        return [e for e in self.elements if isinstance(e, VerifiedElement) and e.is_verified]
 
 
 class PrimaryElementList[ListElement: Element](VerifiedElementList[ListElement], ABC):
