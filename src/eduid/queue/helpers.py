@@ -1,6 +1,6 @@
 import gettext
 import logging
-from collections.abc import Iterator
+from collections.abc import Generator
 from contextlib import contextmanager
 from pathlib import Path
 from typing import Protocol, Self, cast
@@ -51,7 +51,7 @@ class Jinja2Env:
         logger.info("Jinja2 environment loaded")
 
     @contextmanager
-    def select_language(self, lang: str) -> Iterator[Self]:
+    def select_language(self, lang: str) -> Generator[Self]:
         """
         Usage:
         with Jinja2Env().select_language(lang) as env:

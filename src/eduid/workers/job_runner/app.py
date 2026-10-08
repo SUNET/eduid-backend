@@ -1,4 +1,4 @@
-from collections.abc import AsyncIterator, Callable
+from collections.abc import AsyncGenerator, Callable
 from contextlib import asynccontextmanager
 from typing import Any
 
@@ -28,7 +28,7 @@ class JobRunner(FastAPI):
 
 
 @asynccontextmanager
-async def lifespan(app: JobRunner) -> AsyncIterator[None]:
+async def lifespan(app: JobRunner) -> AsyncGenerator[None]:
     app.context.logger.info("Starting scheduler...")
     app.scheduler.start()
     yield
