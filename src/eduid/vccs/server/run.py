@@ -1,6 +1,6 @@
 import sys
 from asyncio import Lock
-from collections.abc import AsyncIterator, Callable, Mapping
+from collections.abc import AsyncGenerator, Callable, Mapping
 from contextlib import asynccontextmanager
 from typing import Any
 
@@ -55,7 +55,7 @@ class VCCS_API(FastAPI):
 
 
 @asynccontextmanager
-async def lifespan(app: VCCS_API) -> AsyncIterator[None]:
+async def lifespan(app: VCCS_API) -> AsyncGenerator[None]:
     """
     Uvicorn mucks with the logging config on startup, particularly the access log. Rein it in.
     """
