@@ -3,8 +3,9 @@ from typing import Any
 
 from authlib.common.errors import AuthlibBaseError
 from authlib.integrations.flask_client import OAuth
+from authlib.oidc.core import CodeIDToken
 from flask import Flask
-from joserfc.errors import JoseError
+from joserfc.errors import InvalidClaimError, JoseError
 from requests.exceptions import RequestException
 
 from eduid.common.clients.oidc_client.base import OidcRpClientConfig, OidcRpError, OidcStateCache
@@ -20,11 +21,30 @@ __author__ = "lundberg"
 _CAUGHT_EXCEPTIONS = (AuthlibBaseError, JoseError, RequestException, KeyError)
 
 
+class StringAmrCodeIDToken(CodeIDToken):
+    """
+    ID token claims validation accepting an "amr" claim sent as a bare string.
+
+    The OIDC specification requires "amr" to be an array of case sensitive strings, and authlib
+    rejects anything else. ORCID sends a single string ("pwd", or "mfa" when the user has
+    two-factor authentication enabled), see
+    https://github.com/ORCID/ORCID-Source/blob/main/orcid-web/ORCID_AUTH_WITH_OPENID_CONNECT.md
+    and https://github.com/authlib/authlib/issues/725.
+    """
+
+    def validate_amr(self) -> None:
+        amr = self.get("amr")
+        if amr and not isinstance(amr, list | str):
+            raise InvalidClaimError("amr")
+
+
 class AuthlibOidcRpClient:
     """OidcRpClient implementation backed by authlib's Flask OAuth client."""
 
-    def __init__(self, client: Any) -> None:  # noqa: ANN401
+    def __init__(self, client: Any, id_token_claims_cls: type[CodeIDToken] | None = None) -> None:  # noqa: ANN401
         self._client = client
+        # None means "use authlib's own ID token claims class", see fetch_token
+        self._id_token_claims_cls = id_token_claims_cls
 
     def authorization_url(self, redirect_uri: str, extra_params: Mapping[str, str] | None = None) -> str:
         try:
@@ -36,7 +56,8 @@ class AuthlibOidcRpClient:
 
     def fetch_token(self) -> dict[str, Any]:
         try:
-            token_response: dict[str, Any] = self._client.authorize_access_token()
+            # authlib falls back to its own CodeIDToken when claims_cls is None
+            token_response: dict[str, Any] = self._client.authorize_access_token(claims_cls=self._id_token_claims_cls)
         except _CAUGHT_EXCEPTIONS as err:
             raise OidcRpError(str(err)) from err
         return token_response
@@ -92,4 +113,5 @@ def init_oidc_rp_client(
         server_metadata_url=f"{str(config.issuer).rstrip('/')}/.well-known/openid-configuration",
     )
     client = getattr(oauth, name)
-    return AuthlibOidcRpClient(client)
+    id_token_claims_cls: type[CodeIDToken] | None = StringAmrCodeIDToken if config.allow_string_amr else None
+    return AuthlibOidcRpClient(client, id_token_claims_cls=id_token_claims_cls)
