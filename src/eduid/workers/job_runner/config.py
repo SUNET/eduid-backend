@@ -4,7 +4,6 @@ from typing import Any, NewType
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
-from eduid.common.clients.gnap_client.base import GNAPClientAuthData
 from eduid.common.config.base import AmConfigMixin, LoggingConfigMixin, MsgConfigMixin, RootConfig, StatsConfigMixin
 from eduid.common.rpc.msg_relay import DeregisteredCauseCode
 
@@ -66,7 +65,6 @@ class JobRunnerConfig(RootConfig, LoggingConfigMixin, StatsConfigMixin, MsgConfi
     status_cache_seconds: int = 10
     jobs: JobsConfig | None = None
     skv: SkvConfig = Field(default_factory=SkvConfig)
-    gnap_auth_data: GNAPClientAuthData | None = None
     dry_run: bool = False
 
     @field_validator("application_root")

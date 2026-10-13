@@ -779,7 +779,7 @@ cssselect2==0.9.0 \
 deepdiff==9.1.0 \
     --hash=sha256:07e9e366fab4297755153c4eab795ad4ef3cbd0d51660e847f5751c6bd727687 \
     --hash=sha256:80c0460e1993b04f6f0ca79abf25548b129fd218478c4ebb08f80560f5d10610
-    # via eduid-backend (../pyproject.toml)
+    # via eduid-backend (/workspaces/eduid-backend/pyproject.toml:test)
 defusedxml==0.7.1 \
     --hash=sha256:1bb3032db185915b62d7c6209c5a8792be6a32ab2fedacc84e01b52c51aa3e69 \
     --hash=sha256:a352e7e428770286cc899e2542b6cdaedb2b4953ff269a210103ec58f6198a61
