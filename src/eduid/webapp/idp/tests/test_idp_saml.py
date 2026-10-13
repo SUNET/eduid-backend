@@ -30,6 +30,9 @@ class _FakeSamlReq:
         self.raise_on_contexts = raise_on_contexts
         self.raise_on_attributes = raise_on_attributes
 
+    def get_sp_minimum_assurance_level(self) -> str | None:
+        return IdP_SAMLRequest.get_sp_minimum_assurance_level(cast(IdP_SAMLRequest, self))
+
     def get_requested_authn_contexts(self) -> list[str]:
         if self.raise_on_contexts:
             raise RuntimeError("boom")
@@ -171,3 +174,29 @@ class TestGetSignupAuthnRequirements:
         assert req.requested_authn_contexts == []
         assert req.require_mfa is False
         assert req.comparison is None
+
+
+def _get_sp_al(fake: _FakeSamlReq) -> str | None:
+    return IdP_SAMLRequest.get_sp_minimum_assurance_level(cast(IdP_SAMLRequest, fake))
+
+
+class TestGetSpMinimumAssuranceLevel:
+    def test_no_categories(self) -> None:
+        assert _get_sp_al(_FakeSamlReq()) is None
+
+    def test_al2(self) -> None:
+        assert _get_sp_al(_FakeSamlReq(entity_categories=["http://www.swamid.se/policy/assurance/al2"])) == "al2"
+
+    def test_highest_wins(self) -> None:
+        cats = ["http://www.swamid.se/policy/assurance/al3", "http://www.swamid.se/policy/assurance/al2"]
+        assert _get_sp_al(_FakeSamlReq(entity_categories=cats)) == "al3"
+
+    def test_unknown_category(self) -> None:
+        assert _get_sp_al(_FakeSamlReq(entity_categories=["https://example.org/unknown"])) is None
+
+    def test_digg_loa2_floor_not_applied(self) -> None:
+        fake = _FakeSamlReq(requested_contexts=["http://id.elegnamnden.se/loa/1.0/loa2"])
+        assert _get_sp_al(fake) is None
+
+    def test_attributes_error_returns_none(self) -> None:
+        assert _get_sp_al(_FakeSamlReq(raise_on_attributes=True)) is None

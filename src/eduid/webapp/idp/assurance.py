@@ -12,7 +12,7 @@ from eduid.userdb.credentials.external import (
 from eduid.userdb.element import ElementKey
 from eduid.userdb.idp import IdPUser
 from eduid.webapp.idp.app import current_idp_app as current_app
-from eduid.webapp.idp.assurance_data import AuthnInfo
+from eduid.webapp.idp.assurance_data import AssuranceLevel, AuthnInfo
 from eduid.webapp.idp.idp_authn import UsedCredential, UsedWhere
 from eduid.webapp.idp.login_context import LoginContext
 from eduid.webapp.idp.sso_session import SSOSession
@@ -315,6 +315,13 @@ def get_response_accr(authn: AuthnState, request_accr: EduidAuthnContextClass) -
             raise AuthnContextNotSupported()
 
 
+def get_asserted_assurance_level(authn: AuthnState) -> AssuranceLevel:
+    """The SWAMID assurance level that is asserted (as eduPersonAssurance) for this authentication."""
+    if authn.is_swamid_al2:
+        return AssuranceLevel.AL3 if authn.swamid_al3_used else AssuranceLevel.AL2
+    return AssuranceLevel.AL1
+
+
 def response_authn(authn: AuthnState, ticket: LoginContext, user: IdPUser) -> AuthnInfo:
     """
     Figure out what AuthnContext to assert in a SAML response,
@@ -342,13 +349,13 @@ def response_authn(authn: AuthnState, ticket: LoginContext, user: IdPUser) -> Au
     if not response_accr:
         raise last_exception
 
-    if authn.is_swamid_al2:
-        if authn.swamid_al3_used:
-            attributes["eduPersonAssurance"] = [item.value for item in current_app.conf.swamid_assurance_profile_3]
-        else:
-            attributes["eduPersonAssurance"] = [item.value for item in current_app.conf.swamid_assurance_profile_2]
-    else:
-        attributes["eduPersonAssurance"] = [item.value for item in current_app.conf.swamid_assurance_profile_1]
+    _profiles = {
+        AssuranceLevel.AL1: current_app.conf.swamid_assurance_profile_1,
+        AssuranceLevel.AL2: current_app.conf.swamid_assurance_profile_2,
+        AssuranceLevel.AL3: current_app.conf.swamid_assurance_profile_3,
+    }
+    _level = get_asserted_assurance_level(authn)
+    attributes["eduPersonAssurance"] = [item.value for item in _profiles[_level]]
 
     logger.info(f"Assurances for {user} was evaluated to: {response_accr.name} with attributes {attributes}")
 
@@ -360,4 +367,4 @@ def response_authn(authn: AuthnState, ticket: LoginContext, user: IdPUser) -> Au
             _instant = this.ts
 
     logger.debug(f"Authn instant: {_instant.isoformat()}")
-    return AuthnInfo(class_ref=response_accr, authn_attributes=attributes, instant=_instant)
+    return AuthnInfo(class_ref=response_accr, authn_attributes=attributes, instant=_instant, asserted_level=_level)

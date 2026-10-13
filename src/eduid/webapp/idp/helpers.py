@@ -75,20 +75,26 @@ def lookup_user(username: str, managed_account_allowed: bool = False) -> IdPUser
         return current_app.userdb.lookup_user(username)
 
 
-def create_saml_sp_response(saml_params: SAMLResponseParams, authn_options: dict[str, Any]) -> FluxData:
+def create_saml_sp_response(
+    saml_params: SAMLResponseParams,
+    authn_options: dict[str, Any],
+    assurance: dict[str, Any] | None = None,
+    service_info: dict[str, Any] | None = None,
+) -> FluxData:
     """
     Create a response to frontend that should be posted to the SP
     """
     if saml_params.binding != BINDING_HTTP_POST:
         logger.error("SAML response does not have binding HTTP_POST")
         return error_response(message=IdPMsg.general_failure)
-    return success_response(
-        message=IdPMsg.finished,
-        payload={
-            "action": IdPAction.FINISHED.value,
-            "target": saml_params.url,
-            "parameters": saml_params.post_params,
-            "missing_attributes": saml_params.missing_attributes,
-            "authn_options": authn_options,
-        },
-    )
+    payload: dict[str, Any] = {
+        "action": IdPAction.FINISHED.value,
+        "target": saml_params.url,
+        "parameters": saml_params.post_params,
+        "missing_attributes": saml_params.missing_attributes,
+        "authn_options": authn_options,
+        "service_info": service_info or {},
+    }
+    if assurance is not None:
+        payload["assurance"] = assurance
+    return success_response(message=IdPMsg.finished, payload=payload)
