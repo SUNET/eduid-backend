@@ -8,11 +8,9 @@ from datetime import datetime
 from typing import Any
 from uuid import UUID
 
-import bson
 from fido_mds.models.fido_mds import MetadataEntry as FidoMetadataEntry
 from pydantic import ConfigDict, Field
 
-from eduid.common.models.amapi_user import Reason, Source
 from eduid.common.rpc.msg_relay import DeregistrationInformation, FullPostalAddress
 from eduid.userdb.element import Element
 from eduid.userdb.identity import IdentityProofingMethod
@@ -678,14 +676,6 @@ class FidoMetadataLogElement(LogElement):
     authenticator_id: UUID | str
     last_status_change: datetime
     metadata_entry: FidoMetadataEntry
-
-
-class UserChangeLogElement(LogElement):
-    eppn: str = Field(alias="eduPersonPrincipalName")
-    diff: str
-    log_element_id: bson.ObjectId | None = Field(alias="_id", default=None)
-    reason: Reason
-    source: Source
 
 
 class ManagedAccountLogElement(LogElement):
