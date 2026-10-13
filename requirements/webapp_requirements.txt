@@ -440,7 +440,6 @@ cryptography==50.0.1 \
     #   fido2
     #   joserfc
     #   jwcrypto
-    #   oic
     #   pyhanko
     #   pyhanko-certvalidator
     #   pyopenssl
@@ -454,7 +453,6 @@ defusedxml==0.7.1 \
     --hash=sha256:1bb3032db185915b62d7c6209c5a8792be6a32ab2fedacc84e01b52c51aa3e69 \
     --hash=sha256:a352e7e428770286cc899e2542b6cdaedb2b4953ff269a210103ec58f6198a61
     # via
-    #   oic
     #   pysaml2
     #   pyxmlsecurity
 dnspython==2.8.0 \
@@ -463,10 +461,6 @@ dnspython==2.8.0 \
     # via
     #   email-validator
     #   pymongo
-ecdsa==0.19.2 \
-    --hash=sha256:62635b0ac1ca2e027f82122b5b81cb706edc38cd91c63dda28e4f3455a2bf930 \
-    --hash=sha256:840f5dc5e375c68f36c1a7a5b9caad28f95daa65185c9253c0c08dd952bb7399
-    # via python-jose
 elementpath==4.8.0 \
     --hash=sha256:5393191f84969bcf8033b05ec4593ef940e58622ea13cefe60ecefbbf09d58d9 \
     --hash=sha256:5822a2560d99e2633d95f78694c7ff9646adaa187db520da200a8e9479dc46ae
@@ -506,10 +500,6 @@ flask-mail==0.10.0 \
     --hash=sha256:44083e7b02bbcce792209c06252f8569dd5a325a7aaa76afe7330422bd97881d \
     --hash=sha256:a451e490931bb3441d9b11ebab6812a16bfa81855792ae1bf9c1e1e22c4e51e7
     # via eduid-backend (../pyproject.toml)
-future==1.0.0 \
-    --hash=sha256:929292d34f5872e70396626ef385ec22355a1fae8ad29e1a734c3e43f9fbc216 \
-    --hash=sha256:bd2968309307861edae1458a4f8a4f3598c03be43b97521076aebf5d94c07b05
-    # via pyjwkest
 gunicorn==26.2.0 \
     --hash=sha256:62b864895d9ebff0b2f9867ba04fe811c93121596540830c9c916d0769668447 \
     --hash=sha256:bd249d0b3f7972f7432f0a6b6ff3b3ee2d129f70cd1ff6c09a9dd9e29a2b88e3
@@ -765,10 +755,6 @@ lxml==6.1.2 \
     #   pyhanko
     #   pyxmlsecurity
     #   svglib
-mako==1.4.1 \
-    --hash=sha256:a359d9a94a541213958742b2698d0a7757bb83551767bc468a74b9905aba9617 \
-    --hash=sha256:d7904710b662996425a21627710c4777c45053146942cf8a7aebf757c92b8c27
-    # via oic
 markupsafe==3.0.3 \
     --hash=sha256:0303439a41979d9e74d18ff5e2dd8c43ed6c6001fd40e5bf2e43f7bd9bbc523f \
     --hash=sha256:068f375c472b3e7acbe2d5318dea141359e6900156b5b2ba06a30b169086b91a \
@@ -862,7 +848,6 @@ markupsafe==3.0.3 \
     # via
     #   flask
     #   jinja2
-    #   mako
     #   sentry-sdk
     #   werkzeug
 marshmallow==4.3.1 \
@@ -891,10 +876,6 @@ mypy-extensions==1.1.0 \
 neo4j==6.3.0 \
     --hash=sha256:d0d3986c37ad174a549a39dfec6d22a00a061ebcb0267f1a5caf856589838e73 \
     --hash=sha256:d243f9c8adf882ae7205a76eb2419b0a632d5f3c89383d4a0044d737a2223991
-    # via eduid-backend (../pyproject.toml)
-oic==1.7.0 \
-    --hash=sha256:b74bd06c7de1ab4f8e798f714062e6a68f68ad9cdbed1f1c30a7fb887602f321 \
-    --hash=sha256:e51705d0c14c97e9ca594374bfb54269a72c9b489e0e979598344c0189bfcb64
     # via eduid-backend (../pyproject.toml)
 oscrypto==1.3.0 \
     --hash=sha256:2b2f1d2d42ec152ca90ccb5682f3e051fb55986e1b170ebde472b133713e7085 \
@@ -1015,12 +996,6 @@ pwgen==0.8.2.post0 \
 py-bcrypt==0.4 \
     --hash=sha256:5fa13bce551468350d66c4883694850570f3da28d6866bb638ba44fe5eabda78
     # via eduid-backend (../pyproject.toml)
-pyasn1==0.6.4 \
-    --hash=sha256:9c447d8431c947fe4c8febc4ed9e760bc29011a5b01e5c74b67025bd9fb8ce81 \
-    --hash=sha256:deda9277cfd454080ec40b207fb6df82206a3a2688735233cdcd8d3d565f088b
-    # via
-    #   python-jose
-    #   rsa
 pyconfig==3.3.0 \
     --hash=sha256:197e5eb6e3bdb6dbd9fd944df7e0330af6b166cb558bd9ca41930f4495110e7e \
     --hash=sha256:f056047f832defb4a828004298ec67b5d66303537c194c14a600f791047559e1
@@ -1029,58 +1004,12 @@ pycparser==3.0 \
     --hash=sha256:600f49d217304a5902ac3c37e1281c9fe94e4d0489de643a9504c5cdfdfc6b29 \
     --hash=sha256:b727414169a36b7d524c1c3e31839a521725078d7b2ff038656844266160a992
     # via cffi
-pycryptodomex==3.23.0 \
-    --hash=sha256:02d87b80778c171445d67e23d1caef279bf4b25c3597050ccd2e13970b57fd51 \
-    --hash=sha256:06698f957fe1ab229a99ba2defeeae1c09af185baa909a31a5d1f9d42b1aaed6 \
-    --hash=sha256:14c37aaece158d0ace436f76a7bb19093db3b4deade9797abfc39ec6cd6cc2fe \
-    --hash=sha256:189afbc87f0b9f158386bf051f720e20fa6145975f1e76369303d0f31d1a8d7c \
-    --hash=sha256:1c3a65ad441746b250d781910d26b7ed0a396733c6f2dbc3327bd7051ec8a541 \
-    --hash=sha256:1c6d919fc8429e5cb228ba8c0d4d03d202a560b421c14867a65f6042990adc8e \
-    --hash=sha256:267a3038f87a8565bd834317dbf053a02055915acf353bf42ededb9edaf72010 \
-    --hash=sha256:27e13c80ac9a0a1d050ef0a7e0a18cc04c8850101ec891815b6c5a0375e8a245 \
-    --hash=sha256:43c446e2ba8df8889e0e16f02211c25b4934898384c1ec1ec04d7889c0333587 \
-    --hash=sha256:47f6d318fe864d02d5e59a20a18834819596c4ed1d3c917801b22b92b3ffa648 \
-    --hash=sha256:4e79f1aaff5a3a374e92eb462fa9e598585452135012e2945f96874ca6eeb1ff \
-    --hash=sha256:4f2596e643d4365e14d0879dc5aafe6355616c61c2176009270f3048f6d9a61f \
-    --hash=sha256:52e5ca58c3a0b0bd5e100a9fbc8015059b05cffc6c66ce9d98b4b45e023443b9 \
-    --hash=sha256:55ccbe27f049743a4caf4f4221b166560d3438d0b1e5ab929e07ae1702a4d6fd \
-    --hash=sha256:58b851b9effd0d072d4ca2e4542bf2a4abcf13c82a29fd2c93ce27ee2a2e9462 \
-    --hash=sha256:6b8962204c47464d5c1c4038abeadd4514a133b28748bcd9fa5b6d62e3cec6fa \
-    --hash=sha256:6bbcb1dd0f646484939e142462d9e532482bc74475cecf9c4903d4e1cd21f003 \
-    --hash=sha256:71909758f010c82bc99b0abf4ea12012c98962fbf0583c2164f8b84533c2e4da \
-    --hash=sha256:7b37e08e3871efe2187bc1fd9320cc81d87caf19816c648f24443483005ff886 \
-    --hash=sha256:7de1e40a41a5d7f1ac42b6569b10bcdded34339950945948529067d8426d2785 \
-    --hash=sha256:8a4fcd42ccb04c31268d1efeecfccfd1249612b4de6374205376b8f280321744 \
-    --hash=sha256:91979028227543010d7b2ba2471cf1d1e398b3f183cb105ac584df0c36dac28d \
-    --hash=sha256:a33986a0066860f7fcf7c7bd2bc804fa90e434183645595ae7b33d01f3c91ed8 \
-    --hash=sha256:a9d446e844f08299236780f2efa9898c818fe7e02f17263866b8550c7d5fb328 \
-    --hash=sha256:add243d204e125f189819db65eed55e6b4713f70a7e9576c043178656529cec7 \
-    --hash=sha256:b2c2537863eccef2d41061e82a881dcabb04944c5c06c5aa7110b577cc487545 \
-    --hash=sha256:bc65bdd9fc8de7a35a74cab1c898cab391a4add33a8fe740bda00f5976ca4708 \
-    --hash=sha256:bdc69d0d3d989a1029df0eed67cc5e8e5d968f3724f4519bd03e0ec68df7543c \
-    --hash=sha256:bffc92138d75664b6d543984db7893a628559b9e78658563b0395e2a5fb47ed9 \
-    --hash=sha256:c25e30a20e1b426e1f0fa00131c516f16e474204eee1139d1603e132acffc314 \
-    --hash=sha256:c7947ab8d589e3178da3d7cdeabe14f841b391e17046954f2fbcd941705762b5 \
-    --hash=sha256:c84b239a1f4ec62e9c789aafe0543f0594f0acd90c8d9e15bcece3efe55eca66 \
-    --hash=sha256:c885da45e70139464f082018ac527fdaad26f1657a99ee13eecdce0f0ca24ab4 \
-    --hash=sha256:d9825410197a97685d6a1fa2a86196430b01877d64458a20e95d4fd00d739a08 \
-    --hash=sha256:da4fa650cef02db88c2b98acc5434461e027dce0ae8c22dd5a69013eaf510006 \
-    --hash=sha256:df027262368334552db2c0ce39706b3fb32022d1dce34673d0f9422df004b96a \
-    --hash=sha256:ebfff755c360d674306e5891c564a274a47953562b42fb74a5c25b8fc1fb1cb5 \
-    --hash=sha256:eca54f4bb349d45afc17e3011ed4264ef1cc9e266699874cdd1349c504e64798 \
-    --hash=sha256:f489c4765093fb60e2edafdf223397bc716491b2b69fe74367b70d6999257a5c \
-    --hash=sha256:fdfac7cda115bca3a5abb2f9e43bc2fb66c2b65ab074913643803ca7083a79ea \
-    --hash=sha256:febec69c0291efd056c65691b6d9a339f8b4bc43c6635b8699471248fe897fea
-    # via
-    #   oic
-    #   pyjwkest
 pydantic==2.13.5 \
     --hash=sha256:346a034f080da3755d8e9cb5e00e8b07de1d39e4f6e2c87d8ab7cafa0b269a73 \
     --hash=sha256:51a9c5f7b2f8e636f04c6cada605d9b6a3bf1348fdf945a3d8869b19bba0ee08
     # via
     #   eduid-backend (../pyproject.toml)
     #   fido-mds
-    #   pydantic-settings
     #   pysaml2
 pydantic-core==2.46.5 \
     --hash=sha256:013d6f3483d81e02e7c328831808f336c8596ee33b4bd4026b9ffb1e960b8942 \
@@ -1204,10 +1133,6 @@ pydantic-core==2.46.5 \
     --hash=sha256:fc8515076c11f3cfdf4fb142dcca0fe384b1230a3b5415458ac84f3e0903ec13 \
     --hash=sha256:ff218293c9c806138dca139765e3b067621be52bcd93cdc14c7711be7ddc90a9
     # via pydantic
-pydantic-settings==2.15.0 \
-    --hash=sha256:0ba092c291c94baceb5eff768aa0d56400a457585bc0175925a5a5510303da42 \
-    --hash=sha256:694b793e84f766ba76a90ebdefc01d0a9a045dab0382bee70393da93712ad117
-    # via oic
 pyhanko==0.36.2 \
     --hash=sha256:1387ad12de8ed488f9d0303ae2a206e21d870b42629af0d0e1d6e882cc878fde \
     --hash=sha256:55475e93422eaba7af17866184036a1624d438fd11154472f57df541a2540678
@@ -1218,10 +1143,6 @@ pyhanko-certvalidator==0.31.4 \
     # via
     #   pyhanko
     #   xhtml2pdf
-pyjwkest==1.4.4 \
-    --hash=sha256:922007238d40d71bbeb53919c6c489d2daab98d4ea8952a0362d26e04c0aec9c \
-    --hash=sha256:dbfd6ab26c30ae710215ebabf590441d551bf0a8a6c95b33c3d0738062a56562
-    # via oic
 pykcs11==1.5.19 \
     --hash=sha256:07f50ef9d7a60a5408edfe8d1186f1f4cf7605fc2eb720176ae239734faba0f0 \
     --hash=sha256:1c3c80abae6e7285b6f11bac9682099fc584f904a7496e5d956b566151a09cdb \
@@ -1503,14 +1424,6 @@ python-dateutil==2.9.0.post0 \
     #   botocore
     #   celery
     #   pysaml2
-python-dotenv==1.2.3 \
-    --hash=sha256:904552145e8bfed22162c09dab1c2b9b54fefa7b23ba780f4f26ca0316b0f0d9 \
-    --hash=sha256:a20a594dabeaa385725aa239d5244871c143ecb356add8a20fcf23773a6c3a35
-    # via pydantic-settings
-python-jose==3.5.0 \
-    --hash=sha256:abd1202f23d34dfad2c3d28cb8617b90acf34132c7afd60abd0b0b7d3cb55771 \
-    --hash=sha256:fb4eaa44dbeb1c26dcc69e4bd7ec54a1cb8dd64d3b4d81ef08d90ff453f2b01b
-    # via eduid-backend (../pyproject.toml)
 pytool==6.0.3 \
     --hash=sha256:4cd8ae2aab998c672726194bc09115f2c7b25ad276b2fd6cc37df959f1abcbb2 \
     --hash=sha256:50c5284fbe8abe4170bd2c4c05301b424d9c469cd4254f7a4e91b8aefb61011a
@@ -1621,16 +1534,10 @@ requests==2.34.2 \
     --hash=sha256:f288924cae4e29463698d6d60bc6a4da69c89185ad1e0bcc4104f584e960b9ed
     # via
     #   hammock
-    #   oic
     #   pyhanko
     #   pyhanko-certvalidator
-    #   pyjwkest
     #   pysaml2
     #   pyxmlsecurity
-rsa==4.9.1 \
-    --hash=sha256:68635866661c6836b8d39430f97a996acbd61bfa49406748ea243539fe239762 \
-    --hash=sha256:e7bdbfdb5497da4c07dfd35530e1a902659db6ff241e39d9953cad06ebd0ae75
-    # via python-jose
 s3transfer==0.19.2 \
     --hash=sha256:ba0309fd86be3c27dbf78cdd813c13c5e1df16e5874b99d2535ebbdfb9892993 \
     --hash=sha256:d8168eccca828cbb2cd573675333f3bddd254313a9c42494b84c76b539e8ba25
@@ -1757,9 +1664,7 @@ six==1.17.0 \
     --hash=sha256:4721f391ed90541fddacab5acf947aa0d3dc7d27b2e1e8eda2be8970586c3274 \
     --hash=sha256:ff70335d468e7eb6ec65b95b99d3a2836546063f63acc5171de367e834932a81
     # via
-    #   ecdsa
     #   html5lib
-    #   pyjwkest
     #   pysmscom
     #   python-dateutil
     #   pyxmlsecurity
@@ -1802,9 +1707,7 @@ typing-inspect==0.9.0 \
 typing-inspection==0.4.4 \
     --hash=sha256:547274fa6b0a561ccf549cc9524b999a578e737d015d8709d021f9d0d13bea47 \
     --hash=sha256:65b8397ba37ccbce054456aaccddfc91e6e3083c92824df348d96ca832f3f147
-    # via
-    #   pydantic
-    #   pydantic-settings
+    # via pydantic
 tzdata==2026.3 \
     --hash=sha256:4a1518b8993086a7982523e071643f3c0e5f213e75b21318e78bcabfff9d1415 \
     --hash=sha256:dc096730c87af6cab1b171c9d532be840741ff5d459015e7f6947bd7d7e54931
