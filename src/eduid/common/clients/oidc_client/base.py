@@ -27,6 +27,10 @@ class OidcRpClientConfig(BaseModel):
     code_challenge_method: str | None = Field(default="S256")
     acr_values: list[str] = Field(default_factory=list)
     scopes: list[str] = Field(default=["openid"])
+    # OIDC defines the optional "amr" ID token claim as an array of strings, but some OPs send it
+    # as a single string (ORCID sends "pwd" or "mfa"). Such ID tokens are rejected by strict claims
+    # validation, so set this for OPs known to send a bare string.
+    allow_string_amr: bool = False
 
 
 class OidcRpClient(Protocol):
