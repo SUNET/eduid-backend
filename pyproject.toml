@@ -65,7 +65,6 @@ webapp = [
 worker = ["jinja2"]
 fastapi = [
   "apscheduler<4", # Next major version has API breaking changes
-  "deepdiff",
   "fastapi",
   "hsmkey",
   "loguru",
@@ -78,6 +77,7 @@ satosa-scim = ["SATOSA"]
 
 [dependency-groups]
 test = [
+  "deepdiff",
   "mypy",
   "pip-tools",
   "pytest",
