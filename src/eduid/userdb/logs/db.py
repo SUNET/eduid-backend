@@ -3,7 +3,7 @@ from datetime import datetime
 from uuid import UUID
 
 from eduid.userdb.db import BaseDB, TUserDbDocument
-from eduid.userdb.logs.element import LogElement, UserChangeLogElement
+from eduid.userdb.logs.element import LogElement
 
 __author__ = "lundberg"
 
@@ -49,15 +49,6 @@ class FidoMetadataLog(LogDB):
                 limit=1,
             )
         )
-
-
-class UserChangeLog(LogDB):
-    def __init__(self, db_uri: str, collection: str = "user_change_log") -> None:
-        super().__init__(db_uri, collection)
-
-    def get_by_eppn(self, eppn: str) -> list[UserChangeLogElement]:
-        docs = self._get_documents_by_attr("eduPersonPrincipalName", eppn)
-        return [UserChangeLogElement(**doc) for doc in docs]
 
 
 class ManagedAccountLog(LogDB):
