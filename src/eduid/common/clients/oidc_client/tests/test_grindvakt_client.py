@@ -412,9 +412,52 @@ class TestIssuerHandling:
 
         assert config.issuer == issuer
 
-    def test_validator_rejects_invalid_url(self) -> None:
+    @pytest.mark.parametrize(
+        "issuer",
+        [
+            "https://op.example.com",
+            "https://op.example.com/",
+            "https://op.example.com/oidc",
+            "https://op.example.com/oidc/",
+            "https://op.example.com:8443/oidc",
+            "http://localhost",
+            "http://LOCALHOST:8080/op",
+            "http://127.0.0.1/op",
+            "http://[::1]:9000",
+        ],
+    )
+    def test_validator_accepts_and_keeps_valid_issuers(self, issuer: str) -> None:
+        assert OidcRpClientConfig(client_id=CLIENT_ID, client_secret="secret", issuer=issuer).issuer == issuer
+
+    @pytest.mark.parametrize(
+        "issuer",
+        [
+            "not a url",
+            "http://op.example.com",
+            "http://localhost.",
+            "http://sub.localhost",
+            "ftp://op.example.com",
+            "https://user:secret@op.example.com",
+            "https://user@op.example.com",
+            "https://op.example.com?a=b",
+            "https://op.example.com/?",
+            "https://op.example.com#frag",
+            "https://op.example.com/#",
+            "https:///oidc",
+            "https://",
+        ],
+    )
+    def test_validator_rejects_invalid_issuers(self, issuer: str) -> None:
         with pytest.raises(ValidationError):
-            OidcRpClientConfig(client_id=CLIENT_ID, client_secret="secret", issuer="not a url")
+            OidcRpClientConfig(client_id=CLIENT_ID, client_secret="secret", issuer=issuer)
+
+    def test_validator_error_does_not_echo_credentials(self) -> None:
+        with pytest.raises(ValidationError) as exc_info:
+            OidcRpClientConfig(
+                client_id=CLIENT_ID, client_secret="secret", issuer="https://user:hunter2@op.example.com"
+            )
+
+        assert "hunter2" not in str(exc_info.value.errors(include_input=False))
 
     def test_trailing_slash_mismatch_fails_and_logs_issuer(self, caplog: pytest.LogCaptureFixture) -> None:
         # the OP publishes an issuer without trailing slash, but the RP is configured with one

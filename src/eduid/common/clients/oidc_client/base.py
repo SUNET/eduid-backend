@@ -1,10 +1,21 @@
+import ipaddress
 from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Any, Literal, Protocol, Self
+from urllib.parse import urlsplit
 
 from pydantic import AnyUrl, BaseModel, Field, field_validator, model_validator
 
 __author__ = "lundberg"
+
+
+def _is_loopback_host(host: str) -> bool:
+    if host.lower() == "localhost":
+        return True
+    try:
+        return ipaddress.ip_address(host).is_loopback
+    except ValueError:
+        return False
 
 
 class OidcRpError(Exception):
@@ -33,8 +44,30 @@ class OidcRpClientConfig(BaseModel):
     @field_validator("issuer")
     @classmethod
     def _validate_issuer(cls, v: str) -> str:
-        AnyUrl(v)  # syntax check only, the string is kept exactly as configured
-        return v
+        """
+        Check the OIDC issuer constraints (https URL with a host, no credentials, query or fragment), mirroring
+        what pygrindvakt discovery accepts: plain http only for loopback hosts. The string is returned exactly
+        as configured, it is used as is for discovery and issuer matching. Messages never echo the value,
+        as it may contain credentials.
+        """
+        AnyUrl(v)  # syntax check
+        try:
+            parts = urlsplit(v)
+            host = parts.hostname
+            _ = parts.port  # validates the port
+        except ValueError:
+            raise ValueError("issuer is not a valid URL") from None
+        if "?" in v or "#" in v:
+            raise ValueError("issuer must not contain a query or fragment")
+        if parts.username is not None or parts.password is not None or "@" in parts.netloc:
+            raise ValueError("issuer must not contain credentials")
+        if not host:
+            raise ValueError("issuer must contain a host")
+        if parts.scheme == "https":
+            return v
+        if parts.scheme == "http" and _is_loopback_host(host):
+            return v
+        raise ValueError("issuer must be an https URL (http is only allowed for loopback hosts)")
 
     @model_validator(mode="after")
     def _validate_userinfo_trust(self) -> Self:
