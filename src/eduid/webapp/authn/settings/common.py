@@ -11,7 +11,6 @@ class AuthnConfig(EduIDBaseAppConfig, ErrorsConfigMixin, Pysaml2SPConfigMixin, F
     server_name: str = "authn"
     signup_authn_success_redirect_url: HttpUrlStr = "https://eduid.se/profile/"
     signup_authn_failure_redirect_url: HttpUrlStr = "https://eduid.se/profile/"
-    fallback_frontend_action_redirect_url: HttpUrlStr = "https://eduid.se/profile/"
     saml2_login_redirect_url: str
     saml2_logout_redirect_url: str
     saml2_strip_saml_user_suffix: str
