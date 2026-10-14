@@ -85,10 +85,9 @@ async def on_post(req: ScimApiRequest, resp: Response, create_request: EventCrea
     if not referenced:
         raise BadRequest(detail="referenced object not found")
 
-    _timestamp = utc_now()
-    if create_request.nutid_event_v1.timestamp:
-        _timestamp = create_request.nutid_event_v1.timestamp
-    _expires_at = utc_now() + timedelta(days=1)
+    _now = utc_now()
+    _timestamp = create_request.nutid_event_v1.timestamp or _now
+    _expires_at = _now + timedelta(days=1)
 
     data_owner = req.context.require_data_owner()
     event = ScimApiEvent(
