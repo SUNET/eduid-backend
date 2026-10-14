@@ -1,10 +1,6 @@
-import datetime
 from enum import StrEnum
-from typing import Any
 
 from pydantic import AnyUrl, BaseModel, Field
-
-from eduid.common.misc.timeutil import utc_now
 
 __author__ = "lundberg"
 
@@ -101,27 +97,3 @@ class JOSEHeader(BaseModel):
     typ: str | None = None
     cty: str | None = None
     crit: list[str] | None = None
-
-
-class RegisteredClaims(BaseModel):
-    """
-    https://tools.ietf.org/html/rfc7519#section-4.1
-    """
-
-    iss: str | None = None  # Issuer
-    sub: str | None = None  # Subject
-    aud: str | None = None  # Audience
-    exp: datetime.timedelta | None = None  # Expiration Time
-    nbf: datetime.datetime = Field(default_factory=utc_now)  # Not Before
-    iat: datetime.datetime = Field(default_factory=utc_now)  # Issued At
-    jti: str | None = None  # JWT ID
-
-    def to_rfc7519(self) -> dict[str, Any]:
-        d = self.model_dump(exclude_none=True)
-        if self.exp:
-            d["exp"] = int((self.iat + self.exp).timestamp())
-        if self.nbf:
-            d["nbf"] = int(self.nbf.timestamp())
-        if self.iat:
-            d["iat"] = int(self.iat.timestamp())
-        return d

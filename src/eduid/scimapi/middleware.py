@@ -8,7 +8,7 @@ from jwcrypto.common import JWException
 from pydantic import ValidationError
 from starlette.datastructures import URL
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
-from starlette.types import ASGIApp, Message
+from starlette.types import ASGIApp
 
 from eduid.common.fastapi.context_request import ContextRequestMixin
 from eduid.common.models.bearer_token import (
@@ -23,21 +23,6 @@ from eduid.scimapi.context_request import ScimApiContext
 from eduid.scimapi.exceptions import Unauthorized, http_error_detail_handler
 
 logger = logging.getLogger(__name__)
-
-
-# Hack to be able to get request body both now and later
-# https://github.com/encode/starlette/issues/495#issuecomment-513138055
-def set_body(request: Request, body: bytes) -> None:
-    async def receive() -> Message:
-        return {"type": "http.request", "body": body}
-
-    request._receive = receive
-
-
-async def get_body(request: Request) -> bytes:
-    body = await request.body()
-    set_body(request, body)
-    return body
 
 
 class BaseMiddleware(BaseHTTPMiddleware, ContextRequestMixin):

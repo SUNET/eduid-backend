@@ -13,13 +13,6 @@ __author__ = "lundberg"
 logger = logging.getLogger(__name__)
 
 
-TEMPLATES_RELATION = {
-    "mobile-validator": "mobile-confirm",
-    "mobile-reset-password": "mobile-reset-password",
-    "nin-validator": "nin-confirm",
-    "nin-reset-password": "nin-reset-password",
-}
-
 LANGUAGE_MAPPING = {
     "en": "en_US",
     "sv": "sv_SE",

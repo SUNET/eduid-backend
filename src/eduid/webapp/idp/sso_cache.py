@@ -58,14 +58,9 @@
 import logging
 
 from eduid.userdb.db import BaseDB
-from eduid.userdb.exceptions import EduIDDBError
 from eduid.webapp.idp.sso_session import SSOSession, SSOSessionId
 
 logger = logging.getLogger(__name__)
-
-
-class SSOSessionCacheError(EduIDDBError):
-    pass
 
 
 class SSOSessionCache(BaseDB):

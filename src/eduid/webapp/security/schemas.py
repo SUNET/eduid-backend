@@ -1,11 +1,8 @@
-from typing import Any
-
-from marshmallow import ValidationError, fields, validates
+from marshmallow import fields
 
 from eduid.webapp.common.api.schemas.base import EduidSchema, FluxStandardAction
 from eduid.webapp.common.api.schemas.csrf import CSRFRequestMixin, CSRFResponseMixin
 from eduid.webapp.common.api.schemas.identity import IdentitiesSchema
-from eduid.webapp.common.api.schemas.password import PasswordSchema
 from eduid.webapp.common.api.schemas.validators import validate_nin
 
 
@@ -29,23 +26,9 @@ class SecurityResponseSchema(FluxStandardAction):
     payload = fields.Nested(CredentialList)
 
 
-class ChpassResponseSchema(SecurityResponseSchema):
-    class ChpassResponsePayload(CredentialList):
-        next_url = fields.String(required=True)
-
-    payload = fields.Nested(ChpassResponsePayload)
-
-
 class ChangePasswordRequestSchema(EduidSchema, CSRFRequestMixin):
     old_password = fields.String(required=False)
     new_password = fields.String(required=True)
-
-
-class RedirectResponseSchema(FluxStandardAction):
-    class RedirectPayload(EduidSchema, CSRFResponseMixin):
-        location = fields.String(required=True)
-
-    payload = fields.Nested(RedirectPayload, many=False)
 
 
 class SuggestedPasswordResponseSchema(FluxStandardAction):
@@ -55,32 +38,8 @@ class SuggestedPasswordResponseSchema(FluxStandardAction):
     payload = fields.Nested(SuggestedPasswordPayload, many=False)
 
 
-# TODO: Remove this when frontend for new change password view exist
-class ChangePasswordSchema(PasswordSchema):
-    csrf_token = fields.String(required=True)
-    old_password = fields.String(required=True)
-    new_password = fields.String(required=True)
-    authn_id = fields.String(required=False)
-
-    @validates("new_password")
-    def validate_custom_password(self, value: str, **kwargs: Any) -> None:
-        # Set a new error message
-        try:
-            self.validate_password(value)
-        except ValidationError as e:
-            raise ValidationError("chpass.weak-pass") from e
-
-
 class AccountTerminatedSchema(FluxStandardAction):
     pass
-
-
-# webauthn schemas
-class WebauthnOptionsResponseSchema(FluxStandardAction):
-    class WebauthnOptionsResponsePayload(EduidSchema, CSRFResponseMixin):
-        options = fields.String(required=True)
-
-    payload = fields.Nested(WebauthnOptionsResponsePayload)
 
 
 class WebauthnRegisterBeginSchema(EduidSchema, CSRFRequestMixin):
@@ -95,21 +54,6 @@ class WebauthnRegisterRequestSchema(EduidSchema, CSRFRequestMixin):
 
 class RemoveWebauthnTokenRequestSchema(EduidSchema, CSRFRequestMixin):
     credential_key = fields.String(required=True)
-
-
-class VerifyWithWebauthnTokenRequestSchema(EduidSchema):
-    key_handle = fields.String(required=True, data_key="keyHandle")
-    signature_data = fields.String(required=True, data_key="signatureData")
-    client_data = fields.String(required=True, data_key="clientData")
-
-
-class VerifyWithWebauthnTokenResponseSchema(FluxStandardAction):
-    class Payload(CSRFResponseMixin):
-        key_handle = fields.String(required=True, data_key="keyHandle")
-        signature_data = fields.String(required=True, data_key="signatureData")
-        client_data = fields.String(required=True, data_key="clientData")
-
-    payload = fields.Nested(Payload)
 
 
 # NIN schemas

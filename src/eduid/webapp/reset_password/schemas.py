@@ -115,10 +115,6 @@ class ResetPasswordWithCodeSchema(EduidSchema, CSRFRequestMixin):
     password = fields.String(required=True)
 
 
-class ResetPasswordWithPhoneCodeSchema(ResetPasswordWithCodeSchema):
-    phone_code = fields.String(required=True)
-
-
 class SuggestedPasswordResponseSchema(FluxStandardAction):
     class SuggestedPasswordPayload(EduidSchema, CSRFResponseMixin):
         suggested_password = fields.String(required=True)

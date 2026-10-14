@@ -18,10 +18,6 @@ from eduid.userdb.exceptions import EduIDDBError
 logger = logging.getLogger(__name__)
 
 
-def b64_encode(b: bytes) -> str:
-    return base64.urlsafe_b64encode(b).decode("utf-8").strip("=")
-
-
 def b64_decode[AnyStr: (bytes, str)](data: AnyStr) -> bytes:
     if isinstance(data, str):
         _data = data.encode("utf-8")

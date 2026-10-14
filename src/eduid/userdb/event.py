@@ -1,16 +1,12 @@
 from __future__ import annotations
 
 from abc import ABC
-from typing import TYPE_CHECKING, Any
+from typing import Any
 from uuid import uuid4
 
 from pydantic import Field
 
 from eduid.userdb.element import Element, ElementKey, ElementList
-from eduid.userdb.exceptions import BadEvent, UserDBValueError
-
-if TYPE_CHECKING:
-    from eduid.userdb.tou import ToUEvent
 
 
 class Event(Element):
@@ -64,18 +60,3 @@ class EventList[ListElement: Element](ElementList[ListElement], ABC):
     Provide methods to add, update and remove elements from the list while
     maintaining some governing principles, such as ensuring there no duplicates in the list.
     """
-
-
-def event_from_dict(data: dict[str, Any]) -> ToUEvent:
-    """
-    Create an Event instance (probably really a subclass of Event) from a dict.
-
-    :param data: Password parameters from database
-    """
-    if "event_type" not in data:
-        raise UserDBValueError("No event type specified")
-    if data["event_type"] == "tou_event":
-        from eduid.userdb.tou import ToUEvent  # avoid cyclic dependency by importing this here
-
-        return ToUEvent.from_dict(data=data)
-    raise BadEvent("Unknown event_type in data: {!s}".format(data["event_type"]))

@@ -32,10 +32,6 @@ class MissingSingleFactor(AssuranceException):
     pass
 
 
-class MissingPasswordFactor(AssuranceException):
-    pass
-
-
 class MissingMultiFactor(AssuranceException):
     pass
 
