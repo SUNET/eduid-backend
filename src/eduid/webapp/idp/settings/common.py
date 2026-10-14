@@ -67,7 +67,6 @@ class IdPConfig(EduIDBaseAppConfig, TouConfigMixin, Fido2RpConfigMixin, AmConfig
     # Disallow login for a user after N failures in a given month.
     # This is said to be an imminent Kantara requirement.
     # Kantara 30-day bad authn limit is 100
-    max_auhtn_failures_per_month: int = 50
     max_authn_failures_per_month: int = 50
     # Override VCCSConfigMixin default (no default) with IdP-specific default
     vccs_url: str = "http://localhost:8550/"
