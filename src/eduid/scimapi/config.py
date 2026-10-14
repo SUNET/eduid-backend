@@ -1,20 +1,14 @@
 import logging
 from typing import Any
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import Field, field_validator
 
 from eduid.common.config.base import AuthnBearerTokenConfig, LoggingConfigMixin
 
 logger = logging.getLogger(__name__)
 
 
-class AWSMixin(BaseModel):
-    aws_access_key_id: str | None = None
-    aws_secret_access_key: str | None = None
-    aws_region: str | None = None
-
-
-class ScimApiConfig(AuthnBearerTokenConfig, LoggingConfigMixin, AWSMixin):
+class ScimApiConfig(AuthnBearerTokenConfig, LoggingConfigMixin):
     """
     Configuration for the SCIM API app
     """

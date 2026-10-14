@@ -59,7 +59,7 @@ make typecheck_mypy  # mypy only
 make typecheck_ty    # ty only
 ```
 
-- **mypy**: Uses plugins `pydantic.mypy`, `marshmallow_dataclass.mypy`
+- **mypy**: Uses the plugin `pydantic.mypy`
 - **ty** (experimental): New type checker being evaluated in beta
     - Configuration in [pyproject.toml](pyproject.toml)
     - Installed as part of the `test` dependency group (`make dev_sync_deps` / `make update_deps`)
