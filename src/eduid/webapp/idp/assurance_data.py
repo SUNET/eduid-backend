@@ -25,12 +25,6 @@ class SwamidAssurance(StrEnum):
     REFEDS_PROFILE_ESPRESSO = "https://refeds.org/assurance/profile/espresso"
 
 
-class SwedenConnectAssurance(StrEnum):
-    LOA2 = "http://id.elegnamnden.se/loa/1.0/loa2"
-    LOA3 = "http://id.elegnamnden.se/loa/1.0/loa3"
-    UNCERTIFIED_LOA3 = "http://id.swedenconnect.se/loa/1.0/uncertified-loa3"
-
-
 class AssuranceLevel(StrEnum):
     """SWAMID assurance levels, in increasing order."""
 

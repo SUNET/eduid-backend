@@ -4,7 +4,7 @@ from collections.abc import Callable, Mapping
 from functools import wraps
 from typing import Any, cast
 
-from flask import abort, jsonify, request
+from flask import jsonify, request
 from flask.typing import ResponseReturnValue
 from marshmallow import Schema
 from marshmallow.exceptions import ValidationError
@@ -32,29 +32,6 @@ flux_logger = logger.getChild("flux")
 # The Flask route decorator first in the chain makes us have to accept the full ResponseReturnValue too
 EduidViewReturnType = FluxData | ResponseReturnValue
 EduidRouteCallable = Callable[..., EduidViewReturnType]
-
-
-def require_eppn(f: EduidRouteCallable) -> EduidRouteCallable:
-    """
-    Decorator for views that require a known (but not necessarily logged in) user.
-
-    Will put the eppn of the user (from session.common.eppn) in the kwargs dict.
-
-    Because it can return a FluxData, this decorator must come after the MarshalWith decorator.
-    """
-
-    @wraps(f)
-    def require_eppn_decorator(*args: Any, **kwargs: Any) -> EduidViewReturnType:
-        eppn = session.common.eppn
-        # If the user is logged in and has a session
-        # pass on the request to the decorated view
-        # together with the eppn of the logged-in user.
-        if not eppn:
-            abort(401)
-        kwargs["eppn"] = eppn
-        return f(*args, **kwargs)
-
-    return require_eppn_decorator
 
 
 def require_not_logged_in(f: EduidRouteCallable) -> EduidRouteCallable:

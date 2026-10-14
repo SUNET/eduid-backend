@@ -34,12 +34,6 @@ def set_body(request: Request, body: bytes) -> None:
     request._receive = receive
 
 
-async def get_body(request: Request) -> bytes:
-    body = await request.body()
-    set_body(request, body)
-    return body
-
-
 class BaseMiddleware(BaseHTTPMiddleware, ContextRequestMixin):
     def __init__(self, app: ASGIApp, context: Context) -> None:
         super().__init__(app)

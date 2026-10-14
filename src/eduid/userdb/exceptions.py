@@ -110,19 +110,7 @@ class UserIsRevoked(EduIDUserDBError):
     """
 
 
-class ActionDBError(EduIDUserDBError):
-    """
-    There was an actions-database related error
-    """
-
-
 class BadEvent(EduIDUserDBError):
     """
     General error in Event processing.
-    """
-
-
-class EventHasUnknownData(BadEvent):
-    """
-    One or more elements of the event could not be interpreted.
     """

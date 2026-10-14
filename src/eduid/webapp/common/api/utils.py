@@ -16,7 +16,7 @@ from eduid.common.models.saml2 import EduidAuthnContextClass
 from eduid.common.rpc.exceptions import MsgTaskFailed, NoNavetData
 from eduid.common.rpc.msg_relay import MsgRelay
 from eduid.userdb import User, UserDB
-from eduid.userdb.exceptions import MultipleUsersReturned, UserDBValueError, UserDoesNotExist
+from eduid.userdb.exceptions import MultipleUsersReturned, UserDoesNotExist
 from eduid.webapp.common.api.exceptions import ApiException
 
 if TYPE_CHECKING:
@@ -44,44 +44,6 @@ def get_unique_hash() -> str:
 def make_short_code(digits: int = 6) -> str:
     """Make a short decimal code, left-padded with zeros to the width specified by `digits'."""
     return str(secrets.randbelow(10**digits)).zfill(digits)
-
-
-def update_modified_ts(user: User) -> None:
-    """
-    When loading a user from the central userdb, the modified_ts has to be
-    loaded from the private userdb (since it is not propagated to 'attributes'
-    by the eduid-am worker).
-
-    This need should go away once there is a global version number on the user document.
-
-    :param user: User object from the central userdb
-    :type user: eduid.userdb.User
-
-    :return: None
-    """
-    try:
-        user_id = user.user_id
-    except UserDBValueError:
-        logger.debug(f"User {user} has no id, setting modified_ts to None")
-        user.modified_ts = None
-        return
-
-    _private_userdb = get_from_current_app("private_userdb", UserDB)
-    private_user = _private_userdb.get_user_by_id(user_id)
-    if private_user is None:
-        logger.debug(f"User {user} not found in {_private_userdb}, setting modified_ts to None")
-        user.modified_ts = None
-        return
-
-    if private_user.modified_ts is None:
-        private_user.modified_ts = utc_now()  # use current time
-        logger.debug(f"Updating user {private_user} with new modified_ts: {private_user.modified_ts}")
-        _private_userdb.save(private_user)
-
-    user.modified_ts = private_user.modified_ts
-    logger.debug(
-        f"Updating {user} with modified_ts from central userdb user {private_user}: {private_user.modified_ts}"
-    )
 
 
 def get_user() -> User:

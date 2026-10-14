@@ -23,10 +23,6 @@ from eduid.workers.msg.utils import (
     navet_get_relations,
 )
 
-TRANSACTION_AUDIT_DB = "eduid_msg"
-TRANSACTION_AUDIT_COLLECTION = "transaction_audit"
-
-
 logger: logging.Logger = get_task_logger(__name__)
 
 app = MsgCelerySingleton.celery

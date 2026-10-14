@@ -104,14 +104,6 @@ class UserAuthnInfo(GenericFilterDict):
         super().__init__(_data)
 
 
-class UserVerifications(GenericFilterDict):
-    add_keys: ClassVar[list[str]] = ["verified", "obj_id", "timestamp", "model_name", "verified_timestamp"]
-
-
-class UserActions(GenericFilterDict):
-    add_keys: ClassVar[list[str]] = ["action", "params"]
-
-
 class ProofingLogEntry(GenericFilterDict):
     add_keys: ClassVar[list[str]] = [
         "verified_data",
