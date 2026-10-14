@@ -124,22 +124,7 @@ blinker==1.9.0 \
     --hash=sha256:ba0efaa9080b619ff2f3459d1d500c57bddea4a6b424b60a91141db6fd2f08bc
     # via
     #   flask
-    #   flask-mail
     #   sentry-sdk
-boto3==1.43.83 \
-    --hash=sha256:6413d6e99f716af5d333a732db140e4b3359cac005a1271b11777b6d9ca82194 \
-    --hash=sha256:73a3564f737d4516625964eee709a498fa98ccee6aca929febad2b0b5fbeae1e
-    # via eduid-backend (../pyproject.toml)
-botocore==1.43.83 \
-    --hash=sha256:bf75a6cf587c22d968e43e79fe122c39f82deafbe9c3422bc5d3e80b6210fc98 \
-    --hash=sha256:d9389b3b74400c34219965a2fb858c1d48744718865ee0496fd03bd5b21b943f
-    # via
-    #   boto3
-    #   s3transfer
-build==1.6.0 \
-    --hash=sha256:bd2c8afc603e7a2e0ce70e2ea85f0a6d02043bafbd307f5bada0f98669eca5af \
-    --hash=sha256:f7aaf1ebbb79178a02ba248bb524f2176b256017e17e8e4bd4289c7b38cc2bad
-    # via pip-tools
 cachebox==5.2.3 \
     --hash=sha256:09c0340e9daa7b4530801e5a570cb0c1a1ad941a85d245d360020d3986d0e787 \
     --hash=sha256:0a17aeb4e5b1c6ef1c3db8fc5186f9986e215ba5ea5a5d08baa45bcf55f261b2 \
@@ -567,7 +552,6 @@ click==8.5.0 \
     #   click-plugins
     #   click-repl
     #   flask
-    #   pip-tools
     #   satosa
     #   uvicorn
 click-didyoumean==0.3.1 \
@@ -826,7 +810,6 @@ flask==3.1.3 \
     #   eduid-backend (../pyproject.toml)
     #   flask-babel
     #   flask-cors
-    #   flask-mail
     #   sentry-sdk
 flask-babel==4.0.0 \
     --hash=sha256:638194cf91f8b301380f36d70e2034c77ee25b98cb5d80a1626820df9a6d4625 \
@@ -835,10 +818,6 @@ flask-babel==4.0.0 \
 flask-cors==6.0.5 \
     --hash=sha256:30c5031552cd59f620ac0c8211dac45b345d3b2df310e7721879e4f46ef9c601 \
     --hash=sha256:68fcf75693e961f3af26683b23c4b9a8fb6b64de17d20d0c37b95e8de7ab2ed8
-    # via eduid-backend (../pyproject.toml)
-flask-mail==0.10.0 \
-    --hash=sha256:44083e7b02bbcce792209c06252f8569dd5a325a7aaa76afe7330422bd97881d \
-    --hash=sha256:a451e490931bb3441d9b11ebab6812a16bfa81855792ae1bf9c1e1e22c4e51e7
     # via eduid-backend (../pyproject.toml)
 future==1.0.0 \
     --hash=sha256:929292d34f5872e70396626ef385ec22355a1fae8ad29e1a734c3e43f9fbc216 \
@@ -963,12 +942,6 @@ jinja2==3.1.6 \
     #   eduid-backend (../pyproject.toml)
     #   flask
     #   flask-babel
-jmespath==1.1.0 \
-    --hash=sha256:472c87d80f36026ae83c6ddd0f1d05d4e510134ed462851fd5f754c8c3cbb88d \
-    --hash=sha256:a5663118de4908c91729bea0acadca56526eb2698e83de10cd116ae0f4e97c64
-    # via
-    #   boto3
-    #   botocore
 joserfc==1.7.4 \
     --hash=sha256:32d46c2cd5e3203c13e87a6c61333cab310b1ba80cd54b4c4f386a848a122463 \
     --hash=sha256:b3bc561672ae541b17a9237053b48a03dacddd92d68047b3ecdfb4b5714a88ed
@@ -1414,12 +1387,7 @@ marshmallow==4.3.1 \
     --hash=sha256:fb6b8048af08d4ab061610d5b7d3696a7e4c95337dbda880edb9f95812cabc20
     # via
     #   eduid-backend (../pyproject.toml)
-    #   marshmallow-dataclass
     #   marshmallow-enum
-marshmallow-dataclass==8.7.1 \
-    --hash=sha256:405cbaaad9cea56b3de2f85eff32a9880e3bf849f652e7f6de7395e4b1ddc072 \
-    --hash=sha256:4fb80e1bf7b31ce1b192aa87ffadee2cedb3f6f37bb0042f8500b07e6fad59c4
-    # via eduid-backend (../pyproject.toml)
 marshmallow-enum==1.5.1 \
     --hash=sha256:38e697e11f45a8e64b4a1e664000897c659b60aa57bfa18d44e226a9920b6e58 \
     --hash=sha256:57161ab3dbfde4f57adeb12090f39592e992b9c86d206d02f6bd03ebec60f072
@@ -1489,9 +1457,7 @@ mypy==2.3.1 \
 mypy-extensions==1.1.0 \
     --hash=sha256:1be4cccdb0f2482337c4743e60421de3a356cd97508abadd57d47403e94f5505 \
     --hash=sha256:52e68efc3284861e772bbcd66823fde5ae21fd2fdb51c62a211403730b916558
-    # via
-    #   mypy
-    #   typing-inspect
+    # via mypy
 ndnkdf==0.3 \
     --hash=sha256:6d99674a4d5d7a9f6115c4f72a5fc1a60a583ecdec569d66f7562bcaabca6db3 \
     --hash=sha256:d1da09e6ea9a4f63b1d7cf001d11cd83f8e187022b046af605450bde7dd38e1c
@@ -1516,10 +1482,8 @@ packaging==26.3 \
     --hash=sha256:94edc256424af38762eb31306eed28beb9f0efc50a8837492c9d6fd6004aed79 \
     --hash=sha256:d7193f7c8e4e93f444fde0262bf90af30e16fa0ad0ad44cb553c87339b23cd1c
     # via
-    #   build
     #   kombu
     #   pytest
-    #   wheel
 pathspec==1.1.1 \
     --hash=sha256:17db5ecd524104a120e173814c90367a96a98d07c45b2e10c2f3919fff91bf5a \
     --hash=sha256:a00ce642f577bf7f473932318056212bc4f8bfdf53128c78bbd5af0b9b20b189
@@ -1628,10 +1592,6 @@ pillow==12.3.0 \
 pip==26.2.1 \
     --hash=sha256:71138adf1f4ca900cdb7d289c21b7494329f2332b6d85f0e1c42108c0384ed3e \
     --hash=sha256:f6ad667e89a1fe78046c8f13232b247200f5258d7828f3f7883d660878e0813f
-    # via pip-tools
-pip-tools==7.6.1 \
-    --hash=sha256:6111c8b4b07fd14b7223ca921485b0e96cf66e20bf94da95eeed9845f510cb8f \
-    --hash=sha256:695556edeb647eb94ee8345cc7108657fdb7fb16b3876623a399b4f61bbede01
     # via eduid-backend (/workspaces/eduid-backend/pyproject.toml:test)
 pluggy==1.6.0 \
     --hash=sha256:7dcc130b76258d33b90f61b658791dede3486c3e6bfb003ee5c9bfb396dd22f3 \
@@ -2049,12 +2009,6 @@ pypdf==6.20.1 \
     --hash=sha256:28f5a9d2fdc2749264612d94e6a58de54c11d730d9f0cabf8ad34117c4942b45 \
     --hash=sha256:aa5a55ddcffdc5e5ab291d5decb23f6383f4e56f8e3263dc39af41fff03885ad
     # via xhtml2pdf
-pyproject-hooks==1.2.0 \
-    --hash=sha256:1e859bd5c40fae9448642dd871adf459e5e2084186e8d2c2a79a824c970da1f8 \
-    --hash=sha256:9e5c6bfa8dcc30091c74b0cf803c81fdd29d94f01992a7707bc97babb1141913
-    # via
-    #   build
-    #   pip-tools
 pysaml2==7.5.2+sunet4 \
     --hash=sha256:335ff4a0d0bad395f84b4de9d3f54ef3213443859f5c8ebb40428952fd895e4d \
     --hash=sha256:775e6463570f8f7c356ecbbf41e83c42bcc9886a8d73b1486d1f2a7f1a8ae950
@@ -2226,7 +2180,6 @@ python-dateutil==2.9.0.post0 \
     --hash=sha256:a8b2bc7bffae282281c8140a97d3aa9c14da0b136dfe83f850eea9a5f7470427
     # via
     #   eduid-backend (../pyproject.toml)
-    #   botocore
     #   celery
     #   pysaml2
 python-dotenv==1.2.3 \
@@ -2416,10 +2369,6 @@ ruff==0.16.5 \
     --hash=sha256:f0768e9df4300713fff30733c87575f68b6f1d8de41184e505b7fdd9c0c95eaf \
     --hash=sha256:fb8e3a3c4c6a784150a7ced53b015f4b253fc2bf97a610886419ead64b4756ef
     # via eduid-backend (/workspaces/eduid-backend/pyproject.toml:test)
-s3transfer==0.19.2 \
-    --hash=sha256:ba0309fd86be3c27dbf78cdd813c13c5e1df16e5874b99d2535ebbdfb9892993 \
-    --hash=sha256:d8168eccca828cbb2cd573675333f3bddd254313a9c42494b84c76b539e8ba25
-    # via boto3
 satosa==8.5.1 \
     --hash=sha256:403cc19c4af7bbcc8affc7dc5459fa2e648fc0be1108ed0602157a96a0301d94 \
     --hash=sha256:f7f061bfdbda7499de554786dab4c725b4516cd996b663675bb923f96e19f2cd
@@ -2428,10 +2377,6 @@ sentry-sdk[flask]==2.68.1 \
     --hash=sha256:6a97895230b04bc35d4d8d2e51e3b9e21902dfb0086ccf1f131a80c15c7b997a \
     --hash=sha256:775b78871783a0ffd758276ad01b3bb2b1ebcdad8f9d2f0a7723f76b73c99b65
     # via eduid-backend (../pyproject.toml)
-setuptools==84.0.0 \
-    --hash=sha256:51a52592b3b99e102b609654876bd65f19f999935166d1352678931132b0c670 \
-    --hash=sha256:f4695c21257f0d9b537ec2692c941d02ee143b7cc1276941349a546573b2ef73
-    # via pip-tools
 simplejson==3.20.2 \
     --hash=sha256:00bcd408a4430af99d1f8b2b103bb2f5133bb688596a511fcfa7db865fbb845e \
     --hash=sha256:06190b33cd7849efc413a5738d3da00b90e4a5382fd3d584c841ac20fb828c6f \
@@ -2601,10 +2546,6 @@ ty==0.0.85 \
     --hash=sha256:d622348c05a9fe99ad087dc93f174617a96f9fef23dd7a0acbdb0adaf8bd5ae6 \
     --hash=sha256:ef442cbc2fd6dad02eb00dee4213c1e0f18e09bcbeec2cdce6aa802603c5c6bb
     # via eduid-backend (/workspaces/eduid-backend/pyproject.toml:test)
-typeguard==4.6.0 \
-    --hash=sha256:79878165bb86f2cf5d41d159a0ff1792a796cf496882d2fe1b1c6c7049b9cdd7 \
-    --hash=sha256:e7414f09111317de3e335de92cd397c5c0ca00b1cc1676de12e1d444a79b3f21
-    # via marshmallow-dataclass
 typing-extensions==4.16.0 \
     --hash=sha256:481caa481374e813c1b176ada14e97f1f67a4539ce9cfeb3f350d78d6370c2e8 \
     --hash=sha256:dc983d19a509c94dba722ee6abd33940f7c05a89e243c47e907eb4db6f1a43e5
@@ -2616,13 +2557,7 @@ typing-extensions==4.16.0 \
     #   mypy
     #   pydantic
     #   pydantic-core
-    #   typeguard
-    #   typing-inspect
     #   typing-inspection
-typing-inspect==0.9.0 \
-    --hash=sha256:9ee6fc59062311ef8547596ab6b955e1b8aa46242d854bfc78f4f6b0eff35f9f \
-    --hash=sha256:b23fc42ff6f6ef6954e4852c1fb512cdd18dbea03134f91f856a95ccc9461f78
-    # via marshmallow-dataclass
 typing-inspection==0.4.4 \
     --hash=sha256:547274fa6b0a561ccf549cc9524b999a578e737d015d8709d021f9d0d13bea47 \
     --hash=sha256:65b8397ba37ccbce054456aaccddfc91e6e3083c92824df348d96ca832f3f147
@@ -2656,7 +2591,6 @@ urllib3==2.8.0 \
     --hash=sha256:0cf3cae568d36aa9576b28dfb35f11328f1cb974ca7647d9475ebb86c75ac6e3 \
     --hash=sha256:63bf2ead4c879426ebf22ef2a781eeb4aa3b4ae798a0435506f8687fd5bb9b63
     # via
-    #   botocore
     #   requests
     #   sentry-sdk
 user-agents==2.2.0 \
@@ -3024,10 +2958,6 @@ werkzeug==3.1.9 \
     #   flask
     #   flask-cors
     #   satosa
-wheel==0.48.0 \
-    --hash=sha256:3217dcc807155e45db462d7ef2431f5ddda0d7273b700d05a67b271ceb1287ab \
-    --hash=sha256:94800765601e9171bf5d58d066e640662842bcedcbab982b2c90787a2c987322
-    # via pip-tools
 xhtml2pdf==0.2.17 \
     --hash=sha256:09ddbc31aa0e38a16f2f3cb73be89af5f7c968c17a564afdd685d280e39c526d \
     --hash=sha256:61a7ecac829fed518f7dbcb916e9d56bea6e521e02e54644b3d0ca33f0658315

@@ -10,7 +10,6 @@ dependencies = [
   "PyYAML",
   "aiosmtplib",
   "bleach",
-  "boto3",
   "celery[redis]",
   "cookies-samesite-compat",
   "cryptography",
@@ -26,7 +25,6 @@ dependencies = [
   "jwcrypto",
   "langcodes",
   "marshmallow",
-  "marshmallow-dataclass",
   "marshmallow-enum",
   "motor",
   "neo4j",
@@ -52,7 +50,6 @@ dependencies = [
 [project.optional-dependencies]
 webapp = [
   "Flask",
-  "Flask-Mail",
   "authlib",
   "captcha",
   "flask-babel",
@@ -76,8 +73,8 @@ satosa-scim = ["SATOSA"]
 [dependency-groups]
 test = [
   "deepdiff",
+  "pip", # mypy --install-types installs stub packages with pip
   "mypy",
-  "pip-tools",
   "pytest",
   "pytest-asyncio",
   "pytest-cov",
@@ -212,7 +209,7 @@ eduid = ["ndnkdf"]
 exclude = ["AGENTS.md"]
 
 [tool.mypy]
-plugins = ["pydantic.mypy", "marshmallow_dataclass.mypy"]
+plugins = ["pydantic.mypy"]
 namespace_packages = true
 pretty = true
 
