@@ -101,10 +101,6 @@ ast-serialize==0.8.0 \
     --hash=sha256:fdc0d5b18ff8fb364e87923e47c0a91d0d69dbcaeaa274591f7fd26892cc3a3a \
     --hash=sha256:ffa5e7cb08f96fed9121f77b224151e41caf88feab9d652bb46c78202b6fbeda
     # via mypy
-authlib==1.7.2 \
-    --hash=sha256:2cea25fefcd4e7173bdf1372c0afc265c8034b23a8cd5dcb6a9164b826c64231 \
-    --hash=sha256:3e1faedc9d87e7d56a164eca3ccb6ace0d61b94abe83e92242f8dc8bba9b4a9f
-    # via eduid-backend (../pyproject.toml)
 babel==2.18.0 \
     --hash=sha256:b80b99a14bd085fcacfa15c9165f651fbb3406e66cc603abf11c5750937c992d \
     --hash=sha256:e2b422b277c2b9a9630c1d7903c2a00d0830c409c59ac8cae9081c92f1aeba35
@@ -744,11 +740,9 @@ cryptography==50.0.1 \
     --hash=sha256:ff838d62ec1bfce4f9ba7fa16f4a7b554cd8d0c299e6be37502161a660c84eef
     # via
     #   eduid-backend (../pyproject.toml)
-    #   authlib
     #   fido-mds
     #   fido2
     #   hsmkey
-    #   joserfc
     #   jwcrypto
     #   oic
     #   pyhanko
@@ -942,10 +936,6 @@ jinja2==3.1.6 \
     #   eduid-backend (../pyproject.toml)
     #   flask
     #   flask-babel
-joserfc==1.7.4 \
-    --hash=sha256:32d46c2cd5e3203c13e87a6c61333cab310b1ba80cd54b4c4f386a848a122463 \
-    --hash=sha256:b3bc561672ae541b17a9237053b48a03dacddd92d68047b3ecdfb4b5714a88ed
-    # via authlib
 jwcrypto==1.5.9 \
     --hash=sha256:30b1c9afc898eefd112c31d836eb2d7a4c6febcac95d4aa727e963cd42911d8e \
     --hash=sha256:dbbbfcdad7a6fc40cf3d5a635b11115fc42591b7ab869a36ad347a516a6e1c5d
@@ -1849,6 +1839,10 @@ pygments==2.21.0 \
     --hash=sha256:2363c69b61c4a97c838da3b130dcd6468f4848992b21a82f2a63ec34377137d9 \
     --hash=sha256:610ca751c9bc2492b38eb9a38a7fbc93edbbb2d7182edaf34e66ae493dee5c8c
     # via pytest
+pygrindvakt==0.2.0 \
+    --hash=sha256:1fde6542b5f2a9a87855d9aa9ff432809cedb4e0d63beea74e0f046b5683c023 \
+    --hash=sha256:bd323e41796b228805ef6d3991e8dcde018e40675c3887364d0eb570713c6411
+    # via eduid-backend (../pyproject.toml)
 pyhanko==0.36.2 \
     --hash=sha256:1387ad12de8ed488f9d0303ae2a206e21d870b42629af0d0e1d6e882cc878fde \
     --hash=sha256:55475e93422eaba7af17866184036a1624d438fd11154472f57df541a2540678

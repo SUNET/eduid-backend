@@ -7,13 +7,13 @@ from typing import Any
 from urllib.parse import parse_qs, urlparse
 
 import pytest
-from joserfc import jwt
-from joserfc.jwk import KeySet, RSAKey
+from pygrindvakt import jwt, keys
 from pytest_mock import MockerFixture
 from werkzeug.test import TestResponse
 
 from eduid.common.clients.oidc_client.base import OidcRpClient, OidcRpError
-from eduid.common.clients.oidc_client.testing import FakeOidcRpClient
+from eduid.common.clients.oidc_client.grindvakt_client import GrindvaktOidcRpClient
+from eduid.common.clients.oidc_client.testing import FakeOidcRpClient, StaticHttpClient
 from eduid.common.config.base import FrontendAction
 from eduid.userdb.orcid import OidcAuthorization, OidcIdToken, Orcid
 from eduid.userdb.proofing import ProofingUser
@@ -74,6 +74,8 @@ class OrcidTests(EduidAPITestCase[OrcidApp]):
             created_by="orcid",
         )
 
+        self.signing_key = keys.signing_key_from_jwk(keys.generate_rsa_jwk(), "RS256", "test-kid")
+
         yield
 
         self.app.oidc_client = self._real_oidc_client
@@ -130,9 +132,12 @@ class OrcidTests(EduidAPITestCase[OrcidApp]):
             )
 
     def _start_connect_with_real_oidc_client(self, eppn: str) -> TestResponse:
-        """Like _start_connect, but exercises the real (authlib-backed) oidc_client instead of a fake one."""
-        mock_metadata = self.mocker.patch("authlib.integrations.base_client.sync_app.OAuth2Mixin.load_server_metadata")
-        mock_metadata.return_value = self.oidc_provider_config
+        """Like _start_connect, but exercises the real (pygrindvakt-backed) oidc_client instead of a fake one."""
+        http = StaticHttpClient()
+        http.add_json("https://example.com/op/.well-known/openid-configuration", self.oidc_provider_config)
+        http.add_json(str(self.oidc_provider_config["jwks_uri"]), self.signing_key.to_public_jwks())
+        self.static_http = http
+        self.app.oidc_client = GrindvaktOidcRpClient(self.app.conf.orcid_client, http=http)
 
         with self.session_cookie(self.browser, eppn) as client:
             with client.session_transaction() as sess:
@@ -160,8 +165,8 @@ class OrcidTests(EduidAPITestCase[OrcidApp]):
     ) -> TestResponse:
         # NOTE: FakeOidcRpClient performs no nonce validation at all, so the `nonce` argument here
         # is just a placeholder value echoed into the fake id token claims - it is never checked
-        # against anything. Real nonce validation (done by authlib during fetch_token()) is covered
-        # separately by test_authn_callback_nonce_mismatch_with_real_oidc_client below.
+        # against anything. Real nonce validation (done by the pygrindvakt-backed client in finish())
+        # is covered separately by test_authn_callback_nonce_mismatch_with_real_oidc_client below.
         fake_client = self.app.oidc_client
         assert isinstance(fake_client, FakeOidcRpClient)
         id_token_claims = {
@@ -173,12 +178,12 @@ class OrcidTests(EduidAPITestCase[OrcidApp]):
             "iat": 0,
             "auth_time": 0,
         }
-        fake_client.token_response = {
+        fake_client.claims = id_token_claims
+        fake_client.tokens = {
             "access_token": "access_token",
             "token_type": "token_type",
             "expires_in": 0,
             "refresh_token": "refresh_token",
-            "userinfo": id_token_claims,
         }
         userinfo = dict(userinfo)
         userinfo["sub"] = "sub"
@@ -187,8 +192,8 @@ class OrcidTests(EduidAPITestCase[OrcidApp]):
 
     def test_authenticate(self) -> None:
         """
-        Regression test for the authlib wiring done in init_oidc_rp_client/AuthlibOidcRpClient,
-        exercising the real (authlib-backed) oidc_client rather than FakeOidcRpClient.
+        Regression test for the wiring done in init_oidc_rp_client/GrindvaktOidcRpClient,
+        exercising the real (pygrindvakt-backed) oidc_client rather than FakeOidcRpClient.
         """
         response = self._start_connect_with_real_oidc_client(self.test_user_eppn)
         assert response.status_code == HTTPStatus.OK
@@ -208,9 +213,13 @@ class OrcidTests(EduidAPITestCase[OrcidApp]):
         assert "code_challenge" not in query
         assert "code_challenge_method" not in query
 
+        # the nonce/redirect_uri of this request should have been stored in the session, no code_verifier
         with self.session_cookie(self.browser, self.test_user_eppn) as client:
             with client.session_transaction() as sess:
-                assert len(sess.orcid.rp.authlib_cache) > 0
+                authn_req = sess.orcid.rp.authns[OIDCState(query["state"][0])]
+                assert authn_req.nonce == query["nonce"][0]
+                assert authn_req.code_verifier is None
+                assert authn_req.redirect_uri == "http://test.localhost/authorization-response"
 
     def test_oidc_flow(self, mocker: MockerFixture) -> None:
         mock_request_user_sync = mocker.patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
@@ -276,7 +285,7 @@ class OrcidTests(EduidAPITestCase[OrcidApp]):
 
         fake_client = self.app.oidc_client
         assert isinstance(fake_client, FakeOidcRpClient)
-        fake_client.raise_on_fetch_token = OidcRpError("token endpoint failed")
+        fake_client.raise_on_finish = OidcRpError("token endpoint failed")
 
         callback_response = self.browser.get(f"/authorization-response?state={authn_id}&code=mock_code")
         assert callback_response.status_code == 302
@@ -387,33 +396,21 @@ class OrcidTests(EduidAPITestCase[OrcidApp]):
         response = self._start_connect(self.test_user_eppn)
         self._check_error_response(response, type_="POST_ORCID_CONNECT_ORCID_FAIL", msg=OrcidMsg.already_connected)
 
-    def _mock_real_oidc_id_token(self, mocker: MockerFixture, id_token_claims: dict[str, Any]) -> None:
+    def _mock_real_oidc_id_token(self, id_token_claims: dict[str, Any]) -> None:
         """
-        Make the real (authlib-backed) oidc_client exchange the authorization code for a token
-        carrying a signed ID token built from `id_token_claims`.
+        Make the static OP behind the real oidc_client answer the code exchange with a token
+        carrying an ID token signed from `id_token_claims`, and answer userinfo requests.
 
-        The mock OP does not exist, so the JWKS lookup and the userinfo call are stubbed out too -
-        everything else (signature and claims validation) is authlib's own code.
+        Everything else (signature and claims validation) is the real pygrindvakt code.
         """
-        signing_key = RSAKey.generate_key(2048, parameters={"kid": "test-kid"}, private=True)
-        id_token = jwt.encode({"alg": "RS256", "kid": "test-kid"}, id_token_claims, signing_key)
-
-        mocker.patch(
-            "authlib.integrations.requests_client.oauth2_session.OAuth2Session.fetch_token",
-            return_value={
-                "access_token": "access_token",
-                "token_type": "Bearer",
-                "expires_in": 300,
-                "id_token": id_token,
-            },
+        id_token = jwt.sign(self.signing_key, id_token_claims)
+        self.static_http.add_json(
+            str(self.oidc_provider_config["token_endpoint"]),
+            {"access_token": "access_token", "token_type": "Bearer", "expires_in": 300, "id_token": id_token},
         )
-        mocker.patch(
-            "authlib.integrations.base_client.sync_openid.OpenIDMixin.fetch_jwk_set",
-            return_value=KeySet([signing_key]).as_dict(private=False),
-        )
-        mocker.patch(
-            "authlib.integrations.base_client.sync_openid.OpenIDMixin.userinfo",
-            return_value={
+        self.static_http.add_json(
+            str(self.oidc_provider_config["userinfo_endpoint"]),
+            {
                 "id": "https://sandbox.orcid.org/0000-0000-0000-0000",
                 "sub": "sub",
                 "given_name": "Test",
@@ -421,18 +418,17 @@ class OrcidTests(EduidAPITestCase[OrcidApp]):
             },
         )
 
-    def test_authn_callback_nonce_mismatch_with_real_oidc_client(self, mocker: MockerFixture) -> None:
+    def test_authn_callback_nonce_mismatch_with_real_oidc_client(self) -> None:
         """
         Regression test proving that a mismatched nonce is rejected when exercising the real
-        (authlib-backed) oidc_client, rather than FakeOidcRpClient (which performs no nonce
+        (pygrindvakt-backed) oidc_client, rather than FakeOidcRpClient (which performs no nonce
         validation at all - see the NOTE in mock_authorization_callback above).
 
-        Nonce validation happens inside authlib during fetch_token()/id_token parsing (it used to
-        be done manually in orcid/views.py by comparing session.orcid.nonces[state] to the id
-        token's nonce claim - that code path is gone now that authlib owns the check).
+        The nonce is minted by the client, stored in the RP_AuthnRequest in the session and checked
+        against the ID token by the client in finish().
         """
-        # Start a real authorization request, so authlib generates and stores a real state+nonce
-        # (and code_verifier, if any) in the session via the real SessionOidcCache.
+        # Start a real authorization request, so the client generates a real state+nonce which
+        # is stored in the session.
         response = self._start_connect_with_real_oidc_client(self.test_user_eppn)
         assert response.status_code == HTTPStatus.OK
         payload = self.get_response_payload(response)
@@ -441,7 +437,7 @@ class OrcidTests(EduidAPITestCase[OrcidApp]):
         expected_nonce = query["nonce"][0]
         assert expected_nonce
 
-        # Craft a signed ID token whose nonce claim does NOT match the nonce authlib generated
+        # Craft a signed ID token whose nonce claim does NOT match the nonce generated
         # and stored above.
         id_token_claims = {
             "iss": self.oidc_provider_config["issuer"],
@@ -452,7 +448,7 @@ class OrcidTests(EduidAPITestCase[OrcidApp]):
             "auth_time": int(time.time()),
             "nonce": f"not-{expected_nonce}",
         }
-        self._mock_real_oidc_id_token(mocker, id_token_claims)
+        self._mock_real_oidc_id_token(id_token_claims)
 
         callback_response = self.browser.get(f"/authorization-response?state={state}&code=mock_code")
         assert callback_response.status_code == HTTPStatus.FOUND
@@ -467,9 +463,8 @@ class OrcidTests(EduidAPITestCase[OrcidApp]):
     def test_authn_callback_string_amr_with_real_oidc_client(self, mocker: MockerFixture) -> None:
         """
         Regression test for ORCID sending the optional 'amr' ID token claim as the string "pwd"
-        (or "mfa") instead of the array of strings defined by OIDC. authlib rejects such ID tokens
-        with an InvalidClaimError, which made every ORCID authentication fail until the orcid app
-        was configured to use StringAmrCodeIDToken (see OrcidClientConfig.allow_string_amr).
+        (or "mfa") instead of the array of strings defined by OIDC. the previous OIDC library rejected such ID tokens
+        with an InvalidClaimError. pygrindvakt accepts it.
         """
         mock_request_user_sync = mocker.patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
         mock_request_user_sync.side_effect = self.request_user_sync
@@ -492,7 +487,7 @@ class OrcidTests(EduidAPITestCase[OrcidApp]):
             "nonce": expected_nonce,
             "amr": "pwd",
         }
-        self._mock_real_oidc_id_token(mocker, id_token_claims)
+        self._mock_real_oidc_id_token(id_token_claims)
 
         callback_response = self.browser.get(f"/authorization-response?state={state}&code=mock_code")
         assert callback_response.status_code == HTTPStatus.FOUND
@@ -507,3 +502,42 @@ class OrcidTests(EduidAPITestCase[OrcidApp]):
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
         assert user.orcid is not None
         assert user.orcid.id == "https://sandbox.orcid.org/0000-0000-0000-0000"
+
+    def _status_after_callback(self, authn_id: OIDCState) -> dict[str, Any]:
+        with self.session_cookie(self.browser, self.test_user_eppn) as client:
+            with client.session_transaction() as sess:
+                csrf_token = sess.get_csrf_token()
+            status_response = client.post("/get-status", json={"csrf_token": csrf_token, "authn_id": str(authn_id)})
+        return self.get_response_payload(status_response)
+
+    def test_authn_callback_provider_error(self) -> None:
+        self._start_connect(self.test_user_eppn)
+        authn_id = self._get_authn_id_from_session()
+        fake_client = self.app.oidc_client
+        assert isinstance(fake_client, FakeOidcRpClient)
+
+        callback_response = self.browser.get(
+            f"/authorization-response?error=access_denied&error_description=user+said+no&state={authn_id}"
+        )
+
+        assert callback_response.status_code == HTTPStatus.FOUND
+        assert "user said no" not in callback_response.location
+        assert fake_client.finish_calls == []
+        status_payload = self._status_after_callback(authn_id)
+        assert status_payload["error"] is True
+        assert status_payload["status"] == OrcidMsg.authz_error.value
+
+    def test_authn_callback_missing_token_fields(self) -> None:
+        self._start_connect(self.test_user_eppn)
+        authn_id = self._get_authn_id_from_session()
+        fake_client = self.app.oidc_client
+        assert isinstance(fake_client, FakeOidcRpClient)
+        fake_client.claims = {"sub": "sub"}
+        fake_client.tokens = {"access_token": "access_token"}  # no token_type
+
+        callback_response = self.browser.get(f"/authorization-response?state={authn_id}&code=mock_code")
+
+        assert callback_response.status_code == HTTPStatus.FOUND
+        status_payload = self._status_after_callback(authn_id)
+        assert status_payload["error"] is True
+        assert status_payload["status"] == OrcidMsg.authz_error.value

@@ -1,6 +1,5 @@
 from dataclasses import dataclass
 from datetime import UTC, datetime
-from urllib.parse import parse_qs, urlparse
 
 from flask import Blueprint, make_response, redirect, request, url_for
 from werkzeug import Response as WerkzeugResponse
@@ -17,6 +16,7 @@ from eduid.webapp.common.api.messages import AuthnStatusMsg, FluxData, Translata
 from eduid.webapp.common.api.schemas.authn_status import StatusRequestSchema, StatusResponseSchema
 from eduid.webapp.common.api.schemas.csrf import EmptyResponse
 from eduid.webapp.common.authn.acs_registry import ACSArgs, get_action
+from eduid.webapp.common.authn.session_info import SessionInfo
 from eduid.webapp.common.authn.utils import check_reauthn
 from eduid.webapp.common.proofing.methods import get_proofing_method
 from eduid.webapp.common.session import session
@@ -189,19 +189,11 @@ def _authn(
         return AuthnResult(error=FrejaEIDMsg.frontend_action_not_supported)
 
     try:
-        auth_url = current_app.oidc_client.authorization_url(
+        authn_data = current_app.oidc_client.mint_authn_request(
             redirect_uri=url_for("freja_eid.authn_callback", _external=True),
         )
     except OidcRpError:
         current_app.logger.exception("Failed to create authorization request")
-        return AuthnResult(error=FrejaEIDMsg.authn_request_failed)
-
-    auth_url_query = urlparse(auth_url).query
-    try:
-        # Ignore PyCharm warning "Expected type 'bytes' ..." for "state" lookup
-        state = parse_qs(auth_url_query)["state"][0]
-    except KeyError:
-        current_app.logger.error(f'Failed to parse "state" from authn request: {auth_url_query}')
         return AuthnResult(error=FrejaEIDMsg.authn_request_failed)
 
     proofing_method = get_proofing_method(method, _frontend_action, current_app.conf)
@@ -210,19 +202,22 @@ def _authn(
         return AuthnResult(error=FrejaEIDMsg.method_not_available)
 
     authn_req = RP_AuthnRequest(
-        authn_id=OIDCState(state),
+        authn_id=OIDCState(authn_data.state),
         frontend_action=_frontend_action,
         frontend_state=frontend_state,
         post_authn_action=action,
         proofing_credential_id=proofing_credential_id,
         method=proofing_method.method,
         finish_url=authn_params.finish_url,
+        nonce=authn_data.nonce,
+        code_verifier=authn_data.code_verifier,
+        redirect_uri=authn_data.redirect_uri,
     )
     session.freja_eid.rp.authns[authn_req.authn_id] = authn_req
     current_app.logger.debug(f"Stored RP_AuthnRequest[{authn_req.authn_id}]: {authn_req}")
-    current_app.logger.debug(f"returning url: {auth_url}")
+    current_app.logger.debug(f"returning url: {authn_data.url}")
     current_app.stats.count(f"{proofing_method.method.value}_authn_request")
-    return AuthnResult(authn_id=authn_req.authn_id, url=auth_url, authn_req=authn_req)
+    return AuthnResult(authn_id=authn_req.authn_id, url=authn_data.url, authn_req=authn_req)
 
 
 @freja_eid_views.route("/authn-callback", methods=["GET"])
@@ -271,9 +266,28 @@ def authn_callback() -> WerkzeugResponse:
 
     formatted_finish_url = authn_req.formatted_finish_url(app_name=current_app.conf.app_name)
 
+    if (provider_error := request.args.get("error")) is not None:
+        # The error and error_description are controlled by the provider: log truncated, never show to the user
+        current_app.logger.warning(
+            f"Provider returned error {provider_error[:64]!r}, "
+            f"description {request.args.get('error_description', '')[:128]!r}"
+        )
+        current_app.stats.count(name="authn_error_response")
+        authn_req.error = True
+        authn_req.status = FrejaEIDMsg.authorization_error.value
+        return redirect(formatted_finish_url)
+
     try:
-        token_response = current_app.oidc_client.fetch_token()
-        current_app.logger.debug(f"Got token response: {token_response}")
+        code = request.args.get("code")
+        if authn_req.nonce is None or code is None:
+            raise OidcRpError("Missing nonce or code")
+        authn_result = current_app.oidc_client.finish(
+            code,
+            redirect_uri=authn_req.redirect_uri or url_for("freja_eid.authn_callback", _external=True),
+            nonce=authn_req.nonce,
+            code_verifier=authn_req.code_verifier,
+        )
+        current_app.logger.debug(f"Got ID token claims: {authn_result.claims}")
     except OidcRpError:
         current_app.logger.exception("Failed to get token response from Freja")
         current_app.stats.count(name="token_response_failed")
@@ -281,16 +295,14 @@ def authn_callback() -> WerkzeugResponse:
         authn_req.status = FrejaEIDMsg.authorization_error.value
         return redirect(formatted_finish_url)
 
-    _userinfo = token_response.get("userinfo", {})
-    current_app.logger.debug(f"Got userinfo response: {_userinfo}")
-    _iat = _userinfo.get("iat") if isinstance(_userinfo, dict) else None
+    _iat = authn_result.claims.get("iat")
     if _iat is not None:
         authn_req.authn_instant = datetime.fromtimestamp(int(_iat), tz=UTC)
 
     action = get_action(default_action=None, authndata=authn_req)
     backdoor = check_magic_cookie(config=current_app.conf)
     args = ACSArgs(
-        session_info=_userinfo,
+        session_info=SessionInfo(authn_result.claims),
         authn_req=authn_req,
         proofing_method=proofing_method,
         backdoor=backdoor,

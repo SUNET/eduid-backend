@@ -9,7 +9,6 @@ from eduid.common.rpc.am_relay import AmRelay
 from eduid.userdb.logs import ProofingLog
 from eduid.userdb.proofing import OrcidProofingUserDB
 from eduid.webapp.common.authn.middleware import AuthnBaseApp
-from eduid.webapp.orcid.helpers import SessionOidcCache
 from eduid.webapp.orcid.settings.common import OrcidConfig
 
 
@@ -27,9 +26,7 @@ class OrcidApp(AuthnBaseApp):
         self.am_relay = AmRelay(config)
 
         # Initialize the oidc_client
-        self.oidc_client: OidcRpClient = init_oidc_rp_client(
-            app=self, name="orcid", config=self.conf.orcid_client, cache=SessionOidcCache()
-        )
+        self.oidc_client: OidcRpClient = init_oidc_rp_client(app=self, name="orcid", config=self.conf.orcid_client)
 
 
 current_orcid_app: OrcidApp = cast(OrcidApp, current_app)

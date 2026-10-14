@@ -1,4 +1,4 @@
-import json
+import time
 import uuid
 from collections.abc import Iterator
 from datetime import UTC, date, datetime, timedelta
@@ -9,11 +9,13 @@ from urllib.parse import parse_qs, urlparse
 import pytest
 from flask import url_for
 from iso3166 import Country, countries
+from pygrindvakt import jwt, keys
 from pytest_mock import MockerFixture
 from werkzeug.test import TestResponse
 
 from eduid.common.clients.oidc_client.base import OidcRpClient
-from eduid.common.clients.oidc_client.testing import FakeOidcRpClient
+from eduid.common.clients.oidc_client.grindvakt_client import GrindvaktOidcRpClient
+from eduid.common.clients.oidc_client.testing import FakeOidcRpClient, StaticHttpClient
 from eduid.common.config.base import FrontendAction
 from eduid.common.misc.timeutil import utc_now
 from eduid.userdb.credentials.external import TrustFramework
@@ -31,6 +33,7 @@ from eduid.webapp.common.proofing.testing import ProofingTests
 from eduid.webapp.common.session.namespaces import (
     ExternalMfaSignupFrejaEIDForeignIdentity,
     ExternalMfaSignupFrejaEIDIdentity,
+    OIDCState,
 )
 from eduid.webapp.freja_eid.app import FrejaEIDApp, freja_eid_init_app
 from eduid.webapp.freja_eid.helpers import (
@@ -89,7 +92,7 @@ class FrejaEIDTests(ProofingTests[FrejaEIDApp]):
                 "https://frejaeid.com/oidc/scopes/addresses",
                 "address",
             ],
-            "issuer": "https://example.com/op/oidc/",
+            "issuer": "https://example.com/op/oidc",
             "authorization_endpoint": "https://example.com/op/oidc/authorize",
             "userinfo_endpoint": "https://example.com/op/oidc/userinfo",
             "token_endpoint_auth_signing_alg_values_supported": ["RS256"],
@@ -129,6 +132,8 @@ class FrejaEIDTests(ProofingTests[FrejaEIDApp]):
             "request_object_encryption_alg_values_supported": ["RSA1_5", "RSA-OAEP-256"],
             "token_endpoint": "https://example.com/op/oidc/token",
         }
+
+        self.signing_key = keys.signing_key_from_jwk(keys.generate_rsa_jwk(), "RS256", "test-key")
 
         yield
 
@@ -261,31 +266,16 @@ class FrejaEIDTests(ProofingTests[FrejaEIDApp]):
         with self.app.test_request_context():
             endpoint = url_for("freja_eid.authn_callback")
 
-        id_token = json.dumps(
-            {
-                "nonce": nonce,
-                "sub": "sub",
-                "iss": "iss",
-                "aud": ["aud"],
-                "exp": userinfo.exp,
-                "iat": userinfo.iat,
-                "auth_time": userinfo.iat,
-                "acr": "acr",
-                "amr": ["amr"],
-                "azp": "azp",
-            }
-        )
         userinfo_dict = userinfo.model_dump()
         fake_client = self.app.oidc_client
         assert isinstance(fake_client, FakeOidcRpClient)
-        fake_client.token_response = {
+        fake_client.claims = userinfo_dict
+        fake_client.tokens = {
             "access_token": "access_token",
             "token_type": "token_type",
             "expires_in": timedelta(minutes=5).total_seconds(),
-            "expires_at": userinfo.exp,
             "refresh_token": "refresh_token",
-            "id_token": id_token,
-            "userinfo": userinfo_dict,
+            "id_token": "id_token",
         }
         fake_client.userinfo_response = userinfo_dict
         return self.browser.get(f"{endpoint}?id_token=id_token&state={state}&code=mock_code")
@@ -309,12 +299,20 @@ class FrejaEIDTests(ProofingTests[FrejaEIDApp]):
             _data.update(data)
             return client.post(endpoint, json=_data)
 
+    def _install_real_oidc_client(self) -> StaticHttpClient:
+        """Replace the oidc_client with the real one, talking to a static (in-memory) OpenID Provider."""
+        http = StaticHttpClient()
+        http.add_json("https://example.com/op/oidc/.well-known/openid-configuration", self.oidc_provider_config)
+        http.add_json(str(self.oidc_provider_config["jwks_uri"]), self.signing_key.to_public_jwks())
+        self.app.oidc_client = GrindvaktOidcRpClient(self.app.conf.freja_eid_client, http=http)
+        self.static_http = http
+        return http
+
     def _start_auth_with_real_oidc_client(
         self, endpoint: str, data: dict[str, Any], eppn: str, logged_in: bool = True
     ) -> TestResponse:
-        """Like _start_auth, but exercises the real (authlib-backed) oidc_client instead of a fake one."""
-        mock_metadata = self.mocker.patch("authlib.integrations.base_client.sync_app.OAuth2Mixin.load_server_metadata")
-        mock_metadata.return_value = self.oidc_provider_config
+        """Like _start_auth, but exercises the real (pygrindvakt-backed) oidc_client instead of a fake one."""
+        self._install_real_oidc_client()
 
         with self.session_cookie(self.browser, eppn) as client:
             with client.session_transaction() as sess:
@@ -398,8 +396,8 @@ class FrejaEIDTests(ProofingTests[FrejaEIDApp]):
 
     def test_verify_identity_request(self) -> None:
         """
-        This test exercises the real authlib-backed oidc_client (rather than FakeOidcRpClient) as a
-        regression net for the authlib wiring done in init_oidc_rp_client/AuthlibOidcRpClient.
+        This test exercises the real pygrindvakt-backed oidc_client (rather than FakeOidcRpClient) as a
+        regression net for the wiring done in init_oidc_rp_client/GrindvaktOidcRpClient.
         """
         with self.app.test_request_context():
             endpoint = url_for("freja_eid.verify_identity")
@@ -425,10 +423,13 @@ class FrejaEIDTests(ProofingTests[FrejaEIDApp]):
         assert len(query["nonce"][0]) > 0
         assert len(query["code_challenge"][0]) > 0
 
-        # the state/nonce/code_verifier used for this request should have been cached in the session
+        # the nonce/code_verifier/redirect_uri of this request should have been stored in the session
         with self.session_cookie(self.browser, self.test_user.eppn) as client:
             with client.session_transaction() as sess:
-                assert len(sess.freja_eid.rp.authlib_cache) > 0
+                authn_req = sess.freja_eid.rp.authns[OIDCState(query["state"][0])]
+                assert authn_req.nonce == query["nonce"][0]
+                assert authn_req.code_verifier
+                assert authn_req.redirect_uri == "http://test.localhost/authn-callback"
 
     def test_verify_nin_identity(self, mocker: MockerFixture) -> None:
         mocker.patch("eduid.webapp.common.api.helpers.get_reference_nin_from_navet_data", return_value=None)
@@ -1351,7 +1352,7 @@ class FrejaEIDTests(ProofingTests[FrejaEIDApp]):
             self._check_success_response(response, type_=None, payload={"csrf_token": csrf_token})
             loc = self.get_response_payload(response).get("location")
             assert loc is not None
-            state, nonce = self._get_state_and_nonce(loc)
+            state, _nonce = self._get_state_and_nonce(loc)
 
             with browser.session_transaction() as sess:
                 # Confirm still no eppn — genuine signup session
@@ -1368,29 +1369,14 @@ class FrejaEIDTests(ProofingTests[FrejaEIDApp]):
             )
 
             # Invoke the OIDC callback in the same browser context (same session)
-            id_token = json.dumps(
-                {
-                    "nonce": nonce,
-                    "sub": "sub",
-                    "iss": "iss",
-                    "aud": ["aud"],
-                    "exp": userinfo.exp,
-                    "iat": userinfo.iat,
-                    "auth_time": userinfo.iat,
-                    "acr": "acr",
-                    "amr": ["amr"],
-                    "azp": "azp",
-                }
-            )
             userinfo_dict = userinfo.model_dump()
-            fake_client.token_response = {
+            fake_client.claims = userinfo_dict
+            fake_client.tokens = {
                 "access_token": "access_token",
                 "token_type": "token_type",
                 "expires_in": timedelta(minutes=5).total_seconds(),
-                "expires_at": userinfo.exp,
                 "refresh_token": "refresh_token",
-                "id_token": id_token,
-                "userinfo": userinfo_dict,
+                "id_token": "id_token",
             }
             fake_client.userinfo_response = userinfo_dict
 
@@ -1438,7 +1424,7 @@ class FrejaEIDTests(ProofingTests[FrejaEIDApp]):
             self._check_success_response(response, type_=None, payload={"csrf_token": csrf_token})
             loc = self.get_response_payload(response).get("location")
             assert loc is not None
-            state, nonce = self._get_state_and_nonce(loc)
+            state, _nonce = self._get_state_and_nonce(loc)
 
             # Userinfo without personal_identity_number (foreign passport)
             userinfo = self.get_mock_userinfo(
@@ -1448,29 +1434,14 @@ class FrejaEIDTests(ProofingTests[FrejaEIDApp]):
                 loa_level=FrejaLoaLevel.LOA3_NR,
             )
 
-            id_token = json.dumps(
-                {
-                    "nonce": nonce,
-                    "sub": "sub",
-                    "iss": "iss",
-                    "aud": ["aud"],
-                    "exp": userinfo.exp,
-                    "iat": userinfo.iat,
-                    "auth_time": userinfo.iat,
-                    "acr": "acr",
-                    "amr": ["amr"],
-                    "azp": "azp",
-                }
-            )
             userinfo_dict = userinfo.model_dump()
-            fake_client.token_response = {
+            fake_client.claims = userinfo_dict
+            fake_client.tokens = {
                 "access_token": "access_token",
                 "token_type": "token_type",
                 "expires_in": timedelta(minutes=5).total_seconds(),
-                "expires_at": userinfo.exp,
                 "refresh_token": "refresh_token",
-                "id_token": id_token,
-                "userinfo": userinfo_dict,
+                "id_token": "id_token",
             }
             fake_client.userinfo_response = userinfo_dict
 
@@ -1497,3 +1468,121 @@ class FrejaEIDTests(ProofingTests[FrejaEIDApp]):
                 assert ident.date_of_birth == datetime(1901, 2, 3, tzinfo=UTC)
                 assert ident.framework == TrustFramework.FREJA
                 assert ident.loa == "freja-loa3_nr"
+
+    def test_callback_provider_error(self) -> None:
+        eppn = self.unverified_test_user.eppn
+        with self.app.test_request_context():
+            endpoint = url_for("freja_eid.verify_identity")
+            callback_endpoint = url_for("freja_eid.authn_callback")
+        data = self.default_frontend_data(frontend_action="verifyIdentity")
+        start_response = self._start_auth(endpoint=endpoint, data=data, eppn=eppn)
+        state, _nonce = self._get_state_and_nonce(self.get_response_payload(start_response)["location"])
+        fake_client = self.app.oidc_client
+        assert isinstance(fake_client, FakeOidcRpClient)
+
+        response = self.browser.get(
+            f"{callback_endpoint}?error=access_denied&error_description=user+said+no&state={state}"
+        )
+
+        assert response.status_code == HTTPStatus.FOUND
+        assert "user said no" not in response.headers.get("Location", "")
+        assert fake_client.finish_calls == []
+        self._verify_status(
+            finish_url=response.headers.get("Location", ""),
+            frontend_action=FrontendAction(data["frontend_action"]),
+            frontend_state=data["frontend_state"],
+            method=data["method"],
+            expect_error=True,
+            expect_msg=FrejaEIDMsg.authorization_error,
+        )
+
+    # NOTE: the tests above use FakeOidcRpClient, which does no nonce, signature or claims validation.
+    # The tests below run the callback through the real client (finish()) with test-signed ID tokens.
+
+    def _real_client_callback(
+        self, http: StaticHttpClient, state: str, nonce: str, userinfo: FrejaEIDDocumentUserInfo
+    ) -> TestResponse:
+        """Answer the token endpoint of the static OP with a signed ID token and call the callback."""
+        now = int(time.time())
+        claims = userinfo.model_dump(mode="json")
+        claims.update(
+            {
+                "iss": self.oidc_provider_config["issuer"],
+                "aud": "test_client_id",
+                "exp": now + 300,
+                "iat": now,
+                "nonce": nonce,
+            }
+        )
+        http.add_json(
+            str(self.oidc_provider_config["token_endpoint"]),
+            {"access_token": "access_token", "token_type": "Bearer", "id_token": jwt.sign(self.signing_key, claims)},
+        )
+        with self.app.test_request_context():
+            callback_endpoint = url_for("freja_eid.authn_callback")
+        return self.browser.get(f"{callback_endpoint}?state={state}&code=mock_code")
+
+    def _start_real_client_auth(self, eppn: str) -> tuple[str, str, StaticHttpClient]:
+        data = self.default_frontend_data(frontend_action="verifyIdentity")
+        with self.app.test_request_context():
+            endpoint = url_for("freja_eid.verify_identity")
+        start_response = self._start_auth_with_real_oidc_client(endpoint=endpoint, data=data, eppn=eppn)
+        state, nonce = self._get_state_and_nonce(self.get_response_payload(start_response)["location"])
+        return state, nonce, self.static_http
+
+    def test_verify_nin_identity_with_real_oidc_client(self, mocker: MockerFixture) -> None:
+        mocker.patch("eduid.webapp.common.api.helpers.get_reference_nin_from_navet_data", return_value=None)
+        mock_request_user_sync = mocker.patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
+        mock_request_user_sync.side_effect = self.request_user_sync
+        eppn = self.unverified_test_user.eppn
+        state, nonce, http = self._start_real_client_auth(eppn)
+
+        userinfo = self.get_mock_userinfo(
+            issuing_country=countries.get("Sweden"), registration_level=FrejaRegistrationLevel.PLUS
+        )
+        response = self._real_client_callback(http, state, nonce, userinfo)
+
+        assert response.status_code == HTTPStatus.FOUND
+        data = self.default_frontend_data(frontend_action="verifyIdentity")
+        self._verify_status(
+            finish_url=response.headers.get("Location", ""),
+            frontend_action=FrontendAction(data["frontend_action"]),
+            frontend_state=data["frontend_state"],
+            method=data["method"],
+            expect_msg=FrejaEIDMsg.identity_verify_success,
+        )
+        # the nonce and code_verifier stored in the session were used for the code exchange
+        (token_request,) = http.requests_to(str(self.oidc_provider_config["token_endpoint"]))
+        assert token_request.form is not None
+        assert "code_verifier" in dict(token_request.form)
+        user = self.app.central_userdb.get_user_by_eppn(eppn)
+        self._verify_user_parameters(
+            eppn,
+            identity_verified=True,
+            num_proofings=1,
+            num_mfa_tokens=0,
+            locked_identity=user.identities.nin,
+            proofing_method=IdentityProofingMethod.FREJA_EID,
+            proofing_version=self.app.conf.freja_eid_proofing_version,
+        )
+
+    def test_callback_nonce_mismatch_with_real_oidc_client(self) -> None:
+        eppn = self.unverified_test_user.eppn
+        state, _nonce, http = self._start_real_client_auth(eppn)
+
+        userinfo = self.get_mock_userinfo(
+            issuing_country=countries.get("Sweden"), registration_level=FrejaRegistrationLevel.PLUS
+        )
+        response = self._real_client_callback(http, state, "another-nonce", userinfo)
+
+        assert response.status_code == HTTPStatus.FOUND
+        data = self.default_frontend_data(frontend_action="verifyIdentity")
+        self._verify_status(
+            finish_url=response.headers.get("Location", ""),
+            frontend_action=FrontendAction(data["frontend_action"]),
+            frontend_state=data["frontend_state"],
+            method=data["method"],
+            expect_error=True,
+            expect_msg=FrejaEIDMsg.authorization_error,
+        )
+        self._verify_user_parameters(eppn, identity_verified=False, num_proofings=0, num_mfa_tokens=0)
