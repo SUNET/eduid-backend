@@ -24,19 +24,3 @@ class SamlEidCommonResponseSchema(FluxStandardAction):
 
 class SamlEidVerifyCredentialRequestSchema(SamlEidCommonRequestSchema):
     credential_id = fields.String(required=True)
-
-
-class SamlEidStatusRequestSchema(EduidSchema, CSRFRequestMixin):
-    authn_id = fields.String(required=True)
-
-
-class SamlEidStatusResponseSchema(EduidSchema, CSRFResponseMixin):
-    class StatusResponsePayload(EduidSchema, CSRFResponseMixin):
-        authn_id = fields.String(required=False)
-        frontend_action = fields.String(required=True)
-        frontend_state = fields.String(required=False)
-        method = fields.String(required=True)
-        error = fields.Boolean(required=False)
-        status = fields.String(required=False)
-
-    payload = fields.Nested(StatusResponsePayload)
