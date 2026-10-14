@@ -226,7 +226,7 @@ def authn_callback() -> WerkzeugResponse:
     This is the callback endpoint for the Freja EID OIDC flow.
     """
     current_app.logger.debug("authn_callback called")
-    current_app.logger.debug(f"request.args: {request.args}")
+    current_app.logger.debug(f"request.args keys: {sorted(request.args.keys())}")
     authn_req = None
     oidc_state: OIDCState | None = None
     if "state" in request.args:
