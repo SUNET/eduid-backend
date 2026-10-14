@@ -108,9 +108,3 @@ class UserIsRevoked(EduIDUserDBError):
     The only things remaining are the _id and eppn, as placeholders to make sure
     they are never ever re-used (Kantara requirement).
     """
-
-
-class BadEvent(EduIDUserDBError):
-    """
-    General error in Event processing.
-    """

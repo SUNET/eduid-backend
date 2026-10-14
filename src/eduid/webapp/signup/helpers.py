@@ -643,6 +643,3 @@ def validate_external_mfa_authn(
     if utc_now() - authn.authn_instant > max_age:
         return SignupMsg.external_mfa_too_old
     return None
-
-
-# end of backwards compatibility
