@@ -7,6 +7,8 @@ from wsgiref.types import StartResponse, WSGIEnvironment
 
 from flask import Flask, url_for
 
+from eduid.common.config.base import EduIDBaseAppConfig
+
 __author__ = "lundberg"
 
 
@@ -42,15 +44,18 @@ def log_endpoints(app: Flask) -> None:
             pprint.pprint(("ENDPOINT", line), stream=sys.stderr)
 
 
-def dump_config(app: Flask) -> None:
+def dump_config(app: Flask, conf: EduIDBaseAppConfig) -> None:
     pprint.pprint(("CONFIGURATION", "app.config"), stream=sys.stderr)
     for key, value in sorted(app.config.items()):
         pprint.pprint((key, value), stream=sys.stderr)
+    pprint.pprint(("CONFIGURATION", "app.conf"), stream=sys.stderr)
+    for key, value in sorted(conf.model_dump().items()):
+        pprint.pprint((key, value), stream=sys.stderr)
 
 
-def init_app_debug(app: Flask) -> Flask:
+def init_app_debug(app: Flask, conf: EduIDBaseAppConfig) -> Flask:
     app.wsgi_app = LoggingMiddleware(app.wsgi_app)  # type: ignore[method-assign]
-    dump_config(app)
+    dump_config(app, conf)
     log_endpoints(app)
     pprint.pprint(("view_functions", app.view_functions), stream=sys.stderr)
     pprint.pprint(("url_map", app.url_map), stream=sys.stderr)

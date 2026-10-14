@@ -75,7 +75,7 @@ class EduIDBaseApp(Flask, metaclass=ABCMeta):
                 raise BadConfiguration(f"Flask configuration variable {this} is missing")
 
         if DEBUG:
-            init_app_debug(self)
+            init_app_debug(self, config)
 
         # App setup
         self.wsgi_app = ProxyFix(self.wsgi_app)  # type: ignore[method-assign]
