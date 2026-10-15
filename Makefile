@@ -55,9 +55,11 @@ update_queue_translations:
 compile_queue_translations:
 	pybabel compile --directory=$(SOURCE)/queue/translations/ --use-fuzzy
 
+# -B: the lock files are make targets that depend on pyproject.toml, and in a fresh checkout they are not
+# older than it, so without -B nothing would be regenerated.
 update_deps:
 	@echo "Updating ALL the dependencies"
-	cd requirements && make update_deps
+	cd requirements && make -B update_deps
 
 dev_sync_deps:
 	cd requirements && make dev_sync_deps
