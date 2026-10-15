@@ -14,7 +14,7 @@ from eduid.webapp.common.authn.utils import no_authn_views
 from eduid.webapp.common.session import session
 from eduid.webapp.common.session.eduid_session import EduidSession, SessionFactory
 from eduid.webapp.common.session.namespaces import LoginApplication
-from eduid.webapp.common.session.redis_session import RedisEncryptedSession
+from eduid.webapp.common.session.redis_session import RedisEncryptedSession, SessionOutOfSync
 
 __author__ = "lundberg"
 
@@ -286,6 +286,34 @@ class EduidSessionTests(EduidAPITestCase[SessionTestApp]):
             assert db["other"] == "writer"
             assert db.to_dict()["idp"]["sso_cookie_val"] == "first"
 
+            factory.save_session(self.app, sess, Response())
+            assert commit_spy.call_count == 1
+
+    def test_save_session_reraises_out_of_sync_when_durable_required(self, mocker: MockerFixture) -> None:
+        cookie_val = self._new_cookie()
+        factory = self.app.session_interface
+        assert isinstance(factory, SessionFactory)
+        with self.app.test_request_context(headers=self._headers(cookie_val)):
+            sess = factory.open_session(self.app, request)
+            assert isinstance(sess, EduidSession)
+            sess.idp.sso_cookie_val = "mine"
+            sess.require_durable()
+
+            other = factory.manager.get_session(meta=sess.meta, new=False)
+            other["other"] = "writer"
+            other.commit()
+
+            count_spy = mocker.spy(self.app.stats, "count")
+            commit_spy = mocker.spy(sess._session, "commit")
+            with pytest.raises(SessionOutOfSync):
+                factory.save_session(self.app, sess, Response())
+
+            count_spy.assert_any_call("session_out_of_sync_error")
+            count_spy.assert_any_call("session_state_lost")
+            db = factory.manager.get_session(meta=sess.meta, new=False)
+            assert db.to_dict()["idp"]["sso_cookie_val"] == "first"
+
+            # A repeated save (error path) is a no-op, no second commit attempt
             factory.save_session(self.app, sess, Response())
             assert commit_spy.call_count == 1
 

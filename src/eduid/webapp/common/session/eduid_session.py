@@ -117,6 +117,8 @@ class EduidSession(SessionMixin):
         self._invalidated = False
         # Set when a commit failed with SessionOutOfSync, to avoid retrying (and re-logging) on later persist() calls
         self._commit_failed = False
+        # Set by require_durable(): a lost commit conflict must then fail the request
+        self._must_persist = False
 
         # From SessionMixin
         self.new = new
@@ -359,6 +361,17 @@ class EduidSession(SessionMixin):
         """
         return to_jsonable_python(this.to_dict(exclude_none=True), fallback=EduidJSONEncoder().default)
 
+    def require_durable(self) -> None:
+        """
+        Mark this request as requiring its session changes to be persisted.
+
+        Normally a commit that loses a conflict (SessionOutOfSync) is logged and swallowed. Call this
+        when the request consumes a one-time grant (e.g. deleting mfa_action): if the commit of this
+        request loses a conflict, the request must fail instead of silently succeeding, otherwise
+        the grant could survive in the backend and be reused.
+        """
+        self._must_persist = True
+
     def persist(self) -> None:
         """
         Store the session data in the redis backend,
@@ -498,6 +511,9 @@ class SessionFactory(SessionInterface):
             app.stats.count("session_state_lost")
             logger.error(f"Commit of session {session} failed because it has been changed by someone else")
             self._log_conflict(session)
+            if session._must_persist:
+                # Fail closed. Later save_session calls are no-ops thanks to _commit_failed.
+                raise
             # TODO: optional reload/re-apply/retry-once merge (needs per-namespace semantics)
         session.set_cookie(response)
 
