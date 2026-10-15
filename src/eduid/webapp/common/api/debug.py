@@ -1,8 +1,6 @@
 import pprint
 import sys
-import warnings
 from collections.abc import Callable, Iterable
-from dataclasses import asdict
 from typing import Any, cast
 from urllib import parse
 from wsgiref.types import StartResponse, WSGIEnvironment
@@ -46,12 +44,7 @@ def log_endpoints(app: Flask) -> None:
 
 def dump_config(app: Flask) -> None:
     pprint.pprint(("CONFIGURATION", "app.config"), stream=sys.stderr)
-    try:
-        config_items = asdict(app.config).items()  # type: ignore[call-overload]
-    except TypeError:
-        config_items = app.config.items()
-        warnings.warn(f"{app.name} is using old dict config", DeprecationWarning, stacklevel=2)
-    for key, value in sorted(config_items):
+    for key, value in sorted(app.config.items()):
         pprint.pprint((key, value), stream=sys.stderr)
 
 
