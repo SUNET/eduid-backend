@@ -31,12 +31,12 @@ def log_endpoints(app: Flask) -> None:
     output: list[str] = []
     with app.app_context():
         for rule in app.url_map.iter_rules():
-            options = {}
+            options: dict[str, Any] = {}
             for arg in rule.arguments:
                 options[arg] = f"[{arg}]"
 
             methods = ",".join(rule.methods) if rule.methods else ""
-            url = url_for(rule.endpoint, values=options)
+            url = url_for(rule.endpoint, **options)
             line = parse.unquote(f"{rule.endpoint:50s} {methods:20s} {url}")
             output.append(line)
 
