@@ -41,9 +41,6 @@ class IdPConfig(EduIDBaseAppConfig, TouConfigMixin, Fido2RpConfigMixin, AmConfig
     # This defaults to False since it is a trivial DoS to consume all the IdP:s
     # CPU resources if this is set to True.
     verify_request_signatures: bool = False
-    # Get list of usernames valid for use with the /status URL.
-    # If this list is ['*'], all usernames are allowed for /status.
-    status_test_usernames: list[str] = Field(default=[])
     # URL (string) for use in simple templating of login.html.
     signup_link: str = "#"
     # URL (string) for use in simple templating of forbidden.html.
