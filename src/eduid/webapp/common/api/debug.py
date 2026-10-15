@@ -15,8 +15,8 @@ __author__ = "lundberg"
 # Configuration keys that hold credentials, and some look-alikes that do not (URLs, labels and handles)
 _SECRET_KEY_RE = re.compile(r"secret|passw(or)?d|(^|_)pin$|jwk|private_key|api_?key|(^|_)token$", re.IGNORECASE)
 _NOT_SECRET_SUFFIXES = ("_url", "_link", "_label", "_handle")
-# user:password@ in URIs such as mongodb://user:password@host/db
-_URI_CREDENTIALS_RE = re.compile(r"(?<=://)([^/@\s:]*):[^/@\s]*@")
+# user:password@ in URIs such as mongodb://user:password@host/db. Possessive quantifiers: no backtracking.
+_URI_CREDENTIALS_RE = re.compile(r"(?<=://)([^/@\s:]*+):[^/@\s]*+@")
 _REDACTED = "REDACTED"  # same placeholder as elsewhere in the code base
 
 

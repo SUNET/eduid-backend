@@ -40,6 +40,7 @@ def test_dump_config_hides_credentials(capsys: pytest.CaptureFixture[str]) -> No
     app.config["SECRET_KEY"] = "flask-secret-value"
     app.config["ORCID_CLIENT"] = {"client_id": "visible-client-id", "client_secret": "nested-secret-value"}
     app.config["PASSWORD_SERVICE_URL"] = "/services/reset-password/"
+    app.config["EDUID_STATIC_URL"] = "https://static.example.org:8443/"
     conf = EduIDBaseAppConfig.model_validate(
         {
             "app_name": "test_app",
@@ -60,3 +61,4 @@ def test_dump_config_hides_credentials(capsys: pytest.CaptureFixture[str]) -> No
     # Values that are not credentials are still shown
     assert "visible-client-id" in output
     assert "/services/reset-password/" in output
+    assert "https://static.example.org:8443/" in output
