@@ -115,6 +115,8 @@ class EduidSession(SessionMixin):
         self._session = base_session
         self._created = utc_now()
         self._invalidated = False
+        # Set when a commit failed with SessionOutOfSync, to avoid retrying (and re-logging) on later persist() calls
+        self._commit_failed = False
 
         # From SessionMixin
         self.new = new
@@ -276,18 +278,6 @@ class EduidSession(SessionMixin):
         """
         return self._created
 
-    def renew_ttl(self, renew_backend: bool) -> None:
-        """
-        Reset the ttl for the session, both in the cookie and
-        (if `renew_backend==True`) in the redis backend.
-
-        :param renew_backend: whether to renew the ttl in the redis backend
-        """
-        if not self.modified:
-            self.modified = True
-            if renew_backend:
-                self._session.renew_ttl()
-
     def reset(self, keep_csrf: bool = True) -> None:
         """Used when logging out"""
         csrf = None if not keep_csrf else self.get_csrf_token()
@@ -350,19 +340,24 @@ class EduidSession(SessionMixin):
 
         The __setitem__ function on `self' will essentially write the data into the backend session (self._session).
         """
-        for k, value in self._namespaces.model_dump(exclude_none=True).items():
+        for k in EduidNamespaces.model_fields:
             this = getattr(self._namespaces, k)
-            if isinstance(this, TimestampedNS):
-                if k in self and self[k] != value:
-                    # update timestamp on change
-                    this.ts = utc_now()
-            if isinstance(this, SessionNSBase):
-                # hack to make the new value comparable with the old
-                # this is checked in session __setitem__
-                store_value = to_jsonable_python(this.to_dict(exclude_none=True))
-            else:
-                store_value = value
+            if this is None:
+                continue
+            store_value = self._namespace_store_value(this)
+            if isinstance(this, TimestampedNS) and k in self and self[k] != store_value:
+                # update timestamp on change
+                this.ts = utc_now()
+                store_value = self._namespace_store_value(this)
+            # __setitem__ only sets `modified' if the value actually changed
             self[k] = store_value
+
+    @staticmethod
+    def _namespace_store_value(this: SessionNSBase) -> object:
+        """
+        Get the JSON-compatible representation of a namespace, comparable with what is stored in the session.
+        """
+        return to_jsonable_python(this.to_dict(exclude_none=True))
 
     def persist(self) -> None:
         """
@@ -371,9 +366,16 @@ class EduidSession(SessionMixin):
 
         Check that session_id exists - when e.g. the account is being terminated,
         the session has already been invalidated at this point.
+
+        If a previous commit in this request failed (SessionOutOfSync), later persist() calls
+        are skipped on purpose: the conflict was already reported and retrying would only
+        raise again.
         """
         if self._invalidated:
             logger.debug("Not saving invalidated session")
+            return
+        if self._commit_failed:
+            logger.debug("Not saving session, a previous commit failed")
             return
 
         # Serialize namespace instances back into self._session
@@ -381,13 +383,20 @@ class EduidSession(SessionMixin):
 
         if self.modified:
             logger.debug(f"Saving session {self}")
-            self._session.commit()
+            try:
+                self._session.commit()
+            except SessionOutOfSync:
+                self._commit_failed = True
+                raise
             self.new = False
             self.modified = False
             _conf = self.app.conf
             if self.app.debug or (isinstance(_conf, EduIDBaseAppConfig) and _conf.testing):
                 _saved_data = json.dumps(self._session.to_dict(), indent=4, sort_keys=True, cls=EduidJSONEncoder)
                 logger.debug(f"Saved session {self}:\n{_saved_data}")
+        elif not self.new:
+            # Nothing to write, but keep the session alive in the backend
+            self._session.renew_ttl()
 
 
 class SessionFactory(SessionInterface):
@@ -486,31 +495,25 @@ class SessionFactory(SessionInterface):
             session.persist()
         except SessionOutOfSync:
             app.stats.count("session_out_of_sync_error")
+            app.stats.count("session_state_lost")
             logger.error(f"Commit of session {session} failed because it has been changed by someone else")
-            diff_c = 0
-            # For debugging purposes, load the session from the backend anew and show what was changed
-            # by someone else
-            try:
-                session_now = self.manager.get_session(meta=session.meta, new=False)
-                for k, v in session.items():
-                    if k in session_now:
-                        # Serialise my data so it can be compared to the serialised data in session_now
-                        my_v = json.loads(json.dumps(v, cls=EduidJSONEncoder))
-                        if my_v != session_now[k]:
-                            logger.error(
-                                f"Session key {k} changed, mine\n{pprint.pformat(my_v)}\n"
-                                f"in db:\n{pprint.pformat(session_now[k])}"
-                            )
-                            diff_c += 1
-                    else:
-                        logger.error(f"Session key {k} disappeared, mine {v}")
-                        diff_c += 1
-                for k, v in session_now.items():
-                    if k not in session:
-                        logger.error(f"Session key {k} added in db: {v}")
-                        diff_c += 1
-            except KeyError:
-                logger.error("Failed loading session from backend for comparison")
-            logger.error(f"Number of differences: {diff_c}")
-            raise
+            self._log_conflict(session)
+            # TODO: optional reload/re-apply/retry-once merge (needs per-namespace semantics)
         session.set_cookie(response)
+
+    @staticmethod
+    def _log_conflict(session: EduidSession) -> None:
+        """
+        Log what differs between the session as loaded, the backend, and this request's changes.
+
+        Only key paths are logged above DEBUG level, session data is sensitive. Never raises.
+        """
+        try:
+            others, ours = session._session.describe_conflict()
+            logger.error(f"Session {session.short_id} changed by other writer: {others}")
+            logger.warning(f"Session {session.short_id} our attempted changes: {ours}")
+            logger.error(f"Session state lost: our changes were NOT persisted: {ours}")
+            if logger.isEnabledFor(logging.DEBUG):
+                logger.debug(f"Session {session.short_id} our data:\n{pprint.pformat(session._session.to_dict())}")
+        except Exception:
+            logger.exception("Failed describing session conflict")

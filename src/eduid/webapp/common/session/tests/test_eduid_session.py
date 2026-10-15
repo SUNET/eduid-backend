@@ -1,7 +1,10 @@
+import time
 from collections.abc import Mapping
-from typing import Any
+from typing import Any, cast
 
 import pytest
+from flask import Response, request
+from pytest_mock import MockerFixture
 
 from eduid.common.config.base import EduIDBaseAppConfig
 from eduid.common.config.parsers import load_config
@@ -9,8 +12,9 @@ from eduid.webapp.common.api.testing import EduidAPITestCase
 from eduid.webapp.common.authn.middleware import AuthnBaseApp
 from eduid.webapp.common.authn.utils import no_authn_views
 from eduid.webapp.common.session import session
-from eduid.webapp.common.session.eduid_session import EduidSession
+from eduid.webapp.common.session.eduid_session import EduidSession, SessionFactory
 from eduid.webapp.common.session.namespaces import LoginApplication
+from eduid.webapp.common.session.redis_session import RedisEncryptedSession
 
 __author__ = "lundberg"
 
@@ -244,3 +248,109 @@ class EduidSessionTests(EduidAPITestCase[SessionTestApp]):
             with browser.session_transaction() as sess:
                 assert isinstance(sess, EduidSession)
                 assert sess.idp.ts != sess.signup.ts
+
+    def _new_cookie(self) -> str:
+        """Create and persist a session with some idp data, return its cookie value"""
+        with self.app.test_request_context():
+            sess = self.app.session_interface.open_session(self.app, request)
+            assert isinstance(sess, EduidSession)
+            sess.idp.sso_cookie_val = "first"
+            sess.persist()
+            return sess.meta.cookie_val
+
+    def _headers(self, cookie_val: str) -> dict[str, str]:
+        return {"Cookie": f"{self.app.conf.flask.session_cookie_name}={cookie_val}"}
+
+    def test_save_session_swallows_out_of_sync(self, mocker: MockerFixture) -> None:
+        cookie_val = self._new_cookie()
+        factory = self.app.session_interface
+        assert isinstance(factory, SessionFactory)
+        with self.app.test_request_context(headers=self._headers(cookie_val)):
+            sess = factory.open_session(self.app, request)
+            sess.idp.sso_cookie_val = "mine"
+
+            other = factory.manager.get_session(meta=sess.meta, new=False)
+            other["other"] = "writer"
+            other.commit()
+
+            count_spy = mocker.spy(self.app.stats, "count")
+            commit_spy = mocker.spy(sess._session, "commit")
+            response = Response()
+            factory.save_session(self.app, sess, response)  # must not raise
+
+            count_spy.assert_any_call("session_out_of_sync_error")
+            count_spy.assert_any_call("session_state_lost")
+            cookies = response.headers.getlist("Set-Cookie")
+            assert any(c.startswith(f"{self.app.conf.flask.session_cookie_name}={cookie_val}") for c in cookies)
+            db = factory.manager.get_session(meta=sess.meta, new=False)
+            assert db["other"] == "writer"
+            assert db.to_dict()["idp"]["sso_cookie_val"] == "first"
+
+            factory.save_session(self.app, sess, Response())
+            assert commit_spy.call_count == 1
+
+    def test_save_session_swallows_out_of_sync_when_describe_conflict_fails(self, mocker: MockerFixture) -> None:
+        cookie_val = self._new_cookie()
+        factory = self.app.session_interface
+        assert isinstance(factory, SessionFactory)
+        with self.app.test_request_context(headers=self._headers(cookie_val)):
+            sess = factory.open_session(self.app, request)
+            sess.idp.sso_cookie_val = "mine"
+
+            other = factory.manager.get_session(meta=sess.meta, new=False)
+            other["other"] = "writer"
+            other.commit()
+
+            mocker.patch.object(RedisEncryptedSession, "describe_conflict", side_effect=RuntimeError("boom"))
+            count_spy = mocker.spy(self.app.stats, "count")
+            response = Response()
+            factory.save_session(self.app, sess, response)  # must not raise
+
+            count_spy.assert_any_call("session_out_of_sync_error")
+            count_spy.assert_any_call("session_state_lost")
+            cookies = response.headers.getlist("Set-Cookie")
+            assert any(c.startswith(f"{self.app.conf.flask.session_cookie_name}={cookie_val}") for c in cookies)
+
+    def test_timestamp_not_bumped_when_unchanged(self, mocker: MockerFixture) -> None:
+        cookie_val = self._new_cookie()
+        factory = self.app.session_interface
+        with self.app.test_request_context(headers=self._headers(cookie_val)):
+            sess = factory.open_session(self.app, request)
+            assert isinstance(sess, EduidSession)
+            ts = sess.idp.ts
+            assert sess.idp.sso_cookie_val == "first"
+            sess._serialize_namespaces()
+            assert sess.idp.ts == ts
+            assert sess.modified is False
+
+            commit_spy = mocker.spy(sess._session, "commit")
+            factory.save_session(self.app, sess, Response())
+            commit_spy.assert_not_called()
+
+    def test_timestamp_bumped_on_change_after_reload(self) -> None:
+        cookie_val = self._new_cookie()
+        factory = self.app.session_interface
+        with self.app.test_request_context(headers=self._headers(cookie_val)):
+            sess = factory.open_session(self.app, request)
+            assert isinstance(sess, EduidSession)
+            ts = sess.idp.ts
+            sess.idp.sso_cookie_val = "changed"
+            sess._serialize_namespaces()
+            assert sess.idp.ts > ts
+            assert sess.modified is True
+
+    def test_backend_ttl_refreshed_without_changes(self) -> None:
+        cookie_val = self._new_cookie()
+        factory = self.app.session_interface
+        with self.app.test_request_context(headers=self._headers(cookie_val)):
+            sess = factory.open_session(self.app, request)
+            assert isinstance(sess, EduidSession)
+            key = sess._session.db_key
+            conn = sess._session.conn
+            conn.expire(key, 5)
+            raw_before = conn.get(key)
+            time.sleep(0.01)
+            factory.save_session(self.app, sess, Response())
+            ttl = cast(int, conn.ttl(key))
+            assert ttl > 5
+            assert conn.get(key) == raw_before

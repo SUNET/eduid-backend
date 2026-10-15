@@ -63,6 +63,9 @@ from eduid.webapp.common.session.meta import SessionMeta
 
 logger = logging.getLogger(__name__)
 
+# Max WATCH/EXEC attempts in RedisEncryptedSession.commit() before giving up
+_MAX_COMMIT_ATTEMPTS = 5
+
 
 class SessionManager:
     """
@@ -152,6 +155,31 @@ class NoSessionDataFoundException(Exception):
 
 class SessionOutOfSync(Exception):
     pass
+
+
+def _diff_paths(old: Mapping[str, Any], new: Mapping[str, Any], prefix: str = "", depth: int = 2) -> list[str]:
+    """
+    List the key paths that differ between two dicts, without including any values.
+
+    :param old: The baseline
+    :param new: The data to compare to the baseline
+    :param prefix: Dotted path prefix of the dicts being compared
+    :param depth: How many levels of nested dicts to recurse into
+    :returns: Descriptions like 'added idp.foo', 'removed bar' or 'changed idp.ts'
+    """
+    res: list[str] = []
+    for k in sorted(old.keys() | new.keys()):
+        path = f"{prefix}{k}"
+        if k not in new:
+            res.append(f"removed {path}")
+        elif k not in old:
+            res.append(f"added {path}")
+        elif old[k] != new[k]:
+            if depth > 1 and isinstance(old[k], dict) and isinstance(new[k], dict):
+                res.extend(_diff_paths(old[k], new[k], prefix=f"{path}.", depth=depth - 1))
+            else:
+                res.append(f"changed {path}")
+    return res
 
 
 class RedisEncryptedSession(typing.MutableMapping[str, Any]):
@@ -257,24 +285,44 @@ class RedisEncryptedSession(typing.MutableMapping[str, Any]):
         data = self.encrypt_data(self._data)
         logger.debug(f"Committing session {self} to Redis with ttl {self.ttl} ({len(data)} bytes)")
 
-        def set_no_clobber(pipe: redis.client.Pipeline) -> None:
-            """
-            Read the current value of the session from the database and compare it to what it was
-            when this instance of the session was initialised, before writing this session to the
-            database.
+        baseline = self._raw_data
 
-            If two requests are processed simultaneously, it is better to fail the second one than
-            to silently clobber the first ones updates to the session.
-            """
-            if self._raw_data is not None:
-                _data_now = self.conn.get(self.db_key)
-                if _data_now != self._raw_data:
-                    pipe.reset()
-                    raise SessionOutOfSync(f"The session {self} has been updated by someone else")
-            pipe.setex(self.db_key, self.ttl, data)
+        # Not using Redis.transaction(): it retries WatchError forever, and a peer's plain EXPIRE
+        # (or a connection error while watching, which redis-py turns into WatchError) would hot-loop.
+        for attempt in range(1, _MAX_COMMIT_ATTEMPTS + 1):
+            with self.conn.pipeline() as pipe:
+                try:
+                    pipe.watch(self.db_key)  # type: ignore[no-untyped-call]
+                    if baseline is not None:
+                        # Pipeline is in immediate mode until multi() is called
+                        _data_now = cast(bytes | None, pipe.get(self.db_key))
+                        if _data_now != baseline:
+                            raise SessionOutOfSync(f"The session {self} has been updated by someone else")
+                    pipe.multi()
+                    pipe.setex(self.db_key, self.ttl, data)
+                    pipe.execute()
+                except redis.WatchError:
+                    logger.warning(f"Session {self} modified during commit, attempt {attempt}/{_MAX_COMMIT_ATTEMPTS}")
+                    continue
+            # The baseline only moves after a successful EXEC
             self._raw_data = data
+            return
+        raise SessionOutOfSync(f"The session {self} is contended")
 
-        self.conn.transaction(set_no_clobber, watches=self.db_key)
+    def describe_conflict(self) -> tuple[list[str], list[str]]:
+        """
+        Describe what differs after a failed commit, for diagnostics.
+
+        :returns: (paths changed by the other writer since load, paths this instance tried to change)
+        """
+        baseline = self.decrypt_data(self._raw_data) if self._raw_data else {}
+        raw_now = self.conn.get(self.db_key)
+        if raw_now:
+            others = _diff_paths(baseline, self.decrypt_data(cast(bytes, raw_now)))
+        else:
+            others = ["deleted by other writer"]
+        ours_data = json.loads(json.dumps(self._data, cls=EduidJSONEncoder))
+        return others, _diff_paths(baseline, ours_data)
 
     def encrypt_data(self, data_dict: Mapping[str, Any]) -> bytes:
         """
