@@ -1,4 +1,5 @@
 import pprint
+import re
 import sys
 from collections.abc import Callable, Iterable
 from typing import Any, cast
@@ -10,6 +11,28 @@ from flask import Flask, url_for
 from eduid.common.config.base import EduIDBaseAppConfig
 
 __author__ = "lundberg"
+
+# Configuration keys that hold credentials, and some look-alikes that do not (URLs, labels and handles)
+_SECRET_KEY_RE = re.compile(r"secret|passw(or)?d|(^|_)pin$|jwk|private_key|api_?key|(^|_)token$", re.IGNORECASE)
+_NOT_SECRET_SUFFIXES = ("_url", "_link", "_label", "_handle")
+# user:password@ in URIs such as mongodb://user:password@host/db
+_URI_CREDENTIALS_RE = re.compile(r"(?<=://)([^/@\s:]*):[^/@\s]*@")
+_REDACTED = "REDACTED"  # same placeholder as elsewhere in the code base
+
+
+def _redact(key: str, value: object) -> object:
+    """Hide credentials in a configuration value before it is printed."""
+    is_container = isinstance(value, dict | list | tuple)
+    if (isinstance(value, str | bytes) or is_container) and value:
+        if _SECRET_KEY_RE.search(key) and not key.lower().endswith(_NOT_SECRET_SUFFIXES):
+            return _REDACTED
+        if isinstance(value, dict):
+            return {k: _redact(str(k), v) for k, v in value.items()}
+        if isinstance(value, list | tuple):
+            return [_redact(key, v) for v in value]
+        if isinstance(value, str):
+            return _URI_CREDENTIALS_RE.sub(rf"\1:{_REDACTED}@", value)
+    return value
 
 
 class LoggingMiddleware:
@@ -47,10 +70,10 @@ def log_endpoints(app: Flask) -> None:
 def dump_config(app: Flask, conf: EduIDBaseAppConfig) -> None:
     pprint.pprint(("CONFIGURATION", "app.config"), stream=sys.stderr)
     for key, value in sorted(app.config.items()):
-        pprint.pprint((key, value), stream=sys.stderr)
+        pprint.pprint((key, _redact(key, value)), stream=sys.stderr)
     pprint.pprint(("CONFIGURATION", "app.conf"), stream=sys.stderr)
     for key, value in sorted(conf.model_dump().items()):
-        pprint.pprint((key, value), stream=sys.stderr)
+        pprint.pprint((key, _redact(key, value)), stream=sys.stderr)
 
 
 def init_app_debug(app: Flask, conf: EduIDBaseAppConfig) -> Flask:
