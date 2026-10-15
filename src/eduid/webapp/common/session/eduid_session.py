@@ -357,7 +357,7 @@ class EduidSession(SessionMixin):
         """
         Get the JSON-compatible representation of a namespace, comparable with what is stored in the session.
         """
-        return to_jsonable_python(this.to_dict(exclude_none=True))
+        return to_jsonable_python(this.to_dict(exclude_none=True), fallback=EduidJSONEncoder().default)
 
     def persist(self) -> None:
         """
