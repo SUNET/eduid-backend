@@ -102,7 +102,6 @@ class WorkerConfig(RootConfig):
     Configuration common to all celery workers
     """
 
-    audit: bool = False
     celery: CeleryConfig = Field(default_factory=CeleryConfig)
     mongo_uri: str | None = None
     transaction_audit: bool = False
