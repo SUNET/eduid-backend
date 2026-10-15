@@ -14,7 +14,6 @@ class MsgConfig(WorkerConfig):
     Configuration for the msg celery worker
     """
 
-    audit: bool = True
     devel_mode: bool = False
     mail_host: str = "localhost"
     mail_password: str = ""
