@@ -2,6 +2,8 @@ import pprint
 import re
 import sys
 from collections.abc import Callable, Iterable
+from datetime import timedelta
+from enum import Enum
 from typing import Any, cast
 from urllib import parse
 from wsgiref.types import StartResponse, WSGIEnvironment
@@ -15,7 +17,7 @@ __author__ = "lundberg"
 # Configuration keys that hold credentials, and some look-alikes that do not (URLs, labels and handles)
 _SECRET_KEY_RE = re.compile(
     r"secret|passw(or)?d|(^|_)pw$|(^|_)pin$|jwk|private_key|api_?key|sms_key|key_handles|backdoor_code|magic_cookie$"
-    r"|(^|_)token$",
+    r"|(^|_)token$|(^|_)(auth|credentials?)$",
     re.IGNORECASE,
 )
 _NOT_SECRET_SUFFIXES = ("_url", "_link", "_label", "_handle")
@@ -35,16 +37,16 @@ def _mask_uri_password(value: str) -> str:
 
 def _redact(key: str, value: object) -> object:
     """Hide credentials in a configuration value before it is printed."""
-    is_container = isinstance(value, dict | list | tuple)
-    if (isinstance(value, str | bytes) or is_container) and value:
-        if _SECRET_KEY_RE.search(key) and not key.lower().endswith(_NOT_SECRET_SUFFIXES):
+    # Numbers, booleans (an int subclass), timedeltas and enums are settings, not credentials, whatever the key says
+    if _SECRET_KEY_RE.search(key) and not key.lower().endswith(_NOT_SECRET_SUFFIXES):
+        if value and not isinstance(value, int | float | timedelta | Enum):
             return _REDACTED
-        if isinstance(value, dict):
-            return {k: _redact(str(k), v) for k, v in value.items()}
-        if isinstance(value, list | tuple):
-            return [_redact(key, v) for v in value]
-        if isinstance(value, str):
-            return _mask_uri_password(value)
+    if isinstance(value, dict):
+        return {k: _redact(str(k), v) for k, v in value.items()}
+    if isinstance(value, list | tuple):
+        return [_redact(key, v) for v in value]
+    if isinstance(value, str):
+        return _mask_uri_password(value)
     return value
 
 

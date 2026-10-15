@@ -1,8 +1,11 @@
+from datetime import timedelta
+from typing import Any
+
 import pytest
 from flask import Flask
 
 from eduid.common.config.base import CaptchaConfigMixin, EduIDBaseAppConfig, MagicCookieMixin
-from eduid.webapp.common.api.debug import _mask_uri_password, dump_config, log_endpoints
+from eduid.webapp.common.api.debug import _mask_uri_password, _redact, dump_config, log_endpoints
 
 
 def test_log_endpoints_handles_routes_with_arguments(capsys: pytest.CaptureFixture[str]) -> None:
@@ -37,6 +40,7 @@ def test_dump_config_includes_flask_config_and_app_conf(capsys: pytest.CaptureFi
 
 class DebugTestConfig(EduIDBaseAppConfig, MagicCookieMixin, CaptchaConfigMixin):
     ekopost_api_pw: str = ""
+    neo4j_config: dict[str, Any] | None = None
 
 
 def test_dump_config_hides_credentials(capsys: pytest.CaptureFixture[str]) -> None:
@@ -54,6 +58,8 @@ def test_dump_config_hides_credentials(capsys: pytest.CaptureFixture[str]) -> No
             "magic_cookie": "magic-cookie-value",
             "magic_cookie_name": "visible-cookie-name",
             "captcha_backdoor_code": "backdoor-value",
+            "neo4j_config": {"auth": ("neo4j", "neo4j-password-value"), "encrypted": False},
+            "logging_config": {"handlers": {"mail": {"credentials": ["mail-user", "mail-password-value"]}}},
         }
     )
 
@@ -68,6 +74,8 @@ def test_dump_config_hides_credentials(capsys: pytest.CaptureFixture[str]) -> No
         "ekopost-pw-value",
         "magic-cookie-value",
         "backdoor-value",
+        "neo4j-password-value",
+        "mail-password-value",
     )
     for secret in secrets:
         assert secret not in output
@@ -77,10 +85,13 @@ def test_dump_config_hides_credentials(capsys: pytest.CaptureFixture[str]) -> No
     assert "('ekopost_api_pw', 'REDACTED')" in output
     assert "('magic_cookie', 'REDACTED')" in output
     assert "('captcha_backdoor_code', 'REDACTED')" in output
+    assert "'auth': 'REDACTED'" in output
+    assert "'credentials': 'REDACTED'" in output
     assert "mongodb://dbuser:REDACTED@localhost/test" in output
     # Values that are not credentials are still shown
     assert "visible-client-id" in output
     assert "('magic_cookie_name', 'visible-cookie-name')" in output
+    assert "'encrypted': False" in output
     assert "/services/reset-password/" in output
     assert "('EDUID_STATIC_URL', 'https://static.example.org:8443/')" in output
 
@@ -101,3 +112,22 @@ def test_dump_config_hides_credentials(capsys: pytest.CaptureFixture[str]) -> No
 )
 def test_mask_uri_password(uri: str, expected: str) -> None:
     assert _mask_uri_password(uri) == expected
+
+
+@pytest.mark.parametrize(
+    ("key", "value", "expected"),
+    [
+        ("auth", ("neo4j", "pw"), "REDACTED"),
+        ("auth", object(), "REDACTED"),
+        ("client_secret", b"bytes-secret", "REDACTED"),
+        # not credentials, whatever the key says
+        ("password_length", 12, 12),
+        ("allow_login_auth", True, True),
+        ("password_v2_grace_period", timedelta(days=180), timedelta(days=180)),
+        ("auth", None, None),
+        ("auth", "", ""),
+        ("password_service_url", "/services/reset-password/", "/services/reset-password/"),
+    ],
+)
+def test_redact(key: str, value: object, expected: object) -> None:
+    assert _redact(key, value) == expected
