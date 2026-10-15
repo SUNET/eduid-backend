@@ -9,7 +9,6 @@ from eduid.common.rpc.am_relay import AmRelay
 from eduid.userdb.logs import ProofingLog
 from eduid.userdb.proofing.db import SvideIDProofingUserDB
 from eduid.webapp.common.authn.middleware import AuthnBaseApp
-from eduid.webapp.svipe_id.helpers import SessionOidcCache
 from eduid.webapp.svipe_id.settings.common import SvipeIdConfig
 
 __author__ = "lundberg"
@@ -28,9 +27,7 @@ class SvipeIdApp(AuthnBaseApp):
         self.am_relay = AmRelay(config)
 
         # Initialize the oidc_client
-        self.oidc_client: OidcRpClient = init_oidc_rp_client(
-            app=self, name="svipe", config=self.conf.svipe_client, cache=SessionOidcCache()
-        )
+        self.oidc_client: OidcRpClient = init_oidc_rp_client(app=self, name="svipe", config=self.conf.svipe_client)
 
 
 current_svipe_id_app = cast(SvipeIdApp, current_app)

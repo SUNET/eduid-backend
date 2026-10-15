@@ -18,6 +18,7 @@ from eduid.webapp.common.session.namespaces import (
     ExternalMfaSignupBankIDIdentity,
     ExternalMfaSignupEIDASIdentity,
     ExternalMfaSignupFrejaEIDForeignIdentity,
+    FrejaEIDNamespace,
     OIDCState,
     RP_AuthnRequest,
     RPAuthnData,
@@ -201,12 +202,8 @@ def test_rp_authn_request_has_external_mfa_field() -> None:
     assert "external_mfa_signup_identity" in RP_AuthnRequest.model_fields
 
 
-def test_rp_authn_data_authlib_cache_cleanup() -> None:
-    """
-    authlib_cache must not grow indefinitely with entries left behind by abandoned authorization
-    attempts - it should be pruned in lockstep with authns_cleanup, keeping only the cache entries
-    that correlate (by state) with the retained authns entries.
-    """
+def test_rp_authn_data_authns_cleanup() -> None:
+    """Only the most recently created authns (by created_ts) are retained when serializing."""
     rp = RPAuthnData()
     now = utc_now()
     states = [OIDCState(str(uuid.uuid4())) for _ in range(15)]
@@ -217,25 +214,47 @@ def test_rp_authn_data_authlib_cache_cleanup() -> None:
             finish_url="some_url",
             created_ts=now + timedelta(seconds=i),
         )
-        # authlib stores multiple keys per state (state/nonce/code_verifier)
-        rp.authlib_cache[f"_state_someapp_{state}"] = f"state-value-{i}"
-        rp.authlib_cache[f"_state_someapp_{state}_code_verifier"] = f"code-verifier-value-{i}"
 
     assert len(rp.authns) == 15
-    assert len(rp.authlib_cache) == 30
 
     dumped = rp.model_dump()
 
-    # only the 10 most recently created authns (by created_ts) should be retained
-    retained_states = {str(s) for s in states[5:]}
-    assert set(dumped["authns"].keys()) == retained_states
+    assert set(dumped["authns"].keys()) == {str(s) for s in states[5:]}
 
-    # authlib_cache should only contain entries correlated with the retained states
-    assert len(dumped["authlib_cache"]) == 20
-    for key in dumped["authlib_cache"]:
-        assert any(state in key for state in retained_states)
-    for state in states[:5]:
-        assert not any(str(state) in key for key in dumped["authlib_cache"])
+
+def test_rp_authn_request_oidc_fields_roundtrip() -> None:
+    state = OIDCState(str(uuid.uuid4()))
+    authn_req = RP_AuthnRequest(
+        authn_id=state,
+        frontend_action=FrontendAction.VERIFY_IDENTITY,
+        finish_url="some_url",
+        nonce="a-nonce",
+        code_verifier="a-code-verifier",
+        redirect_uri="https://rp.example.com/callback",
+    )
+
+    rebuilt = RP_AuthnRequest.model_validate(authn_req.model_dump())
+
+    assert rebuilt.nonce == "a-nonce"
+    assert rebuilt.code_verifier == "a-code-verifier"
+    assert rebuilt.redirect_uri == "https://rp.example.com/callback"
+
+
+def test_rp_authn_data_old_session_with_authlib_cache() -> None:
+    """A session saved before authlib was removed still loads, and the stale authlib_cache is dropped."""
+    state = OIDCState(str(uuid.uuid4()))
+    old_session_data = {
+        "rp": {
+            "authlib_cache": {f"_state_freja_eid_{state}": "state-value"},
+            "authns": {},
+        }
+    }
+
+    namespace = FrejaEIDNamespace.from_dict(old_session_data)
+
+    assert not hasattr(namespace.rp, "authlib_cache")
+    assert "authlib_cache" not in namespace.to_dict()["rp"]
+    assert "authlib_cache" not in namespace.rp.model_dump()
 
 
 def test_sp_authn_request_external_mfa_eidas_roundtrip() -> None:

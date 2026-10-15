@@ -1,58 +1,132 @@
+import ipaddress
 from collections.abc import Mapping
-from typing import Any, Protocol
+from dataclasses import dataclass
+from typing import Any, Literal, Protocol, Self
+from urllib.parse import urlsplit
 
-from pydantic import AnyUrl, BaseModel, Field
+from pydantic import AnyUrl, BaseModel, Field, field_validator, model_validator
 
 __author__ = "lundberg"
+
+
+def _is_loopback_host(host: str) -> bool:
+    if host.lower() == "localhost":
+        return True
+    try:
+        return ipaddress.ip_address(host).is_loopback
+    except ValueError:
+        return False
 
 
 class OidcRpError(Exception):
     """The only OIDC RP client error type visible to webapps using OidcRpClient."""
 
 
-class OidcStateCache(Protocol):
-    """Duck-typed cache used by the OIDC RP client implementation to persist state/nonce data."""
-
-    def get(self, key: str) -> str | None: ...
-
-    def set(self, key: str, value: str, expires: int | None = None) -> None: ...
-
-    def delete(self, key: str) -> None: ...
-
-
 class OidcRpClientConfig(BaseModel):
     client_id: str
     client_secret: str
-    issuer: AnyUrl
+    # The exact issuer string of the provider, used as is for discovery and issuer matching
+    issuer: str
     code_challenge_method: str | None = Field(default="S256")
     acr_values: list[str] = Field(default_factory=list)
     scopes: list[str] = Field(default=["openid"])
-    # OIDC defines the optional "amr" ID token claim as an array of strings, but some OPs send it
-    # as a single string (ORCID sends "pwd" or "mfa"). Such ID tokens are rejected by strict claims
-    # validation, so set this for OPs known to send a bare string.
-    allow_string_amr: bool = False
+    # ID token signature algorithms accepted from the provider
+    allowed_algorithms: list[str] = Field(default=["RS256"])
+    # Clock skew tolerance, in seconds, when validating ID token time claims
+    leeway: int = 120
+    userinfo_method: Literal["GET", "POST"] = "GET"
+    # How a signed (application/jwt) userinfo response is proven to be a userinfo token. None means only
+    # plain JSON userinfo responses are accepted. "typed" requires userinfo_typ (the JWT "typ" header value),
+    # "dedicated_keys" is only safe if the provider's JWKS holds nothing but userinfo signing keys.
+    userinfo_trust: Literal["typed", "dedicated_keys"] | None = None
+    userinfo_typ: str | None = None
+
+    @field_validator("issuer")
+    @classmethod
+    def _validate_issuer(cls, v: str) -> str:
+        """
+        Check the OIDC issuer constraints (https URL with a host, no credentials, query or fragment), mirroring
+        what pygrindvakt discovery accepts: plain http only for loopback hosts. The string is returned exactly
+        as configured, it is used as is for discovery and issuer matching. Messages never echo the value,
+        as it may contain credentials.
+        """
+        AnyUrl(v)  # syntax check
+        try:
+            parts = urlsplit(v)
+            host = parts.hostname
+            _ = parts.port  # validates the port
+        except ValueError:
+            raise ValueError("issuer is not a valid URL") from None
+        if "?" in v or "#" in v:
+            raise ValueError("issuer must not contain a query or fragment")
+        if parts.username is not None or parts.password is not None or "@" in parts.netloc:
+            raise ValueError("issuer must not contain credentials")
+        if not host:
+            raise ValueError("issuer must contain a host")
+        if parts.scheme == "https":
+            return v
+        if parts.scheme == "http" and _is_loopback_host(host):
+            return v
+        raise ValueError("issuer must be an https URL (http is only allowed for loopback hosts)")
+
+    @model_validator(mode="after")
+    def _validate_userinfo_trust(self) -> Self:
+        if self.userinfo_trust == "typed" and not self.userinfo_typ:
+            raise ValueError("userinfo_trust 'typed' requires userinfo_typ")
+        if self.userinfo_trust is None and self.userinfo_typ is not None:
+            raise ValueError("userinfo_typ requires userinfo_trust")
+        return self
+
+    # How long (seconds) discovered provider metadata is cached
+    discovery_ttl: int = 3600
+    # Upper bound (seconds) for a discovery request, and for waiting for another thread's discovery
+    discovery_timeout: int = 8
+    # After a failed discovery, do not retry for this many seconds
+    discovery_failure_backoff: int = 10
+    # Outbound HTTP timeouts, in seconds
+    http_connect_timeout: int = 5
+    http_read_timeout: int = 15
+    http_request_timeout: int = 30
+
+
+@dataclass(frozen=True)
+class AuthnRequestData:
+    """An authorization request minted by the client. The RP must keep nonce/code_verifier until the callback."""
+
+    url: str
+    state: str
+    nonce: str
+    code_verifier: str | None
+    redirect_uri: str
+
+
+@dataclass(frozen=True)
+class OidcAuthnResult:
+    """The outcome of a successful code exchange: verified ID token claims and the raw token response."""
+
+    claims: dict[str, Any]
+    tokens: dict[str, Any]
 
 
 class OidcRpClient(Protocol):
     """
     Interface for an OIDC Relying Party client, decoupling webapps from the underlying
-    OIDC client implementation (currently authlib).
+    OIDC client implementation (currently pygrindvakt).
+
+    The client keeps no per-login state: the caller stores state/nonce/code_verifier/redirect_uri
+    (from AuthnRequestData) and hands them back to finish().
     """
 
-    def authorization_url(self, redirect_uri: str, extra_params: Mapping[str, str] | None = None) -> str:
-        """Build the authorization request URL and persist state/nonce for later verification."""
+    def mint_authn_request(self, redirect_uri: str, extra_params: Mapping[str, str] | None = None) -> AuthnRequestData:
+        """Build an authorization request. extra_params may hold claims, acr_values, prompt etc."""
         ...
 
-    def fetch_token(self) -> dict[str, Any]:
-        """Exchange the authorization code for a token. Must be called inside a Flask request context."""
+    def finish(self, code: str, *, redirect_uri: str, nonce: str, code_verifier: str | None) -> OidcAuthnResult:
+        """Exchange the authorization code and verify the ID token."""
         ...
 
-    def userinfo(self) -> dict[str, Any]:
-        """Fetch the userinfo from the OIDC provider's userinfo endpoint."""
-        ...
-
-    def server_metadata(self) -> Mapping[str, Any]:
-        """Return the OIDC provider's server metadata (from the discovery document)."""
+    def userinfo(self, result: OidcAuthnResult) -> dict[str, Any]:
+        """Fetch userinfo using the access token in result, verifying sub against the ID token."""
         ...
 
     def end_session(self, id_token: str) -> None:

@@ -11,7 +11,6 @@ from eduid.userdb.logs import ProofingLog
 from eduid.userdb.proofing.db import FrejaEIDProofingUserDB
 from eduid.webapp.common.authn.middleware import AuthnBaseApp
 from eduid.webapp.common.authn.utils import no_authn_views
-from eduid.webapp.freja_eid.helpers import SessionOidcCache
 from eduid.webapp.freja_eid.settings.common import FrejaEIDConfig
 
 __author__ = "lundberg"
@@ -32,7 +31,7 @@ class FrejaEIDApp(AuthnBaseApp):
 
         # Initialize the oidc_client
         self.oidc_client: OidcRpClient = init_oidc_rp_client(
-            app=self, name="freja_eid", config=self.conf.freja_eid_client, cache=SessionOidcCache()
+            app=self, name="freja_eid", config=self.conf.freja_eid_client
         )
 
 
