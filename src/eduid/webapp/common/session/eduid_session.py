@@ -38,7 +38,12 @@ from eduid.webapp.common.session.namespaces import (
     SvipeIDNamespace,
     TimestampedNS,
 )
-from eduid.webapp.common.session.redis_session import RedisEncryptedSession, SessionManager, SessionOutOfSync
+from eduid.webapp.common.session.redis_session import (
+    ConflictDescription,
+    RedisEncryptedSession,
+    SessionManager,
+    SessionOutOfSync,
+)
 
 if TYPE_CHECKING:
     # From https://stackoverflow.com/a/39757388
@@ -525,32 +530,45 @@ class SessionFactory(SessionInterface):
         except SessionOutOfSync:
             app.stats.count("session_out_of_sync_error")
             logger.error(f"Commit of session {session} failed because it has been changed by someone else")
-            ours = self._log_conflict(session)
-            if ours is None or not _all_safe_to_lose(ours, app.conf.session_safe_to_lose_paths):
+            conflict = self._log_conflict(session)
+            if conflict is None:
+                logger.error("Session conflict could not be described, failing the request")
+                raise
+            if conflict.other_removed_anything:
+                # Logout/invalidation (clear() or reset()) deletes the key or recreates it without the old
+                # content. Completing this request would e.g. send an assertion for a logged out session.
+                logger.error(f"Session was deleted or cleared by other writer, failing the request: {conflict.theirs}")
+                raise
+            if not _all_safe_to_lose(conflict.ours, app.conf.session_safe_to_lose_paths):
                 # Deny by default: fail closed unless every lost change is known to be harmless to lose
-                logger.error(f"Session state lost and not all changes are safe to lose, failing the request: {ours}")
+                logger.error(
+                    f"Session state lost and not all changes are safe to lose, failing the request: {conflict.ours}"
+                )
                 raise
             app.stats.count("session_state_lost")
-            logger.error(f"Session state lost: our changes were NOT persisted (all safe to lose): {ours}")
+            logger.error(f"Session state lost: our changes were NOT persisted (all safe to lose): {conflict.ours}")
             # TODO: optional reload/re-apply/retry-once merge (needs per-namespace semantics)
         session.set_cookie(response)
 
     @staticmethod
-    def _log_conflict(session: EduidSession) -> list[str] | None:
+    def _log_conflict(session: EduidSession) -> ConflictDescription | None:
         """
         Log what differs between the session as loaded, the backend, and this request's changes.
 
         Only key paths are logged above DEBUG level, session data is sensitive. Never raises.
 
-        :returns: The key paths this request tried to change, or None if the conflict could not be described
+        :returns: The described conflict, or None if it could not be described
         """
         try:
-            others, ours = session._session.describe_conflict()
-            logger.error(f"Session {session.short_id} changed by other writer: {others}")
-            logger.warning(f"Session {session.short_id} our attempted changes: {ours}")
+            conflict = session._session.describe_conflict()
+            logger.error(
+                f"Session {session.short_id} changed by other writer: {conflict.theirs}"
+                f" (key deleted: {conflict.key_deleted})"
+            )
+            logger.warning(f"Session {session.short_id} our attempted changes: {conflict.ours}")
             if logger.isEnabledFor(logging.DEBUG):
                 logger.debug(f"Session {session.short_id} our data:\n{pprint.pformat(session._session.to_dict())}")
-            return ours
+            return conflict
         except Exception:
             logger.exception("Failed describing session conflict")
             return None

@@ -13,6 +13,8 @@ from werkzeug.test import TestResponse
 
 from eduid.common.testing_base import normalised_data
 from eduid.vccs.client import VCCSClient
+from eduid.webapp.common.session.redis_session import SessionOutOfSync
+from eduid.webapp.common.session.testing import force_session_conflict_on_post
 from eduid.webapp.idp.helpers import IdPAction
 from eduid.webapp.idp.sso_session import SSOSession
 from eduid.webapp.idp.tests.test_api import IdPAPITests
@@ -48,6 +50,37 @@ class TestIdPLogoutAPI(IdPAPITests):
 
             logout_response = self.parse_saml_logout_response(response, BINDING_SOAP)
             assert logout_response.response.status.status_code.value == "urn:oasis:names:tc:SAML:2.0:status:Success"
+
+    def test_logout_completing_before_next_commits_fails_the_request(self, mocker: MockerFixture) -> None:
+        """A /next in flight must not send a SAML response if the session was cleared by a logout meanwhile"""
+        self.add_test_user_tou()
+        mocker.patch.object(VCCSClient, "authenticate", return_value=True)
+
+        device = self.browser
+        _ref_result = self._get_login_ref(device, self.saml2_client, None, False, None)
+        assert isinstance(_ref_result, tuple)
+        ref, _ = _ref_result
+        _next = self._call_next(device, ref)
+        assert _next.payload["action"] == IdPAction.USERNAMEPWAUTH.value
+        assert self.default_user.password is not None
+        self._call_pwauth(
+            device=device,
+            target=_next.payload["target"],
+            ref=ref,
+            username=self.default_user.eppn,
+            password=self.default_user.password,
+        )
+
+        # The logout (clearing the redis session) completes right before /next commits its session
+        with force_session_conflict_on_post(mocker, sibling_action=lambda s: s.clear()) as forcer:
+            try:
+                result = self._call_next(device, ref)
+            except SessionOutOfSync:
+                pass  # propagated by the test client
+            else:
+                assert result.error is not None
+                assert "SAMLResponse" not in str(result.payload)
+        assert forcer.forced
 
     def test_basic_logout_soap(self, mocker: MockerFixture) -> None:
         """

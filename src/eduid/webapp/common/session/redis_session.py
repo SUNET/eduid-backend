@@ -49,7 +49,7 @@ import json
 import logging
 import typing
 from collections.abc import Iterator, Mapping
-from typing import Any, cast
+from typing import Any, NamedTuple, cast
 
 import nacl.encoding
 import nacl.secret
@@ -184,6 +184,24 @@ def _diff_paths(
     return res
 
 
+class ConflictDescription(NamedTuple):
+    """
+    Key paths (no values) of a failed session commit, see RedisEncryptedSession.describe_conflict.
+
+    theirs: changes made by the other writer since this instance loaded the session (empty if key_deleted)
+    ours: changes this instance tried to write
+    key_deleted: the session key no longer exists in the backend
+    """
+
+    theirs: list[str]
+    ours: list[str]
+    key_deleted: bool
+
+    @property
+    def other_removed_anything(self) -> bool:
+        return self.key_deleted or any(c.startswith("removed ") for c in self.theirs)
+
+
 class RedisEncryptedSession(typing.MutableMapping[str, Any]):
     """
     Session objects that keep their data in a redis db.
@@ -311,20 +329,18 @@ class RedisEncryptedSession(typing.MutableMapping[str, Any]):
             return
         raise SessionOutOfSync(f"The session {self} is contended")
 
-    def describe_conflict(self) -> tuple[list[str], list[str]]:
+    def describe_conflict(self) -> ConflictDescription:
         """
-        Describe what differs after a failed commit, for diagnostics.
+        Describe what differs after a failed commit, for diagnostics and for deciding if the loss is tolerable.
 
-        :returns: (paths changed by the other writer since load, paths this instance tried to change)
+        :returns: What the other writer changed since load, and what this instance tried to change
         """
         baseline = self.decrypt_data(self._raw_data) if self._raw_data else {}
         raw_now = self.conn.get(self.db_key)
-        if raw_now:
-            others = _diff_paths(baseline, self.decrypt_data(cast(bytes, raw_now)))
-        else:
-            others = ["deleted by other writer"]
+        key_deleted = not raw_now
+        theirs = [] if key_deleted else _diff_paths(baseline, self.decrypt_data(cast(bytes, raw_now)))
         ours_data = json.loads(json.dumps(self._data, cls=EduidJSONEncoder))
-        return others, _diff_paths(baseline, ours_data)
+        return ConflictDescription(theirs=theirs, ours=_diff_paths(baseline, ours_data), key_deleted=key_deleted)
 
     def encrypt_data(self, data_dict: Mapping[str, Any]) -> bytes:
         """

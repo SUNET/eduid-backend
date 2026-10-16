@@ -203,13 +203,25 @@ class TestSession:
         session2["bar"] = "baz"
         with pytest.raises(SessionOutOfSync):
             session2.commit()
-        others, ours = session2.describe_conflict()
-        assert others == ["added foo"]
-        assert ours == ["added bar"]
+        conflict = session2.describe_conflict()
+        assert conflict.theirs == ["added foo"]
+        assert conflict.ours == ["added bar"]
+        assert conflict.key_deleted is False
+        assert conflict.other_removed_anything is False
 
         session1.clear()
-        others, _ours = session2.describe_conflict()
-        assert others == ["deleted by other writer"]
+        conflict = session2.describe_conflict()
+        assert conflict.theirs == []
+        assert conflict.key_deleted is True
+        assert conflict.other_removed_anything is True
+
+        # Recreated without the old content shows as removals
+        session1["new"] = "content"
+        session1.commit()
+        conflict = session2.describe_conflict()
+        assert conflict.key_deleted is False
+        assert conflict.theirs == ["removed keep", "added new"]
+        assert conflict.other_removed_anything is True
 
 
 def test_diff_paths() -> None:

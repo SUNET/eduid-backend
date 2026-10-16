@@ -80,6 +80,12 @@ def mfa_auth(
     session.mfa_action.login_ref = ticket.request_ref
     session.mfa_action.eppn = user.eppn
 
+    # The grant is one-time. Commit its consumption now, BEFORE any authentication is recorded in the
+    # SSO session in MongoDB below. If another writer changed the Redis session meanwhile, this raises
+    # SessionOutOfSync (-> error response) while nothing has been recorded yet, rather than failing in
+    # response finalization after the SSO session already holds the upgraded authentication.
+    session.persist()
+
     result = _check_external_mfa(saved_mfa_action, user, ticket.request_ref)
     if result and result.response:
         return result.response

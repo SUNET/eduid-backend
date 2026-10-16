@@ -278,10 +278,15 @@ class EduidSessionTests(EduidAPITestCase[SessionTestApp]):
             return sess.meta.cookie_val, ref
 
     def _lose_conflict(
-        self, mocker: MockerFixture, change: Callable[[EduidSession], None]
+        self,
+        mocker: MockerFixture,
+        change: Callable[[EduidSession], None],
+        other_writer: Callable[[RedisEncryptedSession], None] | None = None,
     ) -> tuple[Any, Any, Response, Any, Any, str]:
         """
         Open a session, apply `change`, let another writer commit first, and run save_session.
+
+        The other writer adds the key 'other' unless `other_writer` is given. It must commit itself.
 
         :returns: (outcome exception or None, count spy, response, commit spy, session, cookie_val)
         """
@@ -295,8 +300,11 @@ class EduidSessionTests(EduidAPITestCase[SessionTestApp]):
             change(sess)
 
             other = factory.manager.get_session(meta=sess.meta, new=False)
-            other["other"] = "writer"
-            other.commit()
+            if other_writer is None:
+                other["other"] = "writer"
+                other.commit()
+            else:
+                other_writer(other)
 
             count_spy = mocker.spy(self.app.stats, "count")
             commit_spy = mocker.spy(sess._session, "commit")
@@ -309,14 +317,11 @@ class EduidSessionTests(EduidAPITestCase[SessionTestApp]):
             # A repeated save (error path) is a no-op, no second commit attempt, no new exception
             factory.save_session(self.app, sess, Response())
             assert commit_spy.call_count == 1
-            return (
-                exc,
-                count_spy,
-                response,
-                commit_spy,
-                factory.manager.get_session(meta=sess.meta, new=False),
-                cookie_val,
-            )
+            try:
+                db = factory.manager.get_session(meta=sess.meta, new=False)
+            except KeyError:
+                db = factory.manager.get_session(meta=sess.meta, new=True)  # key was deleted, empty session
+            return exc, count_spy, response, commit_spy, db, cookie_val
 
     def _assert_lost_not_persisted(self, db: RedisEncryptedSession) -> None:
         assert db["other"] == "writer"
@@ -335,6 +340,64 @@ class EduidSessionTests(EduidAPITestCase[SessionTestApp]):
         cookies = response.headers.getlist("Set-Cookie")
         assert any(c.startswith(f"{self.app.conf.flask.session_cookie_name}={cookie_val}") for c in cookies)
         self._assert_lost_not_persisted(db)
+
+    @staticmethod
+    def _allowlisted_change(sess: EduidSession) -> None:
+        sess.idp.pending_requests[RequestRef("test-ref")].used = True
+        sess.idp.sso_cookie_val = "mine"
+
+    def test_save_session_reraises_when_key_deleted_by_logout(self, mocker: MockerFixture) -> None:
+        def logout(other: RedisEncryptedSession) -> None:
+            other.clear()  # deletes the key in redis
+
+        exc, count_spy, response, _commit_spy, db, _cookie = self._lose_conflict(
+            mocker, self._allowlisted_change, other_writer=logout
+        )
+        assert isinstance(exc, SessionOutOfSync)
+        assert mocker.call("session_state_lost") not in count_spy.call_args_list
+        assert not response.headers.getlist("Set-Cookie")
+        assert db.to_dict() == {}
+
+    def test_save_session_reraises_when_key_recreated_after_logout(self, mocker: MockerFixture) -> None:
+        def logout_and_new_login(other: RedisEncryptedSession) -> None:
+            other.clear()
+            other["fresh"] = "content"
+            other.commit()
+
+        exc, count_spy, _response, _commit_spy, db, _cookie = self._lose_conflict(
+            mocker, self._allowlisted_change, other_writer=logout_and_new_login
+        )
+        assert isinstance(exc, SessionOutOfSync)
+        assert mocker.call("session_state_lost") not in count_spy.call_args_list
+        assert db.to_dict() == {"fresh": "content"}
+
+    def test_save_session_reraises_when_other_writer_removed_a_path(self, mocker: MockerFixture) -> None:
+        def remove_path(other: RedisEncryptedSession) -> None:
+            del other["idp"]
+            other.commit()
+
+        exc, _count_spy, _response, _commit_spy, _db, _cookie = self._lose_conflict(
+            mocker, self._allowlisted_change, other_writer=remove_path
+        )
+        assert isinstance(exc, SessionOutOfSync)
+
+    def test_save_session_swallows_when_other_writer_only_added_and_changed(self, mocker: MockerFixture) -> None:
+        def mfa_auth_like(other: RedisEncryptedSession) -> None:
+            data = other.to_dict()
+            idp = dict(data["idp"])
+            idp["sso_cookie_val"] = "theirs"
+            other["idp"] = idp
+            other["mfa_action"] = {"success": True}
+            other["new_key"] = "x"
+            other.commit()
+
+        exc, count_spy, _response, _commit_spy, db, _cookie = self._lose_conflict(
+            mocker, self._allowlisted_change, other_writer=mfa_auth_like
+        )
+        assert exc is None
+        count_spy.assert_any_call("session_state_lost")
+        assert db["new_key"] == "x"
+        assert db.to_dict()["idp"]["sso_cookie_val"] == "theirs"
 
     def test_save_session_reraises_out_of_sync_for_mixed_paths(self, mocker: MockerFixture) -> None:
         def change(sess: EduidSession) -> None:

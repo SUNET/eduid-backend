@@ -1,23 +1,21 @@
 from http import HTTPStatus
+from typing import Any
 
 import pytest
 from pytest_mock import MockerFixture
 from werkzeug.test import TestResponse
 
 from eduid.common.models.saml2 import EduidAuthnContextClass
-from eduid.userdb import User
 from eduid.userdb.credentials.external import TrustFramework
 from eduid.userdb.idp import IdPUser
 from eduid.vccs.client import VCCSClient
 from eduid.webapp.common.api.testing import CSRFTestClient
-from eduid.webapp.common.session import session
-from eduid.webapp.common.session.eduid_session import SessionFactory
 from eduid.webapp.common.session.namespaces import MfaAction, RequestRef
 from eduid.webapp.common.session.redis_session import SessionOutOfSync
+from eduid.webapp.common.session.testing import force_session_conflict_on_post
 from eduid.webapp.idp.helpers import IdPAction
 from eduid.webapp.idp.tests.test_api import IdPAPITests
-from eduid.webapp.idp.views import mfa_auth
-from eduid.webapp.idp.views.mfa_auth import CheckResult, _check_external_mfa
+from eduid.webapp.idp.views.mfa_auth import _check_external_mfa
 
 
 class TestCheckExternalMfa(IdPAPITests):
@@ -112,33 +110,37 @@ class TestMfaAuthGrantConsumption(IdPAPITests):
                     data = {"ref": ref, "csrf_token": sess.get_csrf_token()}
                 return client.post(target, json=data)
 
+    def _sso_snapshot(self) -> dict[str, Any] | None:
+        """The stored SSO session credentials, as saved in MongoDB"""
+        sessions = self.app.sso_sessions.get_sessions_for_user(self.test_user.eppn)
+        if not sessions:
+            return None
+        return {str(sess.session_id): sess.to_dict()["authn_credentials"] for sess in sessions}
+
     def test_lost_write_consuming_grant_fails_closed(self) -> None:
         device, ref, target = self._start()
         self._grant_external_mfa(device, ref)
 
-        real_check = mfa_auth._check_external_mfa
+        sso_before = self._sso_snapshot()
+        assert sso_before is not None
 
-        def conflicting_check(mfa_action: MfaAction, user: User, ref: RequestRef) -> CheckResult | None:
-            # A sibling request commits to the same backend session while this request is in flight,
-            # retaining mfa_action (it never saw our delete).
-            factory = self.app.session_interface
-            assert isinstance(factory, SessionFactory)
-            sibling = factory.manager.get_session(meta=session.meta, new=False)
-            sibling["sibling"] = "writer"
-            sibling.commit()
-            return real_check(mfa_action, user, ref)
+        # A sibling request commits to the same backend session while this request is in flight,
+        # retaining mfa_action (it never saw our delete). The view must fail on its explicit persist(),
+        # before any authentication is recorded in the SSO session.
+        with force_session_conflict_on_post(self.mocker) as forcer:
+            try:
+                response = self._post_mfa(device, target, ref)
+            except SessionOutOfSync:
+                pass  # propagated by the test client
+            else:
+                assert response.status_code == HTTPStatus.INTERNAL_SERVER_ERROR
+                assert not (response.json or {}).get("payload", {}).get("finished")
+        assert forcer.forced
 
-        patched = self.mocker.patch.object(mfa_auth, "_check_external_mfa", side_effect=conflicting_check)
-        try:
-            response = self._post_mfa(device, target, ref)
-        except SessionOutOfSync:
-            pass  # propagated by the test client
-        else:
-            assert response.status_code == HTTPStatus.INTERNAL_SERVER_ERROR
-            assert not (response.json or {}).get("payload", {}).get("finished")
+        # No authentication was recorded in the SSO session
+        assert self._sso_snapshot() == sso_before
 
         # The grant is still in the backend, since our delete was lost
-        self.mocker.stop(patched)
         # Retrying consumes the grant exactly once, as a normal flow would
         retry = self._post_mfa(device, target, ref)
         assert retry.json is not None
