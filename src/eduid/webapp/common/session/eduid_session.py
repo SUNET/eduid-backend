@@ -424,18 +424,33 @@ def _path_matches(path: str, pattern: str) -> bool:
     return all(fnmatchcase(p, pat) for p, pat in zip(path_parts, pattern_parts, strict=True))
 
 
-def _all_safe_to_lose(changes: Iterable[str], patterns: Iterable[str]) -> bool:
+def _change_paths_matching(changes: Iterable[str], patterns: Iterable[str]) -> list[bool]:
     """
-    Check that every change described by _diff_paths ('added x.y', 'removed x.y', 'changed x.y')
-    is covered by one of the patterns (EduIDBaseAppConfig.session_safe_to_lose_paths).
-    No patterns means nothing is safe to lose.
+    For each change described by _diff_paths ('added x.y', 'removed x.y', 'changed x.y'), tell whether
+    its path (action prefix stripped) matches one of the patterns.
     """
     patterns = tuple(patterns)
+    result = []
     for change in changes:
         _action, _, path = change.partition(" ")
-        if not any(_path_matches(path, pattern) for pattern in patterns):
-            return False
-    return True
+        result.append(any(_path_matches(path, pattern) for pattern in patterns))
+    return result
+
+
+def _all_safe_to_lose(changes: Iterable[str], patterns: Iterable[str]) -> bool:
+    """
+    Check that every change is covered by one of the patterns (EduIDBaseAppConfig.session_safe_to_lose_paths).
+    No patterns means nothing is safe to lose.
+    """
+    return all(_change_paths_matching(changes, patterns))
+
+
+def _any_matches(changes: Iterable[str], patterns: Iterable[str]) -> bool:
+    """
+    Check that at least one change is covered by one of the patterns
+    (EduIDBaseAppConfig.session_fatal_other_writer_paths). No patterns means no match.
+    """
+    return any(_change_paths_matching(changes, patterns))
 
 
 class SessionFactory(SessionInterface):
@@ -543,6 +558,12 @@ class SessionFactory(SessionInterface):
                 # Logout/invalidation (clear() or reset()) deletes the key or recreates it without the old
                 # content. Completing this request would e.g. send an assertion for a logged out session.
                 logger.error(f"Session was deleted or cleared by other writer, failing the request: {conflict.theirs}")
+                raise
+            if _any_matches(conflict.theirs, app.conf.session_fatal_other_writer_paths):
+                # Other writer changed state that invalidates what this request is about to answer
+                logger.error(
+                    f"Session state changed by other writer in a fatal path, failing the request: {conflict.theirs}"
+                )
                 raise
             if not _all_safe_to_lose(conflict.ours, app.conf.session_safe_to_lose_paths):
                 # Deny by default: fail closed unless every lost change is known to be harmless to lose

@@ -13,7 +13,8 @@ from werkzeug.test import TestResponse
 
 from eduid.common.testing_base import normalised_data
 from eduid.vccs.client import VCCSClient
-from eduid.webapp.common.session.redis_session import SessionOutOfSync
+from eduid.webapp.common.session.namespaces import RequestRef
+from eduid.webapp.common.session.redis_session import RedisEncryptedSession, SessionOutOfSync
 from eduid.webapp.common.session.testing import force_session_conflict_on_post
 from eduid.webapp.idp.helpers import IdPAction
 from eduid.webapp.idp.sso_session import SSOSession
@@ -73,6 +74,54 @@ class TestIdPLogoutAPI(IdPAPITests):
 
         # The logout (clearing the redis session) completes right before /next commits its session
         with force_session_conflict_on_post(mocker, sibling_action=lambda s: s.clear()) as forcer:
+            try:
+                result = self._call_next(device, ref)
+            except SessionOutOfSync:
+                pass  # propagated by the test client
+            else:
+                assert result.error is not None
+                assert "SAMLResponse" not in str(result.payload)
+        assert forcer.forced
+
+    def test_abort_completing_before_next_fails_the_request(self, mocker: MockerFixture) -> None:
+        """A /next in flight must not send a SAML response if /abort was committed meanwhile"""
+        self.add_test_user_tou()
+        mocker.patch.object(VCCSClient, "authenticate", return_value=True)
+
+        device = self.browser
+        _ref_result = self._get_login_ref(device, self.saml2_client, None, False, None)
+        assert isinstance(_ref_result, tuple)
+        ref, _ = _ref_result
+        _next = self._call_next(device, ref)
+        assert _next.payload["action"] == IdPAction.USERNAMEPWAUTH.value
+        assert self.default_user.password is not None
+        self._call_pwauth(
+            device=device,
+            target=_next.payload["target"],
+            ref=ref,
+            username=self.default_user.eppn,
+            password=self.default_user.password,
+        )
+
+        # Finish the request once so common.eppn is in the session, then rearm it, so that the in-flight
+        # /next below only changes the allowlisted paths (pending request 'used' and idp.ts)
+        first = self._call_next(device, ref)
+        assert first.error is None
+        assert "SAMLResponse" in str(first.payload)
+        with device.session_transaction() as sess:
+            sess.idp.pending_requests[RequestRef(ref)].used = False
+
+        def abort(sibling: RedisEncryptedSession) -> None:
+            data = sibling.to_dict()
+            idp = dict(data["idp"])
+            pending = {k: dict(v) for k, v in idp["pending_requests"].items()}
+            assert ref in pending
+            pending[ref]["aborted"] = True
+            idp["pending_requests"] = pending
+            sibling["idp"] = idp
+            sibling.commit()
+
+        with force_session_conflict_on_post(mocker, sibling_action=abort) as forcer:
             try:
                 result = self._call_next(device, ref)
             except SessionOutOfSync:

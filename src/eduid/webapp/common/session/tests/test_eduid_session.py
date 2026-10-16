@@ -16,6 +16,7 @@ from eduid.webapp.common.session.eduid_session import (
     EduidSession,
     SessionFactory,
     _all_safe_to_lose,
+    _any_matches,
     _path_matches,
 )
 from eduid.webapp.common.session.namespaces import IdP_SAMLPendingRequest, LoginApplication, RequestRef
@@ -459,6 +460,56 @@ class EduidSessionTests(EduidAPITestCase[SessionTestApp]):
         assert mocker.call("session_state_lost") not in count_spy.call_args_list
         self._assert_lost_not_persisted(db)
 
+    def _abort_by_other_writer(self, other: RedisEncryptedSession) -> None:
+        data = other.to_dict()
+        idp = dict(data["idp"])
+        pending = {k: dict(v) for k, v in idp["pending_requests"].items()}
+        pending[self._ref]["aborted"] = True
+        idp["pending_requests"] = pending
+        other["idp"] = idp
+        other.commit()
+
+    def test_save_session_reraises_when_other_writer_aborted_pending_request(self, mocker: MockerFixture) -> None:
+        exc, count_spy, _response, _commit_spy, db, _cookie = self._lose_conflict(
+            mocker, self._allowlisted_change, other_writer=self._abort_by_other_writer
+        )
+        assert isinstance(exc, SessionOutOfSync)
+        count_spy.assert_any_call("session_out_of_sync_error")
+        assert mocker.call("session_state_lost") not in count_spy.call_args_list
+        assert db.to_dict()["idp"]["pending_requests"][self._ref]["aborted"] is True
+        assert db.to_dict()["idp"]["pending_requests"][self._ref]["used"] is False
+
+    def test_save_session_swallows_unrelated_other_writer_change(self, mocker: MockerFixture) -> None:
+        def other_writer(other: RedisEncryptedSession) -> None:
+            data = other.to_dict()
+            idp = dict(data["idp"])
+            pending = {k: dict(v) for k, v in idp["pending_requests"].items()}
+            pending[self._ref]["template_show_msg"] = True
+            idp["pending_requests"] = pending
+            other["idp"] = idp
+            other.commit()
+
+        exc, count_spy, _response, _commit_spy, _db, _cookie = self._lose_conflict(
+            mocker, self._allowlisted_change, other_writer=other_writer
+        )
+        assert exc is None
+        count_spy.assert_any_call("session_state_lost")
+
+    def test_save_session_custom_fatal_other_writer_paths(self, mocker: MockerFixture) -> None:
+        # default rule does not cover 'other', so this is swallowed by default (see the swallow tests above)
+        mocker.patch.object(self.app.conf, "session_fatal_other_writer_paths", ["other"])
+        exc, count_spy, _response, _commit_spy, _db, _cookie = self._lose_conflict(mocker, self._allowlisted_change)
+        assert isinstance(exc, SessionOutOfSync)
+        assert mocker.call("session_state_lost") not in count_spy.call_args_list
+
+    def test_save_session_empty_fatal_other_writer_paths_disables_rule(self, mocker: MockerFixture) -> None:
+        mocker.patch.object(self.app.conf, "session_fatal_other_writer_paths", [])
+        exc, count_spy, _response, _commit_spy, _db, _cookie = self._lose_conflict(
+            mocker, self._allowlisted_change, other_writer=self._abort_by_other_writer
+        )
+        assert exc is None
+        count_spy.assert_any_call("session_state_lost")
+
     def test_timestamp_not_bumped_when_unchanged(self, mocker: MockerFixture) -> None:
         cookie_val = self._new_cookie()
         factory = self.app.session_interface
@@ -619,3 +670,26 @@ def test_all_safe_to_lose() -> None:
 
 def test_all_safe_to_lose_empty_patterns_never_swallows() -> None:
     assert not _all_safe_to_lose(["changed idp.ts"], [])
+
+
+def test_default_fatal_other_writer_paths() -> None:
+    config = load_config(
+        typ=SessionTestConfig, app_name="testing", ns="webapp", test_config={"mongo_uri": "mongodb://x"}
+    )
+    assert config.session_fatal_other_writer_paths == ["idp.pending_requests.*.aborted"]
+
+
+@pytest.mark.parametrize("bad", ["", ".", "idp.", ".ts", "idp..ts"])
+def test_invalid_fatal_other_writer_path_rejected(bad: str) -> None:
+    with pytest.raises(ValueError, match="session_fatal_other_writer_paths"):
+        SessionTestConfig.model_validate({"mongo_uri": "mongodb://x", "session_fatal_other_writer_paths": [bad]})
+
+
+def test_any_matches() -> None:
+    p = ["idp.pending_requests.*.aborted"]
+    assert _any_matches(["changed idp.pending_requests.r.aborted"], p)
+    assert _any_matches(["changed idp.ts", "added idp.pending_requests.r.aborted"], p)
+    assert _any_matches(["removed idp.pending_requests.r.aborted"], p)
+    assert not _any_matches(["changed idp.ts", "added idp.pending_requests.r"], p)
+    assert not _any_matches([], p)
+    assert not _any_matches(["changed idp.pending_requests.r.aborted"], [])

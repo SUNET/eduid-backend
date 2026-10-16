@@ -18,7 +18,7 @@ from fido2.webauthn import (
     UserVerificationRequirement,
 )
 from fido_mds.models.fido_mds import AuthenticatorStatus
-from pydantic import AfterValidator, BaseModel, ConfigDict, Field, field_validator
+from pydantic import AfterValidator, BaseModel, ConfigDict, Field, ValidationInfo, field_validator
 
 from eduid.userdb.credentials import CredentialProofingMethod
 from eduid.userdb.credentials.external import TrustFramework
@@ -546,12 +546,23 @@ class EduIDBaseAppConfig(RootConfig, LoggingConfigMixin, StatsConfigMixin, Redis
         ]
     )
 
-    @field_validator("session_safe_to_lose_paths")
+    # Session key paths that, if the OTHER writer added/changed/removed any of them, make our conflict fatal
+    # even when all of our own changed paths are in session_safe_to_lose_paths. Same dotted/segment-wise '*'
+    # semantics. Add paths for state whose change by a sibling request must invalidate an in-flight response,
+    # e.g. an abort of a pending request. An empty list means no extra rule.
+    session_fatal_other_writer_paths: list[str] = Field(
+        default=[
+            # POST /abort sets this; an in-flight /next must not return an assertion for an aborted request
+            "idp.pending_requests.*.aborted",
+        ]
+    )
+
+    @field_validator("session_safe_to_lose_paths", "session_fatal_other_writer_paths")
     @classmethod
-    def _validate_session_safe_to_lose_paths(cls, v: list[str]) -> list[str]:
+    def _validate_session_path_patterns(cls, v: list[str], info: ValidationInfo) -> list[str]:
         for entry in v:
             if not entry or any(not segment for segment in entry.split(".")):
-                raise ValueError(f"invalid session_safe_to_lose_paths entry {entry!r}: empty path or empty segment")
+                raise ValueError(f"invalid {info.field_name} entry {entry!r}: empty path or empty segment")
         return v
 
 
