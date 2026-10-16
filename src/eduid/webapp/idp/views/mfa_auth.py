@@ -75,8 +75,6 @@ def mfa_auth(
     # Yes - this should be done even if the user has FIDO credentials because the user might
     # opt to do external MFA anyway.
     saved_mfa_action = deepcopy(session.mfa_action)
-    # Consuming a one-time grant: if this write is lost to a session conflict, fail the request
-    session.require_durable()
     del session.mfa_action
     # setup new mfa_action for external mfa
     session.mfa_action.login_ref = ticket.request_ref

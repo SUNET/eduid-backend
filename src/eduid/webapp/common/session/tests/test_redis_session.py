@@ -218,7 +218,7 @@ def test_diff_paths() -> None:
     assert _diff_paths(old, new) == [
         "changed a",
         "added added",
-        "changed b.y",
+        "changed b.y.deep",
         "added b.z",
         "removed gone",
     ]

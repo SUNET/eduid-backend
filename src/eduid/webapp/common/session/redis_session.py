@@ -157,14 +157,16 @@ class SessionOutOfSync(Exception):
     pass
 
 
-def _diff_paths(old: Mapping[str, Any], new: Mapping[str, Any], prefix: str = "", depth: int = 2) -> list[str]:
+def _diff_paths(
+    old: Mapping[str, Any], new: Mapping[str, Any], prefix: str = "", depth: int | None = None
+) -> list[str]:
     """
     List the key paths that differ between two dicts, without including any values.
 
     :param old: The baseline
     :param new: The data to compare to the baseline
     :param prefix: Dotted path prefix of the dicts being compared
-    :param depth: How many levels of nested dicts to recurse into
+    :param depth: How many levels of nested dicts to recurse into, None for unlimited
     :returns: Descriptions like 'added idp.foo', 'removed bar' or 'changed idp.ts'
     """
     res: list[str] = []
@@ -175,8 +177,8 @@ def _diff_paths(old: Mapping[str, Any], new: Mapping[str, Any], prefix: str = ""
         elif k not in old:
             res.append(f"added {path}")
         elif old[k] != new[k]:
-            if depth > 1 and isinstance(old[k], dict) and isinstance(new[k], dict):
-                res.extend(_diff_paths(old[k], new[k], prefix=f"{path}.", depth=depth - 1))
+            if (depth is None or depth > 1) and isinstance(old[k], dict) and isinstance(new[k], dict):
+                res.extend(_diff_paths(old[k], new[k], prefix=f"{path}.", depth=None if depth is None else depth - 1))
             else:
                 res.append(f"changed {path}")
     return res

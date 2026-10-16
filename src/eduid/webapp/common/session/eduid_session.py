@@ -4,8 +4,9 @@ import json
 import logging
 import os
 import pprint
-from collections.abc import Iterator
+from collections.abc import Iterable, Iterator
 from datetime import datetime
+from fnmatch import fnmatchcase
 from typing import TYPE_CHECKING, cast
 
 from flask import Flask, Request, Response
@@ -117,8 +118,6 @@ class EduidSession(SessionMixin):
         self._invalidated = False
         # Set when a commit failed with SessionOutOfSync, to avoid retrying (and re-logging) on later persist() calls
         self._commit_failed = False
-        # Set by require_durable(): a lost commit conflict must then fail the request
-        self._must_persist = False
 
         # From SessionMixin
         self.new = new
@@ -361,17 +360,6 @@ class EduidSession(SessionMixin):
         """
         return to_jsonable_python(this.to_dict(exclude_none=True), fallback=EduidJSONEncoder().default)
 
-    def require_durable(self) -> None:
-        """
-        Mark this request as requiring its session changes to be persisted.
-
-        Normally a commit that loses a conflict (SessionOutOfSync) is logged and swallowed. Call this
-        when the request consumes a one-time grant (e.g. deleting mfa_action): if the commit of this
-        request loses a conflict, the request must fail instead of silently succeeding, otherwise
-        the grant could survive in the backend and be reused.
-        """
-        self._must_persist = True
-
     def persist(self) -> None:
         """
         Store the session data in the redis backend,
@@ -410,6 +398,34 @@ class EduidSession(SessionMixin):
         elif not self.new:
             # Nothing to write, but keep the session alive in the backend
             self._session.renew_ttl()
+
+
+def _path_matches(path: str, pattern: str) -> bool:
+    """
+    Segment-wise match of a dotted key path against a pattern.
+
+    Both must have the same number of segments, so a pattern never matches a parent
+    (e.g. a whole pending request added/removed) or a deeper/sibling field.
+    """
+    path_parts = path.split(".")
+    pattern_parts = pattern.split(".")
+    if len(path_parts) != len(pattern_parts):
+        return False
+    return all(fnmatchcase(p, pat) for p, pat in zip(path_parts, pattern_parts, strict=True))
+
+
+def _all_safe_to_lose(changes: Iterable[str], patterns: Iterable[str]) -> bool:
+    """
+    Check that every change described by _diff_paths ('added x.y', 'removed x.y', 'changed x.y')
+    is covered by one of the patterns (EduIDBaseAppConfig.session_safe_to_lose_paths).
+    No patterns means nothing is safe to lose.
+    """
+    patterns = tuple(patterns)
+    for change in changes:
+        _action, _, path = change.partition(" ")
+        if not any(_path_matches(path, pattern) for pattern in patterns):
+            return False
+    return True
 
 
 class SessionFactory(SessionInterface):
@@ -508,28 +524,33 @@ class SessionFactory(SessionInterface):
             session.persist()
         except SessionOutOfSync:
             app.stats.count("session_out_of_sync_error")
-            app.stats.count("session_state_lost")
             logger.error(f"Commit of session {session} failed because it has been changed by someone else")
-            self._log_conflict(session)
-            if session._must_persist:
-                # Fail closed. Later save_session calls are no-ops thanks to _commit_failed.
+            ours = self._log_conflict(session)
+            if ours is None or not _all_safe_to_lose(ours, app.conf.session_safe_to_lose_paths):
+                # Deny by default: fail closed unless every lost change is known to be harmless to lose
+                logger.error(f"Session state lost and not all changes are safe to lose, failing the request: {ours}")
                 raise
+            app.stats.count("session_state_lost")
+            logger.error(f"Session state lost: our changes were NOT persisted (all safe to lose): {ours}")
             # TODO: optional reload/re-apply/retry-once merge (needs per-namespace semantics)
         session.set_cookie(response)
 
     @staticmethod
-    def _log_conflict(session: EduidSession) -> None:
+    def _log_conflict(session: EduidSession) -> list[str] | None:
         """
         Log what differs between the session as loaded, the backend, and this request's changes.
 
         Only key paths are logged above DEBUG level, session data is sensitive. Never raises.
+
+        :returns: The key paths this request tried to change, or None if the conflict could not be described
         """
         try:
             others, ours = session._session.describe_conflict()
             logger.error(f"Session {session.short_id} changed by other writer: {others}")
             logger.warning(f"Session {session.short_id} our attempted changes: {ours}")
-            logger.error(f"Session state lost: our changes were NOT persisted: {ours}")
             if logger.isEnabledFor(logging.DEBUG):
                 logger.debug(f"Session {session.short_id} our data:\n{pprint.pformat(session._session.to_dict())}")
+            return ours
         except Exception:
             logger.exception("Failed describing session conflict")
+            return None

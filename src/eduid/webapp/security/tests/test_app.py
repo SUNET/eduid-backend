@@ -1,6 +1,7 @@
 import json
 from collections.abc import Mapping
 from datetime import UTC, datetime, timedelta
+from http import HTTPStatus
 from typing import Any
 
 import pytest
@@ -16,6 +17,8 @@ from eduid.userdb.identity import IdentityType
 from eduid.userdb.security import SecurityUser
 from eduid.webapp.common.api.schemas.authn_status import AuthnActionStatus
 from eduid.webapp.common.api.testing import EduidAPITestCase
+from eduid.webapp.common.session.redis_session import SessionOutOfSync
+from eduid.webapp.common.session.testing import force_session_conflict_on_post
 from eduid.webapp.security.app import SecurityApp, security_init_app
 from eduid.webapp.security.helpers import SecurityMsg, update_user_official_name
 
@@ -446,6 +449,23 @@ class SecurityTests(EduidAPITestCase[SecurityApp]):
         )
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
         assert user.identities.nin is None
+
+    def test_remove_identity_lost_write_of_consumed_authn_fails_closed(self) -> None:
+        self.set_authn_action(
+            eppn=self.test_user_eppn, frontend_action=FrontendAction.REMOVE_IDENTITY, age=timedelta(seconds=22)
+        )
+        with force_session_conflict_on_post(self.mocker) as forcer:
+            try:
+                response = self._remove_identity()
+            except SessionOutOfSync:
+                response = None
+        assert forcer.forced
+        # The authn must not be left reusable behind a success response
+        if response is not None:
+            assert response.status_code == HTTPStatus.INTERNAL_SERVER_ERROR
+        with self.session_cookie(self.browser, self.test_user_eppn) as client:
+            with client.session_transaction() as sess:
+                assert all(not authn.consumed for authn in sess.authn.sp.authns.values())
 
     def test_remove_identity_am_fail(self, mocker: MockerFixture) -> None:
         from eduid.common.rpc.exceptions import AmTaskFailed
