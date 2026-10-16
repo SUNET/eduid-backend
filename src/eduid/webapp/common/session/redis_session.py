@@ -47,9 +47,10 @@ from __future__ import annotations
 
 import json
 import logging
+import secrets
 import typing
 from collections.abc import Iterator, Mapping
-from typing import Any, cast
+from typing import Any, NamedTuple, cast
 
 import nacl.encoding
 import nacl.secret
@@ -62,6 +63,15 @@ from eduid.common.misc.encoders import EduidJSONEncoder
 from eduid.webapp.common.session.meta import SessionMeta
 
 logger = logging.getLogger(__name__)
+
+# Top-level key in the stored session blob (next to the namespaces and the CSRF token) holding the session
+# generation marker, a random string that is replaced every time the session is reset (logout, account termination,
+# account replacement). It is not part of any namespace model and never exposed through the API. Sessions
+# stored before this key was introduced have no generation (None) until they are reset.
+GENERATION_KEY = "_generation_"
+
+# Max WATCH/EXEC attempts in RedisEncryptedSession.commit() before giving up
+_MAX_COMMIT_ATTEMPTS = 5
 
 
 class SessionManager:
@@ -124,6 +134,8 @@ class SessionManager:
         )
 
         if new:
+            # New sessions get a generation marker; existing ones are never given one on plain reads
+            res.reset_generation()
             logger.debug(f"Created new session {res}")
         elif not res.load_session():
             logger.warning(f"No existing session found for {res}")
@@ -152,6 +164,72 @@ class NoSessionDataFoundException(Exception):
 
 class SessionOutOfSync(Exception):
     pass
+
+
+def _diff_paths(
+    old: Mapping[str, Any], new: Mapping[str, Any], prefix: str = "", depth: int | None = None
+) -> list[str]:
+    """
+    List the key paths that differ between two dicts, without including any values.
+
+    :param old: The baseline
+    :param new: The data to compare to the baseline
+    :param prefix: Dotted path prefix of the dicts being compared
+    :param depth: How many levels of nested dicts to recurse into, None for unlimited
+    :returns: Descriptions like 'added idp.foo', 'removed bar' or 'changed idp.ts'
+    """
+    res: list[str] = []
+    for k in sorted(old.keys() | new.keys()):
+        path = f"{prefix}{k}"
+        if k not in new:
+            res.append(f"removed {path}")
+        elif k not in old:
+            res.append(f"added {path}")
+        elif old[k] != new[k]:
+            if (depth is None or depth > 1) and isinstance(old[k], dict) and isinstance(new[k], dict):
+                res.extend(_diff_paths(old[k], new[k], prefix=f"{path}.", depth=None if depth is None else depth - 1))
+            else:
+                res.append(f"changed {path}")
+    return res
+
+
+def new_generation() -> str:
+    """Create a fresh, unguessable session generation marker."""
+    return secrets.token_hex(16)
+
+
+class ConflictDescription(NamedTuple):
+    """
+    Key paths (no values) of a failed session commit, see RedisEncryptedSession.describe_conflict.
+
+    theirs: changes made by the other writer since this instance loaded the session (empty if key_deleted)
+    ours: changes this instance tried to write
+    key_deleted: the session key no longer exists in the backend
+    baseline_generation: generation marker of the session as loaded (None for legacy sessions without one)
+    current_generation: generation marker of the session now in the backend (None if absent or key deleted)
+    """
+
+    theirs: list[str]
+    ours: list[str]
+    key_deleted: bool
+    baseline_generation: str | None = None
+    current_generation: str | None = None
+
+    @property
+    def generation_changed(self) -> bool:
+        """
+        The session was reset (logout, termination, account replacement) by the other writer.
+
+        This is the primary guard against completing a request for a session that no longer is the one it
+        was loaded from, independent of which key paths happen to differ. Two missing markers (legacy session)
+        count as the same generation.
+        """
+        return self.baseline_generation != self.current_generation
+
+    @property
+    def other_removed_anything(self) -> bool:
+        """Secondary logout heuristic based on removed paths, see generation_changed for the primary guard."""
+        return self.key_deleted or any(c.startswith("removed ") for c in self.theirs)
 
 
 class RedisEncryptedSession(typing.MutableMapping[str, Any]):
@@ -234,6 +312,16 @@ class RedisEncryptedSession(typing.MutableMapping[str, Any]):
         """Short version of db_key for use in logging"""
         return self.db_key[:8] + "..."
 
+    @property
+    def generation(self) -> str | None:
+        """The generation marker of this session, None for legacy sessions that have none."""
+        gen = self._data.get(GENERATION_KEY)
+        return gen if isinstance(gen, str) else None
+
+    def reset_generation(self) -> None:
+        """Replace the generation marker. Called for new sessions and on every reset."""
+        self._data[GENERATION_KEY] = new_generation()
+
     def load_session(self) -> bool:
         logger.debug(f"Looking for session {self.short_id}")
 
@@ -257,24 +345,51 @@ class RedisEncryptedSession(typing.MutableMapping[str, Any]):
         data = self.encrypt_data(self._data)
         logger.debug(f"Committing session {self} to Redis with ttl {self.ttl} ({len(data)} bytes)")
 
-        def set_no_clobber(pipe: redis.client.Pipeline) -> None:
-            """
-            Read the current value of the session from the database and compare it to what it was
-            when this instance of the session was initialised, before writing this session to the
-            database.
+        baseline = self._raw_data
 
-            If two requests are processed simultaneously, it is better to fail the second one than
-            to silently clobber the first ones updates to the session.
-            """
-            if self._raw_data is not None:
-                _data_now = self.conn.get(self.db_key)
-                if _data_now != self._raw_data:
-                    pipe.reset()
-                    raise SessionOutOfSync(f"The session {self} has been updated by someone else")
-            pipe.setex(self.db_key, self.ttl, data)
+        # Not using Redis.transaction(): it retries WatchError forever, and a peer's plain EXPIRE
+        # (or a connection error while watching, which redis-py turns into WatchError) would hot-loop.
+        for attempt in range(1, _MAX_COMMIT_ATTEMPTS + 1):
+            with self.conn.pipeline() as pipe:
+                try:
+                    pipe.watch(self.db_key)  # type: ignore[no-untyped-call]
+                    if baseline is not None:
+                        # Pipeline is in immediate mode until multi() is called
+                        _data_now = cast(bytes | None, pipe.get(self.db_key))
+                        if _data_now != baseline:
+                            raise SessionOutOfSync(f"The session {self} has been updated by someone else")
+                    pipe.multi()
+                    pipe.setex(self.db_key, self.ttl, data)
+                    pipe.execute()
+                except redis.WatchError:
+                    logger.warning(f"Session {self} modified during commit, attempt {attempt}/{_MAX_COMMIT_ATTEMPTS}")
+                    continue
+            # The baseline only moves after a successful EXEC
             self._raw_data = data
+            return
+        raise SessionOutOfSync(f"The session {self} is contended")
 
-        self.conn.transaction(set_no_clobber, watches=self.db_key)
+    def describe_conflict(self) -> ConflictDescription:
+        """
+        Describe what differs after a failed commit, for diagnostics and for deciding if the loss is tolerable.
+
+        :returns: What the other writer changed since load, and what this instance tried to change
+        """
+        baseline = self.decrypt_data(self._raw_data) if self._raw_data else {}
+        raw_now = self.conn.get(self.db_key)
+        key_deleted = not raw_now
+        current = {} if key_deleted else self.decrypt_data(cast(bytes, raw_now))
+        theirs = [] if key_deleted else _diff_paths(baseline, current)
+        ours_data = json.loads(json.dumps(self._data, cls=EduidJSONEncoder))
+        baseline_gen = baseline.get(GENERATION_KEY)
+        current_gen = current.get(GENERATION_KEY)
+        return ConflictDescription(
+            theirs=theirs,
+            ours=_diff_paths(baseline, ours_data),
+            key_deleted=key_deleted,
+            baseline_generation=baseline_gen if isinstance(baseline_gen, str) else None,
+            current_generation=current_gen if isinstance(current_gen, str) else None,
+        )
 
     def encrypt_data(self, data_dict: Mapping[str, Any]) -> bytes:
         """
@@ -313,16 +428,50 @@ class RedisEncryptedSession(typing.MutableMapping[str, Any]):
     def clear(self) -> None:
         """
         Discard all data contained in the session.
+
+        The session gets a fresh generation marker, so that if it is committed again (reset) other
+        requests holding the old content can tell that the session was replaced.
         """
         self._data = {}
+        self.reset_generation()
         self.conn.delete(self.db_key)
         self._raw_data = None
 
     def renew_ttl(self) -> None:
         """
-        Restart the ttl countdown
+        Restart the ttl countdown, but only if the backend session is still the one that was loaded.
+
+        A plain EXPIRE silently does nothing on a missing key, so a logout that cleared the session
+        after it was loaded would go unnoticed by a request that has nothing to write. The comparison
+        and the EXPIRE are made atomic with WATCH/MULTI/EXEC. Since the whole stored blob is compared, a
+        changed generation marker (reset by other writer) is detected here too.
+
+        :raises SessionOutOfSync: if the key is gone or holds other data than what was loaded
         """
-        self.conn.expire(self.db_key, self.ttl)
+        baseline = self._raw_data
+        if baseline is None:
+            # Not loaded from the backend, there is nothing to compare with
+            self.conn.expire(self.db_key, self.ttl)
+            return
+        # Same WATCH pattern as commit(), see the comment there on why Redis.transaction() is not used
+        for attempt in range(1, _MAX_COMMIT_ATTEMPTS + 1):
+            with self.conn.pipeline() as pipe:
+                try:
+                    pipe.watch(self.db_key)  # type: ignore[no-untyped-call]
+                    # Pipeline is in immediate mode until multi() is called
+                    _data_now = cast(bytes | None, pipe.get(self.db_key))
+                    if _data_now != baseline:
+                        raise SessionOutOfSync(f"The session {self} has been updated or removed by someone else")
+                    pipe.multi()
+                    pipe.expire(self.db_key, self.ttl)
+                    pipe.execute()
+                except redis.WatchError:
+                    logger.warning(
+                        f"Session {self} modified during ttl renewal, attempt {attempt}/{_MAX_COMMIT_ATTEMPTS}"
+                    )
+                    continue
+            return
+        raise SessionOutOfSync(f"The session {self} is contended")
 
     def to_dict(self) -> dict[str, Any]:
         return dict(self._data)

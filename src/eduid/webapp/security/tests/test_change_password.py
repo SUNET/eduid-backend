@@ -12,6 +12,8 @@ from eduid.userdb.credentials import Password
 from eduid.webapp.common.api.schemas.authn_status import AuthnActionStatus
 from eduid.webapp.common.api.testing import EduidAPITestCase
 from eduid.webapp.common.api.utils import hash_password
+from eduid.webapp.common.session.redis_session import SessionOutOfSync
+from eduid.webapp.common.session.testing import force_session_conflict_on_post
 from eduid.webapp.security.app import SecurityApp, security_init_app
 from eduid.webapp.security.helpers import SecurityMsg
 
@@ -181,6 +183,25 @@ class ChangePasswordTests(EduidAPITestCase[SecurityApp]):
             type_="POST_CHANGE_PASSWORD_CHANGE_PASSWORD_SET_PASSWORD_SUCCESS",
             msg=SecurityMsg.change_password_success,
         )
+
+    def test_change_passwd_lost_write_of_consumed_authn_fails_closed(self, mocker: MockerFixture) -> None:
+        mocker.patch("eduid.webapp.security.views.change_password.change_password", return_value=True)
+        self.set_authn_action(
+            eppn=self.test_user_eppn,
+            frontend_action=FrontendAction.CHANGE_PW_AUTHN,
+        )
+        with force_session_conflict_on_post(mocker) as forcer:
+            try:
+                response = self._change_password()
+            except SessionOutOfSync:
+                response = None
+        assert forcer.forced
+        # The authn must not be left reusable behind a success response
+        if response is not None:
+            assert response.status_code == HTTPStatus.INTERNAL_SERVER_ERROR
+        with self.session_cookie(self.browser, self.test_user_eppn) as client:
+            with client.session_transaction() as sess:
+                assert all(not authn.consumed for authn in sess.authn.sp.authns.values())
 
     def test_change_passwd_with_login_auth(self, mocker: MockerFixture) -> None:
         mocker.patch("eduid.webapp.security.views.change_password.change_password", return_value=True)

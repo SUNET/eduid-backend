@@ -31,6 +31,8 @@ from eduid.webapp.common.session.namespaces import (
     ExternalMfaSignupEIDASIdentity,
     ExternalMfaSignupSwedenConnectIdentity,
 )
+from eduid.webapp.common.session.redis_session import SessionOutOfSync
+from eduid.webapp.common.session.testing import force_session_conflict_on_post
 from eduid.webapp.signup.app import SignupApp, signup_init_app
 from eduid.webapp.signup.helpers import SignupMsg
 
@@ -1247,6 +1249,68 @@ class SignupTests(BaseSignupTests):
         assert self.get_response_payload(response.response)["state"]["email"]["bad_attempts"] == 3
         assert self.get_response_payload(response.response)["state"]["captcha"]["completed"] is False
         assert response.reached_state == SignupState.S5_VERIFY_EMAIL
+
+    def _verify_email_with_lost_write(self, code: str | None) -> TestResponse | None:
+        """
+        Call verify_email while a sibling request commits to the same backend session first.
+
+        :returns: the response, or None if the failure propagated through the test client
+        """
+        with self.session_cookie(self.browser, eppn=None, logged_in=False) as client:
+            with self.app.test_request_context():
+                endpoint = url_for("signup.verify_email")
+                with client.session_transaction() as sess:
+                    data = {
+                        "verification_code": code or sess.signup.email.verification_code,
+                        "csrf_token": sess.get_csrf_token(),
+                    }
+            with force_session_conflict_on_post(self.mocker) as forcer:
+                try:
+                    return client.post(endpoint, data=json.dumps(data), content_type=self.content_type_json)
+                except SessionOutOfSync:
+                    return None
+                finally:
+                    assert forcer.forced, "the concurrent commit was never forced"
+
+    def _signup_session_state(self) -> dict[str, Any]:
+        with self.session_cookie(self.browser, eppn=None, logged_in=False) as client:
+            with client.session_transaction() as sess:
+                return sess.signup.to_dict()
+
+    def test_verify_email_lost_write_of_bad_attempt_fails_closed(self) -> None:
+        self._get_captcha()
+        self._captcha()
+        self._register_email()
+        response = self._verify_email_with_lost_write("wrong")
+        # The failed-attempt counter write was lost: must not be reported as a normal verification failure
+        if response is not None:
+            assert response.status_code == HTTPStatus.INTERNAL_SERVER_ERROR
+        assert self._signup_session_state()["email"]["bad_attempts"] == 0
+
+    def test_verify_email_lost_write_of_captcha_revocation_fails_closed(self) -> None:
+        self._get_captcha()
+        self._captcha()
+        self._register_email()
+        # Put the session one attempt away from the limit
+        with self.session_cookie(self.browser, eppn=None, logged_in=False) as client:
+            with client.session_transaction() as sess:
+                sess.signup.email.bad_attempts = self.app.conf.email_verification_max_bad_attempts - 1
+        response = self._verify_email_with_lost_write("wrong")
+        if response is not None:
+            assert response.status_code == HTTPStatus.INTERNAL_SERVER_ERROR
+        state = self._signup_session_state()
+        # Neither the counter reset nor the captcha revocation was silently dropped behind a normal response
+        assert state["email"]["bad_attempts"] == self.app.conf.email_verification_max_bad_attempts - 1
+        assert state["captcha"]["completed"] is True
+
+    def test_verify_email_lost_write_of_success_fails_closed(self) -> None:
+        self._get_captcha()
+        self._captcha()
+        self._register_email()
+        response = self._verify_email_with_lost_write(None)
+        if response is not None:
+            assert response.status_code == HTTPStatus.INTERNAL_SERVER_ERROR
+        assert self._signup_session_state()["email"]["completed"] is False
 
     def test_verify_email_mixed_case(self) -> None:
         mixed_case_email = "MixedCase@Example.com"
