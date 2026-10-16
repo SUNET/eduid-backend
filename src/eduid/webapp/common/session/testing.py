@@ -1,5 +1,5 @@
 import logging
-from collections.abc import Callable, Iterator, Sequence
+from collections.abc import Callable, Generator, Sequence
 from contextlib import contextmanager
 from typing import cast
 
@@ -23,7 +23,7 @@ class SessionConflictForcer:
 @contextmanager
 def force_session_conflict_on_post(
     mocker: MockerFixture, sibling_action: Callable[[RedisEncryptedSession], None] | None = None
-) -> Iterator[SessionConflictForcer]:
+) -> Generator[SessionConflictForcer]:
     """
     Make the first POST request made inside the context lose its session commit.
 
