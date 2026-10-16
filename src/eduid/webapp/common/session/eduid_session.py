@@ -558,8 +558,17 @@ class SessionFactory(SessionInterface):
             if conflict is None:
                 logger.error("Session conflict could not be described, failing the request")
                 raise
+            if conflict.generation_changed or conflict.key_deleted:
+                # PRIMARY logout/replacement guard: every reset (logout, termination, account replacement) gives
+                # the session a new generation marker, so this holds no matter which key paths differ (a reset
+                # may change only idp.ts, or restore the same paths for another user).
+                logger.error(
+                    "Session generation changed: logout/reset by other writer, failing the request"
+                    f" (key deleted: {conflict.key_deleted})"
+                )
+                raise
             if conflict.other_removed_anything:
-                # Logout/invalidation (clear() or reset()) deletes the key or recreates it without the old
+                # Defence in depth: Logout/invalidation (clear() or reset()) deletes the key or recreates it without the old
                 # content. Completing this request would e.g. send an assertion for a logged out session.
                 logger.error(f"Session was deleted or cleared by other writer, failing the request: {conflict.theirs}")
                 raise
@@ -614,6 +623,8 @@ class SessionFactory(SessionInterface):
                 f"Session {session.short_id} changed by other writer: {conflict.theirs}"
                 f" (key deleted: {conflict.key_deleted})"
             )
+            if conflict.generation_changed:
+                logger.error(f"Session {session.short_id} session generation changed: logout/reset by other writer")
             logger.warning(f"Session {session.short_id} our attempted changes: {conflict.ours}")
             if logger.isEnabledFor(logging.DEBUG):
                 logger.debug(f"Session {session.short_id} our data:\n{pprint.pformat(session._session.to_dict())}")

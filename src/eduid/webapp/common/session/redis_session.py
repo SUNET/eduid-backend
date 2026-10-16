@@ -47,6 +47,7 @@ from __future__ import annotations
 
 import json
 import logging
+import secrets
 import typing
 from collections.abc import Iterator, Mapping
 from typing import Any, NamedTuple, cast
@@ -62,6 +63,12 @@ from eduid.common.misc.encoders import EduidJSONEncoder
 from eduid.webapp.common.session.meta import SessionMeta
 
 logger = logging.getLogger(__name__)
+
+# Top-level key in the stored session blob (next to the namespaces and the CSRF token) holding the session
+# generation marker, a random string that is replaced every time the session is reset (logout, account termination,
+# account replacement). It is not part of any namespace model and never exposed through the API. Sessions
+# stored before this key was introduced have no generation (None) until they are reset.
+GENERATION_KEY = "_generation_"
 
 # Max WATCH/EXEC attempts in RedisEncryptedSession.commit() before giving up
 _MAX_COMMIT_ATTEMPTS = 5
@@ -127,6 +134,8 @@ class SessionManager:
         )
 
         if new:
+            # New sessions get a generation marker; existing ones are never given one on plain reads
+            res.reset_generation()
             logger.debug(f"Created new session {res}")
         elif not res.load_session():
             logger.warning(f"No existing session found for {res}")
@@ -184,6 +193,11 @@ def _diff_paths(
     return res
 
 
+def new_generation() -> str:
+    """Create a fresh, unguessable session generation marker."""
+    return secrets.token_hex(16)
+
+
 class ConflictDescription(NamedTuple):
     """
     Key paths (no values) of a failed session commit, see RedisEncryptedSession.describe_conflict.
@@ -191,14 +205,30 @@ class ConflictDescription(NamedTuple):
     theirs: changes made by the other writer since this instance loaded the session (empty if key_deleted)
     ours: changes this instance tried to write
     key_deleted: the session key no longer exists in the backend
+    baseline_generation: generation marker of the session as loaded (None for legacy sessions without one)
+    current_generation: generation marker of the session now in the backend (None if absent or key deleted)
     """
 
     theirs: list[str]
     ours: list[str]
     key_deleted: bool
+    baseline_generation: str | None = None
+    current_generation: str | None = None
+
+    @property
+    def generation_changed(self) -> bool:
+        """
+        The session was reset (logout, termination, account replacement) by the other writer.
+
+        This is the primary guard against completing a request for a session that no longer is the one it
+        was loaded from, independent of which key paths happen to differ. Two missing markers (legacy session)
+        count as the same generation.
+        """
+        return self.baseline_generation != self.current_generation
 
     @property
     def other_removed_anything(self) -> bool:
+        """Secondary logout heuristic based on removed paths, see generation_changed for the primary guard."""
         return self.key_deleted or any(c.startswith("removed ") for c in self.theirs)
 
 
@@ -282,6 +312,16 @@ class RedisEncryptedSession(typing.MutableMapping[str, Any]):
         """Short version of db_key for use in logging"""
         return self.db_key[:8] + "..."
 
+    @property
+    def generation(self) -> str | None:
+        """The generation marker of this session, None for legacy sessions that have none."""
+        gen = self._data.get(GENERATION_KEY)
+        return gen if isinstance(gen, str) else None
+
+    def reset_generation(self) -> None:
+        """Replace the generation marker. Called for new sessions and on every reset."""
+        self._data[GENERATION_KEY] = new_generation()
+
     def load_session(self) -> bool:
         logger.debug(f"Looking for session {self.short_id}")
 
@@ -338,9 +378,18 @@ class RedisEncryptedSession(typing.MutableMapping[str, Any]):
         baseline = self.decrypt_data(self._raw_data) if self._raw_data else {}
         raw_now = self.conn.get(self.db_key)
         key_deleted = not raw_now
-        theirs = [] if key_deleted else _diff_paths(baseline, self.decrypt_data(cast(bytes, raw_now)))
+        current = {} if key_deleted else self.decrypt_data(cast(bytes, raw_now))
+        theirs = [] if key_deleted else _diff_paths(baseline, current)
         ours_data = json.loads(json.dumps(self._data, cls=EduidJSONEncoder))
-        return ConflictDescription(theirs=theirs, ours=_diff_paths(baseline, ours_data), key_deleted=key_deleted)
+        baseline_gen = baseline.get(GENERATION_KEY)
+        current_gen = current.get(GENERATION_KEY)
+        return ConflictDescription(
+            theirs=theirs,
+            ours=_diff_paths(baseline, ours_data),
+            key_deleted=key_deleted,
+            baseline_generation=baseline_gen if isinstance(baseline_gen, str) else None,
+            current_generation=current_gen if isinstance(current_gen, str) else None,
+        )
 
     def encrypt_data(self, data_dict: Mapping[str, Any]) -> bytes:
         """
@@ -379,8 +428,12 @@ class RedisEncryptedSession(typing.MutableMapping[str, Any]):
     def clear(self) -> None:
         """
         Discard all data contained in the session.
+
+        The session gets a fresh generation marker, so that if it is committed again (reset) other
+        requests holding the old content can tell that the session was replaced.
         """
         self._data = {}
+        self.reset_generation()
         self.conn.delete(self.db_key)
         self._raw_data = None
 
@@ -390,7 +443,8 @@ class RedisEncryptedSession(typing.MutableMapping[str, Any]):
 
         A plain EXPIRE silently does nothing on a missing key, so a logout that cleared the session
         after it was loaded would go unnoticed by a request that has nothing to write. The comparison
-        and the EXPIRE are made atomic with WATCH/MULTI/EXEC.
+        and the EXPIRE are made atomic with WATCH/MULTI/EXEC. Since the whole stored blob is compared, a
+        changed generation marker (reset by other writer) is detected here too.
 
         :raises SessionOutOfSync: if the key is gone or holds other data than what was loaded
         """

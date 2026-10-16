@@ -1,3 +1,4 @@
+import json
 import logging
 import os
 from enum import Enum
@@ -13,6 +14,8 @@ from werkzeug.test import TestResponse
 
 from eduid.common.testing_base import normalised_data
 from eduid.vccs.client import VCCSClient
+from eduid.webapp.common.session.eduid_session import EduidSession, SessionFactory
+from eduid.webapp.common.session.meta import SessionMeta
 from eduid.webapp.common.session.namespaces import RequestRef
 from eduid.webapp.common.session.redis_session import RedisEncryptedSession, SessionOutOfSync
 from eduid.webapp.common.session.testing import force_session_conflict_on_post
@@ -82,6 +85,119 @@ class TestIdPLogoutAPI(IdPAPITests):
                 assert result.error is not None
                 assert "SAMLResponse" not in str(result.payload)
         assert forcer.forced
+
+    def _start_sso_login_in_clean_session(
+        self, mocker: MockerFixture, logged_in_eppn: str | None = None
+    ) -> tuple[str, str, str]:
+        """
+        Log in once (creating an SSO session), then start a second login in a fresh browser session that only
+        holds the pending request, so that an SSO-completed /next changes nothing but used/idp.ts.
+
+        :param logged_in_eppn: if given, the fresh session is also marked as logged in as this user
+
+        :returns: (login ref, SSO cookie value, session cookie value)
+        """
+        self.add_test_user_tou()
+        mocker.patch.object(VCCSClient, "authenticate", return_value=True)
+        first = self._try_login()
+        assert first.finished_result is not None
+        assert first.sso_cookie_val is not None
+
+        with self.browser.session_transaction() as sess:
+            sess.reset()  # as left by /logout: only the CSRF token is retained
+
+        _ref_result = self._get_login_ref(self.browser, self.saml2_client, None, False, None)
+        assert isinstance(_ref_result, tuple)
+        ref, _ = _ref_result
+        with self.browser.session_transaction() as sess:
+            if logged_in_eppn is not None:
+                sess.common.eppn = logged_in_eppn
+                sess.common.is_logged_in = True
+            session_cookie_val = sess.meta.cookie_val
+        return ref, str(first.sso_cookie_val), session_cookie_val
+
+    def _post_logout_with_ref(self, ref: str, sso_cookie_val: str, session_cookie_val: str) -> TestResponse:
+        """POST /logout the way the frontend does, retaining the pending request (idp/views/misc.py:logout)"""
+        other = self.app.test_client()
+        other.set_cookie(domain=self.test_domain, key=self.app.conf.flask.session_cookie_name, value=session_cookie_val)
+        other.set_cookie(domain=self.test_domain, key=self.app.conf.sso_cookie.key, value=sso_cookie_val)
+        with other.session_transaction() as sess:
+            assert isinstance(sess, EduidSession)
+            csrf_token = sess.get_csrf_token()
+        response = other.post(
+            "/logout", data=json.dumps({"ref": ref, "csrf_token": csrf_token}), content_type=self.content_type_json
+        )
+        assert response.status_code == HTTPStatus.OK
+        assert response.json is not None
+        assert response.json["payload"]["finished"] is True
+        return response
+
+    def test_retained_request_logout_changing_only_idp_ts_fails_inflight_next(self, mocker: MockerFixture) -> None:
+        """
+        /logout retains the CSRF token and rebuilds the pending request, and with an SSO-only (managed account)
+        session nothing else is in the session. The reset then changes only idp.ts, which the removed-path
+        heuristics cannot see, but the session generation does.
+        """
+        ref, sso_cookie_val, session_cookie_val = self._start_sso_login_in_clean_session(mocker)
+        # An SSO-completed /next on a session without common also writes common.eppn/is_logged_in, which would
+        # make the conflict fatal on its own. Allow those so that the in-flight request is the one described in
+        # the finding: it writes only paths the allowlist considers harmless to lose.
+        self.app.conf.session_safe_to_lose_paths = [
+            *self.app.conf.session_safe_to_lose_paths,
+            "common.eppn",
+            "common.is_logged_in",
+        ]
+        count_spy = mocker.spy(self.app.stats, "count")
+
+        def logout(_sibling: RedisEncryptedSession) -> None:
+            self._post_logout_with_ref(ref, sso_cookie_val, session_cookie_val)
+
+        with force_session_conflict_on_post(mocker, sibling_action=logout) as forcer:
+            try:
+                result = self._call_next(self.browser, ref)
+            except SessionOutOfSync:
+                pass  # propagated by the test client
+            else:
+                assert result.error is not None
+                assert "SAMLResponse" not in str(result.payload)
+        assert forcer.forced
+        assert count_spy.call_args_list.count(mocker.call("session_out_of_sync_error")) == 1
+        assert mocker.call("session_state_lost") not in count_spy.call_args_list
+
+    def test_logout_then_other_user_login_fails_inflight_next(self, mocker: MockerFixture) -> None:
+        """
+        Account replacement: after the /logout another user logs in to the same browser session, which restores
+        the very same key paths and only changes common.eppn. The in-flight /next of the first user must not
+        return that user's assertion.
+        """
+        ref, sso_cookie_val, session_cookie_val = self._start_sso_login_in_clean_session(
+            mocker, logged_in_eppn=self.default_user.eppn
+        )
+        count_spy = mocker.spy(self.app.stats, "count")
+        factory = self.app.session_interface
+        assert isinstance(factory, SessionFactory)
+
+        def logout_then_other_user_logs_in(sibling: RedisEncryptedSession) -> None:
+            common = dict(sibling.to_dict()["common"])
+            assert common["eppn"] == self.default_user.eppn
+            self._post_logout_with_ref(ref, sso_cookie_val, session_cookie_val)
+            meta = SessionMeta.from_cookie(session_cookie_val, app_secret=factory.manager.secret)
+            other_user_session = factory.manager.get_session(meta=meta, new=False)
+            assert "eppn" not in other_user_session.to_dict().get("common", {})  # the logout reset the session
+            other_user_session["common"] = {**common, "eppn": "other-eppn"}
+            other_user_session.commit()
+
+        with force_session_conflict_on_post(mocker, sibling_action=logout_then_other_user_logs_in) as forcer:
+            try:
+                result = self._call_next(self.browser, ref)
+            except SessionOutOfSync:
+                pass  # propagated by the test client
+            else:
+                assert result.error is not None
+                assert "SAMLResponse" not in str(result.payload)
+        assert forcer.forced
+        assert count_spy.call_args_list.count(mocker.call("session_out_of_sync_error")) == 1
+        assert mocker.call("session_state_lost") not in count_spy.call_args_list
 
     def test_abort_completing_before_next_fails_the_request(self, mocker: MockerFixture) -> None:
         """A /next in flight must not send a SAML response if /abort was committed meanwhile"""

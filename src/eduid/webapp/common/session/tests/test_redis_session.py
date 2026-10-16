@@ -256,6 +256,7 @@ class TestSession:
         assert conflict.ours == ["added bar"]
         assert conflict.key_deleted is False
         assert conflict.other_removed_anything is False
+        assert conflict.generation_changed is False
 
         session1.clear()
         conflict = session2.describe_conflict()
@@ -268,8 +269,9 @@ class TestSession:
         session1.commit()
         conflict = session2.describe_conflict()
         assert conflict.key_deleted is False
-        assert conflict.theirs == ["removed keep", "added new"]
+        assert conflict.theirs == ["changed _generation_", "removed keep", "added new"]
         assert conflict.other_removed_anything is True
+        assert conflict.generation_changed is True
 
 
 def test_diff_paths() -> None:

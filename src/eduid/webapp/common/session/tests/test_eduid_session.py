@@ -1,6 +1,7 @@
 import logging
 import time
 from collections.abc import Callable, Mapping
+from datetime import timedelta
 from typing import Any, cast
 
 import pytest
@@ -9,19 +10,22 @@ from pytest_mock import MockerFixture
 
 from eduid.common.config.base import EduIDBaseAppConfig
 from eduid.common.config.parsers import load_config
+from eduid.common.misc.timeutil import utc_now
 from eduid.webapp.common.api.testing import EduidAPITestCase
 from eduid.webapp.common.authn.middleware import AuthnBaseApp
 from eduid.webapp.common.authn.utils import no_authn_views
 from eduid.webapp.common.session import session
 from eduid.webapp.common.session.eduid_session import (
+    EduidNamespaces,
     EduidSession,
     SessionFactory,
     _all_safe_to_lose,
     _any_matches,
     _path_matches,
 )
+from eduid.webapp.common.session.meta import SessionMeta
 from eduid.webapp.common.session.namespaces import IdP_SAMLPendingRequest, LoginApplication, RequestRef
-from eduid.webapp.common.session.redis_session import RedisEncryptedSession, SessionOutOfSync
+from eduid.webapp.common.session.redis_session import GENERATION_KEY, RedisEncryptedSession, SessionOutOfSync
 
 __author__ = "lundberg"
 
@@ -268,7 +272,31 @@ class EduidSessionTests(EduidAPITestCase[SessionTestApp]):
     def _headers(self, cookie_val: str) -> dict[str, str]:
         return {"Cookie": f"{self.app.conf.flask.session_cookie_name}={cookie_val}"}
 
-    def _new_cookie_with_request(self) -> tuple[str, RequestRef]:
+    def _strip_generation(self, cookie_val: str) -> None:
+        """Turn a stored session into a legacy one (written before the generation marker existed)"""
+        factory = self.app.session_interface
+        assert isinstance(factory, SessionFactory)
+        meta = SessionMeta.from_cookie(cookie_val, app_secret=factory.manager.secret)
+        raw = factory.manager.get_session(meta=meta, new=False)
+        del raw[GENERATION_KEY]
+        raw.commit()
+
+    @staticmethod
+    def _reset_keeping_content(other: RedisEncryptedSession, **idp_changes: Any) -> None:
+        """
+        Simulate a logout followed by a login that restores the very same key paths (e.g. retained pending
+        request + CSRF token, as /logout does), changing at most the given idp fields. Only the generation
+        marker (and the idp fields) differ from the loaded content.
+        """
+        data = other.to_dict()
+        other.clear()  # new generation
+        for key, value in data.items():
+            if key == GENERATION_KEY:
+                continue
+            other[key] = {**value, **idp_changes} if key == "idp" and idp_changes else value
+        other.commit()
+
+    def _new_cookie_with_request(self, legacy: bool = False) -> tuple[str, RequestRef]:
         """Create and persist a session with an idp pending request, return its cookie value and the request ref"""
         ref = RequestRef("test-ref")
         with self.app.test_request_context():
@@ -277,22 +305,27 @@ class EduidSessionTests(EduidAPITestCase[SessionTestApp]):
             sess.idp.sso_cookie_val = "first"
             sess.idp.pending_requests[ref] = IdP_SAMLPendingRequest(request="req", binding="binding")
             sess.persist()
-            return sess.meta.cookie_val, ref
+            cookie_val = sess.meta.cookie_val
+        if legacy:
+            self._strip_generation(cookie_val)
+        return cookie_val, ref
 
     def _lose_conflict(
         self,
         mocker: MockerFixture,
         change: Callable[[EduidSession], None],
         other_writer: Callable[[RedisEncryptedSession], None] | None = None,
+        legacy: bool = False,
     ) -> tuple[Any, Any, Response, Any, Any, str]:
         """
         Open a session, apply `change`, let another writer commit first, and run save_session.
 
         The other writer adds the key 'other' unless `other_writer` is given. It must commit itself.
+        With `legacy` the stored session has no generation marker.
 
         :returns: (outcome exception or None, count spy, response, commit spy, session, cookie_val)
         """
-        cookie_val, ref = self._new_cookie_with_request()
+        cookie_val, ref = self._new_cookie_with_request(legacy=legacy)
         factory = self.app.session_interface
         assert isinstance(factory, SessionFactory)
         self._ref = ref
@@ -401,7 +434,7 @@ class EduidSessionTests(EduidAPITestCase[SessionTestApp]):
         assert isinstance(exc, SessionOutOfSync)
         assert mocker.call("session_state_lost") not in count_spy.call_args_list
         assert not response.headers.getlist("Set-Cookie")
-        assert db.to_dict() == {}
+        assert set(db.to_dict()) == {GENERATION_KEY}  # empty (new) session
 
     def test_save_session_reraises_when_key_recreated_after_logout(self, mocker: MockerFixture) -> None:
         def logout_and_new_login(other: RedisEncryptedSession) -> None:
@@ -414,7 +447,115 @@ class EduidSessionTests(EduidAPITestCase[SessionTestApp]):
         )
         assert isinstance(exc, SessionOutOfSync)
         assert mocker.call("session_state_lost") not in count_spy.call_args_list
-        assert db.to_dict() == {"fresh": "content"}
+        assert set(db.to_dict()) == {"fresh", GENERATION_KEY}
+
+    def test_save_session_reraises_when_reset_changed_only_idp_ts(self, mocker: MockerFixture) -> None:
+        """A reset that restores the same paths and only touches idp.ts is caught by the generation marker"""
+        ts = utc_now() + timedelta(seconds=5)
+        exc, count_spy, _response, _commit_spy, db, _cookie = self._lose_conflict(
+            mocker,
+            self._allowlisted_change,
+            other_writer=lambda other: self._reset_keeping_content(other, ts=ts.isoformat()),
+        )
+        assert isinstance(exc, SessionOutOfSync)
+        assert mocker.call("session_state_lost") not in count_spy.call_args_list
+        assert db.to_dict()["idp"]["sso_cookie_val"] == "first"  # our change was not persisted
+        assert db.to_dict()["idp"]["ts"] == ts.isoformat()
+
+    def test_save_session_swallows_benign_write_within_same_generation(self, mocker: MockerFixture) -> None:
+        generations: list[str | None] = []
+
+        def benign(other: RedisEncryptedSession) -> None:
+            generations.append(other.generation)
+            other["other"] = "writer"
+            other.commit()
+
+        exc, count_spy, _response, _commit_spy, db, _cookie = self._lose_conflict(
+            mocker, self._allowlisted_change, other_writer=benign
+        )
+        assert exc is None
+        count_spy.assert_any_call("session_state_lost")
+        assert generations[0] is not None
+        assert db.generation == generations[0]
+
+    def test_legacy_session_benign_write_still_swallowed(self, mocker: MockerFixture) -> None:
+        exc, count_spy, _response, _commit_spy, db, _cookie = self._lose_conflict(
+            mocker, self._allowlisted_change, legacy=True
+        )
+        assert exc is None
+        count_spy.assert_any_call("session_state_lost")
+        assert db.generation is None
+
+    def test_legacy_session_reset_by_other_writer_is_fatal(self, mocker: MockerFixture) -> None:
+        exc, count_spy, _response, _commit_spy, db, _cookie = self._lose_conflict(
+            mocker,
+            self._allowlisted_change,
+            other_writer=self._reset_keeping_content,
+            legacy=True,
+        )
+        assert isinstance(exc, SessionOutOfSync)
+        assert mocker.call("session_state_lost") not in count_spy.call_args_list
+        assert db.generation is not None
+
+    def test_new_session_gets_generation_and_reads_do_not_modify(self) -> None:
+        factory = self.app.session_interface
+        assert isinstance(factory, SessionFactory)
+        with self.app.test_request_context():
+            sess = factory.open_session(self.app, request)
+            assert isinstance(sess, EduidSession)
+            assert sess.new is True
+            first = sess._session.generation
+            assert first
+            _ = (sess.idp, sess.common, sess.signup)  # plain reads
+            sess._serialize_namespaces()
+            sess.idp.sso_cookie_val = "x"
+            sess.persist()
+            cookie_val = sess.meta.cookie_val
+
+        with self.app.test_request_context(headers=self._headers(cookie_val)):
+            sess = factory.open_session(self.app, request)
+            assert isinstance(sess, EduidSession)
+            assert sess._session.generation == first
+            _ = (sess.idp, sess.common)
+            sess._serialize_namespaces()
+            assert sess.modified is False
+            sess.reset()
+            assert sess.modified is True
+            assert sess._session.generation
+            assert sess._session.generation != first
+            sess.persist()
+
+        with self.app.test_request_context(headers=self._headers(cookie_val)):
+            sess = factory.open_session(self.app, request)
+            assert sess._session.generation not in (None, first)
+
+    def test_legacy_session_not_given_generation_by_reads(self) -> None:
+        cookie_val, _ref = self._new_cookie_with_request(legacy=True)
+        factory = self.app.session_interface
+        assert isinstance(factory, SessionFactory)
+        with self.app.test_request_context(headers=self._headers(cookie_val)):
+            sess = factory.open_session(self.app, request)
+            assert isinstance(sess, EduidSession)
+            assert sess._session.generation is None
+            _ = sess.idp
+            sess._serialize_namespaces()
+            assert sess.modified is False
+            factory.save_session(self.app, sess, Response())
+            assert sess._session.generation is None
+            sess.reset()  # a reset assigns one
+            assert sess._session.to_dict()[GENERATION_KEY]
+
+    def test_generation_not_in_namespaces(self) -> None:
+        cookie_val, _ref = self._new_cookie_with_request()
+        factory = self.app.session_interface
+        assert isinstance(factory, SessionFactory)
+        with self.app.test_request_context(headers=self._headers(cookie_val)):
+            sess = factory.open_session(self.app, request)
+            assert isinstance(sess, EduidSession)
+            assert GENERATION_KEY in sess._session.to_dict()
+            for name in EduidNamespaces.model_fields:
+                assert GENERATION_KEY not in str(getattr(sess._namespaces, name) or "")
+            assert GENERATION_KEY not in sess.idp.to_dict()
 
     def test_save_session_reraises_when_other_writer_removed_a_path(self, mocker: MockerFixture) -> None:
         def remove_path(other: RedisEncryptedSession) -> None:
@@ -636,6 +777,14 @@ class EduidSessionTests(EduidAPITestCase[SessionTestApp]):
         exc, count_spy, _sess, _cookie = self._save_unmodified_after(mocker, logout_and_new_login)
         assert isinstance(exc, SessionOutOfSync)
         count_spy.assert_any_call("session_out_of_sync_error")
+
+    def test_unmodified_save_raises_when_only_generation_changed(self, mocker: MockerFixture) -> None:
+        """The no-write renew_ttl path compares the stored blob, so a reset with identical content is caught"""
+        exc, count_spy, sess, _cookie = self._save_unmodified_after(mocker, self._reset_keeping_content)
+        assert isinstance(exc, SessionOutOfSync)
+        count_spy.assert_any_call("session_out_of_sync_error")
+        assert mocker.call("session_state_lost") not in count_spy.call_args_list
+        assert sess._commit_failed is True
 
     def test_unmodified_save_swallows_benign_sibling_change(self, mocker: MockerFixture) -> None:
         def add_key(other: RedisEncryptedSession) -> None:
