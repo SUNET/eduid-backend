@@ -714,6 +714,8 @@ def test_all_safe_to_lose() -> None:
 
 def test_all_safe_to_lose_empty_patterns_never_swallows() -> None:
     assert not _all_safe_to_lose(["changed idp.ts"], [])
+    # no net diff (a key changed and restored) must not be swallowed when the setting is disabled
+    assert not _all_safe_to_lose([], [])
 
 
 def test_default_fatal_other_writer_paths() -> None:

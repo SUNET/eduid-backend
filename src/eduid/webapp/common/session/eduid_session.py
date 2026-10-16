@@ -442,8 +442,12 @@ def _change_paths_matching(changes: Iterable[str], patterns: Iterable[str]) -> l
 def _all_safe_to_lose(changes: Iterable[str], patterns: Iterable[str]) -> bool:
     """
     Check that every change is covered by one of the patterns (EduIDBaseAppConfig.session_safe_to_lose_paths).
-    No patterns means nothing is safe to lose.
+    No patterns means nothing is safe to lose, even when there are no changes (a key changed and
+    restored leaves the session modified without a net diff).
     """
+    patterns = list(patterns)
+    if not patterns:
+        return False
     return all(_change_paths_matching(changes, patterns))
 
 
