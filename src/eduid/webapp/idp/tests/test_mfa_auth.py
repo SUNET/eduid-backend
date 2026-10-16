@@ -127,6 +127,10 @@ class TestMfaAuthGrantConsumption(IdPAPITests):
         # A sibling request commits to the same backend session while this request is in flight,
         # retaining mfa_action (it never saw our delete). The view must fail on its explicit persist(),
         # before any authentication is recorded in the SSO session.
+        count_spy = self.mocker.spy(self.app.stats, "count")
+        # Behave like production: the unhandled error becomes a 500 response that is finalized (and the
+        # session saved), instead of the exception being re-raised straight out of the test client
+        self.app.config["PROPAGATE_EXCEPTIONS"] = False
         with force_session_conflict_on_post(self.mocker) as forcer:
             try:
                 response = self._post_mfa(device, target, ref)
@@ -136,6 +140,9 @@ class TestMfaAuthGrantConsumption(IdPAPITests):
                 assert response.status_code == HTTPStatus.INTERNAL_SERVER_ERROR
                 assert not (response.json or {}).get("payload", {}).get("finished")
         assert forcer.forced
+        # The conflict raised by the view's explicit persist() is counted exactly once, and never swallowed
+        assert count_spy.call_args_list.count(self.mocker.call("session_out_of_sync_error")) == 1
+        assert self.mocker.call("session_state_lost") not in count_spy.call_args_list
 
         # No authentication was recorded in the SSO session
         assert self._sso_snapshot() == sso_before

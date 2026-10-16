@@ -123,6 +123,8 @@ class EduidSession(SessionMixin):
         self._invalidated = False
         # Set when a commit failed with SessionOutOfSync, to avoid retrying (and re-logging) on later persist() calls
         self._commit_failed = False
+        # Set once the conflict has been counted and logged, so it is reported exactly once per request
+        self._conflict_reported = False
 
         # From SessionMixin
         self.new = new
@@ -548,9 +550,7 @@ class SessionFactory(SessionInterface):
         try:
             session.persist()
         except SessionOutOfSync:
-            app.stats.count("session_out_of_sync_error")
-            logger.error(f"Commit of session {session} failed because it has been changed by someone else")
-            conflict = self._log_conflict(session)
+            conflict = self._report_conflict(app, session)
             if conflict is None:
                 logger.error("Session conflict could not be described, failing the request")
                 raise
@@ -574,7 +574,26 @@ class SessionFactory(SessionInterface):
             app.stats.count("session_state_lost")
             logger.error(f"Session state lost: our changes were NOT persisted (all safe to lose): {conflict.ours}")
             # TODO: optional reload/re-apply/retry-once merge (needs per-namespace semantics)
+        else:
+            if session._commit_failed and not session._conflict_reported:
+                # A view called persist() explicitly and the conflict propagated out of it, failing the request.
+                # Report it here since this is the only place that does. Nothing is swallowed or re-raised:
+                # the original exception already reached the error handling.
+                self._report_conflict(app, session)
         session.set_cookie(response)
+
+    def _report_conflict(self, app: EduIDBaseApp, session: EduidSession) -> ConflictDescription | None:
+        """
+        Count and log a session conflict, once per session object.
+
+        :returns: The described conflict, or None if it was already reported or could not be described
+        """
+        if session._conflict_reported:
+            return None
+        session._conflict_reported = True
+        app.stats.count("session_out_of_sync_error")
+        logger.error(f"Commit of session {session} failed because it has been changed by someone else")
+        return self._log_conflict(session)
 
     @staticmethod
     def _log_conflict(session: EduidSession) -> ConflictDescription | None:

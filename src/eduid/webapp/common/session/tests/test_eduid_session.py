@@ -1,3 +1,4 @@
+import logging
 import time
 from collections.abc import Callable, Mapping
 from typing import Any, cast
@@ -318,6 +319,8 @@ class EduidSessionTests(EduidAPITestCase[SessionTestApp]):
             # A repeated save (error path) is a no-op, no second commit attempt, no new exception
             factory.save_session(self.app, sess, Response())
             assert commit_spy.call_count == 1
+            # ... and the conflict is reported exactly once
+            assert count_spy.call_args_list.count(mocker.call("session_out_of_sync_error")) == 1
             try:
                 db = factory.manager.get_session(meta=sess.meta, new=False)
             except KeyError:
@@ -341,6 +344,47 @@ class EduidSessionTests(EduidAPITestCase[SessionTestApp]):
         cookies = response.headers.getlist("Set-Cookie")
         assert any(c.startswith(f"{self.app.conf.flask.session_cookie_name}={cookie_val}") for c in cookies)
         self._assert_lost_not_persisted(db)
+
+    def test_explicit_persist_conflict_is_reported_once_by_save_session(
+        self, mocker: MockerFixture, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        """A view calling persist() itself must still get the conflict counted and described"""
+        cookie_val, _ref = self._new_cookie_with_request()
+        factory = self.app.session_interface
+        assert isinstance(factory, SessionFactory)
+        with self.app.test_request_context(headers=self._headers(cookie_val)):
+            sess = factory.open_session(self.app, request)
+            assert isinstance(sess, EduidSession)
+            sess.idp.pending_requests[RequestRef("test-ref")].used = True
+
+            other = factory.manager.get_session(meta=sess.meta, new=False)
+            other["other"] = "writer"
+            other.commit()
+
+            count_spy = mocker.spy(self.app.stats, "count")
+            conflict_spy = mocker.spy(SessionFactory, "_log_conflict")
+            commit_spy = mocker.spy(sess._session, "commit")
+
+            # The view's explicit persist() fails and the exception propagates out of the view
+            with pytest.raises(SessionOutOfSync):
+                sess.persist()
+            assert count_spy.call_args_list == []
+
+            # Error response finalization
+            with caplog.at_level(logging.ERROR):
+                response = Response()
+                factory.save_session(self.app, sess, response)
+            assert count_spy.call_args_list == [mocker.call("session_out_of_sync_error")]
+            conflict_spy.assert_called_once()
+            assert "changed by other writer" in caplog.text
+            assert response.headers.getlist("Set-Cookie")
+
+            # Another save in the same request neither retries nor reports again
+            factory.save_session(self.app, sess, Response())
+            assert count_spy.call_args_list == [mocker.call("session_out_of_sync_error")]
+            conflict_spy.assert_called_once()
+            assert commit_spy.call_count == 1
+            assert mocker.call("session_state_lost") not in count_spy.call_args_list
 
     @staticmethod
     def _allowlisted_change(sess: EduidSession) -> None:
