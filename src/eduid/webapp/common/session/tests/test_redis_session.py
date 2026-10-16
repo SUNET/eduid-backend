@@ -192,6 +192,54 @@ class TestSession:
         assert session2._raw_data == baseline
         assert self.redis_instance.conn.get(session2.db_key) == baseline
 
+    def test_renew_ttl_watch_contention_is_bounded(self, mocker: MockerFixture) -> None:
+        """A peer EXPIRE on every attempt (value unchanged) must not cause an unbounded retry loop"""
+        _meta = SessionMeta.new(app_secret=self.manager.secret)
+        session1 = self.manager.get_session(meta=_meta, new=True)
+        session1.commit()
+        session2 = self.manager.get_session(meta=_meta, new=False)
+        baseline = session2._raw_data
+        assert baseline is not None
+
+        original_multi = redis.client.Pipeline.multi
+        calls: list[int] = []
+
+        def _multi(pipe: redis.client.Pipeline, *args: object, **kwargs: object) -> object:
+            calls.append(1)
+            self.redis_instance.conn.expire(session2.db_key, 100)
+            return original_multi(pipe, *args, **kwargs)
+
+        mocker.patch.object(redis.client.Pipeline, "multi", autospec=True, side_effect=_multi)
+        with pytest.raises(SessionOutOfSync, match="contended"):
+            session2.renew_ttl()
+
+        assert len(calls) == _MAX_COMMIT_ATTEMPTS
+        assert self.redis_instance.conn.get(session2.db_key) == baseline
+
+    def test_renew_ttl_single_watch_collision_succeeds(self, mocker: MockerFixture) -> None:
+        """One WatchError collision followed by an unchanged key renews the ttl"""
+        _meta = SessionMeta.new(app_secret=self.manager.secret)
+        session1 = self.manager.get_session(meta=_meta, new=True)
+        session1.commit()
+        session2 = self.manager.get_session(meta=_meta, new=False)
+        baseline = session2._raw_data
+
+        original_multi = redis.client.Pipeline.multi
+        calls: list[int] = []
+
+        def _multi(pipe: redis.client.Pipeline, *args: object, **kwargs: object) -> object:
+            calls.append(1)
+            if len(calls) == 1:
+                self.redis_instance.conn.expire(session2.db_key, 100)
+            return original_multi(pipe, *args, **kwargs)
+
+        mocker.patch.object(redis.client.Pipeline, "multi", autospec=True, side_effect=_multi)
+        session2.renew_ttl()
+
+        assert len(calls) == 2
+        assert self.redis_instance.conn.get(session2.db_key) == baseline
+        assert self.redis_instance.conn.ttl(session2.db_key) == session2.ttl
+
     def test_describe_conflict(self) -> None:
         _meta = SessionMeta.new(app_secret=self.manager.secret)
         session1 = self.manager.get_session(meta=_meta, new=True)

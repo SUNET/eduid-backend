@@ -503,6 +503,67 @@ class EduidSessionTests(EduidAPITestCase[SessionTestApp]):
             assert ttl > 5
             assert conn.get(key) == raw_before
 
+    def _save_unmodified_after(
+        self, mocker: MockerFixture, other_writer: Callable[[RedisEncryptedSession], None] | None
+    ) -> tuple[Exception | None, Any, EduidSession, str]:
+        """Open a session, change nothing, let another writer act, then run save_session (no-write path)"""
+        cookie_val = self._new_cookie()
+        factory = self.app.session_interface
+        assert isinstance(factory, SessionFactory)
+        with self.app.test_request_context(headers=self._headers(cookie_val)):
+            sess = factory.open_session(self.app, request)
+            assert isinstance(sess, EduidSession)
+            if other_writer is not None:
+                other_writer(factory.manager.get_session(meta=sess.meta, new=False))
+            count_spy = mocker.spy(self.app.stats, "count")
+            commit_spy = mocker.spy(sess._session, "commit")
+            exc: Exception | None = None
+            try:
+                factory.save_session(self.app, sess, Response())
+            except SessionOutOfSync as e:
+                exc = e
+            commit_spy.assert_not_called()
+            return exc, count_spy, sess, cookie_val
+
+    def test_unmodified_save_raises_when_key_deleted(self, mocker: MockerFixture) -> None:
+        exc, count_spy, sess, _cookie = self._save_unmodified_after(mocker, lambda other: other.clear())
+        assert isinstance(exc, SessionOutOfSync)
+        count_spy.assert_any_call("session_out_of_sync_error")
+        assert sess._commit_failed is True
+        assert sess._session.conn.get(sess._session.db_key) is None  # EXPIRE did not recreate anything
+
+    def test_unmodified_save_raises_when_key_recreated_with_other_data(self, mocker: MockerFixture) -> None:
+        def logout_and_new_login(other: RedisEncryptedSession) -> None:
+            other.clear()
+            other["fresh"] = "content"
+            other.commit()
+
+        exc, count_spy, _sess, _cookie = self._save_unmodified_after(mocker, logout_and_new_login)
+        assert isinstance(exc, SessionOutOfSync)
+        count_spy.assert_any_call("session_out_of_sync_error")
+
+    def test_unmodified_save_swallows_benign_sibling_change(self, mocker: MockerFixture) -> None:
+        def add_key(other: RedisEncryptedSession) -> None:
+            other["other"] = "writer"
+            other.commit()
+
+        exc, count_spy, _sess, _cookie = self._save_unmodified_after(mocker, add_key)
+        assert exc is None
+        count_spy.assert_any_call("session_out_of_sync_error")
+        count_spy.assert_any_call("session_state_lost")
+
+    def test_unmodified_save_renews_ttl_when_unchanged(self, mocker: MockerFixture) -> None:
+        cookie_val = self._new_cookie()
+        factory = self.app.session_interface
+        with self.app.test_request_context(headers=self._headers(cookie_val)):
+            sess = factory.open_session(self.app, request)
+            assert isinstance(sess, EduidSession)
+            conn = sess._session.conn
+            conn.expire(sess._session.db_key, 5)
+            factory.save_session(self.app, sess, Response())
+            assert cast(int, conn.ttl(sess._session.db_key)) > 5
+            assert sess._commit_failed is False
+
 
 @pytest.mark.parametrize(
     ("path", "expected"),

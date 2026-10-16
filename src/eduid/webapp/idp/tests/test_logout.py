@@ -82,6 +82,41 @@ class TestIdPLogoutAPI(IdPAPITests):
                 assert "SAMLResponse" not in str(result.payload)
         assert forcer.forced
 
+    def test_logout_completing_before_repeated_next_fails_the_request(self, mocker: MockerFixture) -> None:
+        """A repeated /next (pending request already used) writes nothing, but must still detect a logout"""
+        self.add_test_user_tou()
+        mocker.patch.object(VCCSClient, "authenticate", return_value=True)
+
+        device = self.browser
+        _ref_result = self._get_login_ref(device, self.saml2_client, None, False, None)
+        assert isinstance(_ref_result, tuple)
+        ref, _ = _ref_result
+        _next = self._call_next(device, ref)
+        assert _next.payload["action"] == IdPAction.USERNAMEPWAUTH.value
+        assert self.default_user.password is not None
+        self._call_pwauth(
+            device=device,
+            target=_next.payload["target"],
+            ref=ref,
+            username=self.default_user.eppn,
+            password=self.default_user.password,
+        )
+        # First /next finishes the request and marks it used
+        first = self._call_next(device, ref)
+        assert first.error is None
+        assert "SAMLResponse" in str(first.payload)
+
+        # The repeat changes nothing in the session, and the logout clears it before the response is returned
+        with force_session_conflict_on_post(mocker, sibling_action=lambda s: s.clear()) as forcer:
+            try:
+                result = self._call_next(device, ref)
+            except SessionOutOfSync:
+                pass  # propagated by the test client
+            else:
+                assert result.error is not None
+                assert "SAMLResponse" not in str(result.payload)
+        assert forcer.forced
+
     def test_basic_logout_soap(self, mocker: MockerFixture) -> None:
         """
         Simulate a user logging in using one browser,

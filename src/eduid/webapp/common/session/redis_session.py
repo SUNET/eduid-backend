@@ -386,9 +386,38 @@ class RedisEncryptedSession(typing.MutableMapping[str, Any]):
 
     def renew_ttl(self) -> None:
         """
-        Restart the ttl countdown
+        Restart the ttl countdown, but only if the backend session is still the one that was loaded.
+
+        A plain EXPIRE silently does nothing on a missing key, so a logout that cleared the session
+        after it was loaded would go unnoticed by a request that has nothing to write. The comparison
+        and the EXPIRE are made atomic with WATCH/MULTI/EXEC.
+
+        :raises SessionOutOfSync: if the key is gone or holds other data than what was loaded
         """
-        self.conn.expire(self.db_key, self.ttl)
+        baseline = self._raw_data
+        if baseline is None:
+            # Not loaded from the backend, there is nothing to compare with
+            self.conn.expire(self.db_key, self.ttl)
+            return
+        # Same WATCH pattern as commit(), see the comment there on why Redis.transaction() is not used
+        for attempt in range(1, _MAX_COMMIT_ATTEMPTS + 1):
+            with self.conn.pipeline() as pipe:
+                try:
+                    pipe.watch(self.db_key)  # type: ignore[no-untyped-call]
+                    # Pipeline is in immediate mode until multi() is called
+                    _data_now = cast(bytes | None, pipe.get(self.db_key))
+                    if _data_now != baseline:
+                        raise SessionOutOfSync(f"The session {self} has been updated or removed by someone else")
+                    pipe.multi()
+                    pipe.expire(self.db_key, self.ttl)
+                    pipe.execute()
+                except redis.WatchError:
+                    logger.warning(
+                        f"Session {self} modified during ttl renewal, attempt {attempt}/{_MAX_COMMIT_ATTEMPTS}"
+                    )
+                    continue
+            return
+        raise SessionOutOfSync(f"The session {self} is contended")
 
     def to_dict(self) -> dict[str, Any]:
         return dict(self._data)

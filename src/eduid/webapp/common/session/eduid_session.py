@@ -401,8 +401,13 @@ class EduidSession(SessionMixin):
                 _saved_data = json.dumps(self._session.to_dict(), indent=4, sort_keys=True, cls=EduidJSONEncoder)
                 logger.debug(f"Saved session {self}:\n{_saved_data}")
         elif not self.new:
-            # Nothing to write, but keep the session alive in the backend
-            self._session.renew_ttl()
+            # Nothing to write, but keep the session alive in the backend. This also verifies that the
+            # backend session still is the one we loaded, e.g. a logout may have cleared it meanwhile.
+            try:
+                self._session.renew_ttl()
+            except SessionOutOfSync:
+                self._commit_failed = True
+                raise
 
 
 def _path_matches(path: str, pattern: str) -> bool:
