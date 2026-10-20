@@ -874,6 +874,21 @@ class TestCheckIdentityAge(CleanerQueueTestCase):
         gather_identity_age_users(self._context())
         assert self.cleaner_queue_db.user_in_queue(CleanerType.IDENTITY_AGE, user.eppn)
 
+    def test_gather_queues_expired_recently_warned_user_who_lost_verified_mail(self) -> None:
+        user = self._save_user([self._nin(verified_ts=_years_ago(5, extra_days=10))])
+        assert user.identities.nin is not None
+        self._set_warned(user, user.identities.nin, days_ago=1)
+        self._remove_mails(user.eppn)
+        gather_identity_age_users(self._context())
+        assert self.cleaner_queue_db.user_in_queue(CleanerType.IDENTITY_AGE, user.eppn)
+
+    def test_gather_skips_expired_recently_warned_user_with_verified_mail(self) -> None:
+        user = self._save_user([self._nin(verified_ts=_years_ago(5, extra_days=10))])
+        assert user.identities.nin is not None
+        self._set_warned(user, user.identities.nin, days_ago=1)
+        gather_identity_age_users(self._context())
+        assert not self.cleaner_queue_db.user_in_queue(CleanerType.IDENTITY_AGE, user.eppn)
+
     def test_gather_queues_warn_user_with_verified_mail(self) -> None:
         user = self._save_user([self._nin(verified_ts=_years_ago(4, extra_days=300))])
         assert user.mail_addresses.verified

@@ -86,8 +86,11 @@ def _needs_action(
             if notification.unverified_ts is not None:
                 continue
             warned_at = notification.warning_sent_ts
+            # An expired identity of a user without a verified mail address is unverified right away (see
+            # _check_user), so only wait for the notice period if there is someone to give notice to.
+            waiting_for_notice = status is IdentityAgeStatus.EXPIRED and has_verified_mail
             if warned_at is not None and (
-                status is IdentityAgeStatus.WARN or warned_at + limits.min_notice > limits.now
+                status is IdentityAgeStatus.WARN or (waiting_for_notice and warned_at + limits.min_notice > limits.now)
             ):
                 # Already warned and nothing more to do until the notice period has passed
                 continue
