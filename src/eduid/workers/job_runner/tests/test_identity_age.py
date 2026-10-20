@@ -143,8 +143,9 @@ class TestCheckIdentityAge(CleanerQueueTestCase):
         assert len(db._coll.index_information()) == 3
 
     def test_invalid_auto_expire(self) -> None:
+        auto_expire = timedelta(0)
         with pytest.raises(ValueError, match="at least one second"):
-            IdentityAgeNotificationDB(db_uri=self.mongo_uri, auto_expire=timedelta(0))
+            IdentityAgeNotificationDB(db_uri=self.mongo_uri, auto_expire=auto_expire)
 
     def test_modified_ts_is_bson_date_on_all_writes(self) -> None:
         eppn, verified_at = "hubba-bubba", utc_now()
@@ -1181,7 +1182,7 @@ class TestSchedulerAndConfig:
     )
     def test_config_rejects_invalid_values(self, identity_age: dict[str, Any]) -> None:
         with pytest.raises(ValidationError):
-            IdentityAgeConfig(**identity_age)
+            IdentityAgeConfig.model_validate(identity_age)
 
     def test_config_auto_expire_default(self) -> None:
         assert IdentityAgeConfig().notification_auto_expire == timedelta(days=3 * 365)
@@ -1197,18 +1198,27 @@ class TestSchedulerAndConfig:
         assert config.min_notice_days == 1
         assert IdentityAgeConfig(max_age_years=1, warning_period_months=11).warning_period_months == 11
 
-    def test_config_auto_expire_must_exceed_record_lifetime(self) -> None:
+    @pytest.mark.parametrize(
+        "identity_age",
+        [
+            {"notification_auto_expire": timedelta(days=123)},
+            {"warning_period_months": 6, "min_notice_days": 14, "notification_auto_expire": timedelta(days=200)},
+        ],
+    )
+    def test_config_auto_expire_must_exceed_record_lifetime(self, identity_age: dict[str, Any]) -> None:
         with pytest.raises(ValidationError, match="notification_auto_expire"):
-            IdentityAgeConfig(notification_auto_expire=timedelta(days=123))
-        assert IdentityAgeConfig(notification_auto_expire=timedelta(days=124)).notification_auto_expire == timedelta(
-            days=124
-        )
-        config = IdentityAgeConfig(
-            warning_period_months=6, min_notice_days=14, notification_auto_expire=timedelta(days=201)
-        )
-        assert config.notification_auto_expire == timedelta(days=201)
-        with pytest.raises(ValidationError, match="notification_auto_expire"):
-            IdentityAgeConfig(warning_period_months=6, min_notice_days=14, notification_auto_expire=timedelta(days=200))
+            IdentityAgeConfig.model_validate(identity_age)
+
+    @pytest.mark.parametrize(
+        "identity_age",
+        [
+            {"notification_auto_expire": timedelta(days=124)},
+            {"warning_period_months": 6, "min_notice_days": 14, "notification_auto_expire": timedelta(days=201)},
+        ],
+    )
+    def test_config_auto_expire_just_above_record_lifetime(self, identity_age: dict[str, Any]) -> None:
+        config = IdentityAgeConfig.model_validate(identity_age)
+        assert config.notification_auto_expire == identity_age["notification_auto_expire"]
 
     def test_config_auto_expire_parses_durations(self) -> None:
         assert IdentityAgeConfig(notification_auto_expire="P200D").notification_auto_expire == timedelta(days=200)

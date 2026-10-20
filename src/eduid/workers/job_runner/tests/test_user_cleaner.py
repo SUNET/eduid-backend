@@ -81,10 +81,9 @@ class TestCleanerQueueDB(CleanerQueueTestCase):
         self.cleaner_queue_db.save(
             CleanerQueueUser(eppn=user.eppn, cleaner_type=CleanerType.SKV, identities=user.identities)
         )
+        duplicate = CleanerQueueUser(eppn=user.eppn, cleaner_type=CleanerType.SKV, identities=user.identities)
         with pytest.raises(DuplicateKeyError):
-            self.cleaner_queue_db.save(
-                CleanerQueueUser(eppn=user.eppn, cleaner_type=CleanerType.SKV, identities=user.identities)
-            )
+            self.cleaner_queue_db.save(duplicate)
 
     def test_old_eppn_only_unique_index_is_migrated(self) -> None:
         coll = self.cleaner_queue_db._coll
