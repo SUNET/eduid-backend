@@ -102,8 +102,9 @@ class TestUnverify:
         assert identities.find(ElementKey("nin")) is nin
 
     def test_unverify_missing(self) -> None:
+        identities = IdentityList(elements=[])
         with pytest.raises(KeyError):
-            IdentityList(elements=[]).unverify(IdentityType.NIN)
+            identities.unverify(IdentityType.NIN)
 
 
 class TestNormaliseVerifiedAt:
