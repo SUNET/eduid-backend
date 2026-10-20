@@ -556,36 +556,44 @@ class SessionFactory(SessionInterface):
         except SessionOutOfSync:
             conflict = self._report_conflict(app, session)
             if conflict is None:
-                logger.error("Session conflict could not be described, failing the request")
+                logger.error(f"Session {session.short_id} conflict could not be described, failing the request")
                 raise
             if conflict.generation_changed or conflict.key_deleted:
                 # PRIMARY logout/replacement guard: every reset (logout, termination, account replacement) gives
                 # the session a new generation marker, so this holds no matter which key paths differ (a reset
                 # may change only idp.ts, or restore the same paths for another user).
                 logger.error(
-                    "Session generation changed: logout/reset by other writer, failing the request"
-                    f" (key deleted: {conflict.key_deleted})"
+                    f"Session {session.short_id} generation changed: logout/reset by other writer, "
+                    f"failing the request (key deleted: {conflict.key_deleted})"
                 )
                 raise
             if conflict.other_removed_anything:
                 # Defence in depth: Logout/invalidation (clear() or reset()) deletes the key or recreates it without the old
                 # content. Completing this request would e.g. send an assertion for a logged out session.
-                logger.error(f"Session was deleted or cleared by other writer, failing the request: {conflict.theirs}")
+                logger.error(
+                    f"Session {session.short_id} was deleted or cleared by other writer, "
+                    f"failing the request: {conflict.theirs}"
+                )
                 raise
             if _any_matches(conflict.theirs, app.conf.session_fatal_other_writer_paths):
                 # Other writer changed state that invalidates what this request is about to answer
                 logger.error(
-                    f"Session state changed by other writer in a fatal path, failing the request: {conflict.theirs}"
+                    f"Session {session.short_id} state changed by other writer in a fatal path, "
+                    f"failing the request: {conflict.theirs}"
                 )
                 raise
             if not _all_safe_to_lose(conflict.ours, app.conf.session_safe_to_lose_paths):
                 # Deny by default: fail closed unless every lost change is known to be harmless to lose
                 logger.error(
-                    f"Session state lost and not all changes are safe to lose, failing the request: {conflict.ours}"
+                    f"Session {session.short_id} state lost and not all changes are safe to lose, "
+                    f"failing the request: {conflict.ours}"
                 )
                 raise
             app.stats.count("session_state_lost")
-            logger.error(f"Session state lost: our changes were NOT persisted (all safe to lose): {conflict.ours}")
+            logger.error(
+                f"Session {session.short_id} state lost: our changes were NOT persisted "
+                f"(all safe to lose): {conflict.ours}"
+            )
             # TODO: optional reload/re-apply/retry-once merge (needs per-namespace semantics)
         else:
             if session._commit_failed and not session._conflict_reported:
