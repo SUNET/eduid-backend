@@ -1,6 +1,7 @@
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import datetime, timedelta
+from typing import Literal
 
 from dateutil.relativedelta import relativedelta
 
@@ -20,7 +21,7 @@ from eduid.userdb.identity import (
     get_identity_age_status,
     identity_expires_at,
 )
-from eduid.userdb.identity_age.db import IdentityAgeNotificationDB
+from eduid.userdb.identity_age.db import IdentityAgeNotification, IdentityAgeNotificationDB
 from eduid.userdb.meta import CleanerType
 from eduid.userdb.user import User
 from eduid.userdb.user_cleaner.db import CleanerQueueUser
@@ -206,39 +207,10 @@ def _check_user(context: Context, eppn: str, limits: _Limits) -> int:
     for identity in user.identities.verified:
         if not isinstance(identity, IdentityElement) or identity.identity_type not in config.identity_types:
             continue
-        status = get_identity_age_status(identity, limits.now, limits.max_age, limits.warning_period)
-        type_name = identity.identity_type.value
-        verified_at = identity.verified_at
-        if status is IdentityAgeStatus.UNKNOWN or verified_at is None:
-            context.logger.info(f"{eppn}: verification time of {type_name} identity is unknown")
-            context.stats.count(f"identity_age_unknown_{type_name}")
-            continue
-        if status is IdentityAgeStatus.OK:
-            continue
-
-        notification = _notification_db(context).get(eppn, identity.identity_type, verified_at)
-        if notification is not None and notification.unverified_ts is not None:
-            if context.dry_run:
-                # The central user stays verified in a dry run, this is the expected state after a simulated unverify
-                context.logger.info(f"{eppn}: {type_name} identity unverification already simulated, skipping")
-                context.stats.count(f"identity_age_dry_run_already_simulated_{type_name}")
-                continue
-            # Verified again with the very same verified_at after we unverified it. Don't unverify it again.
-            context.logger.warning(
-                f"{eppn}: {type_name} identity was already unverified for verified_at {verified_at} but is verified"
-                " again without a new verification time, skipping"
-            )
-            context.stats.count(f"identity_age_unknown_{type_name}")
-            continue
-        warned_at = notification.warning_sent_ts if notification is not None else None
-        if status is IdentityAgeStatus.EXPIRED and not user.mail_addresses.verified:
-            # No warning can be delivered, so there is no notice to wait for: unverify right away
-            to_unverify.append(identity)
-        elif warned_at is None:
-            # WARN, or EXPIRED but never warned (and the user has a mail address): warn now,
-            # unverification is up to a later run
+        action = _classify_identity(context, eppn, user, identity, limits)
+        if action == "warn":
             to_warn.append(identity)
-        elif status is IdentityAgeStatus.EXPIRED and warned_at + limits.min_notice <= limits.now:
+        elif action == "unverify":
             to_unverify.append(identity)
 
     if to_warn:
@@ -246,6 +218,69 @@ def _check_user(context: Context, eppn: str, limits: _Limits) -> int:
     if to_unverify:
         actions += _unverify_identities(context, user, to_unverify, limits)
     return actions
+
+
+def _skip_already_unverified(
+    context: Context,
+    eppn: str,
+    identity: IdentityElement,
+    verified_at: datetime,
+    notification: IdentityAgeNotification | None,
+) -> bool:
+    """
+    :returns: True if the identity was already unverified for this verified_at (logged and counted here), in which
+        case the caller must skip it
+    """
+    if notification is None or notification.unverified_ts is None:
+        return False
+    type_name = identity.identity_type.value
+    if context.dry_run:
+        # The central user stays verified in a dry run, this is the expected state after a simulated unverify
+        context.logger.info(f"{eppn}: {type_name} identity unverification already simulated, skipping")
+        context.stats.count(f"identity_age_dry_run_already_simulated_{type_name}")
+        return True
+    # Verified again with the very same verified_at after we unverified it. Don't unverify it again.
+    context.logger.warning(
+        f"{eppn}: {type_name} identity was already unverified for verified_at {verified_at} but is verified"
+        " again without a new verification time, skipping"
+    )
+    context.stats.count(f"identity_age_unknown_{type_name}")
+    return True
+
+
+def _classify_identity(
+    context: Context, eppn: str, user: User, identity: IdentityElement, limits: _Limits
+) -> Literal["warn", "unverify"] | None:
+    """
+    Decide what to do about one verified identity of a configured type.
+
+    :returns: "warn" if the user should be warned about the identity, "unverify" if the identity should be
+        unverified, None if nothing is to be done with it now
+    """
+    status = get_identity_age_status(identity, limits.now, limits.max_age, limits.warning_period)
+    type_name = identity.identity_type.value
+    verified_at = identity.verified_at
+    if status is IdentityAgeStatus.UNKNOWN or verified_at is None:
+        context.logger.info(f"{eppn}: verification time of {type_name} identity is unknown")
+        context.stats.count(f"identity_age_unknown_{type_name}")
+        return None
+    if status is IdentityAgeStatus.OK:
+        return None
+
+    notification = _notification_db(context).get(eppn, identity.identity_type, verified_at)
+    if _skip_already_unverified(context, eppn, identity, verified_at, notification):
+        return None
+    warned_at = notification.warning_sent_ts if notification is not None else None
+    if status is IdentityAgeStatus.EXPIRED and not user.mail_addresses.verified:
+        # No warning can be delivered, so there is no notice to wait for: unverify right away
+        return "unverify"
+    if warned_at is None:
+        # WARN, or EXPIRED but never warned (and the user has a mail address): warn now,
+        # unverification is up to a later run
+        return "warn"
+    if status is IdentityAgeStatus.EXPIRED and warned_at + limits.min_notice <= limits.now:
+        return "unverify"
+    return None
 
 
 def _notice_date(identity: IdentityElement, limits: _Limits) -> str:
