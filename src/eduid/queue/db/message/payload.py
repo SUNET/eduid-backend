@@ -112,3 +112,16 @@ class EduidRedoVerificationEmail(EmailPayload):
     site_name: str
     site_url: str
     version: int = 1
+
+
+@dataclass
+class EduidIdentityExpiryWarningEmail(EmailPayload):
+    site_name: str
+    expires_at: str  # YYYY-MM-DD
+    version: int = 1
+
+
+@dataclass
+class EduidIdentityUnverifiedEmail(EmailPayload):
+    site_name: str
+    version: int = 1

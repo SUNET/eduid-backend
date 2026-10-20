@@ -848,6 +848,7 @@ class ExternalMfaSignupTests(ExternalMfaSignupTestsBase):
         assert user.identities.nin is not None
         assert user.identities.nin.number == "198001011234"
         assert user.identities.nin.is_verified is True
+        assert user.identities.nin.verified_ts is not None
 
         # Exactly one BankIDCredential
         bankid_creds = [c for c in user.credentials.to_list() if isinstance(c, BankIDCredential)]
@@ -892,6 +893,7 @@ class ExternalMfaSignupTests(ExternalMfaSignupTestsBase):
         assert user.identities.eidas.prid == "DE:abc123"
         assert user.identities.eidas.country_code == "DE"
         assert user.identities.eidas.is_verified is True
+        assert user.identities.eidas.verified_ts is not None
         assert user.identities.eidas.proofing_method == IdentityProofingMethod.SWEDEN_CONNECT
         assert user.identities.eidas.proofing_version == self.app.conf.foreign_eid_proofing_version
 
@@ -937,6 +939,7 @@ class ExternalMfaSignupTests(ExternalMfaSignupTestsBase):
         assert user.identities.freja is not None
         assert user.identities.freja.user_id == "freja_foreign_signup_user"
         assert user.identities.freja.personal_identity_number == "123456789"
+        assert user.identities.freja.verified_ts is not None
         assert user.identities.freja.country_code == "DK"
         assert user.identities.freja.is_verified is True
         assert user.identities.freja.proofing_method == IdentityProofingMethod.FREJA_EID

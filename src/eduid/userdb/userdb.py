@@ -1,8 +1,8 @@
 import logging
 from abc import ABC
-from collections.abc import Generator, Mapping
+from collections.abc import Generator, Iterable, Mapping
 from dataclasses import dataclass
-from datetime import timedelta
+from datetime import datetime, timedelta
 from typing import Any
 
 from bson import ObjectId
@@ -389,6 +389,38 @@ class AmDB(UserDB[User]):
             },
             "terminated": {"$exists": False},
         }
+
+        yield from self._iter_documents_by_aggregate(match=match, projection=projection)
+
+    def iter_unterminated_users_with_verified_identity(
+        self,
+        identity_types: Iterable[IdentityType],
+        projection: Mapping[str, Any] | None = None,
+        verified_before: datetime | None = None,
+    ) -> Generator[TUserDbDocument]:
+        """
+        Iterate over all unterminated users with a verified identity of any of the given types.
+
+        Uses a streaming cursor to avoid loading all users into memory at once.
+
+        :param identity_types: Identity types to match
+        :param projection: Optional MongoDB projection to limit returned fields
+        :param verified_before: Only match users with a matching identity verified at or before this time.
+            Identities without verified_ts are matched on created_ts (like IdentityElement.verified_at), and
+            identities with neither are matched too (the caller decides what to do about them).
+        :returns: Generator of user documents
+        """
+        elem_match: dict[str, Any] = {
+            "verified": True,
+            "identity_type": {"$in": [identity_type.value for identity_type in identity_types]},
+        }
+        if verified_before is not None:
+            elem_match["$or"] = [
+                {"verified_ts": {"$lte": verified_before}},
+                # verified_ts missing (or null) and created_ts not newer than the threshold (or missing)
+                {"verified_ts": None, "created_ts": {"$not": {"$gt": verified_before}}},
+            ]
+        match = {"identities": {"$elemMatch": elem_match}, "terminated": {"$exists": False}}
 
         yield from self._iter_documents_by_aggregate(match=match, projection=projection)
 

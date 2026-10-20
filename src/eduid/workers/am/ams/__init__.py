@@ -338,6 +338,7 @@ class eduid_job_runner(AttributeFetcher):
         "surname",
         "legal_name",
         "terminated",
+        "identities",
     ]
     whitelist_unset_attrs: ClassVar[list[str]] = []
 
