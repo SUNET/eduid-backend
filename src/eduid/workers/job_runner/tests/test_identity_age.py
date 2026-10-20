@@ -31,7 +31,11 @@ from eduid.userdb.user import User
 from eduid.userdb.user_cleaner.db import CleanerQueueUser
 from eduid.userdb.userdb import AmDB, UserSaveResult
 from eduid.workers.job_runner.config import IdentityAgeConfig, JobRunnerConfig
-from eduid.workers.job_runner.jobs.identity_age import gather_identity_age_users, process_identity_age_users
+from eduid.workers.job_runner.jobs.identity_age import (
+    _gather_cutoff,
+    gather_identity_age_users,
+    process_identity_age_users,
+)
 from eduid.workers.job_runner.testing import CleanerQueueTestCase, MockContext
 
 NIN = IdentityType.NIN
@@ -895,6 +899,40 @@ class TestCheckIdentityAge(CleanerQueueTestCase):
         assert user.mail_addresses.verified
         gather_identity_age_users(self._context())
         assert self.cleaner_queue_db.user_in_queue(CleanerType.IDENTITY_AGE, user.eppn)
+
+    def test_gather_queues_warn_identity_at_month_end(self, mocker: MockerFixture) -> None:
+        # 2021-05-31 + 5y - 3 months clamps to 2026-02-28, where relativedelta arithmetic on "now" gives 2021-05-28
+        now = datetime(2026, 2, 28, 12, 0, tzinfo=UTC)
+        mocker.patch("eduid.workers.job_runner.jobs.identity_age.utc_now", return_value=now)
+        user = self._save_user([self._nin(verified_ts=datetime(2021, 5, 31, 12, 0, tzinfo=UTC))])
+        gather_identity_age_users(self._context())
+        assert self.cleaner_queue_db.user_in_queue(CleanerType.IDENTITY_AGE, user.eppn)
+
+    def test_gather_queues_leap_day_identity_without_warning_period(self, mocker: MockerFixture) -> None:
+        now = datetime(2025, 2, 28, 12, 0, tzinfo=UTC)
+        mocker.patch("eduid.workers.job_runner.jobs.identity_age.utc_now", return_value=now)
+        self._save_user([self._nin(verified_ts=datetime(2020, 2, 29, 12, 0, tzinfo=UTC))], eppn="hubba-leap")
+        self._save_user([self._nin(verified_ts=now - relativedelta(years=1))], eppn="hubba-young")
+        gather_identity_age_users(self._context(warning_period_months=0))
+        assert self.cleaner_queue_db.user_in_queue(CleanerType.IDENTITY_AGE, "hubba-leap")
+        assert not self.cleaner_queue_db.user_in_queue(CleanerType.IDENTITY_AGE, "hubba-young")
+        assert self._queue_size() == 1
+
+    @pytest.mark.parametrize(("years", "months"), [(1, 0), (1, 1), (2, 3), (5, 0), (5, 3), (5, 12), (10, 6)])
+    def test_gather_cutoff_not_earlier_than_exact(self, years: int, months: int) -> None:
+        start = datetime(2019, 1, 1, 12, 0, tzinfo=UTC)
+        for day in range(4 * 366):
+            now = start + timedelta(days=day)
+            exact = now - relativedelta(years=years) + relativedelta(months=months)
+            assert _gather_cutoff(now, years, months) >= exact, (now, years, months)
+
+    def test_gather_cutoff_covers_every_action_time(self) -> None:
+        # Whatever the verification date, an identity that needs action by the exact rule is not cut off
+        max_age, warning = relativedelta(years=5), relativedelta(months=3)
+        for day in range(2 * 366):
+            verified = datetime(2020, 1, 1, 12, 0, tzinfo=UTC) + timedelta(days=day)
+            action_at = verified + max_age - warning
+            assert verified <= _gather_cutoff(action_at, 5, 3), verified
 
     def test_unverified_notice_enqueue_failure_counted(self, mocker: MockerFixture) -> None:
         user = self._save_user([self._nin(verified_ts=_years_ago(5, extra_days=10))])

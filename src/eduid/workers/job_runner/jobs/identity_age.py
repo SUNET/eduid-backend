@@ -49,6 +49,23 @@ def _limits(context: Context) -> _Limits:
     )
 
 
+def _gather_cutoff(now: datetime, max_age_years: int, warning_period_months: int) -> datetime:
+    """
+    Latest verification time for which an identity can already need action (be in the warning window or expired).
+
+    The exact rule (get_identity_age_status) uses calendar arithmetic: an identity verified at v needs action when
+    now >= v + max_age_years - warning_period_months. That is not invertible at month ends (relativedelta clamps
+    the day), so now - max_age + warning_period can be earlier than v for an identity that needs action.
+
+    Instead use fixed-length bounds that are never earlier than the exact one. A year is at least 365 days, so
+    v + years >= v + 365 * years days. A month is at most 31 days, so subtracting months removes at most
+    31 * months days. Hence v + 365 * years days - 31 * months days <= exact action time <= now, which gives
+    v <= now - 365 * years days + 31 * months days. This is monotonic in both parameters and always >= the exact
+    cutoff, so it can only over-match. Over-matching is fine: _needs_action applies the exact rules per identity.
+    """
+    return now - timedelta(days=365 * max_age_years) + timedelta(days=31 * warning_period_months)
+
+
 def _notification_db(context: Context) -> IdentityAgeNotificationDB:
     """
     The notification database to use: a dry run reads and writes only its own separate collection and never
@@ -114,7 +131,7 @@ def gather_identity_age_users(context: Context) -> None:
 
     # Only users that may have an identity in or past the warning window are matched.
     projection = {"eduPersonPrincipalName": 1, "identities": 1, "mailAliases": 1}
-    verified_before = limits.now - limits.max_age + limits.warning_period
+    verified_before = _gather_cutoff(limits.now, config.max_age_years, config.warning_period_months)
     queued_count = 0
     skipped_count = 0
     for doc in context.central_db.iter_unterminated_users_with_verified_identity(
