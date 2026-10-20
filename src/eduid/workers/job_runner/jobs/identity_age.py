@@ -159,9 +159,45 @@ def gather_identity_age_users(context: Context) -> None:
             continue
         context.stats.count("identity_age_queued")
         queued_count += 1
+    if not context.dry_run:
+        pending_queued, pending_skipped = _gather_pending_unverifications(context)
+        queued_count += pending_queued
+        skipped_count += pending_skipped
     context.logger.info(
         f"gather_identity_age_users done: queued {queued_count}, skipped {skipped_count} already in queue"
     )
+
+
+def _gather_pending_unverifications(context: Context) -> tuple[int, int]:
+    """
+    Queue users with an unverification that was requested but not recorded (see _reconcile_pending_unverifications).
+    Such a user may no longer have a verified identity, so it is not found by the main sweep. Real runs only: a dry
+    run never syncs and so never creates pending records.
+
+    :returns: number of users queued and number skipped because they were already in the queue
+    """
+    queued_count = 0
+    skipped_count = 0
+    for pending in context.identity_age_db.iter_pending_unverifications():
+        eppn = pending.eppn
+        try:
+            if context.cleaner_queue.user_in_queue(cleaner_type=CleanerType.IDENTITY_AGE, eppn=eppn):
+                context.logger.debug(f"{eppn} already in queue")
+                skipped_count += 1
+                continue
+            identities = context.central_db.get_user_by_eppn(eppn).identities
+            context.cleaner_queue.save(
+                CleanerQueueUser(eppn=eppn, cleaner_type=CleanerType.IDENTITY_AGE, identities=identities)
+            )
+        except UserDoesNotExist:
+            continue
+        except Exception:
+            context.logger.exception(f"gather_identity_age_users: failed to queue user {eppn} with pending work")
+            context.stats.count("identity_age_gather_failed")
+            continue
+        context.stats.count("identity_age_queued")
+        queued_count += 1
+    return queued_count, skipped_count
 
 
 def process_identity_age_users(context: Context) -> None:
@@ -219,6 +255,8 @@ def _check_user(context: Context, eppn: str, limits: _Limits) -> int:
         return 0
 
     actions = 0
+    if not context.dry_run:
+        actions += _reconcile_pending_unverifications(context, user, limits)
     to_warn: list[IdentityElement] = []
     to_unverify: list[IdentityElement] = []
     for identity in user.identities.verified:
@@ -553,6 +591,8 @@ def _record_landed(
             )
             context.stats.count("identity_age_sync_mismatch")
             context.stats.count(f"identity_age_sync_mismatch_{type_name}")
+            # Known not to have landed, nothing is pending. The normal flow retries next cycle.
+            _clear_pending(context, user.eppn, identity.identity_type, verified_at)
             continue
         done += 1
         try:
@@ -594,6 +634,103 @@ def _send_unverified_notice(context: Context, user: User, landed_names: list[str
         context.stats.count("identity_age_failed")
 
 
+def _clear_pending(context: Context, eppn: str, identity_type: IdentityType, verified_at: datetime) -> bool:
+    """
+    Remove the pending unverification marker. Failures are logged and counted, never raised.
+
+    :returns: True if the marker was cleared
+    """
+    try:
+        _notification_db(context).clear_unverify_requested(eppn, identity_type, verified_at)
+    except Exception:
+        context.logger.exception(f"Failed to clear pending unverification of {identity_type.value} for {eppn}")
+        context.stats.count("identity_age_failed")
+        return False
+    return True
+
+
+def _mark_requested(
+    context: Context, user: User, unverified: list[tuple[IdentityElement, datetime, datetime | None]]
+) -> bool:
+    """
+    Persist that the unverifications are about to be synced, so they can be reconciled if the job fails halfway.
+
+    :returns: False if the markers could not be written, in which case nothing must be synced
+    """
+    try:
+        for identity, verified_at, _ in unverified:
+            context.identity_age_db.mark_unverify_requested(user.eppn, identity.identity_type, verified_at)
+    except Exception:
+        context.logger.exception(f"Failed to record pending unverification for {user.eppn}, not syncing")
+        context.stats.count("identity_age_failed")
+        return False
+    return True
+
+
+def _pending_outcome(user: User, pending: IdentityAgeNotification) -> Literal["landed", "not_landed", "reverified"]:
+    """
+    Compare a pending unverification with the freshly loaded central user. An identity that is not verified (or
+    gone) means the unverification landed. A verified identity with the recorded verified_at means it did not, one
+    with another verified_at was verified again since.
+    """
+    current = user.identities.find(pending.identity_type.value)
+    if not isinstance(current, IdentityElement) or not current.is_verified:
+        return "landed"
+    normalise = IdentityAgeNotificationDB.normalise_verified_at
+    if current.verified_at is not None and normalise(current.verified_at) == normalise(pending.verified_at):
+        return "not_landed"
+    return "reverified"
+
+
+def _reconcile_one(context: Context, user: User, pending: IdentityAgeNotification) -> bool:
+    """
+    Resolve one pending unverification against the freshly loaded central user.
+
+    :returns: True if the unverification had landed and was recorded now (a notice is due)
+    """
+    type_name = pending.identity_type.value
+    outcome = _pending_outcome(user, pending)
+    if outcome != "landed":
+        context.logger.info(f"{user.eppn}: pending {type_name} unverification: {outcome}, clearing")
+        _clear_pending(context, user.eppn, pending.identity_type, pending.verified_at)
+        return False
+    # This also clears the pending marker
+    context.identity_age_db.mark_unverified(user.eppn, pending.identity_type, pending.verified_at)
+    context.stats.count(f"identity_age_unverified_{type_name}")
+    context.stats.count(f"identity_age_reconciled_{type_name}")
+    context.logger.info(f"Reconciled {type_name} unverification for {user.eppn} (verified at {pending.verified_at})")
+    return True
+
+
+def _reconcile_pending_unverifications(context: Context, user: User, limits: _Limits) -> int:
+    """
+    Complete unverifications that were requested earlier but never recorded, e.g. because the job failed after the
+    AM sync had applied the change. Looks only at the pending records, never at whether the identity is verified, as
+    a landed unverification leaves nothing verified to find. Real runs only.
+
+    One unverified notice (one mail per verified address) covers everything completed here.
+
+    :returns: number of unverifications completed
+    """
+    completed: list[str] = []
+    for pending in list(context.identity_age_db.iter_pending_unverifications(user.eppn)):
+        try:
+            if _reconcile_one(context, user, pending):
+                completed.append(pending.identity_type.value)
+        except Exception:
+            context.logger.exception(f"Failed to reconcile pending unverification for {user.eppn}")
+            context.stats.count("identity_age_failed")
+    if not completed:
+        return 0
+    if not user.mail_addresses.verified:
+        for type_name in completed:
+            context.stats.count(f"identity_age_unverified_no_recipient_{type_name}")
+        context.logger.warning(f"User {user.eppn} has no verified mail address, no notice about {completed} sent")
+    elif context.config.identity_age.send_unverified_notice:
+        _send_unverified_notice(context, user, completed)
+    return len(completed)
+
+
 def _unverify_identities(context: Context, user: User, identities: list[IdentityElement], limits: _Limits) -> int:
     """
     Unverify identities with a single save of the user.
@@ -623,6 +760,10 @@ def _unverify_identities(context: Context, user: User, identities: list[Identity
 
     if context.dry_run:
         return _dry_run_unverify(context, user, unverified, has_recipient)
+
+    # Persisted before the sync: if the sync lands but the job fails before recording it, the next run reconciles
+    if not _mark_requested(context, user, unverified):
+        return 0
 
     if not save_and_sync_user(context, user, original=original):
         context.logger.error(f"Failed to save and sync user {user.eppn} after unverifying identities")

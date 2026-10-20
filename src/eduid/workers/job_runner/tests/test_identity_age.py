@@ -14,6 +14,7 @@ from eduid.common.misc.timeutil import utc_now
 from eduid.common.stats import AppStats
 from eduid.queue.db import QueueItem
 from eduid.queue.db.message import MessageDB
+from eduid.userdb.exceptions import UserOutOfSync
 from eduid.userdb.fixtures.users import UserFixtures
 from eduid.userdb.identity import (
     EIDASIdentity,
@@ -144,7 +145,7 @@ class TestCheckIdentityAge(CleanerQueueTestCase):
         ttl = [v for v in db._coll.index_information().values() if "expireAfterSeconds" in v]
         assert [v["expireAfterSeconds"] for v in ttl] == [10 * 86400]
         # the unique index is kept
-        assert len(db._coll.index_information()) == 3
+        assert len(db._coll.index_information()) == 4
 
     def test_invalid_auto_expire(self) -> None:
         auto_expire = timedelta(0)
@@ -539,6 +540,164 @@ class TestCheckIdentityAge(CleanerQueueTestCase):
         self.stats.count.assert_any_call("identity_age_failed")
         counted = [c.args[0] for c in self.stats.count.call_args_list]
         assert "identity_age_unverified_nin" not in counted
+        # the unverification landed but is not recorded, it is pending
+        assert notification.unverify_requested_ts is not None
+
+        # reads recover: the next run reconciles, records and mails exactly once
+        self._run(self._context())
+        notification = self.identity_age_db.get(user.eppn, NIN, _verified_at(user, NIN))
+        assert notification is not None
+        assert notification.unverified_ts is not None
+        assert notification.unverify_requested_ts is None
+        assert self._payload_types() == ["EduidIdentityUnverifiedEmail"] * len(user.mail_addresses.verified)
+        self.stats.count.assert_any_call("identity_age_unverified_nin")
+        self.stats.count.assert_any_call("identity_age_reconciled_nin")
+        mails = len(self._mails())
+        self._run(self._context())
+        assert len(self._mails()) == mails
+
+    def _pending_user(self, **kwargs: Any) -> User:
+        """User whose NIN unverification has landed centrally but is only recorded as pending"""
+        user = self._expired_warned_user([self._nin(verified_ts=_years_ago(5, extra_days=10), **kwargs)])
+        verified_at = _verified_at(user, NIN)
+        self.identity_age_db.mark_unverify_requested(user.eppn, NIN, verified_at)
+        return user
+
+    def _land(self, user: User) -> None:
+        landed = self.amdb.get_user_by_eppn(user.eppn)
+        landed.identities.unverify(NIN)
+        self.amdb.save(landed)
+
+    def test_sync_raises_after_landing_is_reconciled(self) -> None:
+        user = self._expired_warned_user([self._nin(verified_ts=_years_ago(5, extra_days=10))])
+
+        def save_then_raise(context: MockContext, user: User, original: User | None = None) -> bool:
+            context.central_db.save(user)
+            raise UserOutOfSync("boom")
+
+        self.save_and_sync.side_effect = save_then_raise
+        self._run(self._context())
+        assert self._mails() == []
+        pending = list(self.identity_age_db.iter_pending_unverifications())
+        assert [p.eppn for p in pending] == [user.eppn]
+
+        self.save_and_sync.side_effect = None
+        self._run(self._context())
+        assert list(self.identity_age_db.iter_pending_unverifications()) == []
+        notification = self.identity_age_db.get(user.eppn, NIN, _verified_at(user, NIN))
+        assert notification is not None
+        assert notification.unverified_ts is not None
+        assert len(self._mails()) == len(user.mail_addresses.verified)
+        self.save_and_sync.assert_called_once()
+
+    def test_sync_not_landed_clears_pending_and_retries(self) -> None:
+        user = self._expired_warned_user([self._nin(verified_ts=_years_ago(5, extra_days=10))])
+        self.save_and_sync.side_effect = None
+        self.save_and_sync.return_value = True
+        self._run(self._context())
+        assert list(self.identity_age_db.iter_pending_unverifications()) == []
+        notification = self.identity_age_db.get(user.eppn, NIN, _verified_at(user, NIN))
+        assert notification is not None
+        assert notification.unverify_requested_ts is None
+        assert notification.unverified_ts is None
+
+        self.save_and_sync.side_effect = lambda context, user, original=None: context.central_db.save(user)
+        self._run(self._context())
+        assert self._identity(user.eppn, NIN).is_verified is False
+        notification = self.identity_age_db.get(user.eppn, NIN, _verified_at(user, NIN))
+        assert notification is not None
+        assert notification.unverified_ts is not None
+        assert len(self._mails()) == len(user.mail_addresses.verified)
+
+    def test_pending_not_landed_is_cleared(self) -> None:
+        # still verified with the same verified_at and not near expiry: only the marker goes
+        user = self._save_user([self._nin(verified_ts=_years_ago(1))])
+        self.identity_age_db.mark_unverify_requested(user.eppn, NIN, _verified_at(user, NIN))
+        self._enqueue(user.eppn)
+        self._run(self._context())
+        assert list(self.identity_age_db.iter_pending_unverifications()) == []
+        assert self._identity(user.eppn, NIN).is_verified
+        assert self._mails() == []
+
+    def test_pending_reverified_with_new_verified_at_is_cleared_without_mail(self) -> None:
+        user = self._pending_user()
+        old_verified_at = _verified_at(user, NIN)
+        reverified = self.amdb.get_user_by_eppn(user.eppn)
+        reverified.identities = IdentityList(elements=[self._nin(verified_ts=_years_ago(0))])
+        self.amdb.save(reverified)
+        self._run(self._context())
+        assert list(self.identity_age_db.iter_pending_unverifications()) == []
+        notification = self.identity_age_db.get(user.eppn, NIN, old_verified_at)
+        assert notification is not None
+        assert notification.unverified_ts is None
+        assert self._mails() == []
+
+    def test_gather_queues_user_with_only_pending_record(self) -> None:
+        user = self._pending_user()
+        self._land(user)
+        assert self.amdb.get_user_by_eppn(user.eppn).identities.verified == []
+        gather_identity_age_users(self._context())
+        assert self._queue_size() == 1
+        # gathering again does not queue it twice
+        gather_identity_age_users(self._context())
+        assert self._queue_size() == 1
+        process_identity_age_users(self._context())
+        assert list(self.identity_age_db.iter_pending_unverifications()) == []
+        assert len(self._mails()) == len(user.mail_addresses.verified)
+
+    def test_pending_user_without_verified_mail_completes_without_mail(self) -> None:
+        user = self._pending_user()
+        self._land(user)
+        no_mail = self.amdb.get_user_by_eppn(user.eppn)
+        no_mail.mail_addresses = MailAddressList(elements=[])
+        self.amdb.save(no_mail)
+        self._run(self._context())
+        notification = self.identity_age_db.get(user.eppn, NIN, _verified_at(user, NIN))
+        assert notification is not None
+        assert notification.unverified_ts is not None
+        assert notification.unverify_requested_ts is None
+        assert self._mails() == []
+        self.stats.count.assert_any_call("identity_age_unverified_no_recipient_nin")
+
+    def test_dry_run_creates_and_reconciles_no_pending(self) -> None:
+        user = self._expired_warned_user([self._nin(verified_ts=_years_ago(5, extra_days=10))])
+        verified_at = _verified_at(user, NIN)
+        self.dry_run_db.mark_warned(user.eppn, NIN, verified_at, warning_sent_ts=utc_now() - timedelta(days=40))
+        self._run(self._context(dry_run=True))
+        assert list(self.identity_age_db.iter_pending_unverifications()) == []
+        assert list(self.dry_run_db.iter_pending_unverifications()) == []
+
+        # a real pending record is neither queued nor touched by a dry run
+        self.identity_age_db.mark_unverify_requested(user.eppn, NIN, verified_at)
+        self._land(user)
+        self._run(self._context(dry_run=True))
+        assert len(list(self.identity_age_db.iter_pending_unverifications())) == 1
+        assert self._mails() == []
+
+    def test_pending_db_methods(self) -> None:
+        db = self.identity_age_db
+        verified_at = _years_ago(5)
+        db.mark_unverify_requested("pend-1", NIN, verified_at)
+        db.mark_unverify_requested("pend-2", NIN, verified_at)
+        record = db.get("pend-1", NIN, verified_at)
+        assert record is not None
+        assert record.unverify_requested_ts is not None
+        assert record.no_created_ts_in_db is False
+        assert {p.eppn for p in db.iter_pending_unverifications()} == {"pend-1", "pend-2"}
+        assert [p.eppn for p in db.iter_pending_unverifications("pend-2")] == ["pend-2"]
+
+        db.clear_unverify_requested("pend-1", NIN, verified_at)
+        assert [p.eppn for p in db.iter_pending_unverifications()] == ["pend-2"]
+        # clearing never creates a record
+        db.clear_unverify_requested("pend-3", NIN, verified_at)
+        assert db.get("pend-3", NIN, verified_at) is None
+
+        db.mark_unverified("pend-2", NIN, verified_at)
+        assert list(db.iter_pending_unverifications()) == []
+        done = db.get("pend-2", NIN, verified_at)
+        assert done is not None
+        assert done.unverified_ts is not None
+        assert done.unverify_requested_ts is None
 
     def test_partial_landing_only_records_landed_identity(self) -> None:
         user = self._expired_warned_user(

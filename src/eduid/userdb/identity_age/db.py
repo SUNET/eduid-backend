@@ -1,4 +1,5 @@
 import logging
+from collections.abc import Iterator
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
@@ -27,6 +28,10 @@ class IdentityAgeNotification(Element):
     verified_at: datetime
     warning_sent_ts: datetime | None = None
     unverified_ts: datetime | None = None
+    # Set before an unverification is synced to the central db and cleared when it is recorded (unverified_ts) or
+    # known not to have landed. A record with this set and no unverified_ts is pending work to reconcile, even if
+    # the identity is no longer verified centrally.
+    unverify_requested_ts: datetime | None = None
 
     @property
     def key(self) -> ElementKey:
@@ -74,6 +79,11 @@ class IdentityAgeNotificationDB(BaseDB):
             "eppn-identity-verified-at-index-v1": {
                 "key": [("eppn", 1), ("identity_type", 1), ("verified_at", 1)],
                 "unique": True,
+            },
+            # Sparse: only records with a pending unverification are indexed, see iter_pending_unverifications
+            "unverify-requested-index-v1": {
+                "key": [("unverify_requested_ts", 1)],
+                "sparse": True,
             },
         }
         self.setup_indexes(indexes)
@@ -158,4 +168,44 @@ class IdentityAgeNotificationDB(BaseDB):
         """
         Record that the identity has been unverified.
         """
-        self._update(eppn, identity_type, verified_at, {"unverified_ts": utc_now()}, upsert=True)
+        self._update(
+            eppn,
+            identity_type,
+            verified_at,
+            {"unverified_ts": utc_now()},
+            unset=["unverify_requested_ts"],
+            upsert=True,
+        )
+
+    def mark_unverify_requested(
+        self,
+        eppn: str,
+        identity_type: IdentityType,
+        verified_at: datetime,
+        requested_ts: datetime | None = None,
+    ) -> None:
+        """
+        Record that an unverification is about to be synced to the central db. This is written before the sync
+        so that the outcome can be reconciled later even if the job fails after the change was applied.
+        """
+        self._update(
+            eppn, identity_type, verified_at, {"unverify_requested_ts": requested_ts or utc_now()}, upsert=True
+        )
+
+    def clear_unverify_requested(self, eppn: str, identity_type: IdentityType, verified_at: datetime) -> None:
+        """
+        Remove the pending marker, e.g. when the unverification is known not to have landed.
+        """
+        self._update(eppn, identity_type, verified_at, unset=["unverify_requested_ts"], upsert=False)
+
+    def iter_pending_unverifications(self, eppn: str | None = None) -> Iterator[IdentityAgeNotification]:
+        """
+        :param eppn: only return records of this user
+        :returns: records with an unverification requested but not recorded as done
+        """
+        spec: dict[str, Any] = {"unverify_requested_ts": {"$exists": True, "$ne": None}, "unverified_ts": None}
+        if eppn is not None:
+            spec["eppn"] = eppn
+        for doc in self._coll.find(spec):
+            doc.pop("_id", None)
+            yield IdentityAgeNotification.from_dict(doc)
