@@ -18,6 +18,7 @@ from eduid.queue.db import QueueItem
 from eduid.queue.db.client import deterministic_item_id
 from eduid.queue.db.message import MessageDB
 from eduid.queue.db.message.payload import EduidIdentityUnverifiedEmail
+from eduid.queue.exceptions import QueueItemExpired
 from eduid.userdb.exceptions import UserOutOfSync
 from eduid.userdb.fixtures.users import UserFixtures
 from eduid.userdb.identity import (
@@ -36,6 +37,7 @@ from eduid.userdb.user import User
 from eduid.userdb.user_cleaner.db import CleanerQueueUser
 from eduid.userdb.userdb import AmDB, UserSaveResult
 from eduid.workers.job_runner.config import IdentityAgeConfig, JobRunnerConfig
+from eduid.workers.job_runner.helpers import send_mail_to_user
 from eduid.workers.job_runner.jobs.identity_age import (
     _dedup_key,
     _gather_cutoff,
@@ -1636,6 +1638,63 @@ class TestCheckIdentityAge(CleanerQueueTestCase):
         assert self.identity_age_db.has_warning(user.eppn, NIN, verified_at)
         assert self._pending_warning_types() == set()
 
+    def _expire_queued_mails(self) -> None:
+        self.messagedb._coll.update_many({}, {"$set": {"expires_at": utc_now() - timedelta(hours=1)}})
+
+    def test_warning_retry_with_expired_queued_mail_stays_pending(self, mocker: MockerFixture) -> None:
+        user = self._save_user([self._nin(verified_ts=_years_ago(4, extra_days=300))])
+        verified_at = _verified_at(user, NIN)
+        original = self.identity_age_db.mark_warned
+        mocker.patch.object(self.identity_age_db, "mark_warned", side_effect=RuntimeError("crash"))
+        self._run(self._context())
+        mails = len(user.mail_addresses.verified)
+        assert len(self._mails()) == mails
+        mocker.patch.object(self.identity_age_db, "mark_warned", side_effect=original)
+
+        # the queued mail expired unsent: the collision must not count as queued
+        self._expire_queued_mails()
+        failed_before = self._failed_count()
+        self._run(self._context())
+        assert not self.identity_age_db.has_warning(user.eppn, NIN, verified_at)
+        assert self._pending_warning_types() == {NIN}
+        assert self._failed_count() > failed_before
+        assert len(self._mails()) == mails
+
+        # once the expired item is removed the next sweep queues the mail and records the warning
+        self.messagedb._coll.delete_many({})
+        self._run(self._context())
+        assert len(self._mails()) == mails
+        assert self.identity_age_db.has_warning(user.eppn, NIN, verified_at)
+        assert self._pending_warning_types() == set()
+
+    def test_notice_retry_with_expired_queued_mail_stays_pending(self, mocker: MockerFixture) -> None:
+        user = self._unverify_due_user()
+        verified_at = _verified_at(user, NIN)
+        original = self.identity_age_db.mark_notice_sent
+        mocker.patch.object(self.identity_age_db, "mark_notice_sent", side_effect=RuntimeError("crash"))
+        self._run(self._context())
+        mails = len(user.mail_addresses.verified)
+        assert len(self._mails()) == mails
+        mocker.patch.object(self.identity_age_db, "mark_notice_sent", side_effect=original)
+
+        self._expire_queued_mails()
+        failed_before = self._failed_count()
+        self._run(self._context())
+        record = self.identity_age_db.get(user.eppn, NIN, verified_at)
+        assert record is not None
+        assert record.notice_requested_ts is not None
+        assert record.notice_sent_ts is None
+        assert self._pending_notice_types() == {NIN}
+        assert self._failed_count() > failed_before
+
+        self.messagedb._coll.delete_many({})
+        self._run(self._context())
+        assert len(self._mails()) == mails
+        record = self.identity_age_db.get(user.eppn, NIN, verified_at)
+        assert record is not None
+        assert record.notice_requested_ts is None
+        assert record.notice_sent_ts is not None
+
     def test_multi_identity_warning_pending_then_recovered(self, mocker: MockerFixture) -> None:
         user = self._two_due_identities()
         enqueue = mocker.patch("eduid.workers.job_runner.helpers.enqueue_email", side_effect=RuntimeError("boom"))
@@ -1850,6 +1909,73 @@ class TestCheckIdentityAge(CleanerQueueTestCase):
         doc = self.messagedb._coll.find_one({"_id": item.item_id})
         assert doc is not None
         assert doc["processed_by"] == "worker-1"
+
+    def _dedup_kwargs(self, key: str | None = "k") -> dict[str, Any]:
+        payload = EduidIdentityUnverifiedEmail(email="a@example.com", reference="r", language="en", site_name="s")
+        return {
+            "messagedb": self.messagedb,
+            "app_name": "test",
+            "payload": payload,
+            "expires_in": timedelta(days=1),
+            "dedup_key": key,
+        }
+
+    def test_enqueue_email_expired_duplicate_raises_and_leaves_item(self) -> None:
+        enqueue_email(**self._dedup_kwargs())
+        item_id = deterministic_item_id("k")
+        expired = utc_now() - timedelta(hours=1)
+        self.messagedb._coll.update_one({"_id": item_id}, {"$set": {"expires_at": expired}})
+        before = self.messagedb._coll.find_one({"_id": item_id})
+        with pytest.raises(QueueItemExpired):
+            enqueue_email(**self._dedup_kwargs())
+        assert self.messagedb._coll.count_documents({}) == 1
+        assert self.messagedb._coll.find_one({"_id": item_id}) == before
+        # once removed (retention) the same key can be queued again
+        self.messagedb._coll.delete_one({"_id": item_id})
+        enqueue_email(**self._dedup_kwargs())
+        assert self.messagedb._coll.count_documents({}) == 1
+
+    def test_enqueue_email_in_flight_duplicate_is_success(self) -> None:
+        enqueue_email(**self._dedup_kwargs())
+        item_id = deterministic_item_id("k")
+        self.messagedb._coll.update_one(
+            {"_id": item_id}, {"$set": {"processed_by": "worker-1", "processed_ts": utc_now()}}
+        )
+        assert enqueue_email(**self._dedup_kwargs()).item_id == item_id
+        assert self.messagedb._coll.count_documents({}) == 1
+
+    def test_enqueue_email_item_vanishes_between_insert_and_lookup(self, mocker: MockerFixture) -> None:
+        enqueue_email(**self._dedup_kwargs())
+        real_get = self.messagedb.get_item_by_id
+
+        def vanishing_get(*args: Any, **kwargs: Any) -> QueueItem | None:
+            self.messagedb._coll.delete_many({})
+            return real_get(*args, **kwargs)
+
+        mocker.patch.object(self.messagedb, "get_item_by_id", side_effect=vanishing_get)
+        assert enqueue_email(**self._dedup_kwargs()).item_id == deterministic_item_id("k")
+        assert self.messagedb._coll.count_documents({}) == 1
+
+    def test_enqueue_email_item_keeps_vanishing_fails_safely(self, mocker: MockerFixture) -> None:
+        mocker.patch.object(self.messagedb, "save_if_absent", return_value=False)
+        mocker.patch.object(self.messagedb, "get_item_by_id", return_value=None)
+        with pytest.raises(RuntimeError):
+            enqueue_email(**self._dedup_kwargs())
+
+    def test_send_mail_to_user_expired_duplicate_not_counted(self, caplog: pytest.LogCaptureFixture) -> None:
+        user = self._save_user([self._nin(verified_ts=_years_ago(1))])
+        context = self._context()
+
+        def make_payload(email: str, language: str, reference: str) -> EduidIdentityUnverifiedEmail:
+            return EduidIdentityUnverifiedEmail(email=email, reference=reference, language=language, site_name="s")
+
+        args = (context, user, make_payload, timedelta(days=1), "key")
+        assert send_mail_to_user(*args) == len(user.mail_addresses.verified)
+        self._expire_queued_mails()
+        with caplog.at_level(logging.WARNING):
+            assert send_mail_to_user(*args) == 0
+        assert "expired" in caplog.text
+        assert "key|mail=" in caplog.text
 
 
 class TestSchedulerAndConfig:

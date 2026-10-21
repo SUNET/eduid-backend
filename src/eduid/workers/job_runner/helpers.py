@@ -4,6 +4,7 @@ from datetime import timedelta
 from eduid.common.misc.timeutil import utc_now
 from eduid.queue.client import enqueue_email
 from eduid.queue.db.message.payload import EmailPayload
+from eduid.queue.exceptions import QueueItemExpired
 from eduid.userdb.exceptions import UserOutOfSync
 from eduid.userdb.user import User
 from eduid.userdb.user_cleaner.userdb import CleanerUser
@@ -57,7 +58,8 @@ def send_mail_to_user(
     :param expires_in: how long the queued mails are valid
     :param dedup_key: optional stable key identifying this mail. The key of the mail to each address is this key
         plus the address, so repeating the call queues no second mail to an address whose mail is still queued.
-        Such an already queued mail counts as queued.
+        Such an already queued mail counts as queued, unless it is expired (never sent): then it is logged
+        as a warning and not counted.
     :returns: number of mails queued. A failure to queue a mail to one address is logged and does not
         prevent mails to the other addresses.
     """
@@ -74,6 +76,10 @@ def send_mail_to_user(
                 expires_in=expires_in,
                 dedup_key=f"{dedup_key}|mail={address.email}" if dedup_key is not None else None,
             )
+        except QueueItemExpired as e:
+            # The earlier mail with this key expired unsent, so it does not count as queued
+            context.logger.warning(f"Mail for user {user.eppn} not queued: {e.reason}")
+            continue
         except Exception:
             context.logger.exception(f"Failed to queue mail for user {user.eppn}")
             continue
