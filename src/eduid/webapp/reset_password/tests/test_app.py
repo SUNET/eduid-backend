@@ -66,7 +66,6 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
                 "available_languages": {"en": "English", "sv": "Svenska"},
                 "vccs_url": "http://vccs",
                 "email_code_timeout": 7200,
-                "phone_code_timeout": 600,
                 "password_entropy": 25,
                 "dashboard_url": "https://dashboard.dev.eduid.se",
             }

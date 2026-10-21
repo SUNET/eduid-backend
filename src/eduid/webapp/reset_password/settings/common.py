@@ -44,12 +44,9 @@ class ResetPasswordConfig(
     # Mirrors signup's email_verification_max_bad_attempts. Lower bound: at 0 every state is
     # locked on first contact (0 >= 0), a silent total password reset outage.
     email_code_max_bad_attempts: int = Field(default=3, gt=0)
-    phone_code_timeout: timedelta = Field(default=timedelta(minutes=10))
-    # throttle resend of mail and sms
+    # throttle resend of mail
     throttle_resend: timedelta = Field(default=timedelta(minutes=5))
     password_service_url: str = "/services/reset-password/"
-    # Throttle sending SMSs for extra security resetting passwords
-    throttle_sms: timedelta = Field(default=timedelta(minutes=5))
     eduid_site_url: str = "https://www.eduid.se"
     eduid_site_name: str = "eduID"
     state_db_auto_expire: timedelta | None = Field(default=timedelta(days=7))

@@ -88,7 +88,7 @@ from eduid.webapp.reset_password.schemas import (
     ResetPasswordWithCodeSchema,
 )
 
-reset_password_views = Blueprint("reset_password", __name__, url_prefix="/", template_folder="templates")
+reset_password_views = Blueprint("reset_password", __name__, url_prefix="/")
 
 
 def _require_verified_session() -> FluxData | None:
