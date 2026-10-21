@@ -635,11 +635,14 @@ def _notify_unverified(context: Context, user: User, completed: list[str]) -> No
     """
     Single dispatch point of the unverified notice: tell the user about every unverification completed in this
     run of _check_user. Nothing is done if nothing was completed. A user without a verified mail address is only
-    counted (identity_age_unverified_no_recipient_<type>). Never raises, so it is safe in a finally block.
+    counted (identity_age_unverified_no_recipient_<type>). The recipients are taken from a fresh read of the
+    central user, as verified addresses may have changed since the user was loaded. Never raises, so it is safe
+    in a finally block.
     """
     if not completed:
         return
     try:
+        user = _fresh_user(context, user)
         if not user.mail_addresses.verified:
             for type_name in completed:
                 context.stats.count(f"identity_age_unverified_no_recipient_{type_name}")
@@ -651,6 +654,18 @@ def _notify_unverified(context: Context, user: User, completed: list[str]) -> No
     except Exception:
         context.logger.exception(f"Failed to notify {user.eppn} about unverified identities")
         context.stats.count("identity_age_failed")
+
+
+def _fresh_user(context: Context, user: User) -> User:
+    """
+    Reload the user from the central db. Falls back to the given snapshot, rather than dropping the notice, if the
+    reload fails. Never raises.
+    """
+    try:
+        return context.central_db.get_user_by_eppn(user.eppn)
+    except Exception as e:
+        context.logger.warning(f"Failed to reload {user.eppn} before the unverified notice, using loaded user: {e}")
+        return user
 
 
 def _send_unverified_notice(context: Context, user: User, landed_names: list[str]) -> None:

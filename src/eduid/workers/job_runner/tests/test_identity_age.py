@@ -26,7 +26,7 @@ from eduid.userdb.identity import (
     PridPersistence,
 )
 from eduid.userdb.identity_age.db import IdentityAgeNotificationDB
-from eduid.userdb.mail import MailAddressList
+from eduid.userdb.mail import MailAddress, MailAddressList
 from eduid.userdb.meta import CleanerType
 from eduid.userdb.user import User
 from eduid.userdb.user_cleaner.db import CleanerQueueUser
@@ -34,6 +34,7 @@ from eduid.userdb.userdb import AmDB, UserSaveResult
 from eduid.workers.job_runner.config import IdentityAgeConfig, JobRunnerConfig
 from eduid.workers.job_runner.jobs.identity_age import (
     _gather_cutoff,
+    _notify_unverified,
     gather_identity_age_users,
     process_identity_age_users,
 )
@@ -336,6 +337,69 @@ class TestCheckIdentityAge(CleanerQueueTestCase):
         assert notification is not None
         assert notification.unverified_ts is None
         assert self._mails() == []
+
+    def _unverify_due_user(self) -> User:
+        user = self._save_user([self._nin(verified_ts=_years_ago(5, extra_days=10))])
+        assert user.identities.nin is not None
+        self._set_warned(user, user.identities.nin, days_ago=31)
+        return user
+
+    def test_unverified_notice_uses_fresh_mail_addresses(self) -> None:
+        user = self._unverify_due_user()
+        old = {a.email for a in user.mail_addresses.verified}
+        assert old
+        new_address = MailAddress(email="fresh@example.com", created_by="test", is_verified=True, is_primary=True)
+
+        def save_then_change_mails(context: MockContext, user: User, original: User | None = None) -> bool:
+            result = context.central_db.save(user)
+            central = self.amdb.get_user_by_eppn(user.eppn)
+            central.mail_addresses = MailAddressList(elements=[new_address])
+            self.amdb.save(central)
+            return bool(result)
+
+        self.save_and_sync.side_effect = save_then_change_mails
+        self._run(self._context())
+        mails = self._mails()
+        assert {m["payload"]["email"] for m in mails} == {"fresh@example.com"}
+        assert {m["payload"]["email"] for m in mails}.isdisjoint(old)
+
+    def test_unverified_notice_user_lost_all_mail_addresses(self) -> None:
+        self._unverify_due_user()
+
+        def save_then_remove_mails(context: MockContext, user: User, original: User | None = None) -> bool:
+            result = context.central_db.save(user)
+            self._remove_mails(user.eppn)
+            return bool(result)
+
+        self.save_and_sync.side_effect = save_then_remove_mails
+        self._run(self._context())
+        assert self._mails() == []
+        self.stats.count.assert_any_call("identity_age_unverified_no_recipient_nin")
+
+    def test_unverified_notice_reload_failure_uses_snapshot(self, mocker: MockerFixture) -> None:
+        user = self._unverify_due_user()
+        expected = {a.email for a in user.mail_addresses.verified}
+        context = self._context()
+        real_get = self.amdb.get_user_by_eppn
+
+        def flaky_get(eppn: str) -> User:
+            # fail only once the unverification has been recorded, which is when the notice reloads the user
+            notification = self.identity_age_db.get(eppn, NIN, _verified_at(user, NIN))
+            if notification is not None and notification.unverified_ts is not None:
+                raise RuntimeError("db down")
+            return real_get(eppn)
+
+        mocker.patch.object(self.amdb, "get_user_by_eppn", side_effect=flaky_get)
+        self._run(context)
+        assert {m["payload"]["email"] for m in self._mails()} == expected
+        counted = [c.args[0] for c in self.stats.count.call_args_list]
+        assert "identity_age_failed" not in counted
+
+    def test_nothing_completed_no_central_read(self, mocker: MockerFixture) -> None:
+        context = self._context()
+        get = mocker.patch.object(self.amdb, "get_user_by_eppn")
+        _notify_unverified(context, self.users.mocked_user_standard, [])
+        get.assert_not_called()
 
     def test_unverified_notice_can_be_disabled(self) -> None:
         user = self._save_user([self._nin(verified_ts=_years_ago(5, extra_days=10))])
