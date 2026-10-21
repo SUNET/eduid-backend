@@ -42,7 +42,6 @@ class JsAppsConfig(PasswordConfigMixin):
     lookup_mobile_proofing_service_url: HttpUrlStr
     orcid_service_url: HttpUrlStr
     personal_data_service_url: HttpUrlStr
-    phone_service_url: HttpUrlStr
     reset_password_service_url: HttpUrlStr
     security_service_url: HttpUrlStr
     signup_service_url: HttpUrlStr
