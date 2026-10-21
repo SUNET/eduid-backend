@@ -726,41 +726,77 @@ def _notify_unverified(context: Context, user: User, completed: list[_Completed]
     """
     Single dispatch point of the unverified notice: tell the user about every unverification in `completed`, those
     completed in this run of _check_user and those whose notice is pending from earlier runs. Nothing is done if the
-    list is empty. A user without a verified mail address is only counted
-    (identity_age_unverified_no_recipient_<type>) and the pending notices cleared, as is every pending notice when
-    send_unverified_notice is off. The recipients are taken from a fresh read of the central user, as verified
-    addresses may have changed since the user was loaded. Never raises, so it is safe in a finally block.
+    list is empty.
+
+    The user is reloaded from the central db first. If that fails, nothing is sent or cleared (the notices stay
+    pending and are retried by the next sweep) and identity_age_failed is counted. Entries whose identity is verified
+    again in the reloaded user are dropped, as the user must not be told it is unverified (see _drop_reverified).
+    For the rest: a user without a verified mail address is only counted (identity_age_unverified_no_recipient_<type>)
+    and the pending notices cleared, as is every pending notice when send_unverified_notice is off. The recipients
+    are taken from the reloaded user. Never raises, so it is safe in a finally block.
     """
     if not completed:
         return
     try:
-        user = _fresh_user(context, user)
-        if not user.mail_addresses.verified:
-            for done in completed:
+        fresh = _fresh_user(context, user.eppn)
+        if fresh is None:
+            context.stats.count("identity_age_failed")
+            return
+        remaining = _drop_reverified(context, fresh, completed)
+        if not remaining:
+            return
+        if not fresh.mail_addresses.verified:
+            for done in remaining:
                 context.stats.count(f"identity_age_unverified_no_recipient_{done.type_name}")
                 context.logger.warning(
-                    f"User {user.eppn} has no verified mail address, no notice about {done.type_name} sent"
+                    f"User {fresh.eppn} has no verified mail address, no notice about {done.type_name} sent"
                 )
-            _clear_notices(context, user.eppn, completed)
+            _clear_notices(context, fresh.eppn, remaining)
         elif context.config.identity_age.send_unverified_notice:
-            _send_unverified_notice(context, user, completed)
+            _send_unverified_notice(context, fresh, remaining)
         else:
-            _clear_notices(context, user.eppn, completed)
+            _clear_notices(context, fresh.eppn, remaining)
     except Exception:
         context.logger.exception(f"Failed to notify {user.eppn} about unverified identities")
         context.stats.count("identity_age_failed")
 
 
-def _fresh_user(context: Context, user: User) -> User:
+def _fresh_user(context: Context, eppn: str) -> User | None:
     """
-    Reload the user from the central db. Falls back to the given snapshot, rather than dropping the notice, if the
-    reload fails. Never raises.
+    Reload the user from the central db. There is no fallback to an older snapshot, as it could hold stale
+    recipients and a stale verification state.
+
+    :returns: the user, or None (after logging a warning) if the reload failed. Never raises.
     """
     try:
-        return context.central_db.get_user_by_eppn(user.eppn)
+        return context.central_db.get_user_by_eppn(eppn)
     except Exception as e:
-        context.logger.warning(f"Failed to reload {user.eppn} before the unverified notice, using loaded user: {e}")
-        return user
+        context.logger.warning(f"Failed to reload {eppn} before the unverified notice, leaving notices pending: {e}")
+        return None
+
+
+def _drop_reverified(context: Context, fresh: User, completed: list[_Completed]) -> list[_Completed]:
+    """
+    Drop the entries whose identity is verified again in the reloaded user, whatever its verified_at (it is a new
+    verification, so the user must not be told that the identity is no longer verified). The pending notice of a
+    dropped record is cleared; notice_sent_ts is not set, as no notice was sent. Never raises.
+
+    :returns: the entries to notify about
+    """
+    remaining: list[_Completed] = []
+    reverified: list[_Completed] = []
+    for done in completed:
+        current = fresh.identities.find(done.type_name)
+        if isinstance(current, IdentityElement) and current.is_verified:
+            context.logger.info(
+                f"{fresh.eppn}: {done.type_name} identity verified again, not sending notice about its unverification"
+            )
+            context.stats.count(f"identity_age_notice_skipped_reverified_{done.type_name}")
+            reverified.append(done)
+        else:
+            remaining.append(done)
+    _clear_notices(context, fresh.eppn, reverified)
+    return remaining
 
 
 def _clear_notices(context: Context, eppn: str, completed: list[_Completed]) -> None:

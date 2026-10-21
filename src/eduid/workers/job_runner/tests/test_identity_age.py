@@ -385,24 +385,105 @@ class TestCheckIdentityAge(CleanerQueueTestCase):
         assert self._mails() == []
         self.stats.count.assert_any_call("identity_age_unverified_no_recipient_nin")
 
-    def test_unverified_notice_reload_failure_uses_snapshot(self, mocker: MockerFixture) -> None:
-        user = self._unverify_due_user()
-        expected = {a.email for a in user.mail_addresses.verified}
-        context = self._context()
+    def _fail_reload_after_unverify(self, mocker: MockerFixture, user: User) -> dict[str, bool]:
+        """Make central reads fail from the moment the NIN unverification has been recorded (the notice reload)"""
         real_get = self.amdb.get_user_by_eppn
+        failing: dict[str, bool] = {"on": True}
 
         def flaky_get(eppn: str) -> User:
-            # fail only once the unverification has been recorded, which is when the notice reloads the user
             notification = self.identity_age_db.get(eppn, NIN, _verified_at(user, NIN))
-            if notification is not None and notification.unverified_ts is not None:
+            if failing["on"] and notification is not None and notification.unverified_ts is not None:
                 raise RuntimeError("db down")
             return real_get(eppn)
 
         mocker.patch.object(self.amdb, "get_user_by_eppn", side_effect=flaky_get)
-        self._run(context)
-        assert {m["payload"]["email"] for m in self._mails()} == expected
+        return failing
+
+    def test_unverified_notice_reload_failure_leaves_notice_pending(self, mocker: MockerFixture) -> None:
+        user = self._unverify_due_user()
+        verified_at = _verified_at(user, NIN)
+        failing = self._fail_reload_after_unverify(mocker, user)
+        self._run(self._context())
+        assert self._mails() == []
+        record = self.identity_age_db.get(user.eppn, NIN, verified_at)
+        assert record is not None
+        assert record.notice_requested_ts is not None
+        assert record.notice_sent_ts is None
+        assert self._pending_notice_types() == {NIN}
+        assert self._failed_count() == 1
+
+        # reads recover: the next sweep sends the notice exactly once
+        failing["on"] = False
+        self._run(self._context())
+        assert len(self._mails()) == len(user.mail_addresses.verified)
+        record = self.identity_age_db.get(user.eppn, NIN, verified_at)
+        assert record is not None
+        assert record.notice_requested_ts is None
+        assert record.notice_sent_ts is not None
+        self._run(self._context())
+        assert len(self._mails()) == len(user.mail_addresses.verified)
+
+    def _reverify(self, eppn: str, identity_type: IdentityType) -> None:
+        central = self.amdb.get_user_by_eppn(eppn)
+        identity = central.identities.find(identity_type.value)
+        assert isinstance(identity, IdentityElement)
+        identity.is_verified = True
+        identity.verified_ts = utc_now()
+        self.amdb.save(central)
+
+    def test_notice_skipped_when_identity_reverified_before_retry(self, mocker: MockerFixture) -> None:
+        user = self._unverify_due_user()
+        verified_at = _verified_at(user, NIN)
+        enqueue = mocker.patch("eduid.workers.job_runner.helpers.enqueue_email", side_effect=RuntimeError("boom"))
+        self._run(self._context())
+        assert self._pending_notice_types() == {NIN}
+
+        enqueue.side_effect = enqueue_email
+        self._reverify(user.eppn, NIN)
+        self._run(self._context())
+        assert self._mails() == []
+        assert self._pending_notice_types() == set()
+        record = self.identity_age_db.get(user.eppn, NIN, verified_at)
+        assert record is not None
+        assert record.notice_requested_ts is None
+        assert record.notice_sent_ts is None
+        self.stats.count.assert_any_call("identity_age_notice_skipped_reverified_nin")
+
+    def test_notice_covers_only_identity_not_reverified(self, mocker: MockerFixture) -> None:
+        user = self._save_user(
+            [
+                self._nin(verified_ts=_years_ago(5, extra_days=10)),
+                self._eidas(created_ts=_years_ago(5, extra_days=10)),
+            ]
+        )
+        assert user.identities.nin is not None
+        assert user.identities.eidas is not None
+        self._set_warned(user, user.identities.nin, days_ago=31)
+        self._set_warned(user, user.identities.eidas, days_ago=31)
+        nin_at = _verified_at(user, NIN)
+        eidas_at = _verified_at(user, EIDAS)
+        enqueue = mocker.patch("eduid.workers.job_runner.helpers.enqueue_email", side_effect=RuntimeError("boom"))
+        self._run(self._context())
+        assert self._mails() == []
+        assert self._pending_notice_types() == {NIN, EIDAS}
+
+        enqueue.side_effect = enqueue_email
+        self._reverify(user.eppn, NIN)
+        self._run(self._context())
+        # ONE combined notice per address, for the EIDAS unverification only
+        assert len(self._mails()) == len(user.mail_addresses.verified)
+        assert self._pending_notice_types() == set()
+        nin_record = self.identity_age_db.get(user.eppn, NIN, nin_at)
+        eidas_record = self.identity_age_db.get(user.eppn, EIDAS, eidas_at)
+        assert nin_record is not None
+        assert nin_record.notice_requested_ts is None
+        assert nin_record.notice_sent_ts is None
+        assert eidas_record is not None
+        assert eidas_record.notice_requested_ts is None
+        assert eidas_record.notice_sent_ts is not None
         counted = [c.args[0] for c in self.stats.count.call_args_list]
-        assert "identity_age_failed" not in counted
+        assert "identity_age_notice_skipped_reverified_nin" in counted
+        assert "identity_age_notice_skipped_reverified_eidas" not in counted
 
     def test_nothing_completed_no_central_read(self, mocker: MockerFixture) -> None:
         context = self._context()
