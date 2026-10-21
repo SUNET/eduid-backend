@@ -61,7 +61,7 @@ class IdentityElement(VerifiedElement, ABC):
     """
 
     identity_type: IdentityType
-    proofing_method: IdentityProofingMethod | None = None
+    proofing_method: IdentityProofingMethod | None = None  # ty: ignore[invalid-mutable-override]
 
     @property
     def key(self) -> ElementKey:
@@ -120,7 +120,7 @@ class NinIdentity(IdentityElement):
         number
     """
 
-    identity_type: Literal[IdentityType.NIN] = IdentityType.NIN
+    identity_type: Literal[IdentityType.NIN] = IdentityType.NIN  # ty: ignore[invalid-mutable-override]
     number: str
     date_of_birth: datetime | None = None
 
@@ -166,7 +166,7 @@ class EIDASIdentity(ForeignIdentityElement):
         country_code
     """
 
-    identity_type: Literal[IdentityType.EIDAS] = IdentityType.EIDAS
+    identity_type: Literal[IdentityType.EIDAS] = IdentityType.EIDAS  # ty: ignore[invalid-mutable-override]
     prid: str
     prid_persistence: PridPersistence
     loa: EIDASLoa
@@ -191,7 +191,7 @@ class SvipeIdentity(ForeignIdentityElement):
         country_code
     """
 
-    identity_type: Literal[IdentityType.SVIPE] = IdentityType.SVIPE
+    identity_type: Literal[IdentityType.SVIPE] = IdentityType.SVIPE  # ty: ignore[invalid-mutable-override]
     #  A globally unique identifier issued by Svipe to the user. Under normal conditions, a given person will retain
     #  the same Svipe ID even after renewing the underlying identity document.
     svipe_id: str
@@ -231,7 +231,7 @@ class FrejaIdentity(ForeignIdentityElement):
         country_code
     """
 
-    identity_type: Literal[IdentityType.FREJA] = IdentityType.FREJA
+    identity_type: Literal[IdentityType.FREJA] = IdentityType.FREJA  # ty: ignore[invalid-mutable-override]
     # claim: https://frejaeid.com/oidc/scopes/relyingPartyUserId
     # A unique, user-specific value that allows the Relying Party to identify the same user across multiple sessions
     user_id: str

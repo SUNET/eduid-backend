@@ -13,9 +13,7 @@ from eduid.webapp.orcid.helpers import SessionOidcCache
 from eduid.webapp.orcid.settings.common import OrcidConfig
 
 
-class OrcidApp(AuthnBaseApp):
-    conf: OrcidConfig
-
+class OrcidApp(AuthnBaseApp[OrcidConfig]):
     def __init__(self, config: OrcidConfig, **kwargs: Any) -> None:
         super().__init__(config, **kwargs)
 

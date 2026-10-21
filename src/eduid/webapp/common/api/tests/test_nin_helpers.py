@@ -42,12 +42,10 @@ class HelpersTestConfig(EduIDBaseAppConfig, MsgConfigMixin):
     pass
 
 
-class HelpersTestApp(EduIDBaseApp):
-    conf: HelpersTestConfig
-
+class HelpersTestApp(EduIDBaseApp[HelpersTestConfig]):
     def __init__(self, name: str, test_config: Mapping[str, Any], **kwargs: Any) -> None:
-        self.conf = load_config(typ=HelpersTestConfig, app_name=name, ns="webapp", test_config=test_config)
-        super().__init__(self.conf, **kwargs)
+        conf = load_config(typ=HelpersTestConfig, app_name=name, ns="webapp", test_config=test_config)
+        super().__init__(conf, **kwargs)
         self.session_interface = SessionFactory(self.conf)
         # Init databases
         self.private_userdb = LetterProofingUserDB(self.conf.mongo_uri)

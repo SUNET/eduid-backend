@@ -36,7 +36,7 @@ class GenericFilterDict(dict[str, Any]):
 
 
 class SupportUserFilter(GenericFilterDict):
-    remove_keys: ClassVar[list[str]] = ["_id", "letter_proofing_data"]
+    remove_keys: ClassVar[list[str] | None] = ["_id", "letter_proofing_data"]
 
     def __init__(self, data: TUserDbDocument) -> None:
         _data = deepcopy(data)
@@ -48,7 +48,7 @@ class SupportUserFilter(GenericFilterDict):
 
 
 class SupportSignupUserFilter(GenericFilterDict):
-    remove_keys: ClassVar[list[str]] = ["_id", "letter_proofing_data"]
+    remove_keys: ClassVar[list[str] | None] = ["_id", "letter_proofing_data"]
 
     def __init__(self, data: TUserDbDocument) -> None:
         _data = deepcopy(data)
@@ -61,7 +61,7 @@ class SupportSignupUserFilter(GenericFilterDict):
 
 
 class MailAlias(GenericFilterDict):
-    remove_keys: ClassVar[list[str]] = ["verification_code"]
+    remove_keys: ClassVar[list[str] | None] = ["verification_code"]
 
 
 class PendingMailAddress(MailAlias):
@@ -69,7 +69,7 @@ class PendingMailAddress(MailAlias):
 
 
 class Credential(GenericFilterDict):
-    add_keys: ClassVar[list[str]] = [
+    add_keys: ClassVar[list[str] | None] = [
         "_id",
         "credential_id",
         "created_by",
@@ -88,11 +88,11 @@ class Credential(GenericFilterDict):
 
 
 class ToU(GenericFilterDict):
-    remove_keys: ClassVar[list[str]] = ["id"]
+    remove_keys: ClassVar[list[str] | None] = ["id"]
 
 
 class UserAuthnInfo(GenericFilterDict):
-    add_keys: ClassVar[list[str]] = ["success_ts", "fail_count", "success_count"]
+    add_keys: ClassVar[list[str] | None] = ["success_ts", "fail_count", "success_count"]
 
     def __init__(self, data: dict[str, Any]) -> None:
         _data = deepcopy(data)
@@ -105,7 +105,7 @@ class UserAuthnInfo(GenericFilterDict):
 
 
 class ProofingLogEntry(GenericFilterDict):
-    add_keys: ClassVar[list[str]] = [
+    add_keys: ClassVar[list[str] | None] = [
         "verified_data",
         "created_ts",
         "proofing_method",
@@ -125,13 +125,13 @@ class ProofingLogEntry(GenericFilterDict):
 
 
 class UserLetterProofing(GenericFilterDict):
-    add_keys: ClassVar[list[str]] = ["nin", "proofing_letter"]
+    add_keys: ClassVar[list[str] | None] = ["nin", "proofing_letter"]
 
     class Nin(GenericFilterDict):
-        add_keys: ClassVar[list[str]] = ["created_ts", "number"]
+        add_keys: ClassVar[list[str] | None] = ["created_ts", "number"]
 
     class ProofingLetter(GenericFilterDict):
-        add_keys: ClassVar[list[str]] = ["sent_ts", "is_sent", "address"]
+        add_keys: ClassVar[list[str] | None] = ["sent_ts", "is_sent", "address"]
 
     def __init__(self, data: dict[str, Any]) -> None:
         _data = deepcopy(data)
@@ -141,10 +141,10 @@ class UserLetterProofing(GenericFilterDict):
 
 
 class UserEmailProofing(GenericFilterDict):
-    add_keys: ClassVar[list[str]] = ["verification", "modified_ts"]
+    add_keys: ClassVar[list[str] | None] = ["verification", "modified_ts"]
 
     class Verification(GenericFilterDict):
-        add_keys: ClassVar[list[str]] = ["created_ts", "email"]
+        add_keys: ClassVar[list[str] | None] = ["created_ts", "email"]
 
     def __init__(self, data: TUserDbDocument) -> None:
         _data = deepcopy(data)
