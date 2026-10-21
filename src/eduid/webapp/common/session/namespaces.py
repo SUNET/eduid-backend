@@ -250,10 +250,6 @@ class Signup(TimestampedNS):
         return False
 
 
-class Phone(SessionNSBase):
-    captcha: Captcha = Field(default_factory=Captcha)
-
-
 RequestRef = NewType("RequestRef", str)
 
 
