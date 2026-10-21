@@ -21,9 +21,7 @@ from eduid.webapp.idp.sso_cache import SSOSessionCache
 __author__ = "ft"
 
 
-class IdPApp(EduIDBaseApp):
-    conf: IdPConfig
-
+class IdPApp(EduIDBaseApp[IdPConfig]):
     def __init__(self, config: IdPConfig, **kwargs: Any) -> None:
         super().__init__(config, **kwargs)
 

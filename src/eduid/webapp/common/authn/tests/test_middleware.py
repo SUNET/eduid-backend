@@ -14,8 +14,8 @@ class AuthnTestApp(AuthnBaseApp):
     def __init__(self, name: str, test_config: Mapping[str, Any], **kwargs: Any) -> None:
         # This should be an AuthnConfig instance, but an EduIDBaseAppConfig instance suffices for these
         # tests and we don't want eduid.webapp.common to depend on eduid.webapp.
-        self.conf = load_config(typ=EduIDBaseAppConfig, app_name=name, ns="webapp", test_config=test_config)
-        super().__init__(self.conf, **kwargs)
+        conf = load_config(typ=EduIDBaseAppConfig, app_name=name, ns="webapp", test_config=test_config)
+        super().__init__(conf, **kwargs)
 
 
 class AuthnTests(EduidAPITestCase[AuthnTestApp]):

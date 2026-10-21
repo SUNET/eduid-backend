@@ -11,6 +11,7 @@ from flask import Request, current_app
 from flask_cors.core import get_cors_headers, get_cors_options
 from werkzeug.wsgi import get_current_url
 
+from eduid.common.config.base import EduIDBaseAppConfig
 from eduid.webapp.common.api.app import EduIDBaseApp
 from eduid.webapp.common.api.messages import error_response
 from eduid.webapp.common.api.schemas.base import FluxStandardAction
@@ -20,7 +21,7 @@ from eduid.webapp.common.session.redis_session import NoSessionDataFoundExceptio
 no_context_logger = logging.getLogger(__name__)
 
 
-class AuthnBaseApp(EduIDBaseApp, metaclass=ABCMeta):
+class AuthnBaseApp[C: EduIDBaseAppConfig = EduIDBaseAppConfig](EduIDBaseApp[C], metaclass=ABCMeta):
     """
     WSGI middleware that checks whether the request is authenticated,
     and in case it isn't, redirects to the authn service.

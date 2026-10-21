@@ -16,7 +16,7 @@ from eduid.workers.am.testing import USER_DATA, AMTestCase
 
 class AttributeFetcherTests(AMTestCase):
     user: User
-    am_extra_settings: ClassVar[dict[str, Any]] = {"new_user_date": "2001-01-01"}
+    am_extra_settings: ClassVar[dict[str, Any] | None] = {"new_user_date": "2001-01-01"}
 
     @pytest.fixture(autouse=True)
     def setup(self, setup_am: None) -> None:

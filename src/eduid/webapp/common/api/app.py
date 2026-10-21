@@ -8,7 +8,7 @@ from __future__ import annotations
 import os
 from abc import ABCMeta
 from sys import stderr
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 from cookies_samesite_compat import CookiesSameSiteCompatMiddleware  # type: ignore[import-untyped]
 from flask import Flask
@@ -45,12 +45,14 @@ if DEBUG:
     stderr.writelines("----- WARNING! EDUID_APP_DEBUG is enabled -----\n")
 
 
-class EduIDBaseApp(Flask, metaclass=ABCMeta):
+class EduIDBaseApp[C: EduIDBaseAppConfig = EduIDBaseAppConfig](Flask, metaclass=ABCMeta):
     """
     Base class for eduID apps, initializing common features and facilities.
     """
 
-    conf: EduIDBaseAppConfig
+    @property
+    def conf(self) -> C:
+        return cast(C, self._conf)
 
     def __init__(
         self,
@@ -65,7 +67,7 @@ class EduIDBaseApp(Flask, metaclass=ABCMeta):
         :param handle_exceptions: Whether to install exception handler or not.
         """
         super().__init__(config.app_name, **kwargs)
-        self.conf = config
+        self._conf: EduIDBaseAppConfig = config
         _flask_config = {x.upper(): v for x, v in config.flask.to_mapping().items()}
         self.config.from_mapping(_flask_config)
 

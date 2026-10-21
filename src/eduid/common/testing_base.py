@@ -76,9 +76,9 @@ def normalised_data[SomeData: dict[str, Any] | list[Any]](
 
     class NormaliseDecoder(json.JSONDecoder):
         def __init__(self, **kwargs: Any) -> None:
-            super().__init__(object_hook=self.object_hook, **kwargs)
+            super().__init__(object_hook=self._object_hook, **kwargs)
 
-        def object_hook(self, o: dict[str, Any]) -> dict[str, Any]:
+        def _object_hook(self, o: dict[str, Any]) -> dict[str, Any]:
             """
             Decode any keys ending in _ts to datetime objects.
 
