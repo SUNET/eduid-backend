@@ -36,7 +36,6 @@ dependencies = [
   "pydantic",
   "pymongo",
   "pysaml2==7.5.2+sunet4",
-  "pysmscom",
   "python-dateutil",
   "qrcode",
   "redis",

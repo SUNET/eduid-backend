@@ -2,21 +2,18 @@ import json
 import logging
 from collections import OrderedDict
 from http import HTTPStatus
-from typing import Any, ClassVar, cast
+from typing import Any, ClassVar
 
 from billiard.einfo import ExceptionInfo
 from celery.utils.log import get_task_logger
 from hammock import Hammock  # type: ignore[import-untyped]
-from smscom import SMSClient  # type: ignore[import-untyped]
 
-from eduid.common.config.base import EduidEnvironment
 from eduid.userdb.exceptions import DBConnectionError
 from eduid.workers.celery_typing import Task
 from eduid.workers.msg.cache import CacheMDB
 from eduid.workers.msg.common import MsgCelerySingleton
 from eduid.workers.msg.exceptions import NavetAPIException
 from eduid.workers.msg.utils import (
-    load_template,
     navet_get_all_data,
     navet_get_name_and_official_address,
 )
@@ -33,15 +30,8 @@ class MessageSender(Task[Any, Any]):
 
     abstract = True
 
-    _sms: SMSClient | None = None
     _navet_api: Hammock | None = None
     _cache_store: ClassVar[dict[str, CacheMDB]] = {}
-
-    @property
-    def sms(self) -> SMSClient:
-        if self._sms is None:
-            self._sms = SMSClient(MsgCelerySingleton.worker_config.sms_acc, MsgCelerySingleton.worker_config.sms_key)
-        return self._sms
 
     @property
     def navet_api(self) -> Hammock:
@@ -76,57 +66,6 @@ class MessageSender(Task[Any, Any]):
         if isinstance(exc, DBConnectionError):
             logger.error("Task failed with db exception ConnectionError. Reloading db.")
             self.reload_db()
-
-    def send_message(
-        self,
-        message_type: str,
-        reference: str,
-        message_dict: dict[str, Any],
-        recipient: str,
-        template: str,
-        language: str,
-        subject: str | None = None,
-    ) -> str | None:
-        """
-        :param message_type: Message notification type (sms or mm)
-        :param reference: Unique reference id
-        :param message_dict: A dict of key value pairs used in the template of choice
-        :param recipient: Recipient mobile phone number or social security number (depends on the choice of
-                          message_type)
-        :param template: Name of the message template to use
-        :param language: Preferred language for the template.
-        :param subject: (Optional) Subject used in my messages service or email deliveries
-        :return: For type 'sms' a message id is returned if successful, if unsuccessful an error message is returned.
-                 For type 'mm' a message id is returned if successful, the message id can be used to verify if that the
-                 message has been delivered to the users mailbox service by calling
-                 check_distribution_status(message_id), if unsuccessful an error message is returned.
-        """
-        conf = MsgCelerySingleton.worker_config
-
-        msg = load_template(conf.template_dir, template, message_dict, language)
-
-        # Only log the message if devel_mode is enabled
-        if conf.devel_mode is True:
-            logger.debug(
-                f"\nType: {message_type}\nReference: {reference}\nRecipient: {recipient}"
-                f"\nLang: {language}\nSubject: {subject}\nMessage:\n {msg}"
-            )
-            return "devel_mode"
-
-        if message_type == "sms":
-            logger.debug(f"Sending SMS to {recipient} using template {template} and language {language}")
-            try:
-                msg_bytes = msg.encode("utf-8")
-                status = self.sms.send(msg_bytes, MsgCelerySingleton.worker_config.sms_sender, recipient, prio=2)
-            except Exception as e:  # XXX: smscom only raises Exception right now
-                logger.error(f"SMS task failed: {e}")
-                raise
-        else:
-            logger.error(f"Unknown message type: {message_type}")
-            raise NotImplementedError(f"message_type {message_type} is not implemented")
-
-        logger.debug(f"send_message result: {status}")
-        return cast(str, status)
 
     def get_postal_address(self, identity_number: str) -> OrderedDict[str, Any] | None:
         """
@@ -229,41 +168,6 @@ class MessageSender(Task[Any, Any]):
             self.cache("navet_cache").add_cache_item(identity_number, json_data)
         return json_data
 
-    def sendsms(self, recipient: str, message: str, reference: str) -> str:
-        """
-        Send sms
-
-        :param recipient: the recipient of the sms
-        :param message: message as a string (160 chars per sms)
-        :param reference: Audit reference to help cross reference audit log and events
-
-        :return Transaction ID
-        """
-
-        # Just log the sms if in development mode
-        if (
-            MsgCelerySingleton.worker_config.environment is EduidEnvironment.dev
-            or MsgCelerySingleton.worker_config.devel_mode is True
-        ):
-            logger.debug("sendsms task:")
-            logger.debug(f"\nType: sms\nReference: {reference}\nRecipient: {recipient}\nMessage:\n{message}")
-            return "devel_mode"
-
-        #  0701740605-0701740699 is a unused range from PTS
-        #  https://www.pts.se/sv/bransch/telefoni/nummer-och-adressering/
-        #  telefonnummer-for-anvandning-i-bocker-och-filmer-etc/
-        UNUSED_RANGE_LOWER_END = 5
-        UNUSED_RANGE_UPPER_END = 99
-        if (
-            recipient.startswith("+467017406")
-            and UNUSED_RANGE_LOWER_END <= int(recipient.removeprefix("+467017406")) <= UNUSED_RANGE_UPPER_END
-        ):
-            logger.debug("sendsms task:")
-            logger.debug(f"\nType: sms\nReference: {reference}\nRecipient: {recipient}\nMessage:\n{message}")
-            return "no_op_number"
-
-        return cast(str, self.sms.send(message, MsgCelerySingleton.worker_config.sms_sender, recipient, prio=2))
-
     def pong(self, app_name: str | None) -> str:
         # Leverage cache to test mongo db health
         if self.cache("pong", 0).is_healthy():
@@ -272,21 +176,6 @@ class MessageSender(Task[Any, Any]):
             # Old clients don't send app_name, and text-match the response to be exactly 'pong' in the health checks
             return "pong"
         raise DBConnectionError("Database not healthy")
-
-
-@app.task(bind=True, base=MessageSender, name="eduid_msg.tasks.sendsms")
-def sendsms(self: MessageSender, recipient: str, message: str, reference: str) -> str:
-    """
-    :param self: base class
-    :param recipient: the recipient of the sms
-    :param message: message as a string (160 chars per sms)
-    :param reference: Audit reference to help cross reference audit log and events
-    """
-    try:
-        return self.sendsms(recipient, message, reference)
-    except Exception as e:
-        logger.exception("sendsms task error")
-        raise self.retry(countdown=1, max_retries=3, exc=e) from e
 
 
 @app.task(bind=True, base=MessageSender, name="eduid_msg.tasks.get_all_navet_data")

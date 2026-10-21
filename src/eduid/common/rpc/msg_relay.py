@@ -99,7 +99,7 @@ class FullPostalAddress(NavetModelConfig):
 
 class MsgRelay:
     """
-    This is the interface to the RPC task to fetch data from NAVET, and to send SMSs.
+    This is the interface to the RPC task to fetch data from NAVET.
     """
 
     def __init__(self, config: MsgConfigMixin) -> None:
@@ -107,11 +107,10 @@ class MsgRelay:
         self.conf = config
         eduid.workers.msg.init_app(config.celery)
         # these have to be imported _after_ eduid.workers.msg.init_app()
-        from eduid.workers.msg.tasks import get_all_navet_data, get_postal_address, pong, sendsms
+        from eduid.workers.msg.tasks import get_all_navet_data, get_postal_address, pong
 
         self._get_all_navet_data = get_all_navet_data
         self._get_postal_address = get_postal_address
-        self._send_sms = sendsms
         self._pong = pong
 
     @staticmethod
@@ -182,24 +181,6 @@ class MsgRelay:
         except ValidationError as e:
             logger.exception("Missing data in postal address returned from Navet")
             raise NoAddressFound("Missing data in postal address returned from Navet") from e
-
-    def sendsms(self, recipient: str, message: str, reference: str, timeout: int = 25) -> None:
-        """
-        :param recipient: the recipient of the sms
-        :param message: message as a string (160 chars per sms)
-        :param reference: Audit reference to help cross reference audit log and events
-        :param timeout: Max wait time for task to finish
-        """
-        logger.info(f"Trying to send SMS with reference: {reference}")
-        logger.debug(f"Recipient: {recipient}. Message: {message}")
-        rtask = self._send_sms.apply_async(args=(recipient, message, reference))
-
-        try:
-            res = rtask.get(timeout=timeout)
-            logger.info(f"SMS with reference {reference} sent. Task result: {res}")
-        except Exception as e:
-            rtask.forget()
-            raise MsgTaskFailed(f"sendsms task failed: {e!r}") from e
 
     def ping(self, timeout: int = 1) -> str:
         """

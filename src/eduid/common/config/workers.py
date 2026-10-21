@@ -25,7 +25,4 @@ class MsgConfig(WorkerConfig):
     navet_api_uri: str = ""
     navet_api_user: str = ""
     navet_api_verify_ssl: bool = False
-    sms_acc: str = ""
-    sms_key: str = ""
-    sms_sender: str = "eduID"
     template_dir: str = ""
