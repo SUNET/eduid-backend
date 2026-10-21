@@ -816,7 +816,7 @@ class TestCheckIdentityAge(CleanerQueueTestCase):
         assert "identity_age_unverified_eidas" not in counted
         assert "identity_age_sync_mismatch_nin" not in counted
 
-    def test_mark_unverified_failure_does_not_skip_others(self, mocker: MockerFixture) -> None:
+    def _two_warned_identities_user(self) -> User:
         user = self._save_user(
             [
                 self._nin(verified_ts=_years_ago(5, extra_days=10)),
@@ -825,11 +825,74 @@ class TestCheckIdentityAge(CleanerQueueTestCase):
         )
         for identity in user.identities.verified:
             self._set_warned(user, identity, days_ago=40)
-        mocker.patch.object(IdentityAgeNotificationDB, "mark_unverified", side_effect=RuntimeError("boom"))
+        return user
+
+    def _patch_mark_unverified(self, mocker: MockerFixture, failures: int | None) -> None:
+        """Make the first `failures` calls to mark_unverified raise (all calls if None), later calls are real."""
+        original = self.identity_age_db.mark_unverified
+        calls: list[object] = []
+
+        def mark_unverified(*args: Any, **kwargs: Any) -> None:
+            calls.append(args)
+            if failures is None or len(calls) <= failures:
+                raise RuntimeError("boom")
+            original(*args, **kwargs)
+
+        mocker.patch.object(self.identity_age_db, "mark_unverified", side_effect=mark_unverified)
+
+    def _unverified_ts(self, user: User, identity_type: IdentityType) -> datetime | None:
+        notification = self.identity_age_db.get(user.eppn, identity_type, _verified_at(user, identity_type))
+        assert notification is not None
+        return notification.unverified_ts
+
+    def _pending_types(self) -> set[IdentityType]:
+        return {p.identity_type for p in self.identity_age_db.iter_pending_unverifications()}
+
+    def test_mark_unverified_failure_does_not_skip_others(self, mocker: MockerFixture) -> None:
+        user = self._two_warned_identities_user()
+        self._patch_mark_unverified(mocker, failures=1)
         self._run(self._context())
         assert self.amdb.get_user_by_eppn(user.eppn).identities.verified == []
+        recorded = {t for t in (NIN, EIDAS) if self._unverified_ts(user, t) is not None}
+        assert len(recorded) == 1
+        failed = ({NIN, EIDAS} - recorded).pop()
+        # the recorded identity is noticed (one mail per address), the failed one is neither counted nor noticed
         assert set(self._payload_types()) == {"EduidIdentityUnverifiedEmail"}
-        assert len(self._payload_types()) == len(user.mail_addresses.verified)
+        assert len(self._mails()) == len(user.mail_addresses.verified)
+        counted = [c.args[0] for c in self.stats.count.call_args_list]
+        assert counted.count(f"identity_age_unverified_{recorded.copy().pop().value}") == 1
+        assert f"identity_age_unverified_{failed.value}" not in counted
+        assert f"identity_age_reconciled_{failed.value}" not in counted
+        # marker kept for reconciliation, failure counted once
+        assert self._pending_types() == {failed}
+        assert self._failed_count() == 1
+
+    def test_mark_unverified_all_failing_then_recovered_sends_one_notice(self, mocker: MockerFixture) -> None:
+        user = self._two_warned_identities_user()
+        self._patch_mark_unverified(mocker, failures=2)
+        self._run(self._context())
+        assert self.amdb.get_user_by_eppn(user.eppn).identities.verified == []
+        assert self._mails() == []
+        assert self._pending_types() == {NIN, EIDAS}
+        assert self._failed_count() == 2
+        counted = [c.args[0] for c in self.stats.count.call_args_list]
+        assert not [c for c in counted if c.startswith(("identity_age_unverified_", "identity_age_reconciled_"))]
+
+        # DB recovered: the next sweep reconciles both and sends one notice per address
+        self._run(self._context())
+        assert len(self._mails()) == len(user.mail_addresses.verified)
+        assert set(self._payload_types()) == {"EduidIdentityUnverifiedEmail"}
+        assert self._pending_types() == set()
+        assert self._unverified_ts(user, NIN) is not None
+        assert self._unverified_ts(user, EIDAS) is not None
+        self.stats.count.assert_any_call("identity_age_reconciled_nin")
+        self.stats.count.assert_any_call("identity_age_reconciled_eidas")
+        assert self._failed_count() == 2
+
+        # and nothing more afterwards
+        mails = len(self._mails())
+        self._run(self._context())
+        assert len(self._mails()) == mails
 
     def test_reverified_same_verified_at_not_unverified_again(self) -> None:
         user = self._save_user([self._nin(verified_ts=_years_ago(5, extra_days=10))])

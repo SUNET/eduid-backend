@@ -598,6 +598,9 @@ def _record_landed(
     Record the unverification (and count and log it) of every identity confirmed unverified in the central db.
     Identities still verified there are counted as sync mismatches and left unrecorded.
 
+    A failed record write is counted and left pending (for reconciliation), and is neither counted as unverified
+    nor included in the notice.
+
     :returns: number of identities recorded, and the type names of those, for the notice
     """
     done = 0
@@ -614,12 +617,14 @@ def _record_landed(
             # Known not to have landed, nothing is pending. The normal flow retries next cycle.
             _clear_pending(context, user.eppn, identity.identity_type, verified_at)
             continue
-        done += 1
         try:
             _notification_db(context).mark_unverified(user.eppn, identity.identity_type, verified_at)
         except Exception:
+            # The pending marker is kept: the next sweep reconciles it and sends the notice then, exactly once
             context.logger.exception(f"Failed to record unverification of {type_name} identity for {user.eppn}")
             context.stats.count("identity_age_failed")
+            continue
+        done += 1
         context.stats.count(f"identity_age_unverified_{type_name}")
         context.logger.info(f"Unverified {type_name} identity for user {user.eppn} (verified at {verified_at})")
         landed_names.append(type_name)
