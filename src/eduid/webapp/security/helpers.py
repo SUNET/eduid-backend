@@ -15,7 +15,7 @@ from eduid.common.proofing_utils import (
 )
 from eduid.common.rpc.msg_relay import FullPostalAddress, NavetData
 from eduid.common.utils import generate_password
-from eduid.queue.client import init_queue_item
+from eduid.queue.client import enqueue_email
 from eduid.queue.db.message.payload import EduidTerminationEmail
 from eduid.userdb import NinIdentity
 from eduid.userdb.identity import IdentityType
@@ -193,8 +193,12 @@ def send_termination_mail(user: User) -> None:
             reference=f"eppn={user.eppn},mail={email.email},ts={utc_now()}",
         )
 
-        message = init_queue_item(app_name=current_app.conf.app_name, expires_in=timedelta(days=7), payload=payload)
-        current_app.messagedb.save(message)
+        enqueue_email(
+            messagedb=current_app.messagedb,
+            app_name=current_app.conf.app_name,
+            payload=payload,
+            expires_in=timedelta(days=7),
+        )
         current_app.logger.info(
             f"Saved termination mail queue item in queue collection {current_app.messagedb._coll_name}"
         )
