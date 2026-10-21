@@ -277,7 +277,7 @@ def _check_loaded_user(context: Context, user: User, limits: _Limits, completed:
     eppn = user.eppn
     actions = 0
     if not context.dry_run:
-        actions += _reconcile_pending_unverifications(context, user, limits, completed)
+        actions += _reconcile_pending_unverifications(context, user, completed)
     to_warn: list[IdentityElement] = []
     to_unverify: list[IdentityElement] = []
     for identity in user.identities.verified:
@@ -745,7 +745,7 @@ def _reconcile_one(context: Context, user: User, pending: IdentityAgeNotificatio
     return True
 
 
-def _reconcile_pending_unverifications(context: Context, user: User, limits: _Limits, completed: list[str]) -> int:
+def _reconcile_pending_unverifications(context: Context, user: User, completed: list[str]) -> int:
     """
     Complete unverifications that were requested earlier but never recorded, e.g. because the job failed after the
     AM sync had applied the change. Looks only at the pending records, never at whether the identity is verified, as
@@ -758,7 +758,7 @@ def _reconcile_pending_unverifications(context: Context, user: User, limits: _Li
     :returns: number of unverifications completed
     """
     done = 0
-    for pending in list(context.identity_age_db.iter_pending_unverifications(user.eppn)):
+    for pending in context.identity_age_db.iter_pending_unverifications(user.eppn):
         try:
             if _reconcile_one(context, user, pending):
                 completed.append(pending.identity_type.value)
