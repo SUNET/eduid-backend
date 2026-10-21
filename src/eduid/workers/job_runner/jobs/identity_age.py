@@ -244,9 +244,13 @@ def process_identity_age_users(context: Context) -> None:
 
 def _check_user(context: Context, eppn: str, limits: _Limits) -> int:
     """
+    Check one user. Warnings are sent per run of _warn_user, but the unverified notice has a single dispatch point
+    here: the phases that complete unverifications (_reconcile_pending_unverifications and _unverify_identities)
+    only append the type names to a shared list, and ONE notice (one mail per verified address) covering all of
+    them is sent afterwards. It is sent even if a later phase raises, so completed work is never left unnotified.
+
     :returns: number of actions (warnings sent or identities unverified) taken
     """
-    config = context.config.identity_age
     try:
         user = context.central_db.get_user_by_eppn(eppn)
     except UserDoesNotExist:
@@ -254,9 +258,26 @@ def _check_user(context: Context, eppn: str, limits: _Limits) -> int:
     if user.terminated is not None:
         return 0
 
+    completed: list[str] = []
+    try:
+        return _check_loaded_user(context, user, limits, completed)
+    finally:
+        _notify_unverified(context, user, completed)
+
+
+def _check_loaded_user(context: Context, user: User, limits: _Limits, completed: list[str]) -> int:
+    """
+    Reconcile, warn and unverify for a user that is known to exist and not be terminated.
+
+    :param completed: out parameter, receives the identity type names of every unverification completed. The caller
+        is responsible for sending the unverified notice.
+    :returns: number of actions (warnings sent or identities unverified) taken
+    """
+    config = context.config.identity_age
+    eppn = user.eppn
     actions = 0
     if not context.dry_run:
-        actions += _reconcile_pending_unverifications(context, user, limits)
+        actions += _reconcile_pending_unverifications(context, user, limits, completed)
     to_warn: list[IdentityElement] = []
     to_unverify: list[IdentityElement] = []
     for identity in user.identities.verified:
@@ -271,7 +292,7 @@ def _check_user(context: Context, eppn: str, limits: _Limits) -> int:
     if to_warn:
         actions += _warn_user(context, user, to_warn, limits)
     if to_unverify:
-        actions += _unverify_identities(context, user, to_unverify, limits)
+        actions += _unverify_identities(context, user, to_unverify, limits, completed)
     return actions
 
 
@@ -572,13 +593,12 @@ def _record_landed(
     user: User,
     unverified: list[tuple[IdentityElement, datetime, datetime | None]],
     landed: set[IdentityType],
-    has_recipient: bool,
 ) -> tuple[int, list[str]]:
     """
     Record the unverification (and count and log it) of every identity confirmed unverified in the central db.
     Identities still verified there are counted as sync mismatches and left unrecorded.
 
-    :returns: number of identities recorded, and the type names to mention in the notice mail
+    :returns: number of identities recorded, and the type names of those, for the notice
     """
     done = 0
     landed_names: list[str] = []
@@ -587,7 +607,7 @@ def _record_landed(
         if identity.identity_type not in landed:
             context.logger.warning(
                 f"{user.eppn}: {type_name} identity still verified in the central db after sync, not recording"
-                " unverification or sending notice"
+                " unverification"
             )
             context.stats.count("identity_age_sync_mismatch")
             context.stats.count(f"identity_age_sync_mismatch_{type_name}")
@@ -602,12 +622,30 @@ def _record_landed(
             context.stats.count("identity_age_failed")
         context.stats.count(f"identity_age_unverified_{type_name}")
         context.logger.info(f"Unverified {type_name} identity for user {user.eppn} (verified at {verified_at})")
-        if has_recipient:
-            landed_names.append(type_name)
-        else:
-            context.stats.count(f"identity_age_unverified_no_recipient_{type_name}")
-            context.logger.warning(f"User {user.eppn} has no verified mail address, no notice about {type_name} sent")
+        landed_names.append(type_name)
     return done, landed_names
+
+
+def _notify_unverified(context: Context, user: User, completed: list[str]) -> None:
+    """
+    Single dispatch point of the unverified notice: tell the user about every unverification completed in this
+    run of _check_user. Nothing is done if nothing was completed. A user without a verified mail address is only
+    counted (identity_age_unverified_no_recipient_<type>). Never raises, so it is safe in a finally block.
+    """
+    if not completed:
+        return
+    try:
+        if not user.mail_addresses.verified:
+            for type_name in completed:
+                context.stats.count(f"identity_age_unverified_no_recipient_{type_name}")
+                context.logger.warning(
+                    f"User {user.eppn} has no verified mail address, no notice about {type_name} sent"
+                )
+        elif context.config.identity_age.send_unverified_notice:
+            _send_unverified_notice(context, user, completed)
+    except Exception:
+        context.logger.exception(f"Failed to notify {user.eppn} about unverified identities")
+        context.stats.count("identity_age_failed")
 
 
 def _send_unverified_notice(context: Context, user: User, landed_names: list[str]) -> None:
@@ -702,49 +740,50 @@ def _reconcile_one(context: Context, user: User, pending: IdentityAgeNotificatio
     return True
 
 
-def _reconcile_pending_unverifications(context: Context, user: User, limits: _Limits) -> int:
+def _reconcile_pending_unverifications(context: Context, user: User, limits: _Limits, completed: list[str]) -> int:
     """
     Complete unverifications that were requested earlier but never recorded, e.g. because the job failed after the
     AM sync had applied the change. Looks only at the pending records, never at whether the identity is verified, as
     a landed unverification leaves nothing verified to find. Real runs only.
 
-    One unverified notice (one mail per verified address) covers everything completed here.
+    No notice is sent here: the type names of the completed unverifications are appended to `completed`, and
+    _check_user sends one notice covering these and anything _unverify_identities completes.
 
+    :param completed: out parameter, receives the identity type names of the unverifications completed
     :returns: number of unverifications completed
     """
-    completed: list[str] = []
+    done = 0
     for pending in list(context.identity_age_db.iter_pending_unverifications(user.eppn)):
         try:
             if _reconcile_one(context, user, pending):
                 completed.append(pending.identity_type.value)
+                done += 1
         except Exception:
             context.logger.exception(f"Failed to reconcile pending unverification for {user.eppn}")
             context.stats.count("identity_age_failed")
-    if not completed:
-        return 0
-    if not user.mail_addresses.verified:
-        for type_name in completed:
-            context.stats.count(f"identity_age_unverified_no_recipient_{type_name}")
-        context.logger.warning(f"User {user.eppn} has no verified mail address, no notice about {completed} sent")
-    elif context.config.identity_age.send_unverified_notice:
-        _send_unverified_notice(context, user, completed)
-    return len(completed)
+    return done
 
 
-def _unverify_identities(context: Context, user: User, identities: list[IdentityElement], limits: _Limits) -> int:
+def _unverify_identities(
+    context: Context, user: User, identities: list[IdentityElement], limits: _Limits, completed: list[str]
+) -> int:
     """
     Unverify identities with a single save of the user.
 
     DEPLOY ORDER: the AM worker that has `identities` in the eduid_job_runner attribute allowlist
     (eduid/workers/am/ams/__init__.py) must be deployed BEFORE the gather/process_identity_age_users cron is
     enabled. After the sync the central db is re-read and only identities confirmed unverified there are recorded
-    and mailed. With the wrong order nothing breaks but nothing is achieved either: the mismatch is counted
+    and noticed. With the wrong order nothing breaks but nothing is achieved either: the mismatch is counted
     (identity_age_sync_mismatch) and no record is left, so the identity is retried on every run.
 
     Requires a recorded warning at least min_notice old, except when the user has no verified mail address
     (no warning could be delivered). For such a user the unverification is recorded without a warning
-    timestamp and no notice mail is sent.
+    timestamp.
 
+    No notice is sent here: the type names of the unverifications recorded are appended to `completed` and
+    _check_user sends one notice covering them and anything reconciled. (A dry run only logs what would be sent.)
+
+    :param completed: out parameter, receives the identity type names of the unverifications recorded
     :returns: number of identities unverified
     """
     # Reload the user as it might have changed while the warnings were handled
@@ -778,7 +817,6 @@ def _unverify_identities(context: Context, user: User, identities: list[Identity
         context.stats.count("identity_age_failed")
         return 0
 
-    done, landed_names = _record_landed(context, user, unverified, landed, has_recipient)
-    if landed_names and context.config.identity_age.send_unverified_notice:
-        _send_unverified_notice(context, user, landed_names)
+    done, landed_names = _record_landed(context, user, unverified, landed)
+    completed.extend(landed_names)
     return done

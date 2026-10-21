@@ -659,6 +659,87 @@ class TestCheckIdentityAge(CleanerQueueTestCase):
         assert self._mails() == []
         self.stats.count.assert_any_call("identity_age_unverified_no_recipient_nin")
 
+    def _mixed_user(self) -> User:
+        """
+        NIN: unverification landed centrally but only recorded as pending (reconcile path).
+        eIDAS: expired and warned more than min_notice ago (unverify path).
+        """
+        user = self._expired_warned_user(
+            [
+                self._nin(verified_ts=_years_ago(5, extra_days=10)),
+                self._eidas(created_ts=_years_ago(5, extra_days=10)),
+            ]
+        )
+        self.identity_age_db.mark_unverify_requested(user.eppn, NIN, _verified_at(user, NIN))
+        self._land(user)
+        return user
+
+    def _failed_count(self) -> int:
+        return len([c for c in self.stats.count.call_args_list if c.args == ("identity_age_failed",)])
+
+    def test_reconcile_and_unverify_in_one_call_send_one_notice(self) -> None:
+        user = self._mixed_user()
+        assert len(user.mail_addresses.verified) == 2
+        process_identity_age_users(self._enqueue_and_context(user))
+        assert len(self._mails()) == 2
+        assert set(self._payload_types()) == {"EduidIdentityUnverifiedEmail"}
+        for identity_type in (NIN, EIDAS):
+            notification = self.identity_age_db.get(user.eppn, identity_type, _verified_at(user, identity_type))
+            assert notification is not None
+            assert notification.unverified_ts is not None
+            assert notification.unverify_requested_ts is None
+        for name in ("identity_age_unverified_nin", "identity_age_unverified_eidas", "identity_age_reconciled_nin"):
+            assert [c.args[0] for c in self.stats.count.call_args_list].count(name) == 1
+        assert self._failed_count() == 0
+
+    def _enqueue_and_context(self, user: User) -> MockContext:
+        self._enqueue(user.eppn)
+        return self._context()
+
+    def test_reconcile_only_sends_one_notice(self) -> None:
+        user = self._pending_user()
+        self._land(user)
+        process_identity_age_users(self._enqueue_and_context(user))
+        assert len(self._mails()) == len(user.mail_addresses.verified)
+        self.stats.count.assert_any_call("identity_age_reconciled_nin")
+
+    def test_unverify_only_sends_one_notice(self) -> None:
+        user = self._expired_warned_user([self._nin(verified_ts=_years_ago(5, extra_days=10))])
+        process_identity_age_users(self._enqueue_and_context(user))
+        assert len(self._mails()) == len(user.mail_addresses.verified)
+        assert self._identity(user.eppn, NIN).is_verified is False
+
+    def test_reconciled_work_is_noticed_when_unverify_phase_raises(self) -> None:
+        user = self._mixed_user()
+        self.save_and_sync.side_effect = RuntimeError("boom")
+        process_identity_age_users(self._enqueue_and_context(user))
+        # the NIN was reconciled, the unverify of eIDAS failed. Exactly one notice per address, failure counted once
+        assert len(self._mails()) == len(user.mail_addresses.verified)
+        assert set(self._payload_types()) == {"EduidIdentityUnverifiedEmail"}
+        nin = self.identity_age_db.get(user.eppn, NIN, _verified_at(user, NIN))
+        assert nin is not None
+        assert nin.unverified_ts is not None
+        assert self._failed_count() == 1
+
+    def test_unverify_phase_raising_with_nothing_completed_sends_no_notice(self) -> None:
+        user = self._expired_warned_user([self._nin(verified_ts=_years_ago(5, extra_days=10))])
+        self.save_and_sync.side_effect = RuntimeError("boom")
+        process_identity_age_users(self._enqueue_and_context(user))
+        assert self._mails() == []
+        assert self._failed_count() == 1
+
+    def test_mixed_user_without_recipient_gets_no_mail(self) -> None:
+        user = self._mixed_user()
+        no_mail = self.amdb.get_user_by_eppn(user.eppn)
+        no_mail.mail_addresses = MailAddressList(elements=[])
+        self.amdb.save(no_mail)
+        process_identity_age_users(self._enqueue_and_context(user))
+        assert self._mails() == []
+        counted = [c.args[0] for c in self.stats.count.call_args_list]
+        assert counted.count("identity_age_unverified_no_recipient_nin") == 1
+        assert counted.count("identity_age_unverified_no_recipient_eidas") == 1
+        assert self._failed_count() == 0
+
     def test_dry_run_creates_and_reconciles_no_pending(self) -> None:
         user = self._expired_warned_user([self._nin(verified_ts=_years_ago(5, extra_days=10))])
         verified_at = _verified_at(user, NIN)
@@ -787,11 +868,11 @@ class TestCheckIdentityAge(CleanerQueueTestCase):
         identity = user.identities.nin
         # warning record disappears (or was never sufficient) before the unverify step
         self.identity_age_db._coll.delete_many({})
-        assert job._unverify_identities(context, user, [identity], limits) == 0
+        assert job._unverify_identities(context, user, [identity], limits, []) == 0
         self.save_and_sync.assert_not_called()
         # recent warning
         self._set_warned(user, user.identities.nin, days_ago=5)
-        assert job._unverify_identities(context, user, [identity], limits) == 0
+        assert job._unverify_identities(context, user, [identity], limits, []) == 0
         self.save_and_sync.assert_not_called()
 
     def test_prefilter(self) -> None:
