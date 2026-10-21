@@ -198,13 +198,6 @@ class EmailProofingUserDB(ProofingUserDB):
         super().__init__(db_uri, db_name, auto_expire=auto_expire)
 
 
-class LookupMobileProofingUserDB(ProofingUserDB):
-    def __init__(
-        self, db_uri: str, db_name: str = "eduid_lookup_mobile_proofing", auto_expire: timedelta | None = None
-    ) -> None:
-        super().__init__(db_uri, db_name, auto_expire=auto_expire)
-
-
 class OrcidProofingUserDB(ProofingUserDB):
     def __init__(self, db_uri: str, db_name: str = "eduid_orcid", auto_expire: timedelta | None = None) -> None:
         super().__init__(db_uri, db_name, auto_expire=auto_expire)

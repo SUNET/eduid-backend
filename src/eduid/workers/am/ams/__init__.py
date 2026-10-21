@@ -20,7 +20,6 @@ from eduid.userdb.proofing import (
     EidasProofingUserDB,
     EmailProofingUserDB,
     LetterProofingUserDB,
-    LookupMobileProofingUserDB,
     OrcidProofingUserDB,
 )
 from eduid.userdb.proofing.db import (
@@ -88,27 +87,6 @@ class eduid_letter_proofing(AttributeFetcher):
     @classmethod
     def get_user_db(cls, uri: str) -> LetterProofingUserDB:
         return LetterProofingUserDB(uri)
-
-
-class eduid_lookup_mobile_proofing(AttributeFetcher):
-    whitelist_set_attrs: ClassVar[list[str]] = [
-        "nins",  # Old format
-        "identities",  # New format
-        "givenName",
-        "chosen_given_name",
-        "surname",
-        "legal_name",
-    ]
-    whitelist_unset_attrs: ClassVar[list[str]] = [
-        "identities",
-        "chosen_given_name",
-        "nins",  # Old format
-        "displayName",  # deprecated
-    ]
-
-    @classmethod
-    def get_user_db(cls, uri: str) -> LookupMobileProofingUserDB:
-        return LookupMobileProofingUserDB(uri)
 
 
 class eduid_email(AttributeFetcher):

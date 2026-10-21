@@ -4,7 +4,6 @@ from eduid.userdb.proofing.db import (
     EmailProofingUserDB,
     LetterProofingStateDB,
     LetterProofingUserDB,
-    LookupMobileProofingUserDB,
     OrcidProofingStateDB,
     OrcidProofingUserDB,
 )
@@ -25,7 +24,6 @@ __all__ = [
     "LetterProofingState",
     "LetterProofingStateDB",
     "LetterProofingUserDB",
-    "LookupMobileProofingUserDB",
     "NinProofingElement",
     "OrcidProofingState",
     "OrcidProofingStateDB",
