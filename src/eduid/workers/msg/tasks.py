@@ -19,7 +19,6 @@ from eduid.workers.msg.utils import (
     load_template,
     navet_get_all_data,
     navet_get_name_and_official_address,
-    navet_get_relations,
 )
 
 logger: logging.Logger = get_task_logger(__name__)
@@ -155,50 +154,6 @@ class MessageSender(Task[Any, Any]):
                     "OfficialAddress",
                     OrderedDict([("Address2", "\xd6RGATAN 79 LGH 10"), ("PostalCode", "12345"), ("City", "LANDET")]),
                 ),
-            ]
-        )
-        return result
-
-    def get_relations(self, identity_number: str) -> OrderedDict[str, Any] | None:
-        """
-        Fetch information about someones relatives from NAVET
-
-        :param identity_number: Swedish national identity number
-        :return: dict containing name and postal address
-        """
-        data = self._get_navet_data(identity_number)
-        # Filter relations from the Navet lookup results
-        return navet_get_relations(data)
-
-    @staticmethod
-    def get_devel_relations() -> OrderedDict[str, Any]:
-        """
-        Return a OrderedDict just as we would get from navet.
-        """
-        result = OrderedDict(
-            [
-                (
-                    "Relations",
-                    {
-                        "Relation": [
-                            {
-                                "RelationType": "VF",
-                                "RelationId": {"NationalIdentityNumber": "200202025678"},
-                                "RelationStartDate": "20020202",
-                            },
-                            {
-                                "RelationType": "VF",
-                                "RelationId": {"NationalIdentityNumber": "200101014567"},
-                                "RelationStartDate": "20010101",
-                            },
-                            {"RelationType": "FA", "RelationId": {"NationalIdentityNumber": "194004048989"}},
-                            {"RelationType": "MO", "RelationId": {"NationalIdentityNumber": "195010106543"}},
-                            {"RelationType": "B", "RelationId": {"NationalIdentityNumber": "200202025678"}},
-                            {"RelationType": "B", "RelationId": {"NationalIdentityNumber": "200101014567"}},
-                            {"RelationType": "M", "RelationId": {"NationalIdentityNumber": "197512125432"}},
-                        ]
-                    },
-                )
             ]
         )
         return result
@@ -365,55 +320,6 @@ def get_postal_address(self: MessageSender, identity_number: str) -> OrderedDict
         return self.get_postal_address(identity_number)
     except Exception as e:
         logger.exception("get_postal_address task error")
-        raise self.retry(countdown=1, max_retries=3, exc=e) from e
-
-
-@app.task(bind=True, base=MessageSender, name="eduid_msg.tasks.get_relations_to")
-def get_relations_to(self: MessageSender, identity_number: str, relative_nin: str) -> list[str]:
-    """
-    Get the relative status between identity_number and relative_nin.
-
-    What is returned is a list of Navet codes. Known codes:
-      M = spouse (make/maka)
-      B = child (barn)
-      FA = father
-      MO = mother
-      VF = some kind of legal guardian status. Childs typically have ['B', 'VF'] it seems.
-
-    :param self: base class
-    :param identity_number: Swedish national identity number
-    :param relative_nin: Swedish national identity number
-    """
-    try:
-        relations = self.get_relations(identity_number)
-        if not relations:
-            return []
-        result = []
-        # ruff: disable[ERA001]
-        # Entrys in relations['Relations']['Relation'] (a list) look like this:
-        #
-        #    {
-        #        "RelationId" : {
-        #                "NationalIdentityNumber" : "200001011234
-        #        },
-        #        "RelationType" : "B",
-        #        "RelationStartDate" : "20000101"
-        #    },
-        #
-        # (I wonder what other types of Relations than Relation that NAVET can come up with...)
-        # ruff: enable[ERA001]
-        import pprint
-
-        logger.debug(
-            f"Looking for relations between {identity_number} and {relative_nin} in: {pprint.pformat(relations)}"
-        )
-        for d in relations["Relations"]["Relation"]:
-            if d.get("RelationId", {}).get("NationalIdentityNumber") == relative_nin:
-                if "RelationType" in d:
-                    result.append(d["RelationType"])
-        return result
-    except Exception as e:
-        logger.exception("get_relations_to task error")
         raise self.retry(countdown=1, max_retries=3, exc=e) from e
 
 

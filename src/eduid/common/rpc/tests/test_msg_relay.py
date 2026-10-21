@@ -1,13 +1,10 @@
-from collections.abc import Mapping
-from typing import Any
-
 import pytest
 from pytest_mock import MockerFixture
 
 from eduid.common.config.base import CeleryConfig, MsgConfigMixin
 from eduid.common.config.workers import MsgConfig
 from eduid.common.rpc.exceptions import NoAddressFound, NoNavetData
-from eduid.common.rpc.msg_relay import DeregisteredCauseCode, FullPostalAddress, MsgRelay, NavetData, RelationType
+from eduid.common.rpc.msg_relay import DeregisteredCauseCode, FullPostalAddress, MsgRelay, NavetData
 from eduid.workers.msg.common import MsgCelerySingleton
 from eduid.workers.msg.tasks import MessageSender
 
@@ -22,15 +19,6 @@ class MsgRelayTests:
         MsgCelerySingleton.update_worker_config(config=msg_config)
         self.msg_relay = MsgRelay(config=msg_relay_config)
         self.message_sender = MessageSender()
-
-    @staticmethod
-    def _fix_relations_to(relative_nin: str, relations: Mapping[str, Any]) -> list[str]:
-        result: list[str] = []
-        for d in relations["Relations"]["Relation"]:
-            if d.get("RelationId", {}).get("NationalIdentityNumber") == relative_nin:
-                if "RelationType" in d:
-                    result.append(d["RelationType"])
-        return result
 
     def test_get_all_navet_data(self, mocker: MockerFixture) -> None:
         mock_get_all_navet_data = mocker.patch("eduid.workers.msg.tasks.get_all_navet_data.apply_async")
@@ -64,18 +52,3 @@ class MsgRelayTests:
         mock_get_postal_address.return_value.get.return_value = None
         with pytest.raises(NoAddressFound):
             self.msg_relay.get_postal_address(nin="190102031234")
-
-    def test_get_relations_to(self, mocker: MockerFixture) -> None:
-        mock_get_relations = mocker.patch("eduid.workers.msg.tasks.get_relations_to.apply_async")
-        relations_to = self._fix_relations_to(
-            relative_nin="194004048989", relations=self.message_sender.get_devel_relations()
-        )
-        mock_get_relations.return_value.get.return_value = relations_to
-        res = self.msg_relay.get_relations_to(nin="190102031234", relative_nin="194004048989")
-        assert res == [RelationType(item) for item in relations_to]
-
-    def test_get_relations_to_empty_response(self, mocker: MockerFixture) -> None:
-        mock_get_relations = mocker.patch("eduid.workers.msg.tasks.get_relations_to.apply_async")
-        mock_get_relations.return_value.get.return_value = []
-        res = self.msg_relay.get_relations_to(nin="190102031234", relative_nin="194004048989")
-        assert res == []

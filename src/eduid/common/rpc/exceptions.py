@@ -17,9 +17,5 @@ class NoAddressFound(MsgTaskFailed):
     pass
 
 
-class NoRelationsFound(MsgTaskFailed):
-    pass
-
-
 class NoNavetData(MsgTaskFailed):
     pass

@@ -6,7 +6,7 @@ from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 import eduid.workers.msg
 from eduid.common.config.base import MsgConfigMixin
-from eduid.common.rpc.exceptions import MsgTaskFailed, NoAddressFound, NoNavetData, NoRelationsFound
+from eduid.common.rpc.exceptions import MsgTaskFailed, NoAddressFound, NoNavetData
 
 __author__ = "lundberg"
 
@@ -35,14 +35,6 @@ class Name(NavetModelConfig):
     notification_name: str | None = Field(default=None, alias="NotificationName")
 
 
-class RelationName(NavetModelConfig):
-    given_name_marking: str | None = Field(default=None, alias="GivenNameMarking")
-    given_name: str | None = Field(default=None, alias="GivenName")
-    middle_name: str | None = Field(default=None, alias="MiddleName")
-    surname: str | None = Field(default=None, alias="Surname")
-    notification_name: str | None = Field(default=None, alias="NotificationName")
-
-
 class PersonId(NavetModelConfig):
     national_identity_number: str | None = Field(default=None, alias="NationalIdentityNumber")
     co_ordination_number: str | None = Field(default=None, alias="CoOrdinationNumber")
@@ -57,31 +49,6 @@ class OfficialAddress(NavetModelConfig):
     address2: str | None = Field(default=None, alias="Address2")
     postal_code: str | None = Field(default=None, alias="PostalCode")
     city: str | None = Field(default=None, alias="City")
-
-
-class RelationId(NavetModelConfig):
-    national_identity_number: str | None = Field(default=None, alias="NationalIdentityNumber")
-    birth_time_number: str | None = Field(default=None, alias="BirthTimeNumber")
-
-
-class RelationType(StrEnum):
-    CHILD = "B"
-    MOTHER = "MO"
-    FATHER = "FA"
-    PARENT = "F"
-    GUARDIAN = "V"
-    GUARDIAN_FOR = "VF"
-    SPOUSE = "M"
-    PARTNER = "P"
-
-
-class Relation(NavetModelConfig):
-    name: RelationName = Field(default_factory=RelationName, alias="Name")
-    relation_id: RelationId = Field(alias="RelationId")
-    relation_type: RelationType | None = Field(default=None, alias="RelationType")
-    relation_start_date: str | None = Field(default=None, alias="RelationStartDate")
-    relation_end_date: str | None = Field(default=None, alias="RelationEndDate")
-    status: str | None = Field(default=None, alias="Status")
 
 
 class PostalAddresses(NavetModelConfig):
@@ -114,7 +81,6 @@ class Person(NavetModelConfig):
     deregistration_information: DeregistrationInformation = Field(alias="DeregistrationInformation")
     reference_national_identity_number: str | None = Field(default=None, alias="ReferenceNationalIdentityNumber")
     postal_addresses: PostalAddresses = Field(alias="PostalAddresses")
-    relations: list[Relation] = Field(default_factory=list, alias="Relations")
 
     def is_deregistered(self) -> bool:
         return bool(self.deregistration_information.cause_code or self.deregistration_information.date)
@@ -141,11 +107,10 @@ class MsgRelay:
         self.conf = config
         eduid.workers.msg.init_app(config.celery)
         # these have to be imported _after_ eduid.workers.msg.init_app()
-        from eduid.workers.msg.tasks import get_all_navet_data, get_postal_address, get_relations_to, pong, sendsms
+        from eduid.workers.msg.tasks import get_all_navet_data, get_postal_address, pong, sendsms
 
         self._get_all_navet_data = get_all_navet_data
         self._get_postal_address = get_postal_address
-        self._get_relations_to = get_relations_to
         self._send_sms = sendsms
         self._pong = pong
 
@@ -217,33 +182,6 @@ class MsgRelay:
         except ValidationError as e:
             logger.exception("Missing data in postal address returned from Navet")
             raise NoAddressFound("Missing data in postal address returned from Navet") from e
-
-    def get_relations_to(self, nin: str, relative_nin: str, timeout: int = 25) -> list[RelationType]:
-        """
-        Get a list of the NAVET 'Relations' type codes between a NIN and a relatives NIN.
-
-        Known codes:
-            M = spouse (make/maka)
-            B = child (barn)
-            FA = father
-            MO = mother
-            VF = some kind of legal guardian status. Children typically have ['B', 'VF'] it seems.
-
-        :param nin: Swedish National Identity Number
-        :param relative_nin: Another Swedish National Identity Number
-        :param timeout: Max wait time for task to finish
-        :return: List of codes. Empty list if the NINs are not related.
-        """
-        rtask = self._get_relations_to.apply_async(args=(nin, relative_nin))
-        try:
-            ret = rtask.get(timeout=timeout)
-        except Exception as e:
-            rtask.forget()
-            raise MsgTaskFailed(f"get_relations_to task failed: {e}") from e
-
-        if ret is not None:
-            return [RelationType(item) for item in ret]
-        raise NoRelationsFound("No relations returned from Navet")
 
     def sendsms(self, recipient: str, message: str, reference: str, timeout: int = 25) -> None:
         """

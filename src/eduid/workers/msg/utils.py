@@ -55,23 +55,6 @@ def navet_get_name_and_official_address(navet_data: dict[str, Any] | None) -> Or
     return None
 
 
-def navet_get_relations(navet_data: dict[str, Any] | None) -> OrderedDict[str, Any] | None:
-    """
-    :param navet_data:  Loaded JSON response from eduid-navet_service
-    :return: Relations data object
-    """
-    person = navet_get_person(navet_data)
-    if is_deregistered(person):
-        return None
-
-    if person is not None:
-        try:
-            return OrderedDict([("Relations", {"Relation": person["Relations"]})])
-        except KeyError:
-            pass
-    return None
-
-
 def navet_get_person(navet_data: dict[str, Any] | None) -> OrderedDict[str, Any] | None:
     """
     :param navet_data: Loaded JSON response from eduid-navet_service

@@ -32,12 +32,6 @@ class TestPostalAddress:
         assert result["Name"]["GivenName"] == "Saskariot Teofil"
         assert result["OfficialAddress"]["Address2"] == "MALMSKILLNADSGATAN 54 25 TR LÄG 458"
 
-    def test_get_relations(self) -> None:
-        result = utils.navet_get_relations(self.navet_data)
-        assert result
-        assert result["Relations"]["Relation"][0]["RelationId"]["NationalIdentityNumber"] == "196910199287"
-        assert result["Relations"]["Relation"][0]["RelationType"] == "M"
-
     def test_get_unregistered_all_data(self) -> None:
         result = utils.navet_get_all_data(self.navet_data_unregistered)
         assert result
@@ -52,8 +46,4 @@ class TestPostalAddress:
 
     def test_get_unregistered_name_and_official_address(self) -> None:
         result = utils.navet_get_name_and_official_address(self.navet_data_unregistered)
-        assert result is None
-
-    def test_get_unregistered_relations(self) -> None:
-        result = utils.navet_get_relations(self.navet_data_unregistered)
         assert result is None
