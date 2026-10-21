@@ -22,7 +22,6 @@ from eduid.userdb.proofing import (
     LetterProofingUserDB,
     LookupMobileProofingUserDB,
     OrcidProofingUserDB,
-    PhoneProofingUserDB,
 )
 from eduid.userdb.proofing.db import (
     BankIDProofingUserDB,
@@ -121,17 +120,6 @@ class eduid_email(AttributeFetcher):
     @classmethod
     def get_user_db(cls, uri: str) -> EmailProofingUserDB:
         return EmailProofingUserDB(uri)
-
-
-class eduid_phone(AttributeFetcher):
-    whitelist_set_attrs: ClassVar[list[str]] = ["phone"]
-    whitelist_unset_attrs: ClassVar[list[str]] = [
-        "phone",
-    ]
-
-    @classmethod
-    def get_user_db(cls, uri: str) -> PhoneProofingUserDB:
-        return PhoneProofingUserDB(uri)
 
 
 class eduid_personal_data(AttributeFetcher):

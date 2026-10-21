@@ -261,25 +261,6 @@ class AttributeFetcherEmailProofingTests(ProofingTestCase):
         assert normalised_data(fetched) == expected
 
 
-class AttributeFetcherPhoneProofingTests(ProofingTestCase):
-    fetcher_name = "eduid_phone"
-
-    def test_existing_user(self) -> None:
-        proofing_user = ProofingUser.from_dict(self.user_data)
-
-        assert self.fetcher
-        assert self.fetcher.private_db
-
-        self.fetcher.private_db.save(proofing_user)
-        fetched = self.fetcher.fetch_attrs(proofing_user.user_id)
-
-        expected = {
-            "$set": {"phone": [{"verified": True, "number": "+46700011336", "primary": True}]},
-        }
-
-        assert normalised_data(fetched) == expected, "Unexpected data fetched by phone fetcher for existing user"
-
-
 class AttributeFetcherPersonalDataTests(ProofingTestCase):
     fetcher_name = "eduid_personal_data"
 
