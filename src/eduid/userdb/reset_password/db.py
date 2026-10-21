@@ -145,10 +145,11 @@ class ResetPasswordStateDB(BaseDB):
         :param is_in_database: Whether the state is already in the database or not
         """
         if state.modified_ts is None:
-            # Remove old reset password state
-            old_state = self.get_state_by_eppn(state.eppn)
-            if old_state:
-                self.remove_state(old_state)
+            # Remove old reset password state. This is done by eppn rather than through
+            # get_state_by_eppn: a document that can no longer be loaded (one written by the
+            # removed phone flow, for example) must not be left beside the new state, since
+            # two documents for one eppn make every later lookup fail.
+            self.remove_document({"eduPersonPrincipalName": state.eppn})
 
         spec: dict[str, Any] = {"eduPersonPrincipalName": state.eppn}
 

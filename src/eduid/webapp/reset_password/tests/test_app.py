@@ -740,6 +740,27 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
             data = {"email_code": email_code, "csrf_token": csrf_token}
             return c.post(verify_url, data=json.dumps(data), content_type=self.content_type_json)
 
+    def test_legacy_phone_state_does_not_block_a_new_reset(self) -> None:
+        """A user with a leftover email_and_phone state from the removed phone flow can still reset."""
+        legacy = ResetPasswordEmailState(
+            eppn=self.test_user.eppn,
+            email_address="johnsmith@example.com",
+            email_code=CodeElement.parse(application="test", code_or_element="legacy-code"),
+        ).to_dict()
+        legacy["method"] = "email_and_phone"
+        legacy["phone_number"] = "+46700011336"
+        legacy["phone_code"] = CodeElement.parse(application="test", code_or_element="legacy-phone-code").to_dict()
+        self.app.password_reset_state_db._coll.insert_one(legacy)
+
+        self._post_email_address()
+        state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user.eppn)
+        assert state is not None
+        assert state.email_code.code != "legacy-code"
+
+        self._check_success_response(
+            self._post_verify_email(email_code=state.email_code.code), type_="POST_RESET_PASSWORD_VERIFY_EMAIL_SUCCESS"
+        )
+
     def test_verify_email_without_session_is_rejected(self) -> None:
         """A valid code with no identity hint must not resolve anything."""
         self._post_email_address()

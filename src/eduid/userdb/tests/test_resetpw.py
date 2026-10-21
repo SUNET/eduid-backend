@@ -76,6 +76,30 @@ class TestResetPasswordStateDB(MongoTestCase):
 
         assert ResetPasswordStateDB.init_state(doc) is None
 
+    def test_new_state_replaces_legacy_email_and_phone_state(self) -> None:
+        """A leftover document from the removed phone flow must not survive beside a new state.
+
+        Two documents for one eppn make get_state_by_eppn raise MultipleDocumentsReturned.
+        """
+        email_state = ResetPasswordEmailState(
+            eppn="hubba-bubba",
+            email_address="johnsmith@example.com",
+            email_code=CodeElement.parse(application="test", code_or_element="dummy-code"),
+        )
+        legacy = email_state.to_dict()
+        legacy["method"] = "email_and_phone"
+        legacy["phone_number"] = "+99999999999"
+        legacy["phone_code"] = CodeElement.parse(application="test", code_or_element="dummy-phone-code").to_dict()
+        self.resetpw_db._coll.insert_one(legacy)
+        assert self.resetpw_db.get_state_by_eppn("hubba-bubba") is None
+
+        self.resetpw_db.save(email_state, is_in_database=False)
+
+        assert self.resetpw_db._coll.count_documents({"eduPersonPrincipalName": "hubba-bubba"}) == 1
+        state = self.resetpw_db.get_state_by_eppn("hubba-bubba")
+        assert state is not None
+        assert state.email_code.code == "dummy-code"
+
     def test_email_state_bad_attempts_defaults_to_zero(self) -> None:
         email_state = ResetPasswordEmailState(
             eppn="hubba-bubba",
