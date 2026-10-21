@@ -23,7 +23,3 @@ class NoRelationsFound(MsgTaskFailed):
 
 class NoNavetData(MsgTaskFailed):
     pass
-
-
-class LookupMobileTaskFailed(TaskFailed):
-    pass
