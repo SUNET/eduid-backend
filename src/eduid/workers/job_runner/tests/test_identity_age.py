@@ -1,6 +1,7 @@
 import logging
 import time
 from collections.abc import Iterator
+from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
@@ -12,8 +13,11 @@ from pytest_mock import MockerFixture
 
 from eduid.common.misc.timeutil import utc_now
 from eduid.common.stats import AppStats
+from eduid.queue.client import enqueue_email, init_queue_item
 from eduid.queue.db import QueueItem
+from eduid.queue.db.client import deterministic_item_id
 from eduid.queue.db.message import MessageDB
+from eduid.queue.db.message.payload import EduidIdentityUnverifiedEmail
 from eduid.userdb.exceptions import UserOutOfSync
 from eduid.userdb.fixtures.users import UserFixtures
 from eduid.userdb.identity import (
@@ -33,6 +37,7 @@ from eduid.userdb.user_cleaner.db import CleanerQueueUser
 from eduid.userdb.userdb import AmDB, UserSaveResult
 from eduid.workers.job_runner.config import IdentityAgeConfig, JobRunnerConfig
 from eduid.workers.job_runner.jobs.identity_age import (
+    _dedup_key,
     _gather_cutoff,
     _notify_unverified,
     gather_identity_age_users,
@@ -146,7 +151,7 @@ class TestCheckIdentityAge(CleanerQueueTestCase):
         ttl = [v for v in db._coll.index_information().values() if "expireAfterSeconds" in v]
         assert [v["expireAfterSeconds"] for v in ttl] == [10 * 86400]
         # the unique index is kept
-        assert len(db._coll.index_information()) == 4
+        assert len(db._coll.index_information()) == 6
 
     def test_invalid_auto_expire(self) -> None:
         auto_expire = timedelta(0)
@@ -156,7 +161,9 @@ class TestCheckIdentityAge(CleanerQueueTestCase):
     def test_modified_ts_is_bson_date_on_all_writes(self) -> None:
         eppn, verified_at = "hubba-bubba", utc_now()
         self.identity_age_db.mark_warned(eppn, IdentityType.NIN, verified_at)
-        self.identity_age_db.clear_warning(eppn, IdentityType.NIN, verified_at)
+        self.identity_age_db.mark_warning_requested(eppn, IdentityType.NIN, verified_at)
+        self.identity_age_db.clear_warning_requested(eppn, IdentityType.NIN, verified_at)
+        self.identity_age_db.mark_notice_sent(eppn, IdentityType.NIN, verified_at)
         self.identity_age_db.mark_unverified(eppn, IdentityType.NIN, verified_at)
         doc = self.identity_age_db._coll.find_one({"eppn": eppn})
         assert doc is not None
@@ -295,10 +302,10 @@ class TestCheckIdentityAge(CleanerQueueTestCase):
         assert second.unverified_ts is not None
 
         time.sleep(0.01)
-        db.clear_warning("abcd-efgh", NIN, verified_at)
+        db.clear_warning_requested("abcd-efgh", NIN, verified_at)
         third = db.get("abcd-efgh", NIN, verified_at)
         assert third is not None
-        assert third.warning_sent_ts is None
+        assert third.warning_requested_ts is None
         assert third.created_ts == first.created_ts
         assert third.modified_ts > second.modified_ts
 
@@ -512,12 +519,13 @@ class TestCheckIdentityAge(CleanerQueueTestCase):
         assert set(self._payload_types()) == {"EduidIdentityExpiryWarningEmail"}
         assert self.identity_age_db.has_warning(user.eppn, NIN, _verified_at(user, NIN))
 
-    def test_enqueue_failure_rolls_back_warning(self, mocker: MockerFixture) -> None:
+    def test_enqueue_failure_keeps_warning_pending(self, mocker: MockerFixture) -> None:
         user = self._save_user([self._nin(verified_ts=_years_ago(4, extra_days=300))])
         mocker.patch("eduid.workers.job_runner.helpers.enqueue_email", side_effect=RuntimeError("boom"))
         self._run(self._context())
         assert self._mails() == []
         assert not self.identity_age_db.has_warning(user.eppn, NIN, _verified_at(user, NIN))
+        assert {p.identity_type for p in self.identity_age_db.iter_pending_warnings()} == {NIN}
         self.stats.count.assert_any_call("identity_age_failed")
 
     def test_partial_enqueue_failure_keeps_warning(self, mocker: MockerFixture) -> None:
@@ -1485,13 +1493,14 @@ class TestCheckIdentityAge(CleanerQueueTestCase):
         assert len(self._mails()) == 2
         assert self.identity_age_db.has_warning(user.eppn, NIN, _verified_at(user, NIN))
 
-    def test_enqueue_failure_rolls_back_all_warning_records(self, mocker: MockerFixture) -> None:
+    def test_enqueue_failure_keeps_all_warnings_pending(self, mocker: MockerFixture) -> None:
         user = self._two_due_identities()
         mocker.patch("eduid.workers.job_runner.helpers.enqueue_email", side_effect=RuntimeError("boom"))
         self._run(self._context())
         assert self._mails() == []
         assert not self.identity_age_db.has_warning(user.eppn, NIN, _verified_at(user, NIN))
         assert not self.identity_age_db.has_warning(user.eppn, EIDAS, _verified_at(user, EIDAS))
+        assert {p.identity_type for p in self.identity_age_db.iter_pending_warnings()} == {NIN, EIDAS}
         self.stats.count.assert_any_call("identity_age_failed")
         counted = [c.args[0] for c in self.stats.count.call_args_list]
         assert "identity_age_warned_nin" not in counted
@@ -1537,6 +1546,310 @@ class TestCheckIdentityAge(CleanerQueueTestCase):
         self.stats.count.assert_any_call("identity_age_warned_eidas")
         assert user.identities.nin is not None
         assert not self.identity_age_db.has_warning(user.eppn, NIN, _verified_at(user, NIN))
+
+    # --- two-phase warning (pending warning_requested_ts, warning_sent_ts only after a mail was queued) ---
+
+    def _pending_warning_types(self) -> set[IdentityType]:
+        return {p.identity_type for p in self.identity_age_db.iter_pending_warnings()}
+
+    def _backdate_warning_request(self, user: User, days: int) -> None:
+        """Pretend the pending warning was requested `days` ago, i.e. min_notice_days may have elapsed since"""
+        self.identity_age_db._coll.update_many(
+            {"eppn": user.eppn}, {"$set": {"warning_requested_ts": utc_now() - timedelta(days=days)}}
+        )
+
+    def test_warning_enqueue_raises_keeps_pending_and_never_unverifies(self, mocker: MockerFixture) -> None:
+        user = self._save_user([self._nin(verified_ts=_years_ago(5, extra_days=10))])
+        verified_at = _verified_at(user, NIN)
+        enqueue = mocker.patch("eduid.workers.job_runner.helpers.enqueue_email", side_effect=RuntimeError("boom"))
+        self._run(self._context())
+        record = self.identity_age_db.get(user.eppn, NIN, verified_at)
+        assert record is not None
+        assert record.warning_sent_ts is None
+        assert record.warning_requested_ts is not None
+        assert self._mails() == []
+        self.stats.count.assert_any_call("identity_age_failed")
+
+        # min_notice_days elapsed since the (failed) request, still no warning was ever queued: not unverified
+        self._backdate_warning_request(user, 40)
+        self._run(self._context())
+        self.save_and_sync.assert_not_called()
+        assert self._identity(user.eppn, NIN).is_verified
+        assert self._pending_warning_types() == {NIN}
+
+        # queue recovers: exactly one mail per address, warning recorded, pending cleared, still not unverified
+        enqueue.side_effect = enqueue_email
+        self._run(self._context())
+        assert len(self._mails()) == len(user.mail_addresses.verified)
+        assert {m["payload_type"] for m in self._mails()} == {"EduidIdentityExpiryWarningEmail"}
+        record = self.identity_age_db.get(user.eppn, NIN, verified_at)
+        assert record is not None
+        assert record.warning_sent_ts is not None
+        assert record.warning_requested_ts is None
+        assert self._pending_warning_types() == set()
+        self.save_and_sync.assert_not_called()
+        assert self._identity(user.eppn, NIN).is_verified
+
+    def test_warning_zero_mails_queued_keeps_pending(self, mocker: MockerFixture) -> None:
+        user = self._save_user([self._nin(verified_ts=_years_ago(4, extra_days=300))])
+        mocker.patch("eduid.workers.job_runner.jobs.identity_age.send_mail_to_user", return_value=0)
+        self._run(self._context())
+        assert not self.identity_age_db.has_warning(user.eppn, NIN, _verified_at(user, NIN))
+        assert self._pending_warning_types() == {NIN}
+        self.stats.count.assert_any_call("identity_age_failed")
+        counted = [c.args[0] for c in self.stats.count.call_args_list]
+        assert "identity_age_warned_nin" not in counted
+
+    def test_gather_queues_user_with_pending_warning(self) -> None:
+        user = self._save_user([self._nin(verified_ts=_years_ago(4, extra_days=300))])
+        self.identity_age_db.mark_warning_requested(user.eppn, NIN, _verified_at(user, NIN))
+        gather_identity_age_users(self._context())
+        assert self._queue_size() == 1
+        gather_identity_age_users(self._context())
+        assert self._queue_size() == 1
+
+    def test_stale_pending_warning_is_cleared(self) -> None:
+        # the identity was verified again since the warning was requested: the old request can not be retried
+        user = self._save_user([self._nin(verified_ts=_years_ago(1))])
+        self.identity_age_db.mark_warning_requested(user.eppn, NIN, _years_ago(4, extra_days=300))
+        gather_identity_age_users(self._context())
+        assert self._queue_size() == 1
+        process_identity_age_users(self._context())
+        assert self._pending_warning_types() == set()
+        assert self._mails() == []
+
+    def test_warning_finalize_failure_is_retried_without_duplicate_mail(self, mocker: MockerFixture) -> None:
+        user = self._save_user([self._nin(verified_ts=_years_ago(4, extra_days=300))])
+        verified_at = _verified_at(user, NIN)
+        original = self.identity_age_db.mark_warned
+        mocker.patch.object(self.identity_age_db, "mark_warned", side_effect=RuntimeError("crash"))
+        self._run(self._context())
+        mails = len(self._mails())
+        assert mails == len(user.mail_addresses.verified)
+        # mail queued but the sent state was not recorded: still pending, never counted as warned
+        assert not self.identity_age_db.has_warning(user.eppn, NIN, verified_at)
+        assert self._pending_warning_types() == {NIN}
+
+        mocker.patch.object(self.identity_age_db, "mark_warned", side_effect=original)
+        self._run(self._context())
+        assert len(self._mails()) == mails  # deduplicated, not queued twice
+        assert self.identity_age_db.has_warning(user.eppn, NIN, verified_at)
+        assert self._pending_warning_types() == set()
+
+    def test_multi_identity_warning_pending_then_recovered(self, mocker: MockerFixture) -> None:
+        user = self._two_due_identities()
+        enqueue = mocker.patch("eduid.workers.job_runner.helpers.enqueue_email", side_effect=RuntimeError("boom"))
+        self._run(self._context())
+        assert self._pending_warning_types() == {NIN, EIDAS}
+        enqueue.side_effect = enqueue_email
+        self._run(self._context())
+        assert len(self._mails()) == len(user.mail_addresses.verified)
+        assert self._pending_warning_types() == set()
+        for identity_type in (NIN, EIDAS):
+            assert self.identity_age_db.has_warning(user.eppn, identity_type, _verified_at(user, identity_type))
+
+    def test_dry_run_warn_has_no_pending_state(self) -> None:
+        user = self._save_user([self._nin(verified_ts=_years_ago(4, extra_days=300))])
+        self._run(self._context(dry_run=True))
+        record = self.dry_run_db.get(user.eppn, NIN, _verified_at(user, NIN))
+        assert record is not None
+        assert record.warning_sent_ts is not None
+        assert record.warning_requested_ts is None
+        assert self.identity_age_db._coll.count_documents({}) == 0
+        assert self._mails() == []
+
+    # --- unverified notice (pending notice_requested_ts, retried until a mail was queued) ---
+
+    def _pending_notice_types(self) -> set[IdentityType]:
+        return {p.identity_type for p in self.identity_age_db.iter_pending_notices()}
+
+    def test_notice_enqueue_fails_then_retried_exactly_once(self, mocker: MockerFixture) -> None:
+        user = self._unverify_due_user()
+        verified_at = _verified_at(user, NIN)
+        enqueue = mocker.patch("eduid.workers.job_runner.helpers.enqueue_email", side_effect=RuntimeError("boom"))
+        self._run(self._context())
+        assert self._identity(user.eppn, NIN).is_verified is False
+        record = self.identity_age_db.get(user.eppn, NIN, verified_at)
+        assert record is not None
+        assert record.unverified_ts is not None
+        assert record.notice_requested_ts is not None
+        assert record.notice_sent_ts is None
+        assert self._mails() == []
+        self.stats.count.assert_any_call("identity_age_failed")
+
+        # the user has no verified identity left, but is still gathered
+        assert self.amdb.get_user_by_eppn(user.eppn).identities.verified == []
+        enqueue.side_effect = enqueue_email
+        gather_identity_age_users(self._context())
+        assert self._queue_size() == 1
+        while self._queue_size() > 0:
+            process_identity_age_users(self._context())
+        assert len(self._mails()) == len(user.mail_addresses.verified)
+        assert {m["payload_type"] for m in self._mails()} == {"EduidIdentityUnverifiedEmail"}
+        record = self.identity_age_db.get(user.eppn, NIN, verified_at)
+        assert record is not None
+        assert record.notice_requested_ts is None
+        assert record.notice_sent_ts is not None
+        assert self._pending_notice_types() == set()
+
+        # a further sweep sends nothing
+        self._run(self._context())
+        assert len(self._mails()) == len(user.mail_addresses.verified)
+
+    def test_notice_no_verified_mail_clears_pending_and_counts(self, mocker: MockerFixture) -> None:
+        user = self._unverify_due_user()
+        enqueue = mocker.patch("eduid.workers.job_runner.helpers.enqueue_email", side_effect=RuntimeError("boom"))
+        self._run(self._context())
+        assert self._pending_notice_types() == {NIN}
+        enqueue.side_effect = enqueue_email
+        self._remove_mails(user.eppn)
+        self._run(self._context())
+        assert self._mails() == []
+        assert self._pending_notice_types() == set()
+        record = self.identity_age_db.get(user.eppn, NIN, _verified_at(user, NIN))
+        assert record is not None
+        assert record.notice_sent_ts is None
+        self.stats.count.assert_any_call("identity_age_unverified_no_recipient_nin")
+
+    def test_notice_disabled_sets_no_pending_state(self) -> None:
+        user = self._unverify_due_user()
+        self._run(self._context(send_unverified_notice=False))
+        record = self.identity_age_db.get(user.eppn, NIN, _verified_at(user, NIN))
+        assert record is not None
+        assert record.unverified_ts is not None
+        assert record.notice_requested_ts is None
+        assert self._mails() == []
+
+    def test_pending_notice_cleared_when_notice_disabled_later(self, mocker: MockerFixture) -> None:
+        self._unverify_due_user()
+        mocker.patch("eduid.workers.job_runner.helpers.enqueue_email", side_effect=RuntimeError("boom"))
+        self._run(self._context())
+        assert self._pending_notice_types() == {NIN}
+        self._run(self._context(send_unverified_notice=False))
+        assert self._mails() == []
+        assert self._pending_notice_types() == set()
+
+    def test_pending_notice_merged_with_new_unverification_in_one_notice(self, mocker: MockerFixture) -> None:
+        user = self._unverify_due_user()
+        enqueue = mocker.patch("eduid.workers.job_runner.helpers.enqueue_email", side_effect=RuntimeError("boom"))
+        self._run(self._context())
+        assert self._pending_notice_types() == {NIN}
+        enqueue.side_effect = enqueue_email
+
+        # one more identity becomes due while the NIN notice is pending
+        central = self.amdb.get_user_by_eppn(user.eppn)
+        eidas = self._eidas(created_ts=_years_ago(5, extra_days=10))
+        central.identities.add(eidas)
+        self.amdb.save(central)
+        eidas_identity = self._identity(user.eppn, EIDAS)
+        self._set_warned(user, eidas_identity, days_ago=40)
+
+        self._run(self._context())
+        assert len(self._mails()) == len(user.mail_addresses.verified)  # ONE combined notice per address
+        assert self._pending_notice_types() == set()
+        assert self._identity(user.eppn, EIDAS).is_verified is False
+        self._run(self._context())
+        assert len(self._mails()) == len(user.mail_addresses.verified)
+
+    def test_dry_run_unverify_has_no_pending_state(self) -> None:
+        user = self._save_user([self._nin(verified_ts=_years_ago(5, extra_days=10))])
+        assert user.identities.nin is not None
+        self._set_warned(user, user.identities.nin, days_ago=31, db=self.dry_run_db)
+        self._run(self._context(dry_run=True))
+        record = self.dry_run_db.get(user.eppn, NIN, _verified_at(user, NIN))
+        assert record is not None
+        assert record.unverified_ts is not None
+        assert record.notice_requested_ts is None
+        assert list(self.dry_run_db.iter_pending_notices()) == []
+        assert self.identity_age_db._coll.count_documents({}) == 0
+        assert self._mails() == []
+
+    # --- db level ---
+
+    def test_warning_and_notice_db_methods(self) -> None:
+        db = self.identity_age_db
+        verified_at = _years_ago(5)
+        db.mark_warning_requested("w-1", NIN, verified_at)
+        db.mark_warning_requested("w-2", NIN, verified_at)
+        assert {p.eppn for p in db.iter_pending_warnings()} == {"w-1", "w-2"}
+        assert [p.eppn for p in db.iter_pending_warnings("w-2")] == ["w-2"]
+        record = db.get("w-1", NIN, verified_at)
+        assert record is not None
+        assert record.warning_requested_ts is not None
+        assert record.warning_sent_ts is None
+
+        db.mark_warned("w-1", NIN, verified_at)
+        record = db.get("w-1", NIN, verified_at)
+        assert record is not None
+        assert record.warning_sent_ts is not None
+        assert record.warning_requested_ts is None
+        db.clear_warning_requested("w-2", NIN, verified_at)
+        assert list(db.iter_pending_warnings()) == []
+        db.clear_warning_requested("w-3", NIN, verified_at)
+        assert db.get("w-3", NIN, verified_at) is None
+
+        db.mark_unverified("n-1", NIN, verified_at, notice_requested=True)
+        db.mark_unverified("n-2", NIN, verified_at)
+        assert [p.eppn for p in db.iter_pending_notices()] == ["n-1"]
+        db.mark_notice_sent("n-1", NIN, verified_at)
+        record = db.get("n-1", NIN, verified_at)
+        assert record is not None
+        assert record.notice_requested_ts is None
+        assert record.notice_sent_ts is not None
+        assert list(db.iter_pending_notices()) == []
+        db.mark_unverified("n-4", NIN, verified_at, notice_requested=True)
+        db.clear_notice_requested("n-4", NIN, verified_at)
+        assert list(db.iter_pending_notices()) == []
+        db.mark_notice_sent("n-5", NIN, verified_at)
+        assert db.get("n-5", NIN, verified_at) is None
+
+    def test_pending_indexes_are_sparse(self) -> None:
+        info = self.identity_age_db._coll.index_information()
+        for name, key in (
+            ("warning-requested-index-v1", "warning_requested_ts"),
+            ("notice-requested-index-v1", "notice_requested_ts"),
+        ):
+            assert info[name]["key"] == [(key, 1)]
+            assert info[name]["sparse"] is True
+
+    def test_dedup_key_is_stable_and_specific(self) -> None:
+        a, b = _years_ago(4).replace(microsecond=123456), _years_ago(5)
+        key = _dedup_key("warning", "e1", [(NIN, a), (EIDAS, b)])
+        assert key == _dedup_key("warning", "e1", [(EIDAS, b), (NIN, a)])
+        assert key == _dedup_key("warning", "e1", [(NIN, a.replace(microsecond=123999)), (EIDAS, b)])
+        assert key != _dedup_key("unverified", "e1", [(NIN, a), (EIDAS, b)])
+        assert key != _dedup_key("warning", "e2", [(NIN, a), (EIDAS, b)])
+        assert key != _dedup_key("warning", "e1", [(NIN, a)])
+        assert key != _dedup_key("warning", "e1", [(NIN, b), (EIDAS, a)])
+
+    def test_enqueue_email_dedup_key_is_idempotent(self) -> None:
+        payload = EduidIdentityUnverifiedEmail(email="a@example.com", reference="r", language="en", site_name="s")
+        kwargs: dict[str, Any] = {
+            "messagedb": self.messagedb,
+            "app_name": "test",
+            "payload": payload,
+            "expires_in": timedelta(days=1),
+            "dedup_key": "some-key",
+        }
+        first = enqueue_email(**kwargs)
+        second = enqueue_email(**kwargs)
+        assert first.item_id == second.item_id == deterministic_item_id("some-key")
+        assert self.messagedb._coll.count_documents({}) == 1
+        # a different key is a different mail, no key is always a new mail
+        enqueue_email(**{**kwargs, "dedup_key": "other-key"})
+        enqueue_email(**{**kwargs, "dedup_key": None})
+        assert self.messagedb._coll.count_documents({}) == 3
+
+    def test_save_if_absent_does_not_overwrite_existing_item(self) -> None:
+        payload = EduidIdentityUnverifiedEmail(email="a@example.com", reference="r", language="en", site_name="s")
+        item = init_queue_item(app_name="test", expires_in=timedelta(days=1), payload=payload)
+        item = replace(item, item_id=deterministic_item_id("k"))
+        assert self.messagedb.save_if_absent(item) is True
+        self.messagedb._coll.update_one({"_id": item.item_id}, {"$set": {"processed_by": "worker-1"}})
+        assert self.messagedb.save_if_absent(item) is False
+        doc = self.messagedb._coll.find_one({"_id": item.item_id})
+        assert doc is not None
+        assert doc["processed_by"] == "worker-1"
 
 
 class TestSchedulerAndConfig:

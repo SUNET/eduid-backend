@@ -41,7 +41,11 @@ def save_and_sync_user(context: Context, user: User, original: User | None = Non
 
 
 def send_mail_to_user(
-    context: Context, user: User, make_payload: Callable[[str, str, str], EmailPayload], expires_in: timedelta
+    context: Context,
+    user: User,
+    make_payload: Callable[[str, str, str], EmailPayload],
+    expires_in: timedelta,
+    dedup_key: str | None = None,
 ) -> int:
     """
     Queue a mail to all verified mail addresses of the user.
@@ -51,6 +55,9 @@ def send_mail_to_user(
     :param user: the user to mail
     :param make_payload: called with (email, language, reference) for each address, returns the payload to queue
     :param expires_in: how long the queued mails are valid
+    :param dedup_key: optional stable key identifying this mail. The key of the mail to each address is this key
+        plus the address, so repeating the call queues no second mail to an address whose mail is still queued.
+        Such an already queued mail counts as queued.
     :returns: number of mails queued. A failure to queue a mail to one address is logged and does not
         prevent mails to the other addresses.
     """
@@ -65,6 +72,7 @@ def send_mail_to_user(
                 app_name=context.config.app_name,
                 payload=payload,
                 expires_in=expires_in,
+                dedup_key=f"{dedup_key}|mail={address.email}" if dedup_key is not None else None,
             )
         except Exception:
             context.logger.exception(f"Failed to queue mail for user {user.eppn}")

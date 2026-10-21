@@ -1,4 +1,5 @@
-from collections.abc import Callable
+import itertools
+from collections.abc import Callable, Iterable, Iterator
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import Literal
@@ -37,6 +38,36 @@ class _Limits:
     max_age: relativedelta
     warning_period: relativedelta
     min_notice: timedelta
+
+
+@dataclass(frozen=True)
+class _Completed:
+    """One completed unverification (a record in IdentityAgeNotification) the user is to be told about."""
+
+    identity_type: IdentityType
+    verified_at: datetime
+
+    @property
+    def type_name(self) -> str:
+        return self.identity_type.value
+
+
+def _dedup_key(kind: str, eppn: str, entries: Iterable[tuple[IdentityType, datetime]]) -> str:
+    """
+    Stable deduplication key of a mail to a user (see enqueue_email), so a retry or a crash recovery can not queue
+    the same mail twice while the first one is still queued. send_mail_to_user appends the recipient address.
+
+    Format: identity_age:<kind>:<eppn>:<type>@<verified_at>,... where kind is "warning" or "unverified", the
+    entries are sorted and verified_at is UTC with millisecond precision (as stored). The key identifies the
+    set of identity verifications the mail is about: the same set always gives the same key, another set (e.g. an
+    identity that was re-verified, or one more identity covered) gives another key.
+    """
+    normalise = IdentityAgeNotificationDB.normalise_verified_at
+    parts = sorted(
+        f"{identity_type.value}@{normalise(verified_at).isoformat(timespec='milliseconds')}"
+        for identity_type, verified_at in entries
+    )
+    return f"identity_age:{kind}:{eppn}:{','.join(parts)}"
 
 
 def _limits(context: Context) -> _Limits:
@@ -160,7 +191,7 @@ def gather_identity_age_users(context: Context) -> None:
         context.stats.count("identity_age_queued")
         queued_count += 1
     if not context.dry_run:
-        pending_queued, pending_skipped = _gather_pending_unverifications(context)
+        pending_queued, pending_skipped = _gather_pending_work(context)
         queued_count += pending_queued
         skipped_count += pending_skipped
     context.logger.info(
@@ -168,18 +199,30 @@ def gather_identity_age_users(context: Context) -> None:
     )
 
 
-def _gather_pending_unverifications(context: Context) -> tuple[int, int]:
+def _iter_pending_work(context: Context) -> Iterator[IdentityAgeNotification]:
+    """Records with work left to retry: unverifications to reconcile, warnings to retry and notices to retry"""
+    db = context.identity_age_db
+    return itertools.chain(db.iter_pending_unverifications(), db.iter_pending_warnings(), db.iter_pending_notices())
+
+
+def _gather_pending_work(context: Context) -> tuple[int, int]:
     """
-    Queue users with an unverification that was requested but not recorded (see _reconcile_pending_unverifications).
-    Such a user may no longer have a verified identity, so it is not found by the main sweep. Real runs only: a dry
-    run never syncs and so never creates pending records.
+    Queue users with work that was started but not completed: an unverification requested but not recorded (see
+    _reconcile_pending_unverifications), a warning requested but not recorded as sent (see
+    _reconcile_pending_warnings) or an unverified notice not sent (see _reconcile_pending_notices). Such a user may
+    no longer have a verified identity, so it is not found by the main sweep. Real runs only: a dry run never
+    creates pending records.
 
     :returns: number of users queued and number skipped because they were already in the queue
     """
     queued_count = 0
     skipped_count = 0
-    for pending in context.identity_age_db.iter_pending_unverifications():
+    seen: set[str] = set()
+    for pending in _iter_pending_work(context):
         eppn = pending.eppn
+        if eppn in seen:
+            continue
+        seen.add(eppn)
         try:
             if context.cleaner_queue.user_in_queue(cleaner_type=CleanerType.IDENTITY_AGE, eppn=eppn):
                 context.logger.debug(f"{eppn} already in queue")
@@ -246,8 +289,9 @@ def _check_user(context: Context, eppn: str, limits: _Limits) -> int:
     """
     Check one user. Warnings are sent per run of _warn_user, but the unverified notice has a single dispatch point
     here: the phases that complete unverifications (_reconcile_pending_unverifications and _unverify_identities)
-    only append the type names to a shared list, and ONE notice (one mail per verified address) covering all of
-    them is sent afterwards. It is sent even if a later phase raises, so completed work is never left unnotified.
+    and the one that finds notices still pending from earlier runs (_reconcile_pending_notices) only append to a
+    shared list, and ONE notice (one mail per verified address) covering all of them is sent afterwards. It is sent
+    even if a later phase raises, so completed work is never left unnotified.
 
     :returns: number of actions (warnings sent or identities unverified) taken
     """
@@ -258,25 +302,28 @@ def _check_user(context: Context, eppn: str, limits: _Limits) -> int:
     if user.terminated is not None:
         return 0
 
-    completed: list[str] = []
+    completed: list[_Completed] = []
     try:
         return _check_loaded_user(context, user, limits, completed)
     finally:
         _notify_unverified(context, user, completed)
 
 
-def _check_loaded_user(context: Context, user: User, limits: _Limits, completed: list[str]) -> int:
+def _check_loaded_user(context: Context, user: User, limits: _Limits, completed: list[_Completed]) -> int:
     """
     Reconcile, warn and unverify for a user that is known to exist and not be terminated.
 
-    :param completed: out parameter, receives the identity type names of every unverification completed. The caller
-        is responsible for sending the unverified notice.
+    :param completed: out parameter, receives every unverification to tell the user about: the ones completed now and
+        the ones whose notice is still pending from an earlier run. The caller is responsible for sending the
+        unverified notice.
     :returns: number of actions (warnings sent or identities unverified) taken
     """
     config = context.config.identity_age
     eppn = user.eppn
     actions = 0
     if not context.dry_run:
+        _reconcile_pending_notices(context, user, completed)
+        _reconcile_pending_warnings(context, user)
         actions += _reconcile_pending_unverifications(context, user, completed)
     to_warn: list[IdentityElement] = []
     to_unverify: list[IdentityElement] = []
@@ -378,44 +425,83 @@ def _verified_at_of(identity: IdentityElement) -> datetime:
     return identity.verified_at
 
 
+def _finalize_warnings(context: Context, user: User, identities: list[IdentityElement]) -> None:
+    """
+    Final phase of a warning: record warning_sent_ts and clear the pending marker, one atomic update per identity.
+    A failure is logged and counted and does not stop the others. The identity is then left pending: the next run
+    retries it, and the deduplication key keeps that from queueing the mail again while it is still queued.
+    """
+    db = _notification_db(context)
+    for identity in identities:
+        try:
+            db.mark_warned(user.eppn, identity.identity_type, _verified_at_of(identity))
+        except Exception:
+            context.logger.exception(
+                f"Failed to record warning about {identity.identity_type.value} identity for {user.eppn}"
+            )
+            context.stats.count("identity_age_failed")
+
+
 def _record_warnings_and_send(
     context: Context, user: User, identities: list[IdentityElement], send: Callable[[], int]
 ) -> bool:
     """
-    Record a warning for every identity, then call send() (which queues ONE mail per verified address).
+    Two-phase warning (real runs only): persist that a warning is wanted, queue the mails, and only then record
+    that the warning was sent.
 
-    The warnings are recorded BEFORE the mails are queued. If queueing fails for every address the records are
-    removed so the warning is retried next run. If at least one mail was queued the records stay, so a
-    failure can never cause the same mail to be queued on every run. (The only gap is a crash between
-    recording and queueing, which loses a warning rather than repeating it.)
+    1. warning_requested_ts is written for every identity, BEFORE anything is queued.
+    2. send() is called (it queues ONE mail per verified address, with a deduplication key).
+    3. If at least one mail was queued, warning_sent_ts is set and warning_requested_ts cleared for every
+       identity (_finalize_warnings).
+
+    warning_sent_ts is never set without a queued mail, so the notice period required before an unverification
+    can be trusted. If send() queues nothing or raises, or the job crashes anywhere after phase 1, the identities
+    stay pending (warning_sent_ts unset): the next run warns again (the normal path treats an identity without
+    warning_sent_ts as one to warn, _reconcile_pending_warnings and _gather_pending_work make sure such a user is
+    visited). A crash after the mail was queued but before phase 3 is also retried, and the deduplication key
+    stops a second mail from being queued as long as the first one is still in the queue.
 
     :returns: True if at least one mail was queued
     """
-    written: list[IdentityElement] = []
     db = _notification_db(context)
-
-    def rollback() -> None:
-        for written_identity in written:
-            db.clear_warning(user.eppn, written_identity.identity_type, _verified_at_of(written_identity))
-
+    for identity in identities:
+        db.mark_warning_requested(user.eppn, identity.identity_type, _verified_at_of(identity))
     try:
-        for identity in identities:
-            db.mark_warned(user.eppn, identity.identity_type, _verified_at_of(identity))
-            written.append(identity)
         sent = send()
     except Exception:
-        rollback()
-        raise
-    if sent == 0:
-        rollback()
+        context.logger.exception(f"Failed to queue warning mail for user {user.eppn}, left pending for retry")
         return False
+    if sent == 0:
+        return False
+    _finalize_warnings(context, user, identities)
     return True
+
+
+def _dry_run_warn(context: Context, user: User, covered: list[IdentityElement], names: str, expires_at: str) -> int:
+    """
+    Dry run counterpart of the mail part of _warn_user: log and count what would be done and record the simulated
+    warning (there is no pending phase, as nothing is queued) in the dry run collection.
+
+    :returns: number of identities that would be warned
+    """
+    context.logger.info(
+        f"Dry run: would send expiry warning to {user.eppn} for identities [{names}] expiring {expires_at}"
+        f" ({len(user.mail_addresses.verified)} verified addresses)"
+    )
+    for identity in covered:
+        _notification_db(context).mark_warned(user.eppn, identity.identity_type, _verified_at_of(identity))
+        context.stats.count(f"identity_age_dry_run_would_warn_{identity.identity_type.value}")
+    return len(covered)
 
 
 def _warn_user(context: Context, user: User, identities: list[IdentityElement], limits: _Limits) -> int:
     """
     Send ONE warning mail per verified address covering all the given identities close to expiry, and record a
-    warning for each of them. The date in the mail is the earliest expiry among the identities.
+    warning for each of them (see _record_warnings_and_send for the two phases). Identities with a pending warning
+    from an earlier failed attempt are warned again here. The date in the mail is the earliest expiry among the
+    identities.
+
+    The deduplication key of the mail is built from the covered identities, see _dedup_key.
 
     :returns: number of identities warned (0 if no mail was queued)
     """
@@ -437,16 +523,9 @@ def _warn_user(context: Context, user: User, identities: list[IdentityElement], 
 
     expires_at = min(_notice_date(identity, limits) for identity in covered)
     if context.dry_run:
-        context.logger.info(
-            f"Dry run: would send expiry warning to {user.eppn} for identities [{names}] expiring {expires_at}"
-            f" ({len(user.mail_addresses.verified)} verified addresses)"
-        )
-        # Record the simulated warning in the dry run collection. No mail is queued so there is nothing to roll back.
-        _record_warnings_and_send(context, user, covered, lambda: 1)
-        for identity in covered:
-            context.stats.count(f"identity_age_dry_run_would_warn_{identity.identity_type.value}")
-        return len(covered)
+        return _dry_run_warn(context, user, covered, names, expires_at)
 
+    dedup_key = _dedup_key("warning", user.eppn, ((i.identity_type, _verified_at_of(i)) for i in covered))
     sent = _record_warnings_and_send(
         context,
         user,
@@ -462,6 +541,7 @@ def _warn_user(context: Context, user: User, identities: list[IdentityElement], 
                 expires_at=expires_at,
             ),
             expires_in=timedelta(days=config.mail_expires_in_days),
+            dedup_key=dedup_key,
         ),
     )
     if not sent:
@@ -593,7 +673,7 @@ def _record_landed(
     user: User,
     unverified: list[tuple[IdentityElement, datetime, datetime | None]],
     landed: set[IdentityType],
-) -> tuple[int, list[str]]:
+) -> tuple[int, list[_Completed]]:
     """
     Record the unverification (and count and log it) of every identity confirmed unverified in the central db.
     Identities still verified there are counted as sync mismatches and left unrecorded.
@@ -601,10 +681,10 @@ def _record_landed(
     A failed record write is counted and left pending (for reconciliation), and is neither counted as unverified
     nor included in the notice.
 
-    :returns: number of identities recorded, and the type names of those, for the notice
+    :returns: number of identities recorded, and those, for the notice
     """
     done = 0
-    landed_names: list[str] = []
+    landed_done: list[_Completed] = []
     for identity, verified_at, _ in unverified:
         type_name = identity.identity_type.value
         if identity.identity_type not in landed:
@@ -618,7 +698,8 @@ def _record_landed(
             _clear_pending(context, user.eppn, identity.identity_type, verified_at)
             continue
         try:
-            _notification_db(context).mark_unverified(user.eppn, identity.identity_type, verified_at)
+            # Persists the pending notice (if one is wanted) in the same update, see _notify_unverified
+            _mark_unverified(context, user.eppn, identity.identity_type, verified_at)
         except Exception:
             # The pending marker is kept: the next sweep reconciles it and sends the notice then, exactly once
             context.logger.exception(f"Failed to record unverification of {type_name} identity for {user.eppn}")
@@ -627,30 +708,44 @@ def _record_landed(
         done += 1
         context.stats.count(f"identity_age_unverified_{type_name}")
         context.logger.info(f"Unverified {type_name} identity for user {user.eppn} (verified at {verified_at})")
-        landed_names.append(type_name)
-    return done, landed_names
+        landed_done.append(_Completed(identity.identity_type, verified_at))
+    return done, landed_done
 
 
-def _notify_unverified(context: Context, user: User, completed: list[str]) -> None:
+def _mark_unverified(context: Context, eppn: str, identity_type: IdentityType, verified_at: datetime) -> None:
     """
-    Single dispatch point of the unverified notice: tell the user about every unverification completed in this
-    run of _check_user. Nothing is done if nothing was completed. A user without a verified mail address is only
-    counted (identity_age_unverified_no_recipient_<type>). The recipients are taken from a fresh read of the
-    central user, as verified addresses may have changed since the user was loaded. Never raises, so it is safe
-    in a finally block.
+    Record a completed unverification (real runs). The pending notice is persisted in the same update, and only if
+    a notice is wanted (send_unverified_notice), so it survives a failure to queue the mail.
+    """
+    _notification_db(context).mark_unverified(
+        eppn, identity_type, verified_at, notice_requested=context.config.identity_age.send_unverified_notice
+    )
+
+
+def _notify_unverified(context: Context, user: User, completed: list[_Completed]) -> None:
+    """
+    Single dispatch point of the unverified notice: tell the user about every unverification in `completed`, those
+    completed in this run of _check_user and those whose notice is pending from earlier runs. Nothing is done if the
+    list is empty. A user without a verified mail address is only counted
+    (identity_age_unverified_no_recipient_<type>) and the pending notices cleared, as is every pending notice when
+    send_unverified_notice is off. The recipients are taken from a fresh read of the central user, as verified
+    addresses may have changed since the user was loaded. Never raises, so it is safe in a finally block.
     """
     if not completed:
         return
     try:
         user = _fresh_user(context, user)
         if not user.mail_addresses.verified:
-            for type_name in completed:
-                context.stats.count(f"identity_age_unverified_no_recipient_{type_name}")
+            for done in completed:
+                context.stats.count(f"identity_age_unverified_no_recipient_{done.type_name}")
                 context.logger.warning(
-                    f"User {user.eppn} has no verified mail address, no notice about {type_name} sent"
+                    f"User {user.eppn} has no verified mail address, no notice about {done.type_name} sent"
                 )
+            _clear_notices(context, user.eppn, completed)
         elif context.config.identity_age.send_unverified_notice:
             _send_unverified_notice(context, user, completed)
+        else:
+            _clear_notices(context, user.eppn, completed)
     except Exception:
         context.logger.exception(f"Failed to notify {user.eppn} about unverified identities")
         context.stats.count("identity_age_failed")
@@ -668,28 +763,55 @@ def _fresh_user(context: Context, user: User) -> User:
         return user
 
 
-def _send_unverified_notice(context: Context, user: User, landed_names: list[str]) -> None:
+def _clear_notices(context: Context, eppn: str, completed: list[_Completed]) -> None:
+    """Clear the pending notice of every record when no notice is required or possible. Never raises."""
+    for done in completed:
+        try:
+            _notification_db(context).clear_notice_requested(eppn, done.identity_type, done.verified_at)
+        except Exception:
+            context.logger.exception(f"Failed to clear pending notice about {done.type_name} for {eppn}")
+            context.stats.count("identity_age_failed")
+
+
+def _finalize_notices(context: Context, eppn: str, completed: list[_Completed]) -> None:
     """
-    Queue ONE unverified notice per verified address covering everything that landed. Failures are logged and
-    counted as identity_age_failed, never raised.
+    Record notice_sent_ts and clear the pending notice of every record, one atomic update each. A failure is logged
+    and counted; the record stays pending and is retried next run (the deduplication key avoids a second mail while
+    the first is still queued). Never raises.
     """
+    for done in completed:
+        try:
+            _notification_db(context).mark_notice_sent(eppn, done.identity_type, done.verified_at)
+        except Exception:
+            context.logger.exception(f"Failed to record notice about {done.type_name} for {eppn}")
+            context.stats.count("identity_age_failed")
+
+
+def _send_unverified_notice(context: Context, user: User, completed: list[_Completed]) -> None:
+    """
+    Queue ONE unverified notice per verified address covering everything in `completed`, with a deduplication key
+    built from it (see _dedup_key). After at least one mail was queued the pending notices are recorded as sent. If
+    none could be queued they stay pending and are retried by a later run. Failures are logged and counted as
+    identity_age_failed, never raised.
+    """
+    names = ", ".join(done.type_name for done in completed)
     try:
         queued = send_mail_to_user(
             context,
             user,
             _unverified_payload_factory(context),
             expires_in=timedelta(days=context.config.identity_age.mail_expires_in_days),
+            dedup_key=_dedup_key("unverified", user.eppn, ((d.identity_type, d.verified_at) for d in completed)),
         )
-        if queued == 0:
-            context.logger.error(
-                f"Failed to queue unverified notice for {', '.join(landed_names)} identities to {user.eppn}"
-            )
-            context.stats.count("identity_age_failed")
     except Exception:
-        context.logger.exception(
-            f"Failed to send unverified notice for {', '.join(landed_names)} identities to {user.eppn}"
-        )
+        context.logger.exception(f"Failed to send unverified notice for {names} identities to {user.eppn}")
         context.stats.count("identity_age_failed")
+        return
+    if queued == 0:
+        context.logger.error(f"Failed to queue unverified notice for {names} identities to {user.eppn}, left pending")
+        context.stats.count("identity_age_failed")
+        return
+    _finalize_notices(context, user.eppn, completed)
 
 
 def _clear_pending(context: Context, eppn: str, identity_type: IdentityType, verified_at: datetime) -> bool:
@@ -752,31 +874,31 @@ def _reconcile_one(context: Context, user: User, pending: IdentityAgeNotificatio
         context.logger.info(f"{user.eppn}: pending {type_name} unverification: {outcome}, clearing")
         _clear_pending(context, user.eppn, pending.identity_type, pending.verified_at)
         return False
-    # This also clears the pending marker
-    context.identity_age_db.mark_unverified(user.eppn, pending.identity_type, pending.verified_at)
+    # This also clears the pending marker and records the pending notice
+    _mark_unverified(context, user.eppn, pending.identity_type, pending.verified_at)
     context.stats.count(f"identity_age_unverified_{type_name}")
     context.stats.count(f"identity_age_reconciled_{type_name}")
     context.logger.info(f"Reconciled {type_name} unverification for {user.eppn} (verified at {pending.verified_at})")
     return True
 
 
-def _reconcile_pending_unverifications(context: Context, user: User, completed: list[str]) -> int:
+def _reconcile_pending_unverifications(context: Context, user: User, completed: list[_Completed]) -> int:
     """
     Complete unverifications that were requested earlier but never recorded, e.g. because the job failed after the
     AM sync had applied the change. Looks only at the pending records, never at whether the identity is verified, as
     a landed unverification leaves nothing verified to find. Real runs only.
 
-    No notice is sent here: the type names of the completed unverifications are appended to `completed`, and
+    No notice is sent here: the completed unverifications are appended to `completed`, and
     _check_user sends one notice covering these and anything _unverify_identities completes.
 
-    :param completed: out parameter, receives the identity type names of the unverifications completed
+    :param completed: out parameter, receives the unverifications completed
     :returns: number of unverifications completed
     """
     done = 0
     for pending in context.identity_age_db.iter_pending_unverifications(user.eppn):
         try:
             if _reconcile_one(context, user, pending):
-                completed.append(pending.identity_type.value)
+                completed.append(_Completed(pending.identity_type, pending.verified_at))
                 done += 1
         except Exception:
             context.logger.exception(f"Failed to reconcile pending unverification for {user.eppn}")
@@ -784,8 +906,51 @@ def _reconcile_pending_unverifications(context: Context, user: User, completed: 
     return done
 
 
+def _reconcile_pending_notices(context: Context, user: User, completed: list[_Completed]) -> None:
+    """
+    Find unverified notices that were wanted but not sent, e.g. because the mail queue was down. Looks only at the
+    pending records, never at whether anything is verified, as a user whose identities were all unverified has none.
+    Real runs only.
+
+    No notice is sent here: the records are appended to `completed`, and _check_user sends ONE notice covering
+    these and anything completed in this run.
+
+    :param completed: out parameter, receives the unverifications whose notice is pending
+    """
+    completed.extend(
+        _Completed(pending.identity_type, pending.verified_at)
+        for pending in context.identity_age_db.iter_pending_notices(user.eppn)
+    )
+
+
+def _reconcile_pending_warnings(context: Context, user: User) -> None:
+    """
+    Clean up pending warnings (warning requested, not recorded as sent) that can no longer be retried: the identity
+    is gone, was verified again (new verified_at) or is not of a configured type, or the user has no verified mail
+    address. They are warned about from scratch when that applies again. Pending warnings that can be retried are
+    left alone: the normal path (_classify_identity) warns about them, as they have no warning_sent_ts. Real runs
+    only.
+    """
+    configured = context.config.identity_age.identity_types
+    for pending in context.identity_age_db.iter_pending_warnings(user.eppn):
+        if (
+            pending.identity_type in configured
+            and user.mail_addresses.verified
+            and _pending_outcome(user, pending) == "not_landed"
+        ):
+            continue
+        context.logger.info(f"{user.eppn}: pending {pending.identity_type.value} warning can not be retried, clearing")
+        try:
+            context.identity_age_db.clear_warning_requested(user.eppn, pending.identity_type, pending.verified_at)
+        except Exception:
+            context.logger.exception(
+                f"Failed to clear pending warning of {pending.identity_type.value} for {user.eppn}"
+            )
+            context.stats.count("identity_age_failed")
+
+
 def _unverify_identities(
-    context: Context, user: User, identities: list[IdentityElement], limits: _Limits, completed: list[str]
+    context: Context, user: User, identities: list[IdentityElement], limits: _Limits, completed: list[_Completed]
 ) -> int:
     """
     Unverify identities with a single save of the user.
@@ -800,10 +965,10 @@ def _unverify_identities(
     (no warning could be delivered). For such a user the unverification is recorded without a warning
     timestamp.
 
-    No notice is sent here: the type names of the unverifications recorded are appended to `completed` and
+    No notice is sent here: the unverifications recorded are appended to `completed` and
     _check_user sends one notice covering them and anything reconciled. (A dry run only logs what would be sent.)
 
-    :param completed: out parameter, receives the identity type names of the unverifications recorded
+    :param completed: out parameter, receives the unverifications recorded
     :returns: number of identities unverified
     """
     # Reload the user as it might have changed while the warnings were handled
@@ -837,6 +1002,6 @@ def _unverify_identities(
         context.stats.count("identity_age_failed")
         return 0
 
-    done, landed_names = _record_landed(context, user, unverified, landed)
-    completed.extend(landed_names)
+    done, landed_done = _record_landed(context, user, unverified, landed)
+    completed.extend(landed_done)
     return done
