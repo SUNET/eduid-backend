@@ -28,7 +28,6 @@ dependencies = [
   "marshmallow-enum",
   "motor",
   "neo4j",
-  "phonenumbers",
   "proquint",
   "pwgen",
   "py-bcrypt",
@@ -42,7 +41,6 @@ dependencies = [
   "qrcode",
   "redis",
   "statsd",
-  "suds-community",
   "xhtml2pdf",
   "zxcvbn",
 ]
