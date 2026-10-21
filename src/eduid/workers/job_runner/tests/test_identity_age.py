@@ -2007,8 +2007,9 @@ class TestCheckIdentityAge(CleanerQueueTestCase):
         expired = utc_now() - timedelta(hours=1)
         self.messagedb._coll.update_one({"_id": item_id}, {"$set": {"expires_at": expired}})
         before = self.messagedb._coll.find_one({"_id": item_id})
+        kwargs = self._dedup_kwargs()
         with pytest.raises(QueueItemExpired):
-            enqueue_email(**self._dedup_kwargs())
+            enqueue_email(**kwargs)
         assert self.messagedb._coll.count_documents({}) == 1
         assert self.messagedb._coll.find_one({"_id": item_id}) == before
         # once removed (retention) the same key can be queued again
@@ -2040,8 +2041,9 @@ class TestCheckIdentityAge(CleanerQueueTestCase):
     def test_enqueue_email_item_keeps_vanishing_fails_safely(self, mocker: MockerFixture) -> None:
         mocker.patch.object(self.messagedb, "save_if_absent", return_value=False)
         mocker.patch.object(self.messagedb, "get_item_by_id", return_value=None)
+        kwargs = self._dedup_kwargs()
         with pytest.raises(RuntimeError):
-            enqueue_email(**self._dedup_kwargs())
+            enqueue_email(**kwargs)
 
     def test_send_mail_to_user_expired_duplicate_not_counted(self, caplog: pytest.LogCaptureFixture) -> None:
         user = self._save_user([self._nin(verified_ts=_years_ago(1))])
