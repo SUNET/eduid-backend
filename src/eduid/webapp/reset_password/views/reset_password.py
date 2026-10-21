@@ -22,7 +22,7 @@ for the user the request already identifies - the eppn in the session, else the
 address in the session, else, as a last resort, an email address posted
 alongside the code for the cross-device case - and the code is then compared
 against the one that state holds. This POST will return the same code, a
-suggested password, and an array of (masked) verified phone numbers.
+suggested password, and the extra security alternatives (security keys, external MFA) the user has.
 
 Succeeding here is what puts the eppn in the session, and every view further
 along the flow requires it. The address left in the session by start_reset_pw
@@ -31,23 +31,19 @@ in for having supplied the code.
 
 Now there are 2 possibilities.
 
-The first happens when the user has no verified phone numbers. Then she will be
+The first happens when the user has no extra security alternatives. Then she will be
 shown a form where she can choose the suggested password or enter a custom one,
 submit it to the set_new_pw_no_extra_security view at /new-password/, and have her password
 reset as a result. In this case, with no extra security, all her verified phone
 numbers and NINs will be unverified.
 
-The second possibility is that the user had some phone number(s) verified. Then
-she will be presented with a choice, to either use extra security, or not. If
-she chooses not to use extra security, the workflow will continue as with the
+The second possibility is that the user has some extra security alternative, such as a
+security key. Then she will be presented with a choice, to either use extra security,
+or not. If she chooses not to use extra security, the workflow will continue as with the
 first possibility.
 
-If the user chooses extra security (clicking on a particular verified phone number),
-an SMS with a new code will be sent to the chosen phone number, and the
-user will be presented with the same form as in the first possibility,
-supplemented with a text input for the SMS'ed code. In this case submitting the
-form will also result in resetting her password, but without unverifying any of
-her data.
+If the user chooses extra security, the password is reset using the security key
+(or external MFA) view, without unverifying any of her data.
 """
 
 from collections.abc import Mapping
@@ -75,7 +71,6 @@ from eduid.webapp.reset_password.helpers import (
     generate_suggested_password,
     get_context,
     get_extra_security_alternatives,
-    mask_alternatives,
     reset_user_password,
     send_password_reset_mail,
     verify_email_address,
@@ -267,9 +262,8 @@ def verify_email(email_code: str, email: str | None = None) -> FluxData:
     The configuration returned (in case of success) will include:
     * The received code;
     * A newly generated suggested password;
-    * In case the user corresponding to the email address has verified phone
-      numbers, these will be sent (masked) to allow the user to use extra
-      security. (If the user does not use extra security, any verified NIN or
+    * The extra security alternatives (security keys, external MFA) the user
+      has. (If the user does not use extra security, any verified NIN or
       phone number will be unverified upon resetting the password).
 
     As side effects, this view will:
@@ -343,7 +337,7 @@ def verify_email(email_code: str, email: str | None = None) -> FluxData:
             "suggested_password": new_password,
             "email_code": context.state.email_code.code,
             "email_address": context.state.email_address,
-            "extra_security": mask_alternatives(alternatives),
+            "extra_security": alternatives,
             "min_zxcvbn_score": current_app.conf.min_zxcvbn_score,
             "password_entropy": current_app.conf.password_entropy,
             "password_length": current_app.conf.password_length,

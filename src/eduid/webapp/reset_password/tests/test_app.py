@@ -669,7 +669,6 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
                 "extra_security": {
                     "swedish_eid": True,
                     "eidas": True,
-                    "phone_numbers": [{"index": 0, "number": "XXXXXXXXXX09"}],
                 },
                 "success": True,
                 "zxcvbn_terms": ["John", "Smith", "johnsmith", "johnsmith2"],
