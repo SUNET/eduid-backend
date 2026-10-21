@@ -7,7 +7,6 @@ from eduid.webapp.common.api.schemas.ladok import LadokSchema
 from eduid.webapp.common.api.schemas.orcid import OrcidSchema
 from eduid.webapp.email.schemas import EmailSchema
 from eduid.webapp.personal_data.validators import validate_language, validate_nonempty
-from eduid.webapp.phone.schemas import PhoneSchema
 
 __author__ = "eperez"
 
@@ -61,6 +60,12 @@ class UserLanguageResponseSchema(FluxStandardAction):
         pass
 
     payload = fields.Nested(UserLanguageResponsePayload)
+
+
+class PhoneSchema(EduidSchema):
+    number = fields.String(required=True)
+    verified = fields.Boolean(attribute="verified")
+    primary = fields.Boolean(attribute="primary")
 
 
 class AllDataSchema(EduidSchema):
