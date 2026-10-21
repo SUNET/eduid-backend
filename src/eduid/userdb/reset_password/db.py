@@ -7,7 +7,6 @@ from pymongo import ReturnDocument
 
 from eduid.userdb.db import BaseDB, SaveResult, TUserDbDocument
 from eduid.userdb.reset_password.state import (
-    ResetPasswordEmailAndPhoneState,
     ResetPasswordEmailState,
     ResetPasswordState,
 )
@@ -51,7 +50,7 @@ class ResetPasswordStateDB(BaseDB):
             }
             self.setup_indexes(indexes)
 
-    def get_state_by_eppn(self, eppn: str) -> ResetPasswordEmailState | ResetPasswordEmailAndPhoneState | None:
+    def get_state_by_eppn(self, eppn: str) -> ResetPasswordEmailState | None:
         """
         Locate a state in the db given the users eppn.
 
@@ -69,12 +68,10 @@ class ResetPasswordStateDB(BaseDB):
     @staticmethod
     def init_state(
         state_mapping: Mapping[str, Any],
-    ) -> ResetPasswordEmailState | ResetPasswordEmailAndPhoneState | None:
+    ) -> ResetPasswordEmailState | None:
         state = dict(state_mapping)
         if state.get("method") == "email":
             return ResetPasswordEmailState.from_dict(data=state)
-        elif state.get("method") == "email_and_phone":
-            return ResetPasswordEmailAndPhoneState.from_dict(data=state)
         return None
 
     def reserve_bad_attempt(self, state: ResetPasswordState, max_attempts: int) -> int | None:
@@ -138,7 +135,7 @@ class ResetPasswordStateDB(BaseDB):
             logger.debug(f"No reset password state left to clear the bad attempt counter on: {state.eppn}")
         # Set in memory regardless of whether a document was matched. The caller has proven it
         # holds the code, so zero is the right value for anything downstream that re-saves the
-        # state - notably the phone-expiry rebuild, which would otherwise persist a stale count.
+        # state, which would otherwise persist a stale count.
         state.bad_attempts = 0
 
     def save(self, state: ResetPasswordState, is_in_database: bool = True) -> SaveResult:

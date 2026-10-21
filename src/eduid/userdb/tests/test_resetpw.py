@@ -3,7 +3,7 @@ from datetime import timedelta
 import pytest
 
 from eduid.userdb.exceptions import DocumentOutOfSync
-from eduid.userdb.reset_password import ResetPasswordEmailAndPhoneState, ResetPasswordEmailState, ResetPasswordStateDB
+from eduid.userdb.reset_password import ResetPasswordEmailState, ResetPasswordStateDB
 from eduid.userdb.reset_password.element import CodeElement
 from eduid.userdb.testing import MongoTestCase
 
@@ -62,25 +62,19 @@ class TestResetPasswordStateDB(MongoTestCase):
         assert state.email_address == "johnsmith@example.com"
         assert state.extra_security["phone_numbers"][0]["number"] == "+99999999999"
 
-    def test_email_and_phone_state(self) -> None:
-        email_state = ResetPasswordEmailAndPhoneState(
+    def test_legacy_email_and_phone_state_is_not_loaded(self) -> None:
+        """States from the removed phone flow can remain until they expire, and are then ignored."""
+        email_state = ResetPasswordEmailState(
             eppn="hubba-bubba",
             email_address="johnsmith@example.com",
             email_code=CodeElement.parse(application="test", code_or_element="dummy-code"),
-            phone_number="+99999999999",
-            phone_code=CodeElement.parse(application="test", code_or_element="dummy-phone-code"),
         )
+        doc = email_state.to_dict()
+        doc["method"] = "email_and_phone"
+        doc["phone_number"] = "+99999999999"
+        doc["phone_code"] = CodeElement.parse(application="test", code_or_element="dummy-phone-code").to_dict()
 
-        self.resetpw_db.save(email_state, is_in_database=False)
-
-        state = self.resetpw_db.get_state_by_eppn("hubba-bubba")
-        assert state is not None
-        assert isinstance(state, ResetPasswordEmailAndPhoneState)
-        assert state.email_address == "johnsmith@example.com"
-        assert state.email_code.code == "dummy-code"
-        assert state.phone_number == "+99999999999"
-        assert state.phone_code.code == "dummy-phone-code"
-        assert state.method == "email_and_phone"
+        assert ResetPasswordStateDB.init_state(doc) is None
 
     def test_email_state_bad_attempts_defaults_to_zero(self) -> None:
         email_state = ResetPasswordEmailState(
@@ -264,8 +258,8 @@ class TestResetPasswordStateDB(MongoTestCase):
         assert state.bad_attempts == 2
 
         self.resetpw_db.reset_bad_attempts(state)
-        # In memory as well as in the database: the phone-expiry rebuild re-saves whatever the
-        # in-memory state holds, so a stale count there would come straight back.
+        # In memory as well as in the database: a later save writes whatever the in-memory
+        # state holds, so a stale count there would come straight back.
         assert state.bad_attempts == 0
         reloaded = self.resetpw_db.get_state_by_eppn("hubba-bubba")
         assert reloaded is not None

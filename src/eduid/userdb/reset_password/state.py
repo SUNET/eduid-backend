@@ -87,34 +87,3 @@ class ResetPasswordEmailState(ResetPasswordState, _ResetPasswordEmailStateRequir
         res = super().to_dict()
         res["email_code"] = self.email_code.to_dict()
         return res
-
-
-@dataclass
-class _ResetPasswordEmailAndPhoneStateRequired:
-    phone_number: str
-    phone_code: CodeElement
-
-
-@dataclass
-class ResetPasswordEmailAndPhoneState(ResetPasswordEmailState, _ResetPasswordEmailAndPhoneStateRequired):
-    def __post_init__(self) -> None:
-        super().__post_init__()
-        self.method = "email_and_phone"
-        self.phone_code = CodeElement.parse(application="security", code_or_element=self.phone_code)
-
-    @classmethod
-    def from_email_state(
-        cls: type[ResetPasswordEmailAndPhoneState],
-        email_state: ResetPasswordEmailState,
-        phone_number: str,
-        phone_code: str,
-    ) -> ResetPasswordEmailAndPhoneState:
-        data = email_state.to_dict()
-        data["phone_number"] = phone_number
-        data["phone_code"] = phone_code
-        return cls.from_dict(data=data)
-
-    def to_dict(self) -> TUserDbDocument:
-        res = super().to_dict()
-        res["phone_code"] = self.phone_code.to_dict()
-        return res
