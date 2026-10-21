@@ -89,24 +89,6 @@ class EmailProofingElement(ProofingElement):
         return v.lower()
 
 
-class PhoneProofingElement(ProofingElement):
-    """
-    Element for holding the state of a phone number proofing flow.
-
-    Properties of PhoneProofingElement:
-
-        number
-        created_by
-        created_ts
-        is_verified
-        verified_by
-        verified_ts
-        verification_code
-    """
-
-    number: str
-
-
 class SentLetterElement(Element):
     """
     Properties of SentLetterElement:

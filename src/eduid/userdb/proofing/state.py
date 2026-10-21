@@ -16,7 +16,6 @@ from eduid.userdb.exceptions import UserDBValueError
 from eduid.userdb.proofing.element import (
     EmailProofingElement,
     NinProofingElement,
-    PhoneProofingElement,
     SentLetterElement,
 )
 
@@ -168,21 +167,4 @@ class EmailProofingState(ProofingState):
         email_data = self.verification.to_dict()
         res = super().to_dict()
         res["verification"] = email_data
-        return res
-
-
-@dataclass()
-class PhoneProofingState(ProofingState):
-    verification: PhoneProofingElement
-
-    @classmethod
-    def from_dict(cls, data: Mapping[str, Any]) -> PhoneProofingState:
-        _data = copy.deepcopy(dict(data))  # to not modify callers data
-        _data["verification"] = PhoneProofingElement.from_dict(_data["verification"])
-        return cls._default_from_dict(_data, {"verification"})
-
-    def to_dict(self) -> TUserDbDocument:
-        phone_data = self.verification.to_dict()
-        res = super().to_dict()
-        res["verification"] = phone_data
         return res

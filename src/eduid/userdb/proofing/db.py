@@ -11,7 +11,6 @@ from eduid.userdb.proofing.state import (
     EmailProofingState,
     LetterProofingState,
     OrcidProofingState,
-    PhoneProofingState,
     ProofingState,
 )
 from eduid.userdb.proofing.user import ProofingUser
@@ -146,41 +145,6 @@ class EmailProofingStateDB(ProofingStateDB[EmailProofingState]):
         self.remove_document({"eduPersonPrincipalName": state.eppn, "verification.email": state.verification.email})
 
 
-class PhoneProofingStateDB(ProofingStateDB[PhoneProofingState]):
-    def __init__(self, db_uri: str, db_name: str = "eduid_phone", auto_expire: timedelta | None = None) -> None:
-        super().__init__(db_uri, db_name, auto_expire=auto_expire)
-
-    @classmethod
-    def state_from_dict(cls, data: Mapping[str, Any]) -> PhoneProofingState:
-        return PhoneProofingState.from_dict(data)
-
-    def get_state_by_eppn_and_mobile(self, eppn: str, number: str) -> PhoneProofingState | None:
-        """
-        Locate a state in the db given the eppn of the user and the
-        mobile to be verified.
-
-        :param number: mobile to verify
-
-        :return: ProofingStateClass instance | None
-
-        :raise self.MultipleDocumentsReturned: More than one user
-                                               matches the search criteria
-        """
-        spec = {"eduPersonPrincipalName": eppn, "verification.number": number}
-        return self.get_latest_state_by_spec(spec)
-
-    def remove_state(self, state: ProofingState) -> None:
-        """
-        :param state: ProofingStateClass object
-
-        :type state: ProofingStateClass
-        """
-        if not isinstance(state, PhoneProofingState):
-            raise TypeError("State must be a ProofingState subclass")
-
-        self.remove_document({"eduPersonPrincipalName": state.eppn, "verification.number": state.verification.number})
-
-
 class OidcStateDB[ProofingStateVar: ProofingState](ProofingStateDB[ProofingStateVar], ABC):
     def get_state_by_oidc_state(self, oidc_state: str) -> ProofingStateVar | None:
         """
@@ -226,11 +190,6 @@ class LetterProofingUserDB(ProofingUserDB):
     def __init__(
         self, db_uri: str, db_name: str = "eduid_idproofing_letter", auto_expire: timedelta | None = None
     ) -> None:
-        super().__init__(db_uri, db_name, auto_expire=auto_expire)
-
-
-class PhoneProofingUserDB(ProofingUserDB):
-    def __init__(self, db_uri: str, db_name: str = "eduid_phone", auto_expire: timedelta | None = None) -> None:
         super().__init__(db_uri, db_name, auto_expire=auto_expire)
 
 

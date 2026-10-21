@@ -7,15 +7,12 @@ from eduid.userdb.proofing.db import (
     LookupMobileProofingUserDB,
     OrcidProofingStateDB,
     OrcidProofingUserDB,
-    PhoneProofingStateDB,
-    PhoneProofingUserDB,
 )
-from eduid.userdb.proofing.element import EmailProofingElement, NinProofingElement, PhoneProofingElement
+from eduid.userdb.proofing.element import EmailProofingElement, NinProofingElement
 from eduid.userdb.proofing.state import (
     EmailProofingState,
     LetterProofingState,
     OrcidProofingState,
-    PhoneProofingState,
 )
 from eduid.userdb.proofing.user import ProofingUser
 
@@ -33,9 +30,5 @@ __all__ = [
     "OrcidProofingState",
     "OrcidProofingStateDB",
     "OrcidProofingUserDB",
-    "PhoneProofingElement",
-    "PhoneProofingState",
-    "PhoneProofingStateDB",
-    "PhoneProofingUserDB",
     "ProofingUser",
 ]
