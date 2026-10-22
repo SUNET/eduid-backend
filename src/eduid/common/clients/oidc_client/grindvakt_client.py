@@ -104,7 +104,7 @@ class GrindvaktOidcRpClient:
             if info.jwks_uri is None:
                 raise ValueError("no jwks_uri in provider metadata")
             old = self._provider
-            if old is not None and old.jwks.jwks_uri == info.jwks_uri:
+            if old is not None and old.jwks.jwks_uri == info.jwks_uri and old.jwks.issuer == info.issuer:
                 jwks = old.jwks  # keep the cached key set
             else:
                 jwks = rp.JwksCache(self._http, info.jwks_uri, info.issuer)

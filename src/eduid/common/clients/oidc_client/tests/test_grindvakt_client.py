@@ -1,3 +1,4 @@
+import dataclasses
 import logging
 import threading
 import time
@@ -8,7 +9,7 @@ import pytest
 from flask import Flask
 from pydantic import ValidationError
 from pygrindvakt import http as gv_http
-from pygrindvakt import jwt, keys
+from pygrindvakt import jwt, keys, rp
 from pygrindvakt.keys import SigningKey
 from pygrindvakt.metadata import ProviderMetadata
 from pytest_mock import MockerFixture
@@ -145,6 +146,31 @@ class TestGrindvaktOidcRpClient:
         now[0] += 2
         assert client._get_provider().info.token_endpoint == f"{ISSUER}/new-token"
         assert len(self.http.requests_to(f"{ISSUER}/.well-known/openid-configuration")) == 2
+
+    def test_jwks_cache_reused_when_jwks_uri_and_issuer_unchanged(self) -> None:
+        now = [1000.0]
+        client = self._client(discovery_ttl=100)
+        client._clock = lambda: now[0]
+        first = client._get_provider().jwks
+
+        now[0] += 101
+
+        assert client._get_provider().jwks is first
+
+    def test_jwks_cache_not_reused_when_issuer_differs(self) -> None:
+        now = [1000.0]
+        client = self._client(discovery_ttl=100)
+        client._clock = lambda: now[0]
+        provider = client._get_provider()
+        # a cache bound to another issuer, with the same jwks_uri as the refreshed metadata
+        stale = rp.JwksCache(self.http, self.metadata["jwks_uri"], "https://other.example.com")
+        client._provider = dataclasses.replace(provider, jwks=stale)
+
+        now[0] += 101
+        refreshed = client._get_provider().jwks
+
+        assert refreshed is not stale
+        assert refreshed.issuer == ISSUER
 
     def test_stale_metadata_used_when_refresh_fails(self) -> None:
         now = [1000.0]
