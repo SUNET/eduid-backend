@@ -1,12 +1,15 @@
 from collections.abc import Iterator, Mapping
 from dataclasses import dataclass
 from datetime import timedelta
+from itertools import count
 from typing import Any
 from uuid import UUID, uuid4
 
 import pytest
 from httpx import Response
+from pytest_mock import MockerFixture
 
+from eduid.common.misc.timeutil import utc_now
 from eduid.common.models.scim_base import SCIMResourceType, SCIMSchema
 from eduid.common.testing_base import normalised_data
 from eduid.common.utils import make_etag
@@ -157,3 +160,29 @@ class TestEventResource(ScimApiTestCase):
             },
         }
         assert fetched.response.json() == expected
+
+    def test_expires_at_is_one_day_after_timestamp(self, mocker: MockerFixture) -> None:
+        user = self.add_user(identifier=str(uuid4()), external_id="test@example.org")
+        event = {
+            "resource": {
+                "resourceType": SCIMResourceType.USER.value,
+                "id": str(user.scim_id),
+                "version": make_etag(user.version),
+                "lastModified": user.last_modified.isoformat(),
+            },
+            "level": EventLevel.DEBUG.value,
+            "data": {"expires_at_test": True},
+        }
+
+        # A clock that advances 1 ms (the precision of the database) every time it is read
+        start = utc_now()
+        ticks = count()
+        mocker.patch(
+            "eduid.scimapi.routers.events.utc_now", side_effect=lambda: start + timedelta(milliseconds=next(ticks))
+        )
+        self._create_event(event=event)
+
+        assert self.eventdb
+        events = self.eventdb.get_events_by_resource(SCIMResourceType.USER, scim_id=user.scim_id)
+        assert len(events) == 1
+        assert events[0].expires_at - events[0].timestamp == timedelta(days=1)

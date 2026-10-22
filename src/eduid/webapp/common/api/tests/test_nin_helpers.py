@@ -42,12 +42,10 @@ class HelpersTestConfig(EduIDBaseAppConfig, MsgConfigMixin):
     pass
 
 
-class HelpersTestApp(EduIDBaseApp):
-    conf: HelpersTestConfig
-
+class HelpersTestApp(EduIDBaseApp[HelpersTestConfig]):
     def __init__(self, name: str, test_config: Mapping[str, Any], **kwargs: Any) -> None:
-        self.conf = load_config(typ=HelpersTestConfig, app_name=name, ns="webapp", test_config=test_config)
-        super().__init__(self.conf, **kwargs)
+        conf = load_config(typ=HelpersTestConfig, app_name=name, ns="webapp", test_config=test_config)
+        super().__init__(conf, **kwargs)
         self.session_interface = SessionFactory(self.conf)
         # Init databases
         self.private_userdb = LetterProofingUserDB(self.conf.mongo_uri)
@@ -181,27 +179,6 @@ class NinHelpersTest(ProofingTests[HelpersTestApp]):
             proofing_version="2018v1",
         )
 
-    def _test_verify_nin_for_user(
-        self,
-        user: User,
-        nin_element: NinProofingElement,
-        proofing_log_entry: NinProofingLogElement,
-    ) -> None:
-        """Test happy-case when calling verify_nin_for_user with a User instance (deprecated)"""
-        mock_user_sync = self.mocker.patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-        mock_user_sync.return_value = True
-        proofing_state = NinProofingState.from_dict({"eduPersonPrincipalName": user.eppn, "nin": nin_element.to_dict()})
-        assert nin_element.created_by is not None
-
-        with self.app.app_context():
-            assert verify_nin_for_user(user, proofing_state, proofing_log_entry) is True
-        # The problem with passing a User to verify_nin_for_user is that the nins list on 'user'
-        # has not been updated
-        assert user.identities.nin is None
-
-        user = self.app.private_userdb.get_user_by_eppn(user.eppn)
-        self._check_nin_verified_ok(user=user, proofing_state=proofing_state, number=self.test_user_nin)
-
     def _test_verify_nin_for_proofing_user(
         self, user: User, nin_element: NinProofingElement, proofing_log_entry: NinProofingLogElement
     ) -> None:
@@ -259,36 +236,6 @@ class NinHelpersTest(ProofingTests[HelpersTestApp]):
             add_nin_to_user(user, proofing_state)
         with pytest.raises(UserDoesNotExist):
             self.app.private_userdb.get_user_by_eppn(user.eppn)
-
-    # _test_verify_nin_for_user expects User
-    @pytest.mark.filterwarnings("ignore:verify_nin_for_user:DeprecationWarning")
-    def test_verify_nin_for_user_navet(self, mocker: MockerFixture) -> None:
-        mock_reference_nin = mocker.patch("eduid.webapp.common.api.helpers.get_reference_nin_from_navet_data")
-        mock_reference_nin.return_value = self.test_user_nin
-        user = self.insert_no_nins_user()
-        nin_element = NinProofingElement.from_dict(
-            {"number": self.test_user_nin, "created_by": "NinHelpersTest", "verified": False}
-        )
-        assert nin_element.created_by
-        proofing_log_entry = self._get_nin_navet_proofing_log_entry(
-            user=user, created_by=nin_element.created_by, nin=nin_element.number
-        )
-        self._test_verify_nin_for_user(user=user, nin_element=nin_element, proofing_log_entry=proofing_log_entry)
-
-    # _test_verify_nin_for_user expects User
-    @pytest.mark.filterwarnings("ignore:verify_nin_for_user:DeprecationWarning")
-    def test_verify_nin_for_user_eid(self, mocker: MockerFixture) -> None:
-        mock_reference_nin = mocker.patch("eduid.webapp.common.api.helpers.get_reference_nin_from_navet_data")
-        mock_reference_nin.return_value = None
-        user = self.insert_no_nins_user()
-        nin_element = NinProofingElement.from_dict(
-            {"number": self.test_user_nin, "created_by": "NinHelpersTest", "verified": False}
-        )
-        assert nin_element.created_by
-        proofing_log_entry = self._get_nin_eid_proofing_log_entry(
-            user=user, created_by=nin_element.created_by, nin=nin_element.number
-        )
-        self._test_verify_nin_for_user(user=user, nin_element=nin_element, proofing_log_entry=proofing_log_entry)
 
     def test_verify_nin_for_proofing_user_navet(self, mocker: MockerFixture) -> None:
         mock_reference_nin = mocker.patch("eduid.webapp.common.api.helpers.get_reference_nin_from_navet_data")

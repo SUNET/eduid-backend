@@ -214,13 +214,6 @@ class InviteDataResponse(FluxStandardAction):
     payload = fields.Nested(InviteSchema)
 
 
-class InviteCompletedResponse(FluxStandardAction):
-    class InviteCompletedSchema(EduidSchema, CSRFResponseMixin):
-        finish_url = fields.String(required=False)
-
-    payload = fields.Nested(InviteCompletedSchema)
-
-
 class WebauthnRegisterBeginRequest(EduidSchema, CSRFRequestMixin):
     authenticator = fields.String(required=True)
 

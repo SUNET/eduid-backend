@@ -35,9 +35,7 @@ class BackdoorTestConfig(EduIDBaseAppConfig, MagicCookieMixin):
     pass
 
 
-class BackdoorTestApp(EduIDBaseApp):
-    conf: BackdoorTestConfig
-
+class BackdoorTestApp(EduIDBaseApp[BackdoorTestConfig]):
     def __init__(self, config: BackdoorTestConfig) -> None:
         super().__init__(config)
 

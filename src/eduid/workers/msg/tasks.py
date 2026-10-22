@@ -14,7 +14,6 @@ from eduid.userdb.exceptions import DBConnectionError
 from eduid.workers.celery_typing import Task
 from eduid.workers.msg.cache import CacheMDB
 from eduid.workers.msg.common import MsgCelerySingleton
-from eduid.workers.msg.decorators import TransactionAudit
 from eduid.workers.msg.exceptions import NavetAPIException
 from eduid.workers.msg.utils import (
     load_template,
@@ -22,10 +21,6 @@ from eduid.workers.msg.utils import (
     navet_get_name_and_official_address,
     navet_get_relations,
 )
-
-TRANSACTION_AUDIT_DB = "eduid_msg"
-TRANSACTION_AUDIT_COLLECTION = "transaction_audit"
-
 
 logger: logging.Logger = get_task_logger(__name__)
 
@@ -83,7 +78,6 @@ class MessageSender(Task[Any, Any]):
             logger.error("Task failed with db exception ConnectionError. Reloading db.")
             self.reload_db()
 
-    @TransactionAudit()
     def send_message(
         self,
         message_type: str,
@@ -259,7 +253,6 @@ class MessageSender(Task[Any, Any]):
         )
         return result
 
-    @TransactionAudit()
     def _get_navet_data(self, identity_number: str) -> dict[str, Any] | None:
         """
         Fetch all data about a NIN from Navet.
@@ -281,7 +274,6 @@ class MessageSender(Task[Any, Any]):
             self.cache("navet_cache").add_cache_item(identity_number, json_data)
         return json_data
 
-    @TransactionAudit()
     def sendsms(self, recipient: str, message: str, reference: str) -> str:
         """
         Send sms
@@ -336,7 +328,7 @@ def sendsms(self: MessageSender, recipient: str, message: str, reference: str) -
     :param reference: Audit reference to help cross reference audit log and events
     """
     try:
-        return cast(str, self.sendsms(recipient, message, reference))
+        return self.sendsms(recipient, message, reference)
     except Exception as e:
         logger.exception("sendsms task error")
         raise self.retry(countdown=1, max_retries=3, exc=e) from e

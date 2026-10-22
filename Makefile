@@ -1,6 +1,8 @@
 TOPDIR:=	$(abspath .)
 SRCDIR=		$(TOPDIR)/src
 SOURCE=		$(SRCDIR)/eduid
+# Relative to TOPDIR, so pybabel records repo-relative paths in the .pot files
+SOURCE_REL=	src/eduid
 
 PYTEST_WORKERS ?= 2  # override with e.g. make test PYTEST_WORKERS=4; use 1 for serial fallback; avoid 'auto' (OOMs on large machines)
 # --dist=loadgroup: tests with xdist_group("neo4j") all go to one worker; ungrouped tests are load-balanced.
@@ -34,7 +36,7 @@ typecheck_ty:
 	ty check
 
 update_webapp_translations:
-	pybabel extract -k _ -k gettext -k ngettext --mapping=babel.cfg --width=120 --output=$(SOURCE)/webapp/translations/messages.pot $(SOURCE)/webapp/
+	pybabel extract -k _ -k gettext -k ngettext --mapping=babel.cfg --width=120 --output=$(SOURCE)/webapp/translations/messages.pot $(SOURCE_REL)/webapp/
 	pybabel update --input-file=$(SOURCE)/webapp/translations/messages.pot --output-dir=$(SOURCE)/webapp/translations/ --ignore-obsolete
 	$(info --- INFO ---)
 	$(info Upload message.pot to Transifex, translate.)
@@ -45,7 +47,7 @@ compile_webapp_translations:
 	pybabel compile --directory=$(SOURCE)/webapp/translations/ --use-fuzzy
 
 update_queue_translations:
-	pybabel extract -k _ -k gettext -k ngettext --mapping=babel.cfg --width=120 --output=$(SOURCE)/queue/translations/messages.pot $(SOURCE)/queue/
+	pybabel extract -k _ -k gettext -k ngettext --mapping=babel.cfg --width=120 --output=$(SOURCE)/queue/translations/messages.pot $(SOURCE_REL)/queue/
 	pybabel update --input-file=$(SOURCE)/queue/translations/messages.pot --output-dir=$(SOURCE)/queue/translations/ --ignore-obsolete
 	$(info --- INFO ---)
 	$(info Upload message.pot to Transifex, translate.)
@@ -55,9 +57,11 @@ update_queue_translations:
 compile_queue_translations:
 	pybabel compile --directory=$(SOURCE)/queue/translations/ --use-fuzzy
 
+# -B: the lock files are make targets that depend on pyproject.toml, and in a fresh checkout they are not
+# older than it, so without -B nothing would be regenerated.
 update_deps:
 	@echo "Updating ALL the dependencies"
-	cd requirements && make update_deps
+	cd requirements && make -B update_deps
 
 dev_sync_deps:
 	cd requirements && make dev_sync_deps

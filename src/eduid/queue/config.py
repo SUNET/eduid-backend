@@ -16,7 +16,6 @@ class QueueWorkerConfig(RootConfig, LoggingConfigMixin):
     periodic_interval: int = 10
     periodic_min_retry_wait_in_seconds: int = 10
     max_retries: int = 10
-    audit: bool = True
     log_format: str = "{asctime} | {levelname:7} | {hostname} | {name:35} | {module:10} | {message}"
     log_filters: Sequence[LoggingFilters] = [LoggingFilters.NAMES]
     # Mail worker

@@ -10,8 +10,3 @@ class JSConfigConfig(EduIDBaseAppConfig, TouConfigMixin, PasswordConfigMixin):
     app_name: str = "jsconfig"
     mongo_uri: str = "mongo_uri_not_used_in_jsconfig"
     jsapps: JsAppsConfig
-    # backwards compatible fixes that should be removed
-    fix_dashboard_uppercase_config: bool = True
-    fix_dashboard_available_languages: bool = True
-    fix_signup_uppercase_config: bool = True
-    fix_signup_available_languages: bool = True

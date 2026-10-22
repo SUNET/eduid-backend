@@ -14,6 +14,25 @@ from eduid.common.misc.timeutil import utc_now
 
 logger = logging.getLogger(__name__)
 
+# Host ports for the temporary containers are picked below the OS ephemeral port range (32768-60999 on Linux,
+# 49152-65535 on macOS and per IANA). The ports used by outgoing connections (pymongo, redis, the neo4j driver, ...)
+# come from the ephemeral range, and a closed connection keeps its local port in TIME_WAIT for about a minute. Docker
+# can not publish such a port ("failed to bind host port ... address already in use"), so a random port in the
+# ephemeral range regularly collided, in particular when the test suite was run several times in a row.
+INSTANCE_PORT_MIN = 20000
+INSTANCE_PORT_MAX = 32767
+
+_used_ports: set[int] = set()
+
+
+def random_instance_port() -> int:
+    """Return a random port for a temporary container, below the ephemeral range, not returned before in this process."""
+    while True:
+        port = random.randint(INSTANCE_PORT_MIN, INSTANCE_PORT_MAX)
+        if port not in _used_ports:
+            _used_ports.add(port)
+            return port
+
 
 class EduidTemporaryInstance(ABC):
     """Manage a temporary instance of something needed when testing."""
@@ -21,7 +40,7 @@ class EduidTemporaryInstance(ABC):
     def __init__(self, max_retry_seconds: int) -> None:
         self._conn: Any | None = None  # self._conn should be initialised by subclasses in `setup_conn'
         self._tmpdir = tempfile.mkdtemp()
-        self._port = random.randint(40000, 65535)
+        self._port = random_instance_port()
         self._logfile = open(f"/tmp/{self.__class__.__name__}-{self.port}.log", "w")  # noqa: SIM115
 
         start_time = utc_now()

@@ -16,9 +16,7 @@ from eduid.webapp.group_management.settings.common import GroupManagementConfig
 __author__ = "lundberg"
 
 
-class GroupManagementApp(AuthnBaseApp):
-    conf: GroupManagementConfig
-
+class GroupManagementApp(AuthnBaseApp[GroupManagementConfig]):
     def __init__(self, config: GroupManagementConfig, **kwargs: Any) -> None:
         super().__init__(config, **kwargs)
 

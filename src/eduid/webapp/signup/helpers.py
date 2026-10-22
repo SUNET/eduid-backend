@@ -643,30 +643,3 @@ def validate_external_mfa_authn(
     if utc_now() - authn.authn_instant > max_age:
         return SignupMsg.external_mfa_too_old
     return None
-
-
-# backwards compatibility
-def remove_users_with_mail_address(email: str) -> None:
-    """
-    Remove all users with a certain (confirmed) e-mail address from signup_db.
-    When syncing of signed up users fail, they remain in the signup_db in a completed state
-    (no pending mail address). This prevents the user from signing up again, and they can't
-    use their new eduid account either since it is not synced to the central userdb.
-    An option would have been to sync the user again, now, but that was deemed more
-    surprising to the user so instead we remove all the unsynced users from signup_db
-    so the user can do a new signup.
-    :param email: E-mail address
-    :return: None
-    """
-    signup_db = current_app.private_userdb
-    # The e-mail address does not exist in userdb (checked by caller), so if there exists a user
-    # in signup_db with this (non-pending) e-mail address, it is probably left-overs from a
-    # previous signup where the sync to userdb failed. Clean away all such users in signup_db
-    # and continue like this was a completely new signup.
-    completed_users = signup_db.get_users_by_mail(email)
-    for user in completed_users:
-        current_app.logger.warning(f"Removing old user {user} with e-mail {email} from signup_db")
-        signup_db.remove_user_by_id(user.user_id)
-
-
-# end of backwards compatibility

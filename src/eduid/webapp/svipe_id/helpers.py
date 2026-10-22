@@ -71,12 +71,3 @@ class SvipeDocumentUserInfo(UserInfoBase):
         except KeyError as e:
             raise ValueError(f"country code {v} not found in iso3166") from e
         return country.alpha2
-
-
-class SvipeTokenResponse(BaseModel):
-    access_token: str
-    expires_at: int
-    expires_in: int
-    id_token: str
-    token_type: str
-    userinfo: SvipeDocumentUserInfo

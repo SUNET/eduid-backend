@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 
 class LogElement(Element):
     # Application creating the log element
-    created_by: str
+    created_by: str  # ty: ignore[invalid-mutable-override]
     model_config = ConfigDict(str_min_length=1)
 
     @classmethod

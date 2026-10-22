@@ -1,4 +1,3 @@
-import warnings
 from dataclasses import dataclass
 from typing import cast, overload
 
@@ -97,32 +96,21 @@ def add_nin_to_user(user: User, proofing_state: NinProofingState, user_type: typ
 
 
 def verify_nin_for_user(
-    user: User | ProofingUser, proofing_state: NinProofingState, proofing_log_entry: NinProofingLogElement
+    proofing_user: ProofingUser, proofing_state: NinProofingState, proofing_log_entry: NinProofingLogElement
 ) -> bool:
     """
     Mark a nin on a user as verified, after logging data about the proofing to the proofing log.
 
-    If this function is given a ProofingUser instance, the instance will be updated accordingly and
-    the calling function won't need to reload the user from the central database to access the updated
-    NIN element.
+    The ProofingUser instance will be updated accordingly and the calling function won't need to reload
+    the user from the central database to access the updated NIN element.
 
-    :param user: A ProofingUser, or a standard User
+    :param proofing_user: A ProofingUser
     :param proofing_state: Proofing state for user
     :param proofing_log_entry: Proofing log entry element
 
     :return: Success or not
     """
     proofing_log = get_from_current_app("proofing_log", ProofingLog)
-    private_userdb = cast(UserDB[User], get_from_current_app("private_userdb", UserDB))
-
-    if isinstance(user, ProofingUser):
-        proofing_user = user
-    else:
-        # If user is not a ProofingUser, we create a new ProofingUser instance.
-        # This is deprecated usage, since it won't allow the calling function to get
-        # the new NIN element without re-loading the user from the central database.
-        warnings.warn("verify_nin_for_user() called with a User, not a ProofingUser", DeprecationWarning, stacklevel=2)
-        proofing_user = ProofingUser.from_user(user, private_userdb)
 
     # add an unverified nin identity to the user if it does not exist yet
     if proofing_user.identities.nin is None:

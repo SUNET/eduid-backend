@@ -104,15 +104,6 @@ from eduid.webapp.idp.service import SAMLQueryParams, Service
 from eduid.webapp.idp.sso_session import SSOSession
 from eduid.webapp.idp.tou_action import need_tou_acceptance
 
-
-class MustAuthenticate(Exception):
-    """
-    This exception is raised in special circumstances when the IdP decides
-    that a user really must authenticate again, even though there exist an
-    SSO session.
-    """
-
-
 # -----------------------------------------------------------------------------
 # === Single log in ====
 # -----------------------------------------------------------------------------

@@ -89,6 +89,9 @@ test = [
   "ruff",
 ]
 
+[tool.uv]
+constraint-dependencies = ["certifi>=2026.10.18"]
+
 [tool.ruff]
 line-length = 120 # Set the maximum line length to 120.
 target-version = "py313"

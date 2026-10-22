@@ -14,9 +14,7 @@ from eduid.webapp.common.authn.middleware import AuthnBaseApp
 from eduid.webapp.phone.settings.common import PhoneConfig
 
 
-class PhoneApp(AuthnBaseApp):
-    conf: PhoneConfig
-
+class PhoneApp(AuthnBaseApp[PhoneConfig]):
     def __init__(self, config: PhoneConfig, **kwargs: Any) -> None:
         super().__init__(config, **kwargs)
 

@@ -1,5 +1,3 @@
-from pydantic import Field
-
 from eduid.common.config.base import WorkerConfig
 
 
@@ -9,7 +7,6 @@ class AmConfig(WorkerConfig):
     """
 
     new_user_date: str = "2001-01-01"
-    action_plugins: list[str] = Field(default_factory=lambda: ["tou"])
 
 
 class MsgConfig(WorkerConfig):
@@ -17,7 +14,6 @@ class MsgConfig(WorkerConfig):
     Configuration for the msg celery worker
     """
 
-    audit: bool = True
     devel_mode: bool = False
     mail_host: str = "localhost"
     mail_password: str = ""

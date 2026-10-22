@@ -8,7 +8,7 @@ __author__ = "lundberg"
 class EduidSchema(Schema):
     message = fields.String(required=False)
 
-    class Meta:
+    class Meta:  # ty: ignore[invalid-attribute-override]
         unknown = RAISE  # Raise ValidationError on unknown data
 
 

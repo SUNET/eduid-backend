@@ -47,22 +47,22 @@ class ExternalCredential(Credential):
 # the IdP:s expected values at a certain time. Such configuration is better to have in the SP than in
 # the database layer.
 class SwedenConnectCredential(ExternalCredential):
-    framework: Literal[TrustFramework.SWECONN] = TrustFramework.SWECONN
+    framework: Literal[TrustFramework.SWECONN] = TrustFramework.SWECONN  # ty: ignore[invalid-mutable-override]
     level: str  # a value like "loa3", "eidas_sub", ...
 
 
 class EidasCredential(ExternalCredential):
-    framework: Literal[TrustFramework.EIDAS] = TrustFramework.EIDAS
+    framework: Literal[TrustFramework.EIDAS] = TrustFramework.EIDAS  # ty: ignore[invalid-mutable-override]
     level: str  # a value like "loa3", "eidas_sub", ...
 
 
 class BankIDCredential(ExternalCredential):
-    framework: Literal[TrustFramework.BANKID] = TrustFramework.BANKID
+    framework: Literal[TrustFramework.BANKID] = TrustFramework.BANKID  # ty: ignore[invalid-mutable-override]
     level: str  # a value like "loa3", "eidas_sub", ...
 
 
 class FrejaCredential(ExternalCredential):
-    framework: Literal[TrustFramework.FREJA] = TrustFramework.FREJA
+    framework: Literal[TrustFramework.FREJA] = TrustFramework.FREJA  # ty: ignore[invalid-mutable-override]
     level: str  # a value like "loa3", "eidas_sub", ...
 
 

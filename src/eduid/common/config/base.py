@@ -102,7 +102,6 @@ class WorkerConfig(RootConfig):
     Configuration common to all celery workers
     """
 
-    audit: bool = False
     celery: CeleryConfig = Field(default_factory=CeleryConfig)
     mongo_uri: str | None = None
     transaction_audit: bool = False
@@ -218,7 +217,6 @@ class FlaskConfig(CORSMixin):
     babel_domain: str = ""
     # the name of the logger
     logger_name: str = ""
-    internal_signup_url: str = ""
     sentry_dsn: str = ""
     sentry_send_default_pii: bool = False
 
@@ -491,17 +489,14 @@ class ProofingConfigMixin(FrontendActionMixin):
     freja_idp: str | None = None
 
     # eidas
-    foreign_trust_framework: TrustFramework = TrustFramework.EIDAS
     foreign_required_loa: list[str] = Field(default=["eidas-nf-sub", "eidas-nf-high"])
     foreign_identity_idp: str | None = None
 
     # bankid
-    bankid_trust_framework: TrustFramework = TrustFramework.BANKID
     bankid_required_loa: list[str] = Field(default=["uncertified-loa3"])
     bankid_idp: str | None = None
 
     # freja eid
-    freja_eid_trust_framework: TrustFramework = TrustFramework.FREJA
     freja_eid_required_loa: list[str] = Field(default=["freja-loa3", "freja-loa3_nr"])
     freja_eid_required_registration_level: list[str] = Field(default=["PLUS", "EXTENDED"])
 
