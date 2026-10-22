@@ -142,11 +142,11 @@ def authn_callback(user: User) -> WerkzeugResponse:
             nonce=authn_req.nonce,
             code_verifier=authn_req.code_verifier,
         )
-        current_app.logger.debug(f"Got ID token claims: {authn_result.claims}")
+        current_app.logger.debug(f"Got ID token claims: {sorted(authn_result.claims)}")
         if "access_token" not in authn_result.tokens or "token_type" not in authn_result.tokens:
             raise OidcRpError("Missing access_token or token_type in token response")
         userinfo_response = current_app.oidc_client.userinfo(authn_result)
-        current_app.logger.debug(f"Got userinfo response: {userinfo_response}")
+        current_app.logger.debug(f"Got userinfo response claims: {sorted(userinfo_response)}")
     except OidcRpError:
         current_app.logger.exception("Failed to get token/userinfo response from ORCID")
         current_app.stats.count(name="token_response_failed")

@@ -447,9 +447,9 @@ class RP_AuthnRequest(BaseAuthnRequest):
     external_mfa_signup_identity: (
         ExternalMfaSignupFrejaEIDIdentity | ExternalMfaSignupFrejaEIDForeignIdentity | None
     ) = None
-    # Per-login OIDC values that must be kept until the callback
-    nonce: str | None = None
-    code_verifier: str | None = None
+    # Per-login OIDC values that must be kept until the callback, kept out of repr to not end up in logs
+    nonce: str | None = Field(default=None, repr=False)
+    code_verifier: str | None = Field(default=None, repr=False)
     redirect_uri: str | None = None
 
     def formatted_finish_url(self, app_name: str) -> str:

@@ -287,7 +287,7 @@ def authn_callback() -> WerkzeugResponse:
             nonce=authn_req.nonce,
             code_verifier=authn_req.code_verifier,
         )
-        current_app.logger.debug(f"Got ID token claims: {authn_result.claims}")
+        current_app.logger.debug(f"Got ID token claims: {sorted(authn_result.claims)}")
     except OidcRpError:
         current_app.logger.exception("Failed to get token response from Freja")
         current_app.stats.count(name="token_response_failed")
@@ -307,7 +307,7 @@ def authn_callback() -> WerkzeugResponse:
         proofing_method=proofing_method,
         backdoor=backdoor,
     )
-    current_app.logger.debug(f"Callback args: {args}")
+    current_app.logger.debug(f"Callback args: session_info claims {sorted(args.session_info)}, authn_req {authn_req}")
     result = action(args=args)
     current_app.logger.debug(f"Callback action result: {result}")
 

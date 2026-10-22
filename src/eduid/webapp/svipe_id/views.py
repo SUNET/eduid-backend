@@ -194,10 +194,10 @@ def authn_callback(user: User) -> WerkzeugResponse:
             nonce=authn_req.nonce,
             code_verifier=authn_req.code_verifier,
         )
-        current_app.logger.debug(f"Got ID token claims: {authn_result.claims}")
+        current_app.logger.debug(f"Got ID token claims: {sorted(authn_result.claims)}")
         # the client verifies that the sub of the userinfo matches the sub of the ID token
         user_response = current_app.oidc_client.userinfo(authn_result)
-        current_app.logger.debug(f"Got user response: {user_response}")
+        current_app.logger.debug(f"Got user response claims: {sorted(user_response)}")
         user_response.update(authn_result.claims)
         id_token = authn_result.tokens.get("id_token")
         if not id_token:
