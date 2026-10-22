@@ -111,10 +111,7 @@ class GrindvaktOidcRpClient:
         except _CAUGHT_EXCEPTIONS as err:
             self._failed_at = self._clock()
             # discovery errors (e.g. issuer mismatch) carry no secrets, unlike token endpoint errors
-            logger.error(
-                f"OIDC discovery failed for issuer {self._issuer!r}: {type(err).__name__} "
-                f"(code={getattr(err, 'code', None)}): {err}"
-            )
+            logger.exception(f"OIDC discovery failed for issuer {self._issuer!r}")
             if self._provider is not None:
                 # keep using the stale metadata until a refresh succeeds
                 return self._provider

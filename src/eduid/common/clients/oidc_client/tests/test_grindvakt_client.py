@@ -190,9 +190,10 @@ class TestGrindvaktOidcRpClient:
 
     def test_at_hash_mismatch_rejected(self) -> None:
         client = self._client()
+        id_token = self._id_token("nonce", at_hash=self._at_hash("another_access_token"))
 
         with pytest.raises(OidcRpError):
-            self._finish(client, self._id_token("nonce", at_hash=self._at_hash("another_access_token")), "nonce")
+            self._finish(client, id_token, "nonce")
 
     def test_missing_at_hash_accepted(self) -> None:
         result = self._finish(self._client(), self._id_token("nonce"), "nonce")
@@ -201,37 +202,45 @@ class TestGrindvaktOidcRpClient:
 
     def test_nonce_mismatch(self) -> None:
         client = self._client()
+        id_token = self._id_token("other-nonce")
 
         with pytest.raises(OidcRpError):
-            self._finish(client, self._id_token("other-nonce"), "expected-nonce")
+            self._finish(client, id_token, "expected-nonce")
 
     def test_wrong_algorithm(self) -> None:
         client = self._client()
         es_key = _signing_key(kid="key1", alg="ES256")
         self.http.add_json(self.metadata["jwks_uri"], es_key.to_public_jwks())
 
+        id_token = self._id_token("nonce", key=es_key)
+
         with pytest.raises(OidcRpError):
-            self._finish(client, self._id_token("nonce", key=es_key), "nonce")
+            self._finish(client, id_token, "nonce")
 
     def test_wrong_audience(self) -> None:
         client = self._client()
+        id_token = self._id_token("nonce", aud="another_client")
 
         with pytest.raises(OidcRpError):
-            self._finish(client, self._id_token("nonce", aud="another_client"), "nonce")
+            self._finish(client, id_token, "nonce")
 
     def test_unknown_kid(self) -> None:
         client = self._client()
         other_key = _signing_key(kid="unknown")
 
+        id_token = self._id_token("nonce", key=other_key)
+
         with pytest.raises(OidcRpError):
-            self._finish(client, self._id_token("nonce", key=other_key), "nonce")
+            self._finish(client, id_token, "nonce")
 
     def test_expired_id_token(self) -> None:
         client = self._client()
         past = int(time.time()) - 3600
 
+        id_token = self._id_token("nonce", exp=past, iat=past - 60)
+
         with pytest.raises(OidcRpError):
-            self._finish(client, self._id_token("nonce", exp=past, iat=past - 60), "nonce")
+            self._finish(client, id_token, "nonce")
 
     @pytest.mark.parametrize("amr", ["pwd", ["pwd", "mfa"]])
     def test_string_amr_accepted(self, amr: str | list[str]) -> None:
@@ -364,9 +373,10 @@ class TestGrindvaktOidcRpClient:
 
     def test_userinfo_without_access_token(self) -> None:
         client = self._client()
+        result = OidcAuthnResult(claims={"sub": "subject"}, tokens={})
 
         with pytest.raises(OidcRpError):
-            client.userinfo(OidcAuthnResult(claims={"sub": "subject"}, tokens={}))
+            client.userinfo(result)
 
     def test_end_session(self) -> None:
         client = self._client()
