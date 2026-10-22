@@ -503,6 +503,46 @@ class OrcidTests(EduidAPITestCase[OrcidApp]):
         assert user.orcid is not None
         assert user.orcid.id == "https://sandbox.orcid.org/0000-0000-0000-0000"
 
+    def test_authn_callback_without_auth_time_with_real_oidc_client(self, mocker: MockerFixture) -> None:
+        """
+        auth_time is an optional ID token claim. A verified token without it must not make the callback
+        action crash with a KeyError, ORCID is linked with auth_time left unset.
+        """
+        mock_request_user_sync = mocker.patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
+        mock_request_user_sync.side_effect = self.request_user_sync
+
+        response = self._start_connect_with_real_oidc_client(self.test_user_eppn)
+        assert response.status_code == HTTPStatus.OK
+        payload = self.get_response_payload(response)
+        query = parse_qs(urlparse(payload["location"]).query)
+        state = query["state"][0]
+        expected_nonce = query["nonce"][0]
+        assert expected_nonce
+
+        id_token_claims = {
+            "iss": self.oidc_provider_config["issuer"],
+            "sub": "sub",
+            "aud": "test_client",
+            "exp": int(time.time()) + 300,
+            "iat": int(time.time()),
+            "nonce": expected_nonce,
+        }
+        self._mock_real_oidc_id_token(id_token_claims)
+
+        callback_response = self.browser.get(f"/authorization-response?state={state}&code=mock_code")
+        assert callback_response.status_code == HTTPStatus.FOUND
+        assert "/ext-return/" in callback_response.location
+
+        with self.session_cookie(self.browser, self.test_user_eppn) as client:
+            with client.session_transaction() as sess:
+                authn_req = sess.orcid.rp.authns[OIDCState(state)]
+                assert not authn_req.error
+                assert authn_req.status == OrcidMsg.authz_success.value
+
+        user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
+        assert user.orcid is not None
+        assert user.orcid.oidc_authz.id_token.auth_time is None
+
     def _status_after_callback(self, authn_id: OIDCState) -> dict[str, Any]:
         with self.session_cookie(self.browser, self.test_user_eppn) as client:
             with client.session_transaction() as sess:

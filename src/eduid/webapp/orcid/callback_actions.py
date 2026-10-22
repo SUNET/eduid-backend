@@ -42,7 +42,7 @@ def connect_orcid_action(user: User, args: ACSArgs) -> ACSResult:
         exp=id_token["exp"],
         iat=id_token["iat"],
         nonce=id_token["nonce"],
-        auth_time=id_token["auth_time"],
+        auth_time=id_token.get("auth_time"),
         created_by="orcid",
     )
     oidc_authz = OidcAuthorization(
