@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from typing import Any, Literal, Protocol, Self
 from urllib.parse import urlsplit
 
-from pydantic import AnyUrl, BaseModel, Field, field_validator, model_validator
+from pydantic import AnyUrl, BaseModel, ConfigDict, Field, field_validator, model_validator
 
 __author__ = "lundberg"
 
@@ -23,6 +23,9 @@ class OidcRpError(Exception):
 
 
 class OidcRpClientConfig(BaseModel):
+    # The issuer may embed credentials and client_secret is a secret: keep input values out of ValidationError text
+    model_config = ConfigDict(hide_input_in_errors=True)
+
     client_id: str
     client_secret: str
     # The exact issuer string of the provider, used as is for discovery and issuer matching

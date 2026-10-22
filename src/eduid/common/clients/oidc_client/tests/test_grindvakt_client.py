@@ -457,7 +457,8 @@ class TestIssuerHandling:
                 client_id=CLIENT_ID, client_secret="secret", issuer="https://user:hunter2@op.example.com"
             )
 
-        assert "hunter2" not in str(exc_info.value.errors(include_input=False))
+        assert "hunter2" not in str(exc_info.value)
+        assert "hunter2" not in repr(exc_info.value)
 
     def test_trailing_slash_mismatch_fails_and_logs_issuer(self, caplog: pytest.LogCaptureFixture) -> None:
         # the OP publishes an issuer without trailing slash, but the RP is configured with one
