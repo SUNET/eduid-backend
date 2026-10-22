@@ -18,6 +18,14 @@ def _is_loopback_host(host: str) -> bool:
         return False
 
 
+# Asymmetric JWS algorithms accepted for ID token signatures (never "none" or the shared secret HS* family)
+ASYMMETRIC_SIGNING_ALGORITHMS = frozenset(
+    {"RS256", "RS384", "RS512", "PS256", "PS384", "PS512", "ES256", "ES384", "ES512", "EdDSA"}
+)
+# pygrindvakt refuses a leeway above this many seconds
+MAX_LEEWAY = 300
+
+
 class OidcRpError(Exception):
     """The only OIDC RP client error type visible to webapps using OidcRpClient."""
 
@@ -47,6 +55,23 @@ class OidcRpClientConfig(BaseModel):
     # "dedicated_keys" is only safe if the provider's JWKS holds nothing but userinfo signing keys.
     userinfo_trust: Literal["typed", "dedicated_keys"] | None = None
     userinfo_typ: str | None = None
+
+    @field_validator("leeway")
+    @classmethod
+    def _validate_leeway(cls, v: int) -> int:
+        if not 0 <= v <= MAX_LEEWAY:
+            raise ValueError(f"leeway must be between 0 and {MAX_LEEWAY} seconds")
+        return v
+
+    @field_validator("allowed_algorithms")
+    @classmethod
+    def _validate_allowed_algorithms(cls, v: list[str]) -> list[str]:
+        if not v:
+            raise ValueError("at least one allowed signing algorithm is required")
+        unsupported = sorted(set(v) - ASYMMETRIC_SIGNING_ALGORITHMS)
+        if unsupported:
+            raise ValueError(f"unsupported signing algorithms: {unsupported}")
+        return v
 
     @field_validator("issuer")
     @classmethod

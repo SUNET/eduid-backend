@@ -275,6 +275,24 @@ class TestGrindvaktOidcRpClient:
         with pytest.raises(OidcRpError):
             self._finish(client, id_token, "nonce")
 
+    @pytest.mark.parametrize("leeway", [-1, 301, 3600])
+    def test_config_rejects_invalid_leeway(self, leeway: int) -> None:
+        with pytest.raises(ValidationError, match="leeway"):
+            OidcRpClientConfig(client_id=CLIENT_ID, client_secret="secret", issuer=ISSUER, leeway=leeway)
+
+    @pytest.mark.parametrize("algorithms", [[], ["none"], ["HS256"], ["RS256", "FOO"]])
+    def test_config_rejects_invalid_allowed_algorithms(self, algorithms: list[str]) -> None:
+        with pytest.raises(ValidationError, match="signing algorithm"):
+            OidcRpClientConfig(
+                client_id=CLIENT_ID, client_secret="secret", issuer=ISSUER, allowed_algorithms=algorithms
+            )
+
+    @pytest.mark.parametrize("leeway", [0, 60, 300])
+    def test_config_accepts_valid_leeway(self, leeway: int) -> None:
+        conf = OidcRpClientConfig(client_id=CLIENT_ID, client_secret="secret", issuer=ISSUER, leeway=leeway)
+
+        assert conf.leeway == leeway
+
     def test_hash_config_defaults(self) -> None:
         conf = OidcRpClientConfig(client_id=CLIENT_ID, client_secret="secret", issuer=ISSUER)
 
