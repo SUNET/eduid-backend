@@ -14,6 +14,8 @@ __author__ = "lundberg"
 
 
 class SvipeClientConfig(OidcRpClientConfig):
+    require_at_hash: bool = True
+    require_c_hash: bool = True
     acr_values: list[str] = Field(default=["face_present"])
     scopes: list[str] = Field(default=["openid"])
     claims_request: dict[str, dict[str, bool] | None] = Field(

@@ -1,5 +1,3 @@
-import base64
-import hashlib
 import logging
 import threading
 import time
@@ -17,7 +15,7 @@ from pytest_mock import MockerFixture
 
 from eduid.common.clients.oidc_client.base import OidcAuthnResult, OidcRpClientConfig, OidcRpError
 from eduid.common.clients.oidc_client.grindvakt_client import GrindvaktOidcRpClient, init_oidc_rp_client
-from eduid.common.clients.oidc_client.testing import RecordedRequest, StaticHttpClient
+from eduid.common.clients.oidc_client.testing import RecordedRequest, StaticHttpClient, half_hash
 
 __author__ = "lundberg"
 
@@ -176,21 +174,16 @@ class TestGrindvaktOidcRpClient:
         assert form["code_verifier"] == CODE_VERIFIER
         assert form["redirect_uri"] == REDIRECT_URI
 
-    @staticmethod
-    def _at_hash(access_token: str) -> str:
-        digest = hashlib.sha256(access_token.encode()).digest()
-        return base64.urlsafe_b64encode(digest[: len(digest) // 2]).rstrip(b"=").decode()
-
     def test_at_hash_matching_accepted(self) -> None:
         client = self._client()
 
-        result = self._finish(client, self._id_token("nonce", at_hash=self._at_hash("access_token")), "nonce")
+        result = self._finish(client, self._id_token("nonce", at_hash=half_hash("access_token")), "nonce")
 
-        assert result.claims["at_hash"] == self._at_hash("access_token")
+        assert result.claims["at_hash"] == half_hash("access_token")
 
     def test_at_hash_mismatch_rejected(self) -> None:
         client = self._client()
-        id_token = self._id_token("nonce", at_hash=self._at_hash("another_access_token"))
+        id_token = self._id_token("nonce", at_hash=half_hash("another_access_token"))
 
         with pytest.raises(OidcRpError):
             self._finish(client, id_token, "nonce")
@@ -199,6 +192,93 @@ class TestGrindvaktOidcRpClient:
         result = self._finish(self._client(), self._id_token("nonce"), "nonce")
 
         assert "at_hash" not in result.claims
+
+    def test_require_at_hash_missing_rejected(self) -> None:
+        client = self._client(require_at_hash=True)
+        id_token = self._id_token("nonce")
+
+        with pytest.raises(OidcRpError):
+            self._finish(client, id_token, "nonce")
+
+    def test_require_at_hash_mismatch_rejected(self) -> None:
+        client = self._client(require_at_hash=True)
+        id_token = self._id_token("nonce", at_hash=half_hash("another_access_token"))
+
+        with pytest.raises(OidcRpError):
+            self._finish(client, id_token, "nonce")
+
+    def test_require_at_hash_matching_accepted(self) -> None:
+        client = self._client(require_at_hash=True)
+
+        result = self._finish(client, self._id_token("nonce", at_hash=half_hash("access_token")), "nonce")
+
+        assert result.claims["sub"] == "subject"
+
+    def test_c_hash_mismatch_rejected(self) -> None:
+        client = self._client()
+        id_token = self._id_token("nonce", c_hash=half_hash("another_code"))
+
+        with pytest.raises(OidcRpError):
+            self._finish(client, id_token, "nonce")
+
+    def test_c_hash_matching_accepted(self) -> None:
+        result = self._finish(self._client(), self._id_token("nonce", c_hash=half_hash("code")), "nonce")
+
+        assert result.claims["c_hash"] == half_hash("code")
+
+    def test_missing_c_hash_accepted(self) -> None:
+        result = self._finish(self._client(), self._id_token("nonce"), "nonce")
+
+        assert "c_hash" not in result.claims
+
+    def test_require_c_hash_missing_rejected(self) -> None:
+        client = self._client(require_c_hash=True)
+        id_token = self._id_token("nonce")
+
+        with pytest.raises(OidcRpError):
+            self._finish(client, id_token, "nonce")
+
+    def test_require_c_hash_mismatch_rejected(self) -> None:
+        client = self._client(require_c_hash=True)
+        id_token = self._id_token("nonce", c_hash=half_hash("another_code"))
+
+        with pytest.raises(OidcRpError):
+            self._finish(client, id_token, "nonce")
+
+    def test_require_c_hash_matching_accepted(self) -> None:
+        client = self._client(require_c_hash=True)
+
+        result = self._finish(client, self._id_token("nonce", c_hash=half_hash("code")), "nonce")
+
+        assert result.claims["sub"] == "subject"
+
+    def test_require_c_hash_without_at_hash_accepted(self) -> None:
+        client = self._client(require_c_hash=True)
+
+        result = self._finish(client, self._id_token("nonce", c_hash=half_hash("code")), "nonce")
+
+        assert "at_hash" not in result.claims
+
+    def test_issuer_mismatch_rejected(self) -> None:
+        client = self._client()
+        id_token = self._id_token("nonce", iss="https://other.example.com")
+
+        with pytest.raises(OidcRpError):
+            self._finish(client, id_token, "nonce")
+
+    @pytest.mark.parametrize("iss", [ISSUER, "https://other.example.com"])
+    def test_key_from_other_issuer_rejected(self, iss: str) -> None:
+        client = self._client()
+        other_key = _signing_key()  # same kid, different key material
+        id_token = self._id_token("nonce", key=other_key, iss=iss)
+
+        with pytest.raises(OidcRpError):
+            self._finish(client, id_token, "nonce")
+
+    def test_hash_config_defaults(self) -> None:
+        conf = OidcRpClientConfig(client_id=CLIENT_ID, client_secret="secret", issuer=ISSUER)
+
+        assert (conf.require_at_hash, conf.require_c_hash) == (False, False)
 
     def test_nonce_mismatch(self) -> None:
         client = self._client()

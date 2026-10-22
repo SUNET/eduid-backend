@@ -37,6 +37,10 @@ class OidcRpClientConfig(BaseModel):
     allowed_algorithms: list[str] = Field(default=["RS256"])
     # Clock skew tolerance, in seconds, when validating ID token time claims
     leeway: int = 120
+    # Reject ID tokens lacking at_hash / c_hash. When present they are always checked against the access token /
+    # authorization code. Only enable for OPs known to send them in the code flow.
+    require_at_hash: bool = False
+    require_c_hash: bool = False
     userinfo_method: Literal["GET", "POST"] = "GET"
     # How a signed (application/jwt) userinfo response is proven to be a userinfo token. None means only
     # plain JSON userinfo responses are accepted. "typed" requires userinfo_typ (the JWT "typ" header value),

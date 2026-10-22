@@ -1,3 +1,5 @@
+import base64
+import hashlib
 import json
 from collections.abc import Mapping
 from dataclasses import dataclass, field
@@ -80,6 +82,15 @@ class RecordedRequest:
     url: str
     form: list[tuple[str, str]] | None = None
     headers: list[tuple[str, str]] | None = None
+
+
+def half_hash(value: str) -> str:
+    """The OIDC at_hash/c_hash value (left half of the SHA-256 digest, base64url) for an access token or code.
+
+    SHA-256 matches RS256/ES256 tokens only, the hash algorithm follows the JWT alg.
+    """
+    digest = hashlib.sha256(value.encode()).digest()
+    return base64.urlsafe_b64encode(digest[: len(digest) // 2]).rstrip(b"=").decode()
 
 
 @dataclass

@@ -166,7 +166,7 @@ class GrindvaktOidcRpClient:
                 code_verifier,
                 redirect_uri=redirect_uri,
             )
-            # at_hash is checked when the OP sends it, but not required
+            # at_hash/c_hash are checked when the OP sends them, and required per config
             claims = provider.jwks.verify_id_token(
                 token_set.id_token,
                 self._config.client_id,
@@ -174,6 +174,9 @@ class GrindvaktOidcRpClient:
                 self._config.allowed_algorithms,
                 leeway=self._config.leeway,
                 access_token=token_set.access_token or None,
+                authorization_code=code,
+                require_at_hash=self._config.require_at_hash,
+                require_c_hash=self._config.require_c_hash,
             )
         except _CAUGHT_EXCEPTIONS as err:
             raise _wrap("token exchange", err) from None
