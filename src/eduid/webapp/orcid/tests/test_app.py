@@ -19,6 +19,7 @@ from eduid.userdb.orcid import OidcAuthorization, OidcIdToken, Orcid
 from eduid.userdb.proofing import ProofingUser
 from eduid.webapp.common.api.messages import AuthnStatusMsg
 from eduid.webapp.common.api.testing import EduidAPITestCase
+from eduid.webapp.common.api.utils import get_external_url
 from eduid.webapp.common.session.namespaces import OIDCState
 from eduid.webapp.orcid.app import OrcidApp, init_orcid_app
 from eduid.webapp.orcid.helpers import OrcidMsg
@@ -92,6 +93,8 @@ class OrcidTests(EduidAPITestCase[OrcidApp]):
     @classmethod
     def update_config(cls) -> dict[str, Any]:
         config = cls._get_base_config()
+        # pygrindvakt only accepts https redirect URIs for registered (non-loopback) clients
+        config["preferred_url_scheme"] = "https"
         config.update(
             {
                 "orcid_client": {
@@ -137,7 +140,9 @@ class OrcidTests(EduidAPITestCase[OrcidApp]):
         http.add_json("https://example.com/op/.well-known/openid-configuration", self.oidc_provider_config)
         http.add_json(str(self.oidc_provider_config["jwks_uri"]), self.signing_key.to_public_jwks())
         self.static_http = http
-        self.app.oidc_client = GrindvaktOidcRpClient(self.app.conf.orcid_client, http=http)
+        self.app.oidc_client = GrindvaktOidcRpClient(
+            self.app.conf.orcid_client, [get_external_url(self.app, "orcid.authn_callback")], http=http
+        )
 
         with self.session_cookie(self.browser, eppn) as client:
             with client.session_transaction() as sess:
@@ -205,7 +210,7 @@ class OrcidTests(EduidAPITestCase[OrcidApp]):
         query = parse_qs(urlparse(location).query)
         assert query["response_type"] == ["code"]
         assert query["client_id"] == ["test_client"]
-        assert query["redirect_uri"] == ["http://test.localhost/authorization-response"]
+        assert query["redirect_uri"] == ["https://test.localhost/authorization-response"]
         assert query["scope"] == ["openid"]
         assert query["claims"] == [json.dumps({"userinfo": {"id": None}})]
         assert len(query["state"][0]) > 0
@@ -219,7 +224,7 @@ class OrcidTests(EduidAPITestCase[OrcidApp]):
                 authn_req = sess.orcid.rp.authns[OIDCState(query["state"][0])]
                 assert authn_req.nonce == query["nonce"][0]
                 assert authn_req.code_verifier is None
-                assert authn_req.redirect_uri == "http://test.localhost/authorization-response"
+                assert authn_req.redirect_uri == "https://test.localhost/authorization-response"
 
     def test_oidc_flow(self, mocker: MockerFixture) -> None:
         mock_request_user_sync = mocker.patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
@@ -562,7 +567,7 @@ class OrcidTests(EduidAPITestCase[OrcidApp]):
         location = urlparse(response.headers["Location"])
         assert location.path == "/errors"
         assert parse_qs(location.query)["ctx"] == ["oidc_response_unsolicited"]
-        assert parse_qs(location.query)["rp"] == ["http://test.localhost/authorization-response"]
+        assert parse_qs(location.query)["rp"] == ["https://test.localhost/authorization-response"]
 
     def test_authn_callback_unsolicited_response_without_errors_url(self) -> None:
         self._start_connect(self.test_user_eppn)

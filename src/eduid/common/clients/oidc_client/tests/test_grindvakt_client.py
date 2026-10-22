@@ -45,7 +45,7 @@ class TestGrindvaktOidcRpClient:
 
     def _client(self, **config: Any) -> GrindvaktOidcRpClient:
         conf = OidcRpClientConfig(client_id=CLIENT_ID, client_secret="secret", issuer=ISSUER, **config)
-        return GrindvaktOidcRpClient(conf, http=self.http)
+        return GrindvaktOidcRpClient(conf, [REDIRECT_URI], http=self.http)
 
     def _id_token(self, nonce: str, key: SigningKey | None = None, **claims: Any) -> str:
         now = int(time.time())
@@ -103,6 +103,35 @@ class TestGrindvaktOidcRpClient:
         assert query["acr_values"] == ["loa3 loa2"]
         assert query["claims"] == ['{"userinfo": {"id": null}}']
         assert query["scope"] == ["openid profile"]
+
+    def test_unregistered_redirect_uri_rejected_on_mint(self) -> None:
+        client = self._client()
+
+        with pytest.raises(OidcRpError):
+            client.mint_authn_request("https://evil.example.com/callback")
+
+    def test_unregistered_redirect_uri_rejected_on_finish(self) -> None:
+        client = self._client()
+        id_token = self._id_token("nonce")
+        self._token_response(id_token)
+
+        with pytest.raises(OidcRpError):
+            client.finish("code", redirect_uri="https://evil.example.com/callback", nonce="nonce", code_verifier=None)
+
+    def test_secondary_registered_redirect_uri_accepted(self) -> None:
+        other = "https://rp.example.com/other"
+        conf = OidcRpClientConfig(client_id=CLIENT_ID, client_secret="secret", issuer=ISSUER)
+        client = GrindvaktOidcRpClient(conf, [REDIRECT_URI, other], http=self.http)
+
+        request = client.mint_authn_request(other)
+
+        assert request.redirect_uri == other
+
+    def test_no_redirect_uris_rejected(self) -> None:
+        conf = OidcRpClientConfig(client_id=CLIENT_ID, client_secret="secret", issuer=ISSUER)
+
+        with pytest.raises(ValueError, match="redirect_uri"):
+            GrindvaktOidcRpClient(conf, [], http=self.http)
 
     def test_discovery_is_done_once(self) -> None:
         client = self._client()
@@ -599,7 +628,7 @@ class TestIssuerHandling:
         http, metadata = _static_op(issuer)
         config = OidcRpClientConfig(client_id=CLIENT_ID, client_secret="secret", issuer=issuer)
 
-        client = GrindvaktOidcRpClient(config, http=http)
+        client = GrindvaktOidcRpClient(config, [REDIRECT_URI], http=http)
 
         assert client._get_provider().info.issuer == issuer
         assert client.mint_authn_request(REDIRECT_URI).url.startswith(metadata["authorization_endpoint"])
@@ -662,7 +691,7 @@ class TestIssuerHandling:
         # the OP publishes an issuer without trailing slash, but the RP is configured with one
         http, _ = _static_op("https://op.example.com/oidc")
         config = OidcRpClientConfig(client_id=CLIENT_ID, client_secret="secret", issuer="https://op.example.com/oidc/")
-        client = GrindvaktOidcRpClient(config, http=http)
+        client = GrindvaktOidcRpClient(config, [REDIRECT_URI], http=http)
 
         with caplog.at_level(logging.ERROR), pytest.raises(OidcRpError):
             client.mint_authn_request(REDIRECT_URI)
@@ -707,7 +736,7 @@ class TestDiscoveryConcurrency:
 
     def _client(self, http: Any = None, **config: Any) -> GrindvaktOidcRpClient:  # noqa: ANN401
         conf = OidcRpClientConfig(client_id=CLIENT_ID, client_secret="secret", issuer=ISSUER, **config)
-        return GrindvaktOidcRpClient(conf, http=http or self.gated)
+        return GrindvaktOidcRpClient(conf, [REDIRECT_URI], http=http or self.gated)
 
     def test_discovery_timeout_fails_and_backs_off(self) -> None:
         timing_out = _TimeoutHttpClient(self.http)
@@ -780,7 +809,7 @@ class TestDiscoveryConcurrency:
             client_id=CLIENT_ID, client_secret="secret", issuer=ISSUER, discovery_timeout=6, http_request_timeout=40
         )
 
-        init_oidc_rp_client(Flask("test"), "freja_eid", config)
+        init_oidc_rp_client(Flask("test"), "freja_eid", config, [REDIRECT_URI])
 
         calls = [call.kwargs for call in spy.call_args_list]
         assert {

@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 import threading
 import time
-from collections.abc import Callable, Mapping
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, cast
 
@@ -52,14 +52,25 @@ class GrindvaktOidcRpClient:
     def __init__(
         self,
         config: OidcRpClientConfig,
+        redirect_uris: Sequence[str],
         http: HttpClientProtocol | gv_http.ReqwestClient | None = None,
         clock: Callable[[], float] = time.monotonic,
         discovery_http: HttpClientProtocol | gv_http.ReqwestClient | None = None,
     ) -> None:
         if config.code_challenge_method not in (None, "S256"):
             raise ValueError(f"Unsupported code_challenge_method: {config.code_challenge_method}")
+        if not redirect_uris:
+            raise ValueError("at least one redirect_uri must be registered")
         self._config = config
         self._issuer = config.issuer
+        # The redirect URIs are registered on the client, a per-request redirect_uri must match one of them exactly
+        self._rp = rp.RpClient(
+            config.client_id,
+            redirect_uris[0],
+            redirect_uris=list(redirect_uris),
+            scope=" ".join(config.scopes),
+            client_secret=config.client_secret,
+        )
         self._http = http if http is not None else gv_http.ReqwestClient()
         # discovery has its own, tighter, timeouts than token/userinfo requests
         self._discovery_http = discovery_http if discovery_http is not None else self._http
@@ -130,14 +141,6 @@ class GrindvaktOidcRpClient:
             return self._provider
         raise OidcRpError("discovery failed recently, not retrying yet")
 
-    def _rp_client(self, redirect_uri: str) -> rp.RpClient:
-        return rp.RpClient(
-            self._config.client_id,
-            redirect_uri,
-            scope=" ".join(self._config.scopes),
-            client_secret=self._config.client_secret,
-        )
-
     def mint_authn_request(self, redirect_uri: str, extra_params: Mapping[str, str] | None = None) -> AuthnRequestData:
         provider = self._get_provider()
         extra = dict(extra_params or {})
@@ -146,7 +149,7 @@ class GrindvaktOidcRpClient:
         try:
             url, state, nonce, verifier = rp.begin(
                 provider.info,
-                self._rp_client(redirect_uri),
+                self._rp,
                 extra=extra,
                 redirect_uri=redirect_uri,
                 pkce=self._config.code_challenge_method == "S256",
@@ -161,7 +164,7 @@ class GrindvaktOidcRpClient:
             token_set = rp.exchange_code(
                 self._http,
                 provider.info,
-                self._rp_client(redirect_uri),
+                self._rp,
                 code,
                 code_verifier,
                 redirect_uri=redirect_uri,
@@ -228,7 +231,11 @@ class GrindvaktOidcRpClient:
 
 
 def init_oidc_rp_client(
-    app: Flask, name: str, config: OidcRpClientConfig, http: HttpClientProtocol | None = None
+    app: Flask,
+    name: str,
+    config: OidcRpClientConfig,
+    redirect_uris: Sequence[str],
+    http: HttpClientProtocol | None = None,
 ) -> GrindvaktOidcRpClient:
     """
     Set up a pygrindvakt-backed OIDC RP client.
@@ -236,14 +243,16 @@ def init_oidc_rp_client(
     :param app: the Flask app the client is used by
     :param name: the name of the client, used in the User-Agent of outgoing requests
     :param config: the OIDC RP client configuration
+    :param redirect_uris: the redirect URIs registered for the client, the first one is the primary
     :param http: HTTP client to use for all requests to the provider (tests inject a static one)
     """
     app.logger.debug(f"Initializing OIDC RP client {name} for issuer {config.issuer}")
     if http is not None:
-        return GrindvaktOidcRpClient(config, http=http)
+        return GrindvaktOidcRpClient(config, redirect_uris, http=http)
     user_agent = f"eduid-{name}"
     return GrindvaktOidcRpClient(
         config,
+        redirect_uris,
         http=gv_http.ReqwestClient(
             connect_timeout=config.http_connect_timeout,
             read_timeout=config.http_read_timeout,

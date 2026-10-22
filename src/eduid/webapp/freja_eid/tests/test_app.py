@@ -28,6 +28,7 @@ from eduid.userdb.identity import (
     NinIdentity,
 )
 from eduid.webapp.common.api.messages import AuthnStatusMsg, CommonMsg
+from eduid.webapp.common.api.utils import get_external_url
 from eduid.webapp.common.proofing.messages import ProofingMsg
 from eduid.webapp.common.proofing.testing import ProofingTests
 from eduid.webapp.common.session.namespaces import (
@@ -151,6 +152,8 @@ class FrejaEIDTests(ProofingTests[FrejaEIDApp]):
     @classmethod
     def update_config(cls) -> dict[str, Any]:
         config = cls._get_base_config()
+        # pygrindvakt only accepts https redirect URIs for registered (non-loopback) clients
+        config["preferred_url_scheme"] = "https"
         config.update(
             {
                 "freja_eid_client": {
@@ -304,7 +307,9 @@ class FrejaEIDTests(ProofingTests[FrejaEIDApp]):
         http = StaticHttpClient()
         http.add_json("https://example.com/op/oidc/.well-known/openid-configuration", self.oidc_provider_config)
         http.add_json(str(self.oidc_provider_config["jwks_uri"]), self.signing_key.to_public_jwks())
-        self.app.oidc_client = GrindvaktOidcRpClient(self.app.conf.freja_eid_client, http=http)
+        self.app.oidc_client = GrindvaktOidcRpClient(
+            self.app.conf.freja_eid_client, [get_external_url(self.app, "freja_eid.authn_callback")], http=http
+        )
         self.static_http = http
         return http
 
@@ -414,7 +419,7 @@ class FrejaEIDTests(ProofingTests[FrejaEIDApp]):
         query: dict[str, list[str]] = parse_qs(urlparse(location).query)
         assert query["response_type"] == ["code"]
         assert query["client_id"] == ["test_client_id"]
-        assert query["redirect_uri"] == ["http://test.localhost/authn-callback"]
+        assert query["redirect_uri"] == ["https://test.localhost/authn-callback"]
         assert query["scope"] == [" ".join(self.app.conf.freja_eid_client.scopes)], (
             f"{query['scope']} != {[' '.join(self.app.conf.freja_eid_client.scopes)]}"
         )
@@ -429,7 +434,7 @@ class FrejaEIDTests(ProofingTests[FrejaEIDApp]):
                 authn_req = sess.freja_eid.rp.authns[OIDCState(query["state"][0])]
                 assert authn_req.nonce == query["nonce"][0]
                 assert authn_req.code_verifier
-                assert authn_req.redirect_uri == "http://test.localhost/authn-callback"
+                assert authn_req.redirect_uri == "https://test.localhost/authn-callback"
 
     def test_verify_nin_identity(self, mocker: MockerFixture) -> None:
         mocker.patch("eduid.webapp.common.api.helpers.get_reference_nin_from_navet_data", return_value=None)
@@ -1486,7 +1491,7 @@ class FrejaEIDTests(ProofingTests[FrejaEIDApp]):
         location = urlparse(response.headers["Location"])
         assert location.path == "/errors"
         assert parse_qs(location.query)["ctx"] == ["oidc_response_unsolicited"]
-        assert parse_qs(location.query)["rp"] == ["http://test.localhost/authn-callback"]
+        assert parse_qs(location.query)["rp"] == ["https://test.localhost/authn-callback"]
 
     def test_callback_unsolicited_response_without_errors_url(self) -> None:
         eppn = self.unverified_test_user.eppn
