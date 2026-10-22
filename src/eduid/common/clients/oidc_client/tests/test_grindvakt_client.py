@@ -541,12 +541,17 @@ class TestGrindvaktOidcRpClient:
         assert userinfo["sub"] == "subject"
         assert userinfo["name"] == "Test"
 
-    def test_signed_userinfo_dedicated_keys(self) -> None:
-        client = self._client(userinfo_trust="dedicated_keys")
-        result = self._finish(client, self._id_token("nonce"), "nonce")
-        self._signed_userinfo(typ=None)
+    @pytest.mark.parametrize("typ", [None, "JWT"])
+    def test_id_token_not_accepted_as_signed_userinfo(self, typ: str | None) -> None:
+        client = self._client(userinfo_trust="typed", userinfo_typ="userinfo+jwt")
+        now = int(time.time())
+        claims = {"iss": ISSUER, "sub": "subject", "aud": CLIENT_ID, "exp": now + 300, "iat": now, "nonce": "nonce"}
+        id_token = jwt.sign(self.key, claims, typ=typ)
+        result = self._finish(client, id_token, "nonce")
+        self.http.responses[self.metadata["userinfo_endpoint"]] = (200, id_token.encode(), "application/jwt")
 
-        assert client.userinfo(result)["sub"] == "subject"
+        with pytest.raises(OidcRpError):
+            client.userinfo(result)
 
     def test_signed_userinfo_rejected_without_trust(self) -> None:
         client = self._client()
@@ -587,6 +592,13 @@ class TestGrindvaktOidcRpClient:
             self._client(userinfo_typ="userinfo+jwt")
         with pytest.raises(ValidationError):
             self._client(userinfo_trust="untyped_shared_key_compat")
+        with pytest.raises(ValidationError):
+            self._client(userinfo_trust="dedicated_keys")
+
+    @pytest.mark.parametrize("typ", ["JWT", "jwt", "application/jwt"])
+    def test_userinfo_typ_must_differ_from_generic_jwt(self, typ: str) -> None:
+        with pytest.raises(ValidationError, match="distinct"):
+            self._client(userinfo_trust="typed", userinfo_typ=typ)
 
     def test_userinfo_without_access_token(self) -> None:
         client = self._client()

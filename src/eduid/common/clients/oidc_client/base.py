@@ -57,9 +57,10 @@ class OidcRpClientConfig(BaseModel):
     require_c_hash: bool = False
     userinfo_method: Literal["GET", "POST"] = "GET"
     # How a signed (application/jwt) userinfo response is proven to be a userinfo token. None means only
-    # plain JSON userinfo responses are accepted. "typed" requires userinfo_typ (the JWT "typ" header value),
-    # "dedicated_keys" is only safe if the provider's JWKS holds nothing but userinfo signing keys.
-    userinfo_trust: Literal["typed", "dedicated_keys"] | None = None
+    # plain JSON userinfo responses are accepted. "typed" requires userinfo_typ (the JWT "typ" header value) and
+    # is the only supported mode: the provider's key set also verifies ID tokens, so only a distinct "typ"
+    # keeps an ID token from being accepted as a signed userinfo response.
+    userinfo_trust: Literal["typed"] | None = None
     userinfo_typ: str | None = None
 
     @field_validator("leeway")
@@ -124,6 +125,8 @@ class OidcRpClientConfig(BaseModel):
     def _validate_userinfo_trust(self) -> Self:
         if self.userinfo_trust == "typed" and not self.userinfo_typ:
             raise ValueError("userinfo_trust 'typed' requires userinfo_typ")
+        if self.userinfo_typ is not None and self.userinfo_typ.lower() in {"jwt", "application/jwt"}:
+            raise ValueError("userinfo_typ must be a type distinct from the generic JWT type")
         if self.userinfo_trust is None and self.userinfo_typ is not None:
             raise ValueError("userinfo_typ requires userinfo_trust")
         return self
