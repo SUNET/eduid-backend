@@ -167,6 +167,9 @@ class GrindvaktOidcRpClient:
                 redirect_uri=redirect_uri,
             )
             # at_hash/c_hash are checked when the OP sends them, and required per config
+            accepted_acr = (
+                (self._config.accepted_acr_values or self._config.acr_values) if self._config.require_acr else None
+            )
             claims = provider.jwks.verify_id_token(
                 token_set.id_token,
                 self._config.client_id,
@@ -177,6 +180,8 @@ class GrindvaktOidcRpClient:
                 authorization_code=code,
                 require_at_hash=self._config.require_at_hash,
                 require_c_hash=self._config.require_c_hash,
+                acr_values=accepted_acr,
+                max_age=self._config.max_age,
             )
         except _CAUGHT_EXCEPTIONS as err:
             raise _wrap("token exchange", err) from None

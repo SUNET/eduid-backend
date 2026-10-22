@@ -17,6 +17,9 @@ class SvipeClientConfig(OidcRpClientConfig):
     require_at_hash: bool = True
     require_c_hash: bool = True
     acr_values: list[str] = Field(default=["face_present"])
+    # face_and_document_present includes the face_present level
+    require_acr: bool = True
+    accepted_acr_values: list[str] | None = Field(default=["face_present", "face_and_document_present"])
     scopes: list[str] = Field(default=["openid"])
     claims_request: dict[str, dict[str, bool] | None] = Field(
         default={

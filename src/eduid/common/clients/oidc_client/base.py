@@ -40,6 +40,12 @@ class OidcRpClientConfig(BaseModel):
     issuer: str
     code_challenge_method: str | None = Field(default="S256")
     acr_values: list[str] = Field(default_factory=list)
+    # Reject ID tokens whose acr claim is missing or not in accepted_acr_values (default: acr_values). The OP is free to
+    # authenticate at another level than the one requested, so this is what makes the requested level binding.
+    require_acr: bool = False
+    accepted_acr_values: list[str] | None = None
+    # Reject ID tokens with a missing auth_time or an authentication older than this many seconds
+    max_age: int | None = None
     scopes: list[str] = Field(default=["openid"])
     # ID token signature algorithms accepted from the provider
     allowed_algorithms: list[str] = Field(default=["RS256"])
@@ -61,6 +67,13 @@ class OidcRpClientConfig(BaseModel):
     def _validate_leeway(cls, v: int) -> int:
         if not 0 <= v <= MAX_LEEWAY:
             raise ValueError(f"leeway must be between 0 and {MAX_LEEWAY} seconds")
+        return v
+
+    @field_validator("max_age")
+    @classmethod
+    def _validate_max_age(cls, v: int | None) -> int | None:
+        if v is not None and v <= 0:
+            raise ValueError("max_age must be positive")
         return v
 
     @field_validator("allowed_algorithms")
@@ -100,6 +113,12 @@ class OidcRpClientConfig(BaseModel):
         if parts.scheme == "http" and _is_loopback_host(host):
             return v
         raise ValueError("issuer must be an https URL (http is only allowed for loopback hosts)")
+
+    @model_validator(mode="after")
+    def _validate_acr(self) -> Self:
+        if self.require_acr and not (self.accepted_acr_values or self.acr_values):
+            raise ValueError("require_acr requires acr_values or accepted_acr_values")
+        return self
 
     @model_validator(mode="after")
     def _validate_userinfo_trust(self) -> Self:

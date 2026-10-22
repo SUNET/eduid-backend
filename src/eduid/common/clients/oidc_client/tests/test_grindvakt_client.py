@@ -319,6 +319,70 @@ class TestGrindvaktOidcRpClient:
 
         assert conf.leeway == leeway
 
+    def test_acr_not_checked_by_default(self) -> None:
+        client = self._client(acr_values=["loa3"])
+        id_token = self._id_token("nonce", acr="other")
+
+        result = self._finish(client, id_token, "nonce")
+
+        assert result.claims["acr"] == "other"
+
+    def test_require_acr_matching_accepted(self) -> None:
+        client = self._client(acr_values=["loa3"], require_acr=True)
+        id_token = self._id_token("nonce", acr="loa3")
+
+        result = self._finish(client, id_token, "nonce")
+
+        assert result.claims["acr"] == "loa3"
+
+    @pytest.mark.parametrize("acr", [None, "loa2"])
+    def test_require_acr_missing_or_other_rejected(self, acr: str | None) -> None:
+        client = self._client(acr_values=["loa3"], require_acr=True)
+        claims: dict[str, Any] = {"acr": acr} if acr is not None else {}
+        id_token = self._id_token("nonce", **claims)
+
+        with pytest.raises(OidcRpError):
+            self._finish(client, id_token, "nonce")
+
+    def test_require_acr_uses_accepted_acr_values(self) -> None:
+        client = self._client(acr_values=["loa3"], accepted_acr_values=["loa3", "loa4"], require_acr=True)
+        id_token = self._id_token("nonce", acr="loa4")
+
+        result = self._finish(client, id_token, "nonce")
+
+        assert result.claims["acr"] == "loa4"
+
+    def test_require_acr_without_values_rejected(self) -> None:
+        with pytest.raises(ValidationError, match="require_acr"):
+            OidcRpClientConfig(client_id=CLIENT_ID, client_secret="secret", issuer=ISSUER, require_acr=True)
+
+    def test_max_age_missing_auth_time_rejected(self) -> None:
+        client = self._client(max_age=300)
+        id_token = self._id_token("nonce")
+
+        with pytest.raises(OidcRpError):
+            self._finish(client, id_token, "nonce")
+
+    def test_max_age_stale_auth_time_rejected(self) -> None:
+        client = self._client(max_age=300)
+        id_token = self._id_token("nonce", auth_time=int(time.time()) - 3600)
+
+        with pytest.raises(OidcRpError):
+            self._finish(client, id_token, "nonce")
+
+    def test_max_age_recent_auth_time_accepted(self) -> None:
+        client = self._client(max_age=300)
+        id_token = self._id_token("nonce", auth_time=int(time.time()) - 10)
+
+        result = self._finish(client, id_token, "nonce")
+
+        assert "auth_time" in result.claims
+
+    @pytest.mark.parametrize("max_age", [0, -1])
+    def test_config_rejects_non_positive_max_age(self, max_age: int) -> None:
+        with pytest.raises(ValidationError, match="max_age"):
+            OidcRpClientConfig(client_id=CLIENT_ID, client_secret="secret", issuer=ISSUER, max_age=max_age)
+
     def test_hash_config_defaults(self) -> None:
         conf = OidcRpClientConfig(client_id=CLIENT_ID, client_secret="secret", issuer=ISSUER)
 

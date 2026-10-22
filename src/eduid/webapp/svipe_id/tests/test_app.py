@@ -745,6 +745,7 @@ class SvipeIdTests(ProofingTests[SvipeIdApp]):
         userinfo: SvipeDocumentUserInfo,
         userinfo_sub: str,
         include_c_hash: bool = True,
+        acr: str | None = "face_present",
     ) -> TestResponse:
         """Answer the token and userinfo endpoints of the static OP and call the callback with the real client."""
         now = int(time.time())
@@ -759,6 +760,7 @@ class SvipeIdTests(ProofingTests[SvipeIdApp]):
                 "nonce": nonce,
                 "at_hash": half_hash("access_token"),
                 **({"c_hash": half_hash("mock_code")} if include_c_hash else {}),
+                **({"acr": acr} if acr is not None else {}),
             },
         )
         http.add_json(
@@ -830,6 +832,39 @@ class SvipeIdTests(ProofingTests[SvipeIdApp]):
         conf = SvipeClientConfig(client_id="client_id", client_secret="secret", issuer="https://op.example.com")
 
         assert (conf.require_at_hash, conf.require_c_hash) == (True, True)
+
+    def test_client_config_requires_acr_by_default(self) -> None:
+        conf = SvipeClientConfig(client_id="client_id", client_secret="secret", issuer="https://op.example.com")
+
+        assert conf.require_acr is True
+        assert conf.acr_values == ["face_present"]
+        assert conf.accepted_acr_values == ["face_present", "face_and_document_present"]
+
+    @pytest.mark.parametrize("acr", [None, "document_present"])
+    def test_callback_unacceptable_acr_with_real_oidc_client(self, acr: str | None) -> None:
+        eppn = self.unverified_test_user.eppn
+        country = countries.get("Sweden")
+        with self.app.test_request_context():
+            endpoint = url_for("svipe_id.verify_identity")
+        start_response = self._start_auth_with_real_oidc_client(
+            endpoint=endpoint, data=self.default_frontend_data, eppn=eppn
+        )
+        state, nonce = self._get_state_and_nonce(self.get_response_payload(start_response)["location"])
+        userinfo = self.get_mock_userinfo(issuing_country=country, nationality=country)
+
+        response = self._real_client_callback(
+            self.static_http, state, nonce, userinfo, userinfo_sub=userinfo.sub, acr=acr
+        )
+
+        assert response.status_code == HTTPStatus.FOUND
+        self._verify_status(
+            finish_url=response.headers.get("Location", ""),
+            frontend_action=FrontendAction(self.default_frontend_data["frontend_action"]),
+            frontend_state=self.default_frontend_data["frontend_state"],
+            method=self.default_frontend_data["method"],
+            expect_error=True,
+            expect_msg=SvipeIDMsg.authorization_error,
+        )
 
     def test_callback_missing_c_hash_with_real_oidc_client(self) -> None:
         eppn = self.unverified_test_user.eppn
