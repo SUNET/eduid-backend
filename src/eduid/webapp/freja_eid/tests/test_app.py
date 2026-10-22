@@ -1469,6 +1469,37 @@ class FrejaEIDTests(ProofingTests[FrejaEIDApp]):
                 assert ident.framework == TrustFramework.FREJA
                 assert ident.loa == "freja-loa3_nr"
 
+    def test_callback_unsolicited_response_redirects_to_errors_page(self) -> None:
+        eppn = self.unverified_test_user.eppn
+        with self.app.test_request_context():
+            endpoint = url_for("freja_eid.verify_identity")
+            callback_endpoint = url_for("freja_eid.authn_callback")
+        data = self.default_frontend_data(frontend_action="verifyIdentity")
+        self._start_auth(endpoint=endpoint, data=data, eppn=eppn)
+        self.app.conf.errors_url_template = (
+            "http://localhost/errors?code={ERRORURL_CODE}&ctx={ERRORURL_CTX}&rp={ERRORURL_RP}"
+        )
+
+        response = self.browser.get(f"{callback_endpoint}?state=unknown-state&code=mock_code")
+
+        assert response.status_code == HTTPStatus.FOUND
+        location = urlparse(response.headers["Location"])
+        assert location.path == "/errors"
+        assert parse_qs(location.query)["ctx"] == ["oidc_response_unsolicited"]
+        assert parse_qs(location.query)["rp"] == ["http://test.localhost/authn-callback"]
+
+    def test_callback_unsolicited_response_without_errors_url(self) -> None:
+        eppn = self.unverified_test_user.eppn
+        with self.app.test_request_context():
+            endpoint = url_for("freja_eid.verify_identity")
+            callback_endpoint = url_for("freja_eid.authn_callback")
+        data = self.default_frontend_data(frontend_action="verifyIdentity")
+        self._start_auth(endpoint=endpoint, data=data, eppn=eppn)
+
+        response = self.browser.get(f"{callback_endpoint}?state=unknown-state&code=mock_code")
+
+        assert response.status_code == HTTPStatus.BAD_REQUEST
+
     def test_callback_provider_error(self) -> None:
         eppn = self.unverified_test_user.eppn
         with self.app.test_request_context():

@@ -153,7 +153,7 @@ def authn_callback(user: User) -> WerkzeugResponse:
         return goto_errors_response(
             errors_url=current_app.conf.errors_url_template,
             ctx=EduidErrorsContext.OIDC_RESPONSE_UNSOLICITED,
-            rp=url_for("svipe_id.auth_callback", _external=True),
+            rp=url_for("svipe_id.authn_callback", _external=True),
         )
     current_app.stats.count(name="authn_response")
 
@@ -167,7 +167,7 @@ def authn_callback(user: User) -> WerkzeugResponse:
         return goto_errors_response(
             errors_url=current_app.conf.errors_url_template,
             ctx=EduidErrorsContext.OIDC_RESPONSE_FAIL,
-            rp=url_for("svipe_id.auth_callback", _external=True),
+            rp=url_for("svipe_id.authn_callback", _external=True),
         )
     current_app.stats.count(f"{proofing_method.method.value}_authn_response")
 

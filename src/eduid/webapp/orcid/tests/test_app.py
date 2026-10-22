@@ -550,6 +550,27 @@ class OrcidTests(EduidAPITestCase[OrcidApp]):
             status_response = client.post("/get-status", json={"csrf_token": csrf_token, "authn_id": str(authn_id)})
         return self.get_response_payload(status_response)
 
+    def test_authn_callback_unsolicited_response_redirects_to_errors_page(self) -> None:
+        self._start_connect(self.test_user_eppn)
+        self.app.conf.errors_url_template = (
+            "http://localhost/errors?code={ERRORURL_CODE}&ctx={ERRORURL_CTX}&rp={ERRORURL_RP}"
+        )
+
+        response = self.browser.get("/authorization-response?state=unknown-state&code=mock_code")
+
+        assert response.status_code == HTTPStatus.FOUND
+        location = urlparse(response.headers["Location"])
+        assert location.path == "/errors"
+        assert parse_qs(location.query)["ctx"] == ["oidc_response_unsolicited"]
+        assert parse_qs(location.query)["rp"] == ["http://test.localhost/authorization-response"]
+
+    def test_authn_callback_unsolicited_response_without_errors_url(self) -> None:
+        self._start_connect(self.test_user_eppn)
+
+        response = self.browser.get("/authorization-response?state=unknown-state&code=mock_code")
+
+        assert response.status_code == HTTPStatus.BAD_REQUEST
+
     def test_authn_callback_provider_error(self) -> None:
         self._start_connect(self.test_user_eppn)
         authn_id = self._get_authn_id_from_session()

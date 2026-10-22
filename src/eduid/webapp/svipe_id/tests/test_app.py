@@ -880,6 +880,35 @@ class SvipeIdTests(ProofingTests[SvipeIdApp]):
             expect_msg=SvipeIDMsg.authorization_error,
         )
 
+    def test_callback_unsolicited_response_redirects_to_errors_page(self) -> None:
+        eppn = self.unverified_test_user.eppn
+        with self.app.test_request_context():
+            endpoint = url_for("svipe_id.verify_identity")
+            callback_endpoint = url_for("svipe_id.authn_callback")
+        self._start_auth(endpoint=endpoint, data=self.default_frontend_data, eppn=eppn)
+        self.app.conf.errors_url_template = (
+            "http://localhost/errors?code={ERRORURL_CODE}&ctx={ERRORURL_CTX}&rp={ERRORURL_RP}"
+        )
+
+        response = self.browser.get(f"{callback_endpoint}?state=unknown-state&code=mock_code")
+
+        assert response.status_code == HTTPStatus.FOUND
+        location = urlparse(response.headers["Location"])
+        assert location.path == "/errors"
+        assert parse_qs(location.query)["ctx"] == ["oidc_response_unsolicited"]
+        assert parse_qs(location.query)["rp"] == ["http://test.localhost/authn-callback"]
+
+    def test_callback_unsolicited_response_without_errors_url(self) -> None:
+        eppn = self.unverified_test_user.eppn
+        with self.app.test_request_context():
+            endpoint = url_for("svipe_id.verify_identity")
+            callback_endpoint = url_for("svipe_id.authn_callback")
+        self._start_auth(endpoint=endpoint, data=self.default_frontend_data, eppn=eppn)
+
+        response = self.browser.get(f"{callback_endpoint}?state=unknown-state&code=mock_code")
+
+        assert response.status_code == HTTPStatus.BAD_REQUEST
+
     def test_callback_provider_error(self) -> None:
         eppn = self.unverified_test_user.eppn
         with self.app.test_request_context():
