@@ -106,9 +106,9 @@ def authn_callback(user: User) -> WerkzeugResponse:
     if oidc_state is not None:
         authn_req = session.orcid.rp.authns.get(oidc_state)
 
-    if not oidc_state or not authn_req:
+    if not oidc_state or not authn_req or authn_req.callback_handled:
         current_app.logger.info(
-            f"Response {oidc_state} does not match one in session, redirecting user to eduID Errors page"
+            f"Response {oidc_state} does not match an unanswered request in session, redirecting user to eduID Errors page"
         )
         if not current_app.conf.errors_url_template:
             return make_response("Unknown authn response", 400)
@@ -118,6 +118,8 @@ def authn_callback(user: User) -> WerkzeugResponse:
             rp=url_for("orcid.authn_callback", _external=True),
         )
 
+    # consume the request before processing, a repeated callback must not run the action again
+    authn_req.callback_handled = True
     current_app.stats.count(name="authn_response")
     formatted_finish_url = authn_req.formatted_finish_url(app_name=current_app.conf.app_name)
 

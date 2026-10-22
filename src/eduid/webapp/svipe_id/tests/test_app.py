@@ -920,6 +920,67 @@ class SvipeIdTests(ProofingTests[SvipeIdApp]):
             expect_msg=SvipeIDMsg.authorization_error,
         )
 
+    def test_callback_repeated_response_rejected(self, mocker: MockerFixture) -> None:
+        mock_request_user_sync = mocker.patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
+        mock_request_user_sync.side_effect = self.request_user_sync
+        eppn = self.unverified_test_user.eppn
+        country = countries.get("Sweden")
+        with self.app.test_request_context():
+            endpoint = url_for("svipe_id.verify_identity")
+        start_auth_response = self._start_auth(endpoint=endpoint, data=self.default_frontend_data, eppn=eppn)
+        state, nonce = self._get_state_and_nonce(self.get_response_payload(start_auth_response)["location"])
+        userinfo = self.get_mock_userinfo(issuing_country=country, nationality=country)
+        first = self.mock_authorization_callback(state=state, nonce=nonce, userinfo=userinfo)
+        assert first.status_code == HTTPStatus.FOUND
+        self.app.conf.errors_url_template = (
+            "http://localhost/errors?code={ERRORURL_CODE}&ctx={ERRORURL_CTX}&rp={ERRORURL_RP}"
+        )
+        fake_client = self.app.oidc_client
+        assert isinstance(fake_client, FakeOidcRpClient)
+
+        second = self.mock_authorization_callback(state=state, nonce=nonce, userinfo=userinfo)
+
+        assert second.status_code == HTTPStatus.FOUND
+        assert urlparse(second.headers["Location"]).path == "/errors"
+        assert len(fake_client.finish_calls) == 1
+        self._verify_status(
+            finish_url=first.headers.get("Location", ""),
+            frontend_action=FrontendAction(self.default_frontend_data["frontend_action"]),
+            frontend_state=self.default_frontend_data["frontend_state"],
+            method=self.default_frontend_data["method"],
+            expect_msg=SvipeIDMsg.identity_verify_success,
+        )
+
+    def test_callback_response_after_provider_error_rejected(self) -> None:
+        eppn = self.unverified_test_user.eppn
+        country = countries.get("Sweden")
+        with self.app.test_request_context():
+            endpoint = url_for("svipe_id.verify_identity")
+            callback_endpoint = url_for("svipe_id.authn_callback")
+        start_auth_response = self._start_auth(endpoint=endpoint, data=self.default_frontend_data, eppn=eppn)
+        state, nonce = self._get_state_and_nonce(self.get_response_payload(start_auth_response)["location"])
+        first = self.browser.get(f"{callback_endpoint}?error=access_denied&state={state}")
+        assert first.status_code == HTTPStatus.FOUND
+        self.app.conf.errors_url_template = (
+            "http://localhost/errors?code={ERRORURL_CODE}&ctx={ERRORURL_CTX}&rp={ERRORURL_RP}"
+        )
+        fake_client = self.app.oidc_client
+        assert isinstance(fake_client, FakeOidcRpClient)
+        userinfo = self.get_mock_userinfo(issuing_country=country, nationality=country)
+
+        second = self.mock_authorization_callback(state=state, nonce=nonce, userinfo=userinfo)
+
+        assert urlparse(second.headers["Location"]).path == "/errors"
+        assert fake_client.finish_calls == []
+        self._verify_status(
+            finish_url=first.headers.get("Location", ""),
+            frontend_action=FrontendAction(self.default_frontend_data["frontend_action"]),
+            frontend_state=self.default_frontend_data["frontend_state"],
+            method=self.default_frontend_data["method"],
+            expect_error=True,
+            expect_msg=SvipeIDMsg.authorization_error,
+        )
+
     def test_callback_unsolicited_response_redirects_to_errors_page(self) -> None:
         eppn = self.unverified_test_user.eppn
         with self.app.test_request_context():

@@ -555,6 +555,52 @@ class OrcidTests(EduidAPITestCase[OrcidApp]):
             status_response = client.post("/get-status", json={"csrf_token": csrf_token, "authn_id": str(authn_id)})
         return self.get_response_payload(status_response)
 
+    def test_authn_callback_repeated_response_rejected(self, mocker: MockerFixture) -> None:
+        mock_request_user_sync = mocker.patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
+        mock_request_user_sync.side_effect = self.request_user_sync
+        self._start_connect(self.test_user_eppn)
+        authn_id = self._get_authn_id_from_session()
+        userinfo = {
+            "id": "https://sandbox.orcid.org/0000-0000-0000-0000",
+            "name": None,
+            "given_name": "Test",
+            "family_name": "Testsson",
+        }
+        first = self.mock_authorization_callback(state=str(authn_id), nonce="nonce", userinfo=userinfo)
+        assert first.status_code == HTTPStatus.FOUND
+        self.app.conf.errors_url_template = (
+            "http://localhost/errors?code={ERRORURL_CODE}&ctx={ERRORURL_CTX}&rp={ERRORURL_RP}"
+        )
+        fake_client = self.app.oidc_client
+        assert isinstance(fake_client, FakeOidcRpClient)
+
+        second = self.mock_authorization_callback(state=str(authn_id), nonce="nonce", userinfo=userinfo)
+
+        assert second.status_code == HTTPStatus.FOUND
+        assert urlparse(second.headers["Location"]).path == "/errors"
+        assert len(fake_client.finish_calls) == 1
+        status = self._status_after_callback(authn_id)
+        assert status["status"] == OrcidMsg.authz_success.value
+
+    def test_authn_callback_response_after_provider_error_rejected(self) -> None:
+        self._start_connect(self.test_user_eppn)
+        authn_id = self._get_authn_id_from_session()
+        first = self.browser.get(f"/authorization-response?error=access_denied&state={authn_id}")
+        assert first.status_code == HTTPStatus.FOUND
+        self.app.conf.errors_url_template = (
+            "http://localhost/errors?code={ERRORURL_CODE}&ctx={ERRORURL_CTX}&rp={ERRORURL_RP}"
+        )
+        fake_client = self.app.oidc_client
+        assert isinstance(fake_client, FakeOidcRpClient)
+        userinfo = {"id": "https://sandbox.orcid.org/0000-0000-0000-0000", "name": None}
+
+        second = self.mock_authorization_callback(state=str(authn_id), nonce="nonce", userinfo=userinfo)
+
+        assert urlparse(second.headers["Location"]).path == "/errors"
+        assert fake_client.finish_calls == []
+        status = self._status_after_callback(authn_id)
+        assert status["status"] == OrcidMsg.authz_error.value
+
     def test_authn_callback_unsolicited_response_redirects_to_errors_page(self) -> None:
         self._start_connect(self.test_user_eppn)
         self.app.conf.errors_url_template = (

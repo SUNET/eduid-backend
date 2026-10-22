@@ -234,12 +234,12 @@ def authn_callback() -> WerkzeugResponse:
     if oidc_state is not None:
         authn_req = session.freja_eid.rp.authns.get(oidc_state)
 
-    if not oidc_state or not authn_req:
+    if not oidc_state or not authn_req or authn_req.callback_handled:
         # Perhaps an authn response received out of order - abort without destroying state
         # (User makes two requests, A and B. Response B arrives, user is happy and proceeds with their work.
         #  Then response A arrives late. Just silently abort, no need to mess up the users' session.)
         current_app.logger.info(
-            f"Response {oidc_state} does not match one in session, redirecting user to eduID Errors page"
+            f"Response {oidc_state} does not match an unanswered request in session, redirecting user to eduID Errors page"
         )
         if not current_app.conf.errors_url_template:
             return make_response("Unknown authn response", 400)
@@ -248,6 +248,8 @@ def authn_callback() -> WerkzeugResponse:
             ctx=EduidErrorsContext.OIDC_RESPONSE_UNSOLICITED,
             rp=url_for("freja_eid.authn_callback", _external=True),
         )
+    # consume the request before processing, a repeated callback must not run the action again
+    authn_req.callback_handled = True
     current_app.stats.count(name="authn_response")
 
     proofing_method = get_proofing_method(authn_req.method, authn_req.frontend_action, current_app.conf)

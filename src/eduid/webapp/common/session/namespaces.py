@@ -451,6 +451,9 @@ class RP_AuthnRequest(BaseAuthnRequest):
     nonce: str | None = Field(default=None, repr=False)
     code_verifier: str | None = Field(default=None, repr=False)
     redirect_uri: str | None = None
+    # Set when the callback for this request has been received. A request is answered once, no matter the outcome,
+    # so a replayed callback can not run the action again. Separate from consumed, which some flows leave unset.
+    callback_handled: bool = False
 
     def formatted_finish_url(self, app_name: str) -> str:
         return self.finish_url.format(app_name=app_name, authn_id=self.authn_id)
