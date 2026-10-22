@@ -385,6 +385,20 @@ class TestGrindvaktOidcRpClient:
         with pytest.raises(ValidationError, match="require_acr"):
             OidcRpClientConfig(client_id=CLIENT_ID, client_secret="secret", issuer=ISSUER, require_acr=True)
 
+    def test_max_age_sent_in_authorization_request(self) -> None:
+        client = self._client(max_age=300)
+
+        query = parse_qs(urlparse(client.mint_authn_request(REDIRECT_URI).url).query)
+
+        assert query["max_age"] == ["300"]
+
+    def test_max_age_not_sent_by_default(self) -> None:
+        client = self._client()
+
+        query = parse_qs(urlparse(client.mint_authn_request(REDIRECT_URI).url).query)
+
+        assert "max_age" not in query
+
     def test_max_age_missing_auth_time_rejected(self) -> None:
         client = self._client(max_age=300)
         id_token = self._id_token("nonce")

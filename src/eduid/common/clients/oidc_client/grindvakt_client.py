@@ -146,6 +146,9 @@ class GrindvaktOidcRpClient:
         extra = dict(extra_params or {})
         if self._config.acr_values and "acr_values" not in extra:
             extra["acr_values"] = " ".join(self._config.acr_values)
+        if self._config.max_age is not None and "max_age" not in extra:
+            # lets the OP reauthenticate and return auth_time, which finish() checks against max_age
+            extra["max_age"] = str(self._config.max_age)
         try:
             url, state, nonce, verifier = rp.begin(
                 provider.info,
