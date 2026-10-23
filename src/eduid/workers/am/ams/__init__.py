@@ -20,9 +20,7 @@ from eduid.userdb.proofing import (
     EidasProofingUserDB,
     EmailProofingUserDB,
     LetterProofingUserDB,
-    LookupMobileProofingUserDB,
     OrcidProofingUserDB,
-    PhoneProofingUserDB,
 )
 from eduid.userdb.proofing.db import (
     BankIDProofingUserDB,
@@ -91,27 +89,6 @@ class eduid_letter_proofing(AttributeFetcher):
         return LetterProofingUserDB(uri)
 
 
-class eduid_lookup_mobile_proofing(AttributeFetcher):
-    whitelist_set_attrs: ClassVar[list[str]] = [
-        "nins",  # Old format
-        "identities",  # New format
-        "givenName",
-        "chosen_given_name",
-        "surname",
-        "legal_name",
-    ]
-    whitelist_unset_attrs: ClassVar[list[str]] = [
-        "identities",
-        "chosen_given_name",
-        "nins",  # Old format
-        "displayName",  # deprecated
-    ]
-
-    @classmethod
-    def get_user_db(cls, uri: str) -> LookupMobileProofingUserDB:
-        return LookupMobileProofingUserDB(uri)
-
-
 class eduid_email(AttributeFetcher):
     whitelist_set_attrs: ClassVar[list[str]] = ["mailAliases"]
     whitelist_unset_attrs: ClassVar[list[str]] = [
@@ -121,17 +98,6 @@ class eduid_email(AttributeFetcher):
     @classmethod
     def get_user_db(cls, uri: str) -> EmailProofingUserDB:
         return EmailProofingUserDB(uri)
-
-
-class eduid_phone(AttributeFetcher):
-    whitelist_set_attrs: ClassVar[list[str]] = ["phone"]
-    whitelist_unset_attrs: ClassVar[list[str]] = [
-        "phone",
-    ]
-
-    @classmethod
-    def get_user_db(cls, uri: str) -> PhoneProofingUserDB:
-        return PhoneProofingUserDB(uri)
 
 
 class eduid_personal_data(AttributeFetcher):

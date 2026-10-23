@@ -507,10 +507,6 @@ httpcore==1.0.9 \
     --hash=sha256:2d400746a40668fc9dec9810239072b40b4484b640a8c38fd654a024c7a1bf55 \
     --hash=sha256:6e34463af53fd2ab5d807f399a9b45ea31c3dfa2276f15a2c3f00afff6e176e8
     # via httpx
-httplib2==0.32.0 \
-    --hash=sha256:48a0ef30a42db65d8f3399045e1d09ab0ba66e3b9efc360d07f80ea55d286025 \
-    --hash=sha256:dc6705cacdf3fb0a2aba7629fa33c90fd93e30035db0c157325826be177e4816
-    # via pysmscom
 httpx==0.28.1 \
     --hash=sha256:75e98c5f16b0f35b567856f597f06ff2270a374470a5c2392242528e3e3e42fc \
     --hash=sha256:d909fcccc110f8c7faf814ca82a9a4d816bc5a6dbfea25d6591d6985b8ba59ad
@@ -909,10 +905,6 @@ packaging==26.3 \
     --hash=sha256:94edc256424af38762eb31306eed28beb9f0efc50a8837492c9d6fd6004aed79 \
     --hash=sha256:d7193f7c8e4e93f444fde0262bf90af30e16fa0ad0ad44cb553c87339b23cd1c
     # via kombu
-phonenumbers==9.0.41 \
-    --hash=sha256:ccf2ea44f8aa35c487f26146a31520ecedf8e1af1f57c803678ecb5ef5c01668 \
-    --hash=sha256:dfa6f74eeac67c044b75313fe0af10774d7d1e1242241437279d4c2fb8027c01
-    # via eduid-backend (../pyproject.toml)
 pillow==13.0.0 \
     --hash=sha256:02464da86f561f410e13b061ec37c3068a9cb557a095494157742d07b3c24a27 \
     --hash=sha256:04a63720f79e22fd54d897c233a68314c50ca0603360f54ce2bd5db8f0f43782 \
@@ -1318,10 +1310,6 @@ pyopenssl==26.4.0 \
     # via
     #   eduid-backend (../pyproject.toml)
     #   fido-mds
-pyparsing==3.3.3 \
-    --hash=sha256:928ae7e20211f3b6f3915a72f06a0cfd29ab9d24279dd6346b6b1a7146397d36 \
-    --hash=sha256:ece8c00a69cf01b45d0b1dedabb469c90d8caf996d4fda40f147627a122849a4
-    # via httplib2
 pypdf==6.21.1 \
     --hash=sha256:2d62c383acd6e0dff0a96322ba8b1135229343b084d73c6f6cfd947fd291afcb \
     --hash=sha256:553e2d42f5bb3bb2a785a7d3de8ef90bb7df74b5413eff5a7b4388007ea9254b
@@ -1329,10 +1317,6 @@ pypdf==6.21.1 \
 pysaml2==7.5.2+sunet4 \
     --hash=sha256:335ff4a0d0bad395f84b4de9d3f54ef3213443859f5c8ebb40428952fd895e4d \
     --hash=sha256:775e6463570f8f7c356ecbbf41e83c42bcc9886a8d73b1486d1f2a7f1a8ae950
-    # via eduid-backend (../pyproject.toml)
-pysmscom==0.9 \
-    --hash=sha256:0e45dacf73dedf379f1f8e17b976dc950b2c0d91c9e7d9b82d3a59b2c27b4ed1 \
-    --hash=sha256:bd4a9c770f5ef93438182c4c1dbc265a0a45e823998c742dd0d50e984bd0b363
     # via eduid-backend (../pyproject.toml)
 python-dateutil==2.9.0.post0 \
     --hash=sha256:37dd54208da7e1cd875388217d5e00ebd4179249f90fb72437e91a35459a0ad3 \
@@ -1576,16 +1560,11 @@ six==1.17.0 \
     --hash=sha256:ff70335d468e7eb6ec65b95b99d3a2836546063f63acc5171de367e834932a81
     # via
     #   html5lib
-    #   pysmscom
     #   python-dateutil
     #   pyxmlsecurity
 statsd==4.0.1 \
     --hash=sha256:99763da81bfea8daf6b3d22d11aaccb01a8d0f52ea521daab37e758a4ca7d128 \
     --hash=sha256:c2676519927f7afade3723aca9ca8ea986ef5b059556a980a867721ca69df093
-    # via eduid-backend (../pyproject.toml)
-suds-community==1.2.0 \
-    --hash=sha256:505b191865bca125f12e8ff9598b24d9c0108b98826671bdd700ed51def44e36 \
-    --hash=sha256:ab3b24dc9ba06b5e6598e2a5d34d2a7d06c79e613d81cedc028475bfbd3bb90c
     # via eduid-backend (../pyproject.toml)
 svglib==2.3.0 \
     --hash=sha256:576f417c681938e76e3d3bc2d92898c1b3f4b7248c9880b25e439c6e6d897aae \

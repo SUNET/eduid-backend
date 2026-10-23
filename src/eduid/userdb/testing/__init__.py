@@ -83,7 +83,6 @@ class SetupConfig:
     users: list[str] | None = None
     copy_user_to_private: bool = False
     init_msg: bool = True
-    init_lookup_mobile: bool = True
 
 
 class MongoTestCase:

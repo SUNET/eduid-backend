@@ -24,7 +24,6 @@ from eduid.webapp.common.api.checks import (
     CheckResult,
     FailCountItem,
     check_am,
-    check_lookup_mobile,
     check_mongo,
     check_msg,
     check_redis,
@@ -154,7 +153,6 @@ class EduIDBaseApp[C: EduIDBaseAppConfig = EduIDBaseAppConfig](Flask, metaclass=
         redis: bool = True,
         am: bool = True,
         msg: bool = True,
-        lookup_mobile: bool = True,
         vccs: bool = True,
     ) -> CheckResult:
         """
@@ -181,11 +179,6 @@ class EduIDBaseApp[C: EduIDBaseAppConfig = EduIDBaseAppConfig](Flask, metaclass=
             res.healthy = False
             res.reason = "msg check failed"
             self.logger.warning("msg check failed")
-        # Lookup Mobile Relay
-        elif lookup_mobile and not check_lookup_mobile():
-            res.healthy = False
-            res.reason = "lookup_mobile check failed"
-            self.logger.warning("lookup_mobile check failed")
         # VCCS
         elif vccs and not check_vccs():
             res.healthy = False
