@@ -18,7 +18,7 @@ from fido2.webauthn import (
     UserVerificationRequirement,
 )
 from fido_mds.models.fido_mds import AuthenticatorStatus
-from pydantic import AfterValidator, BaseModel, ConfigDict, Field
+from pydantic import AfterValidator, BaseModel, ConfigDict, Field, ValidationInfo, field_validator
 
 from eduid.userdb.credentials import CredentialProofingMethod
 from eduid.userdb.credentials.external import TrustFramework
@@ -528,6 +528,42 @@ class EduIDBaseAppConfig(RootConfig, LoggingConfigMixin, StatsConfigMixin, Redis
     # requested URL ex. ^/test$.
     no_authn_urls: list[str] = Field(default=["^/status/healthy$", "^/status/sanity-check$"])
     status_cache_seconds: int = 10
+    # Session key paths that are harmless to lose when a session commit loses a write conflict with another
+    # writer. Dotted-path patterns matched segment-wise (same number of segments); a segment may be '*' to
+    # match exactly one arbitrary segment. A conflict is swallowed (request succeeds, our changes are dropped)
+    # only if EVERY path our request tried to change matches an entry. Anything not listed fails closed (HTTP 500).
+    # An empty list means never swallow a conflict.
+    # NEVER add auth-state or one-time-grant paths such as common.eppn, *.consumed, mfa_action or
+    # signup attempt counters: losing those write can bypass a security decision.
+    session_safe_to_lose_paths: list[str] = Field(
+        default=[
+            # Timestamp of the idp namespace, bumped on every change to it; only used for housekeeping/expiry
+            "idp.ts",
+            # Debug-only copy of the SSO session id; never read for any decision
+            "idp.sso_cookie_val",
+            # F-TICKS marker for a pending request; worst case is a duplicate F-TICKS log line
+            "idp.pending_requests.*.used",
+        ]
+    )
+
+    # Session key paths that, if the OTHER writer added/changed/removed any of them, make our conflict fatal
+    # even when all of our own changed paths are in session_safe_to_lose_paths. Same dotted/segment-wise '*'
+    # semantics. Add paths for state whose change by a sibling request must invalidate an in-flight response,
+    # e.g. an abort of a pending request. An empty list means no extra rule.
+    session_fatal_other_writer_paths: list[str] = Field(
+        default=[
+            # POST /abort sets this; an in-flight /next must not return an assertion for an aborted request
+            "idp.pending_requests.*.aborted",
+        ]
+    )
+
+    @field_validator("session_safe_to_lose_paths", "session_fatal_other_writer_paths")
+    @classmethod
+    def _validate_session_path_patterns(cls, v: list[str], info: ValidationInfo) -> list[str]:
+        for entry in v:
+            if not entry or any(not segment for segment in entry.split(".")):
+                raise ValueError(f"invalid {info.field_name} entry {entry!r}: empty path or empty segment")
+        return v
 
 
 ReasonableDomainName = Annotated[str, Field(min_length=len("x.se")), AfterValidator(lambda v: v.lower())]

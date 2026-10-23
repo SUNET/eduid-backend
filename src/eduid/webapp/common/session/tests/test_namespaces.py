@@ -24,6 +24,7 @@ from eduid.webapp.common.session.namespaces import (
     RPAuthnData,
     SP_AuthnRequest,
 )
+from eduid.webapp.common.session.redis_session import GENERATION_KEY
 from eduid.webapp.common.session.tests.test_eduid_session import SessionTestApp, SessionTestConfig
 
 logger = logging.getLogger(__name__)
@@ -63,6 +64,7 @@ class TestNamespace(TestNameSpaceBase):
 
         session._serialize_namespaces()
         out = session._session.to_dict()
+        assert out.pop(GENERATION_KEY)  # new sessions get a generation marker, outside the namespaces
         normalised_out = normalised_data(out, exclude_keys=["ts"])
 
         assert normalised_out == {
@@ -83,9 +85,9 @@ class TestNamespace(TestNameSpaceBase):
         # Validate that the session can be loaded again
         loaded_session = self.get_session(meta=_meta, new=False)
         # ...and that it serialises to the same data again
-        assert normalised_out == normalised_data(loaded_session._session.to_dict(), exclude_keys=["ts"]), (
-            f"Actual result: {normalised_out}"
-        )
+        assert normalised_out == normalised_data(
+            loaded_session._session.to_dict(), exclude_keys=["ts", GENERATION_KEY]
+        ), f"Actual result: {normalised_out}"
 
     def test_to_dict_from_dict_with_timestamp(self) -> None:
         _meta = SessionMeta.new(app_secret="secret")
@@ -98,6 +100,7 @@ class TestNamespace(TestNameSpaceBase):
 
         first._serialize_namespaces()
         out = first._session.to_dict()
+        assert out.pop(GENERATION_KEY)
 
         assert out == {
             "idp": {"sso_cookie_val": "abc", "pending_requests": {}, "ts": "2020-09-13T12:26:40Z"},
@@ -109,7 +112,7 @@ class TestNamespace(TestNameSpaceBase):
         second = self.get_session(meta=_meta, new=False)
         # ...and that it serialises to the same data that was persisted
         assert normalised_data(out, exclude_keys=["ts"]) == normalised_data(
-            second._session.to_dict(), exclude_keys=["ts"]
+            second._session.to_dict(), exclude_keys=["ts", GENERATION_KEY]
         )
 
         assert second.idp.sso_cookie_val == first.idp.sso_cookie_val
