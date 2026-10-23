@@ -98,10 +98,6 @@ ast-serialize==0.13.1 \
     --hash=sha256:f8b17e2921e56621bcb46792bd3e0b82ca3b85de78d5936e7b8174ba1758b0aa \
     --hash=sha256:fb8021f4dc3296de18737e3b8b34994411da725374d74a0b9eb32a738f2a23d0
     # via mypy
-authlib==1.9.1 \
-    --hash=sha256:5c7d9848f47cac340f060f76ae0bc09b59f5c8e89cc1bb032d4370a0c55b5974 \
-    --hash=sha256:8b9be8b1e5174dcbf5520e984f1a22dc2edae5b6e40a61d4cedbf86b97e9e69b
-    # via eduid-backend (../pyproject.toml)
 babel==2.18.0 \
     --hash=sha256:b80b99a14bd085fcacfa15c9165f651fbb3406e66cc603abf11c5750937c992d \
     --hash=sha256:e2b422b277c2b9a9630c1d7903c2a00d0830c409c59ac8cae9081c92f1aeba35
@@ -755,11 +751,9 @@ cryptography==50.0.2 \
     --hash=sha256:fdd28f912fccfec1846a94e2e1e8f9b0012f557f0c46fe4f3eb0d7a87afcf90b
     # via
     #   eduid-backend (../pyproject.toml)
-    #   authlib
     #   fido-mds
     #   fido2
     #   hsmkey
-    #   joserfc
     #   jwcrypto
     #   oic
     #   pyopenssl
@@ -1019,10 +1013,6 @@ jinja2==3.1.6 \
     #   eduid-backend (../pyproject.toml)
     #   flask
     #   flask-babel
-joserfc==1.7.5 \
-    --hash=sha256:add2c2c84e8373b084d526a8b53daba5d7a513a118cd2dcd9fc9f979d0922159 \
-    --hash=sha256:d5ff536e658e17664f8c1b1ab60dc4aa62aa973fcef1edd33cc44bda45d6f5ea
-    # via authlib
 jwcrypto==1.6.1 \
     --hash=sha256:77e856818e514cb3d64a1043b6885a7d52f5cc37773f5e944de02103c8d3a54f \
     --hash=sha256:a1e1570da5c2e35dbcd375ec1d2891a24de8eb35ee2c1fe8e91978efb72cfe90
@@ -1988,6 +1978,10 @@ pygments==2.21.0 \
     --hash=sha256:2363c69b61c4a97c838da3b130dcd6468f4848992b21a82f2a63ec34377137d9 \
     --hash=sha256:610ca751c9bc2492b38eb9a38a7fbc93edbbb2d7182edaf34e66ae493dee5c8c
     # via pytest
+pygrindvakt==0.2.0 \
+    --hash=sha256:1fde6542b5f2a9a87855d9aa9ff432809cedb4e0d63beea74e0f046b5683c023 \
+    --hash=sha256:bd323e41796b228805ef6d3991e8dcde018e40675c3887364d0eb570713c6411
+    # via eduid-backend (../pyproject.toml)
 pyhsm @ https://github.com/SUNET/python-pyhsm/archive/3b867ec8e0aa2c4444e9c84444228e95fc6aaabf.zip \
     --hash=sha256:f15aaa010f66fa884eea517a49ae690d865ca81965ae685a9c0414a9ad943717
     # via eduid-backend (../pyproject.toml)

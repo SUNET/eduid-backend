@@ -26,10 +26,6 @@ asn1crypto==1.5.1 \
     --hash=sha256:13ae38502be632115abf8a24cbe5f4da52e3b5231990aff31123c805306ccb9c \
     --hash=sha256:db4e40728b728508912cbb3d44f19ce188f218e9eba635821bb4b68564f8fd67
     # via fido-mds
-authlib==1.9.1 \
-    --hash=sha256:5c7d9848f47cac340f060f76ae0bc09b59f5c8e89cc1bb032d4370a0c55b5974 \
-    --hash=sha256:8b9be8b1e5174dcbf5520e984f1a22dc2edae5b6e40a61d4cedbf86b97e9e69b
-    # via eduid-backend (../pyproject.toml)
 babel==2.18.0 \
     --hash=sha256:b80b99a14bd085fcacfa15c9165f651fbb3406e66cc603abf11c5750937c992d \
     --hash=sha256:e2b422b277c2b9a9630c1d7903c2a00d0830c409c59ac8cae9081c92f1aeba35
@@ -434,10 +430,8 @@ cryptography==50.0.2 \
     --hash=sha256:fdd28f912fccfec1846a94e2e1e8f9b0012f557f0c46fe4f3eb0d7a87afcf90b
     # via
     #   eduid-backend (../pyproject.toml)
-    #   authlib
     #   fido-mds
     #   fido2
-    #   joserfc
     #   jwcrypto
     #   pyopenssl
     #   pysaml2
@@ -544,10 +538,6 @@ jinja2==3.1.6 \
     # via
     #   flask
     #   flask-babel
-joserfc==1.7.5 \
-    --hash=sha256:add2c2c84e8373b084d526a8b53daba5d7a513a118cd2dcd9fc9f979d0922159 \
-    --hash=sha256:d5ff536e658e17664f8c1b1ab60dc4aa62aa973fcef1edd33cc44bda45d6f5ea
-    # via authlib
 jwcrypto==1.6.1 \
     --hash=sha256:77e856818e514cb3d64a1043b6885a7d52f5cc37773f5e944de02103c8d3a54f \
     --hash=sha256:a1e1570da5c2e35dbcd375ec1d2891a24de8eb35ee2c1fe8e91978efb72cfe90
@@ -1180,6 +1170,10 @@ pydantic-core==2.50.1 \
     --hash=sha256:f77ac30b19221cd9bd3fcfa3d4614eff93140d0572ab730cded17b64adca05f3 \
     --hash=sha256:fe90228920fd8ff2be62622b6bb8a2b11acd65046d50c6b130614b5879605a20
     # via pydantic
+pygrindvakt==0.2.0 \
+    --hash=sha256:1fde6542b5f2a9a87855d9aa9ff432809cedb4e0d63beea74e0f046b5683c023 \
+    --hash=sha256:bd323e41796b228805ef6d3991e8dcde018e40675c3887364d0eb570713c6411
+    # via eduid-backend (../pyproject.toml)
 pykcs11==1.5.20 \
     --hash=sha256:07bc35c4c54039cdb804acc3e7bfaac908466f596439a72aa15fe994d9c34ad2 \
     --hash=sha256:1779944b7ca8f89a4b7ebf8a6e8998fa50b58439aa0865e2d1bfb306ee738951 \

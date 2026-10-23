@@ -7,6 +7,7 @@ from urllib.parse import urlparse
 from uuid import uuid4
 
 import bcrypt  # type: ignore[import-untyped]
+from flask import Flask, url_for
 from flask import current_app as flask_current_app
 from flask.wrappers import Request
 
@@ -319,3 +320,13 @@ def get_reference_nin_from_navet_data(nin: str) -> str | None:
         logger.exception("No connection to Navet")
 
     return None
+
+
+def get_external_url(app: Flask, endpoint: str) -> str:
+    """
+    Build the absolute URL of an endpoint from the app configuration (SERVER_NAME, APPLICATION_ROOT and
+    PREFERRED_URL_SCHEME) instead of from a request, for use when the URL has to be registered in advance.
+    The endpoint's blueprint must already be registered.
+    """
+    with app.test_request_context():
+        return url_for(endpoint, _external=True)

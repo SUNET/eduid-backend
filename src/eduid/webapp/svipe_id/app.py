@@ -8,8 +8,8 @@ from eduid.common.config.parsers import load_config
 from eduid.common.rpc.am_relay import AmRelay
 from eduid.userdb.logs import ProofingLog
 from eduid.userdb.proofing.db import SvideIDProofingUserDB
+from eduid.webapp.common.api.utils import get_external_url
 from eduid.webapp.common.authn.middleware import AuthnBaseApp
-from eduid.webapp.svipe_id.helpers import SessionOidcCache
 from eduid.webapp.svipe_id.settings.common import SvipeIdConfig
 
 __author__ = "lundberg"
@@ -25,10 +25,8 @@ class SvipeIdApp(AuthnBaseApp[SvipeIdConfig]):
         # Init celery
         self.am_relay = AmRelay(config)
 
-        # Initialize the oidc_client
-        self.oidc_client: OidcRpClient = init_oidc_rp_client(
-            app=self, name="svipe", config=self.conf.svipe_client, cache=SessionOidcCache()
-        )
+        # The oidc_client needs the registered callback URL, it is set up in svipe_id_init_app once the views exist
+        self.oidc_client: OidcRpClient
 
 
 current_svipe_id_app = cast(SvipeIdApp, current_app)
@@ -54,6 +52,13 @@ def svipe_id_init_app(name: str = "svipe_id", test_config: Mapping[str, Any] | N
     from eduid.webapp.svipe_id.views import svipe_id_views
 
     app.register_blueprint(svipe_id_views)
+
+    app.oidc_client = init_oidc_rp_client(
+        app=app,
+        name="svipe",
+        config=app.conf.svipe_client,
+        redirect_uris=[get_external_url(app, "svipe_id.authn_callback")],
+    )
 
     app.logger.info(f"{name!s} initialized")
     return app

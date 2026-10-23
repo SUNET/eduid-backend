@@ -1,13 +1,20 @@
 __author__ = "lundberg"
 
-from eduid.common.clients.oidc_client.authlib_client import AuthlibOidcRpClient, init_oidc_rp_client
-from eduid.common.clients.oidc_client.base import OidcRpClient, OidcRpClientConfig, OidcRpError, OidcStateCache
+from eduid.common.clients.oidc_client.base import (
+    AuthnRequestData,
+    OidcAuthnResult,
+    OidcRpClient,
+    OidcRpClientConfig,
+    OidcRpError,
+)
+from eduid.common.clients.oidc_client.grindvakt_client import GrindvaktOidcRpClient, init_oidc_rp_client
 
 __all__ = [
-    "AuthlibOidcRpClient",
+    "AuthnRequestData",
+    "GrindvaktOidcRpClient",
+    "OidcAuthnResult",
     "OidcRpClient",
     "OidcRpClientConfig",
     "OidcRpError",
-    "OidcStateCache",
     "init_oidc_rp_client",
 ]

@@ -9,9 +9,9 @@ from eduid.common.rpc.am_relay import AmRelay
 from eduid.common.rpc.msg_relay import MsgRelay
 from eduid.userdb.logs import ProofingLog
 from eduid.userdb.proofing.db import FrejaEIDProofingUserDB
+from eduid.webapp.common.api.utils import get_external_url
 from eduid.webapp.common.authn.middleware import AuthnBaseApp
 from eduid.webapp.common.authn.utils import no_authn_views
-from eduid.webapp.freja_eid.helpers import SessionOidcCache
 from eduid.webapp.freja_eid.settings.common import FrejaEIDConfig
 
 __author__ = "lundberg"
@@ -28,10 +28,8 @@ class FrejaEIDApp(AuthnBaseApp[FrejaEIDConfig]):
         self.am_relay = AmRelay(config)
         self.msg_relay = MsgRelay(config)
 
-        # Initialize the oidc_client
-        self.oidc_client: OidcRpClient = init_oidc_rp_client(
-            app=self, name="freja_eid", config=self.conf.freja_eid_client, cache=SessionOidcCache()
-        )
+        # The oidc_client needs the registered callback URL, it is set up in freja_eid_init_app once the views exist
+        self.oidc_client: OidcRpClient
 
 
 current_freja_eid_app = cast(FrejaEIDApp, current_app)
@@ -57,6 +55,13 @@ def freja_eid_init_app(name: str = "freja_eid", test_config: Mapping[str, Any] |
     from eduid.webapp.freja_eid.views import freja_eid_views
 
     app.register_blueprint(freja_eid_views)
+
+    app.oidc_client = init_oidc_rp_client(
+        app=app,
+        name="freja_eid",
+        config=app.conf.freja_eid_client,
+        redirect_uris=[get_external_url(app, "freja_eid.authn_callback")],
+    )
 
     # Register view path that should not be authorized
     no_authn_views(

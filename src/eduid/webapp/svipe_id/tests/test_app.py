@@ -1,4 +1,5 @@
 import json
+import time
 import uuid
 from collections.abc import Iterator
 from datetime import date, datetime, timedelta
@@ -9,18 +10,22 @@ from urllib.parse import parse_qs, urlparse
 import pytest
 from flask import url_for
 from iso3166 import Country, countries
+from pygrindvakt import jwt, keys
 from pytest_mock import MockerFixture
 from werkzeug.test import TestResponse
 
 from eduid.common.clients.oidc_client.base import OidcRpClient
-from eduid.common.clients.oidc_client.testing import FakeOidcRpClient
+from eduid.common.clients.oidc_client.grindvakt_client import GrindvaktOidcRpClient
+from eduid.common.clients.oidc_client.testing import FakeOidcRpClient, StaticHttpClient, half_hash
 from eduid.common.config.base import FrontendAction
 from eduid.common.misc.timeutil import utc_now
 from eduid.userdb import SvipeIdentity
 from eduid.userdb.identity import IdentityProofingMethod
 from eduid.webapp.common.api.messages import CommonMsg
+from eduid.webapp.common.api.utils import get_external_url
 from eduid.webapp.common.proofing.messages import ProofingMsg
 from eduid.webapp.common.proofing.testing import ProofingTests
+from eduid.webapp.common.session.namespaces import OIDCState
 from eduid.webapp.svipe_id.app import SvipeIdApp, svipe_id_init_app
 from eduid.webapp.svipe_id.helpers import SvipeDocumentUserInfo, SvipeIDMsg
 from eduid.webapp.svipe_id.settings.common import SvipeClientConfig
@@ -49,7 +54,7 @@ class SvipeIdTests(ProofingTests[SvipeIdApp]):
         }
 
         self.oidc_provider_config = {
-            "issuer": "https://example.com/op/",
+            "issuer": "https://issuer.example.com",
             "authorization_endpoint": "https://example.com/op/authorize",
             "token_endpoint": "https://example.com/op/token",
             "userinfo_endpoint": "https://example.com/op/userinfo",
@@ -69,7 +74,7 @@ class SvipeIdTests(ProofingTests[SvipeIdApp]):
             "grant_types_supported": ["authorization_code"],
             "subject_types_supported": ["public"],
             "revocation_endpoint": "https://example.com/op/token/revoke",
-            "end_session_endpoint": "https://example.com/op/logout",
+            "end_session_endpoint": "https://issuer.example.com/logout",
             "token_endpoint_auth_methods_supported": ["client_secret_basic", "client_secret_post", "none"],
             "claims_supported": [
                 "iss",
@@ -121,6 +126,8 @@ class SvipeIdTests(ProofingTests[SvipeIdApp]):
             "acr_values_supported": ["face_present", "document_present", "face_and_document_present"],
         }
 
+        self.signing_key = keys.signing_key_from_jwk(keys.generate_rsa_jwk(), "RS256", "test-key")
+
         yield
 
         self.app.oidc_client = self._real_oidc_client
@@ -137,6 +144,8 @@ class SvipeIdTests(ProofingTests[SvipeIdApp]):
     @classmethod
     def update_config(cls) -> dict[str, Any]:
         config = cls._get_base_config()
+        # pygrindvakt only accepts https redirect URIs for registered (non-loopback) clients
+        config["preferred_url_scheme"] = "https"
         config.update(
             {
                 "svipe_client": {
@@ -230,31 +239,24 @@ class SvipeIdTests(ProofingTests[SvipeIdApp]):
         with self.app.test_request_context():
             endpoint = url_for("svipe_id.authn_callback")
 
-        id_token = json.dumps(
-            {
-                "nonce": nonce,
-                "sub": "sub",
-                "iss": "iss",
-                "aud": ["aud"],
-                "exp": userinfo.exp,
-                "iat": userinfo.iat,
-                "auth_time": userinfo.iat,
-                "acr": "acr",
-                "amr": ["amr"],
-                "azp": "azp",
-            }
-        )
         userinfo_dict = userinfo.model_dump()
         fake_client = self.app.oidc_client
         assert isinstance(fake_client, FakeOidcRpClient)
-        fake_client.token_response = {
+        fake_client.claims = {
+            "nonce": nonce,
+            "sub": userinfo.sub,
+            "iss": userinfo.iss,
+            "aud": userinfo.aud,
+            "exp": userinfo.exp,
+            "iat": userinfo.iat,
+            "auth_time": userinfo.iat,
+        }
+        fake_client.tokens = {
             "access_token": "access_token",
             "token_type": "token_type",
             "expires_in": timedelta(minutes=5).total_seconds(),
-            "expires_at": userinfo.exp,
             "refresh_token": "refresh_token",
-            "id_token": id_token,
-            "userinfo": userinfo_dict,
+            "id_token": "id_token",
         }
         fake_client.userinfo_response = userinfo_dict
         return self.browser.get(f"{endpoint}?id_token=id_token&state={state}&code=mock_code")
@@ -271,10 +273,20 @@ class SvipeIdTests(ProofingTests[SvipeIdApp]):
             _data.update(data)
             return client.post(endpoint, json=_data)
 
+    def _install_real_oidc_client(self) -> StaticHttpClient:
+        """Replace the oidc_client with the real one, talking to a static (in-memory) OpenID Provider."""
+        http = StaticHttpClient()
+        http.add_json("https://issuer.example.com/.well-known/openid-configuration", self.oidc_provider_config)
+        http.add_json(str(self.oidc_provider_config["jwks_uri"]), self.signing_key.to_public_jwks())
+        self.app.oidc_client = GrindvaktOidcRpClient(
+            self.app.conf.svipe_client, [get_external_url(self.app, "svipe_id.authn_callback")], http=http
+        )
+        self.static_http = http
+        return http
+
     def _start_auth_with_real_oidc_client(self, endpoint: str, data: dict[str, Any], eppn: str) -> TestResponse:
-        """Like _start_auth, but exercises the real (authlib-backed) oidc_client instead of a fake one."""
-        mock_metadata = self.mocker.patch("authlib.integrations.base_client.sync_app.OAuth2Mixin.load_server_metadata")
-        mock_metadata.return_value = self.oidc_provider_config
+        """Like _start_auth, but exercises the real (pygrindvakt-backed) oidc_client instead of a fake one."""
+        self._install_real_oidc_client()
 
         with self.session_cookie(self.browser, eppn) as client:
             with client.session_transaction() as sess:
@@ -322,8 +334,8 @@ class SvipeIdTests(ProofingTests[SvipeIdApp]):
 
     def test_verify_identity_request(self) -> None:
         """
-        This test exercises the real authlib-backed oidc_client (rather than FakeOidcRpClient) as a
-        regression net for the authlib wiring done in init_oidc_rp_client/AuthlibOidcRpClient.
+        This test exercises the real pygrindvakt-backed oidc_client (rather than FakeOidcRpClient) as a
+        regression net for the wiring done in init_oidc_rp_client/GrindvaktOidcRpClient.
         """
         with self.app.test_request_context():
             endpoint = url_for("svipe_id.verify_identity")
@@ -338,7 +350,7 @@ class SvipeIdTests(ProofingTests[SvipeIdApp]):
         query: dict[str, list[str]] = parse_qs(urlparse(location).query)
         assert query["response_type"] == ["code"]
         assert query["client_id"] == ["test_client_id"]
-        assert query["redirect_uri"] == ["http://test.localhost/authn-callback"]
+        assert query["redirect_uri"] == ["https://test.localhost/authn-callback"]
         assert query["scope"] == ["openid"]
         assert query["code_challenge_method"] == ["S256"]
         assert query["acr_values"] == ["face_present"]
@@ -347,10 +359,13 @@ class SvipeIdTests(ProofingTests[SvipeIdApp]):
         assert len(query["nonce"][0]) > 0
         assert len(query["code_challenge"][0]) > 0
 
-        # the state/nonce/code_verifier used for this request should have been cached in the session
+        # the nonce/code_verifier/redirect_uri of this request should have been stored in the session
         with self.session_cookie(self.browser, self.test_user.eppn) as client:
             with client.session_transaction() as sess:
-                assert len(sess.svipe_id.rp.authlib_cache) > 0
+                authn_req = sess.svipe_id.rp.authns[OIDCState(query["state"][0])]
+                assert authn_req.nonce == query["nonce"][0]
+                assert authn_req.code_verifier
+                assert authn_req.redirect_uri == "https://test.localhost/authn-callback"
 
     def test_verify_nin_identity(self, mocker: MockerFixture) -> None:
         mocker.patch("eduid.webapp.common.api.helpers.get_reference_nin_from_navet_data", return_value=None)
@@ -726,3 +741,325 @@ class SvipeIdTests(ProofingTests[SvipeIdApp]):
             expect_msg=ProofingMsg.session_info_not_valid,
         )
         self._verify_user_parameters(eppn, identity_verified=False, num_proofings=0, num_mfa_tokens=0)
+
+    def _real_client_callback(
+        self,
+        http: StaticHttpClient,
+        state: str,
+        nonce: str,
+        userinfo: SvipeDocumentUserInfo,
+        userinfo_sub: str,
+        include_c_hash: bool = True,
+        acr: str | None = "face_present",
+    ) -> TestResponse:
+        """Answer the token and userinfo endpoints of the static OP and call the callback with the real client."""
+        now = int(time.time())
+        id_token = jwt.sign(
+            self.signing_key,
+            {
+                "iss": self.oidc_provider_config["issuer"],
+                "sub": userinfo.sub,
+                "aud": "test_client_id",
+                "exp": now + 300,
+                "iat": now,
+                "nonce": nonce,
+                "at_hash": half_hash("access_token"),
+                **({"c_hash": half_hash("mock_code")} if include_c_hash else {}),
+                **({"acr": acr} if acr is not None else {}),
+            },
+        )
+        http.add_json(
+            str(self.oidc_provider_config["token_endpoint"]),
+            {"access_token": "access_token", "token_type": "Bearer", "id_token": id_token},
+        )
+        http.add_json(
+            str(self.oidc_provider_config["userinfo_endpoint"]),
+            {**userinfo.model_dump(mode="json"), "sub": userinfo_sub},
+        )
+        with self.app.test_request_context():
+            endpoint = url_for("svipe_id.authn_callback")
+        with self.session_cookie(self.browser, self.unverified_test_user.eppn) as client:
+            return client.get(f"{endpoint}?state={state}&code=mock_code")
+
+    def test_verify_identity_with_real_oidc_client(self, mocker: MockerFixture) -> None:
+        mocker.patch("eduid.webapp.common.api.helpers.get_reference_nin_from_navet_data", return_value=None)
+        mock_request_user_sync = mocker.patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
+        mock_request_user_sync.side_effect = self.request_user_sync
+        eppn = self.unverified_test_user.eppn
+        country = countries.get("Sweden")
+        with self.app.test_request_context():
+            endpoint = url_for("svipe_id.verify_identity")
+
+        start_response = self._start_auth_with_real_oidc_client(
+            endpoint=endpoint, data=self.default_frontend_data, eppn=eppn
+        )
+        state, nonce = self._get_state_and_nonce(self.get_response_payload(start_response)["location"])
+        http = self.static_http
+        userinfo = self.get_mock_userinfo(issuing_country=country, nationality=country)
+        response = self._real_client_callback(http, state, nonce, userinfo, userinfo_sub=userinfo.sub)
+
+        assert response.status_code == HTTPStatus.FOUND
+        self._verify_status(
+            finish_url=response.headers.get("Location", ""),
+            frontend_action=FrontendAction(self.default_frontend_data["frontend_action"]),
+            frontend_state=self.default_frontend_data["frontend_state"],
+            method=self.default_frontend_data["method"],
+            expect_msg=SvipeIDMsg.identity_verify_success,
+        )
+        # the session is ended at the OP after a successful token response
+        assert len(http.requests_to("https://issuer.example.com/logout")) == 1
+
+    def test_callback_nonce_mismatch_with_real_oidc_client(self) -> None:
+        eppn = self.unverified_test_user.eppn
+        country = countries.get("Sweden")
+        with self.app.test_request_context():
+            endpoint = url_for("svipe_id.verify_identity")
+
+        start_response = self._start_auth_with_real_oidc_client(
+            endpoint=endpoint, data=self.default_frontend_data, eppn=eppn
+        )
+        state, _nonce = self._get_state_and_nonce(self.get_response_payload(start_response)["location"])
+        http = self.static_http
+        userinfo = self.get_mock_userinfo(issuing_country=country, nationality=country)
+        response = self._real_client_callback(http, state, "another-nonce", userinfo, userinfo_sub=userinfo.sub)
+
+        assert response.status_code == HTTPStatus.FOUND
+        self._verify_status(
+            finish_url=response.headers.get("Location", ""),
+            frontend_action=FrontendAction(self.default_frontend_data["frontend_action"]),
+            frontend_state=self.default_frontend_data["frontend_state"],
+            method=self.default_frontend_data["method"],
+            expect_error=True,
+            expect_msg=SvipeIDMsg.authorization_error,
+        )
+
+    def test_client_config_requires_hashes_by_default(self) -> None:
+        conf = SvipeClientConfig(client_id="client_id", client_secret="secret", issuer="https://op.example.com")
+
+        assert (conf.require_at_hash, conf.require_c_hash) == (True, True)
+
+    def test_client_config_requires_acr_by_default(self) -> None:
+        conf = SvipeClientConfig(client_id="client_id", client_secret="secret", issuer="https://op.example.com")
+
+        assert conf.require_acr is True
+        assert conf.acr_values == ["face_present"]
+        assert conf.accepted_acr_values == ["face_present", "face_and_document_present"]
+
+    @pytest.mark.parametrize("acr", [None, "document_present"])
+    def test_callback_unacceptable_acr_with_real_oidc_client(self, acr: str | None) -> None:
+        eppn = self.unverified_test_user.eppn
+        country = countries.get("Sweden")
+        with self.app.test_request_context():
+            endpoint = url_for("svipe_id.verify_identity")
+        start_response = self._start_auth_with_real_oidc_client(
+            endpoint=endpoint, data=self.default_frontend_data, eppn=eppn
+        )
+        state, nonce = self._get_state_and_nonce(self.get_response_payload(start_response)["location"])
+        userinfo = self.get_mock_userinfo(issuing_country=country, nationality=country)
+
+        response = self._real_client_callback(
+            self.static_http, state, nonce, userinfo, userinfo_sub=userinfo.sub, acr=acr
+        )
+
+        assert response.status_code == HTTPStatus.FOUND
+        self._verify_status(
+            finish_url=response.headers.get("Location", ""),
+            frontend_action=FrontendAction(self.default_frontend_data["frontend_action"]),
+            frontend_state=self.default_frontend_data["frontend_state"],
+            method=self.default_frontend_data["method"],
+            expect_error=True,
+            expect_msg=SvipeIDMsg.authorization_error,
+        )
+
+    def test_callback_missing_c_hash_with_real_oidc_client(self) -> None:
+        eppn = self.unverified_test_user.eppn
+        country = countries.get("Sweden")
+        with self.app.test_request_context():
+            endpoint = url_for("svipe_id.verify_identity")
+
+        start_response = self._start_auth_with_real_oidc_client(
+            endpoint=endpoint, data=self.default_frontend_data, eppn=eppn
+        )
+        state, nonce = self._get_state_and_nonce(self.get_response_payload(start_response)["location"])
+        userinfo = self.get_mock_userinfo(issuing_country=country, nationality=country)
+        response = self._real_client_callback(
+            self.static_http, state, nonce, userinfo, userinfo_sub=userinfo.sub, include_c_hash=False
+        )
+
+        assert response.status_code == HTTPStatus.FOUND
+        self._verify_status(
+            finish_url=response.headers.get("Location", ""),
+            frontend_action=FrontendAction(self.default_frontend_data["frontend_action"]),
+            frontend_state=self.default_frontend_data["frontend_state"],
+            method=self.default_frontend_data["method"],
+            expect_error=True,
+            expect_msg=SvipeIDMsg.authorization_error,
+        )
+
+    def test_callback_userinfo_sub_mismatch_with_real_oidc_client(self) -> None:
+        eppn = self.unverified_test_user.eppn
+        country = countries.get("Sweden")
+        with self.app.test_request_context():
+            endpoint = url_for("svipe_id.verify_identity")
+
+        start_response = self._start_auth_with_real_oidc_client(
+            endpoint=endpoint, data=self.default_frontend_data, eppn=eppn
+        )
+        state, nonce = self._get_state_and_nonce(self.get_response_payload(start_response)["location"])
+        http = self.static_http
+        userinfo = self.get_mock_userinfo(issuing_country=country, nationality=country)
+        response = self._real_client_callback(http, state, nonce, userinfo, userinfo_sub="someone-else")
+
+        assert response.status_code == HTTPStatus.FOUND
+        self._verify_status(
+            finish_url=response.headers.get("Location", ""),
+            frontend_action=FrontendAction(self.default_frontend_data["frontend_action"]),
+            frontend_state=self.default_frontend_data["frontend_state"],
+            method=self.default_frontend_data["method"],
+            expect_error=True,
+            expect_msg=SvipeIDMsg.authorization_error,
+        )
+
+    def test_callback_repeated_response_rejected(self, mocker: MockerFixture) -> None:
+        mock_request_user_sync = mocker.patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
+        mock_request_user_sync.side_effect = self.request_user_sync
+        eppn = self.unverified_test_user.eppn
+        country = countries.get("Sweden")
+        with self.app.test_request_context():
+            endpoint = url_for("svipe_id.verify_identity")
+        start_auth_response = self._start_auth(endpoint=endpoint, data=self.default_frontend_data, eppn=eppn)
+        state, nonce = self._get_state_and_nonce(self.get_response_payload(start_auth_response)["location"])
+        userinfo = self.get_mock_userinfo(issuing_country=country, nationality=country)
+        first = self.mock_authorization_callback(state=state, nonce=nonce, userinfo=userinfo)
+        assert first.status_code == HTTPStatus.FOUND
+        self.app.conf.errors_url_template = (
+            "http://localhost/errors?code={ERRORURL_CODE}&ctx={ERRORURL_CTX}&rp={ERRORURL_RP}"
+        )
+        fake_client = self.app.oidc_client
+        assert isinstance(fake_client, FakeOidcRpClient)
+
+        second = self.mock_authorization_callback(state=state, nonce=nonce, userinfo=userinfo)
+
+        assert second.status_code == HTTPStatus.FOUND
+        assert urlparse(second.headers["Location"]).path == "/errors"
+        assert len(fake_client.finish_calls) == 1
+        self._verify_status(
+            finish_url=first.headers.get("Location", ""),
+            frontend_action=FrontendAction(self.default_frontend_data["frontend_action"]),
+            frontend_state=self.default_frontend_data["frontend_state"],
+            method=self.default_frontend_data["method"],
+            expect_msg=SvipeIDMsg.identity_verify_success,
+        )
+
+    def test_callback_response_after_provider_error_rejected(self) -> None:
+        eppn = self.unverified_test_user.eppn
+        country = countries.get("Sweden")
+        with self.app.test_request_context():
+            endpoint = url_for("svipe_id.verify_identity")
+            callback_endpoint = url_for("svipe_id.authn_callback")
+        start_auth_response = self._start_auth(endpoint=endpoint, data=self.default_frontend_data, eppn=eppn)
+        state, nonce = self._get_state_and_nonce(self.get_response_payload(start_auth_response)["location"])
+        first = self.browser.get(f"{callback_endpoint}?error=access_denied&state={state}")
+        assert first.status_code == HTTPStatus.FOUND
+        self.app.conf.errors_url_template = (
+            "http://localhost/errors?code={ERRORURL_CODE}&ctx={ERRORURL_CTX}&rp={ERRORURL_RP}"
+        )
+        fake_client = self.app.oidc_client
+        assert isinstance(fake_client, FakeOidcRpClient)
+        userinfo = self.get_mock_userinfo(issuing_country=country, nationality=country)
+
+        second = self.mock_authorization_callback(state=state, nonce=nonce, userinfo=userinfo)
+
+        assert urlparse(second.headers["Location"]).path == "/errors"
+        assert fake_client.finish_calls == []
+        self._verify_status(
+            finish_url=first.headers.get("Location", ""),
+            frontend_action=FrontendAction(self.default_frontend_data["frontend_action"]),
+            frontend_state=self.default_frontend_data["frontend_state"],
+            method=self.default_frontend_data["method"],
+            expect_error=True,
+            expect_msg=SvipeIDMsg.authorization_error,
+        )
+
+    def test_callback_unsolicited_response_redirects_to_errors_page(self) -> None:
+        eppn = self.unverified_test_user.eppn
+        with self.app.test_request_context():
+            endpoint = url_for("svipe_id.verify_identity")
+            callback_endpoint = url_for("svipe_id.authn_callback")
+        self._start_auth(endpoint=endpoint, data=self.default_frontend_data, eppn=eppn)
+        self.app.conf.errors_url_template = (
+            "http://localhost/errors?code={ERRORURL_CODE}&ctx={ERRORURL_CTX}&rp={ERRORURL_RP}"
+        )
+
+        response = self.browser.get(f"{callback_endpoint}?state=unknown-state&code=mock_code")
+
+        assert response.status_code == HTTPStatus.FOUND
+        location = urlparse(response.headers["Location"])
+        assert location.path == "/errors"
+        assert parse_qs(location.query)["ctx"] == ["oidc_response_unsolicited"]
+        assert parse_qs(location.query)["rp"] == ["https://test.localhost/authn-callback"]
+
+    def test_callback_unsolicited_response_without_errors_url(self) -> None:
+        eppn = self.unverified_test_user.eppn
+        with self.app.test_request_context():
+            endpoint = url_for("svipe_id.verify_identity")
+            callback_endpoint = url_for("svipe_id.authn_callback")
+        self._start_auth(endpoint=endpoint, data=self.default_frontend_data, eppn=eppn)
+
+        response = self.browser.get(f"{callback_endpoint}?state=unknown-state&code=mock_code")
+
+        assert response.status_code == HTTPStatus.BAD_REQUEST
+
+    def test_callback_provider_error(self) -> None:
+        eppn = self.unverified_test_user.eppn
+        with self.app.test_request_context():
+            endpoint = url_for("svipe_id.verify_identity")
+            callback_endpoint = url_for("svipe_id.authn_callback")
+        start_response = self._start_auth(endpoint=endpoint, data=self.default_frontend_data, eppn=eppn)
+        state, _nonce = self._get_state_and_nonce(self.get_response_payload(start_response)["location"])
+        fake_client = self.app.oidc_client
+        assert isinstance(fake_client, FakeOidcRpClient)
+
+        response = self.browser.get(
+            f"{callback_endpoint}?error=access_denied&error_description=user+said+no&state={state}"
+        )
+
+        assert response.status_code == HTTPStatus.FOUND
+        assert "user said no" not in response.headers.get("Location", "")
+        assert fake_client.finish_calls == []
+        self._verify_status(
+            finish_url=response.headers.get("Location", ""),
+            frontend_action=FrontendAction(self.default_frontend_data["frontend_action"]),
+            frontend_state=self.default_frontend_data["frontend_state"],
+            method=self.default_frontend_data["method"],
+            expect_error=True,
+            expect_msg=SvipeIDMsg.authorization_error,
+        )
+
+    def test_callback_missing_id_token(self) -> None:
+        eppn = self.unverified_test_user.eppn
+        country = countries.get("Sweden")
+        with self.app.test_request_context():
+            endpoint = url_for("svipe_id.verify_identity")
+        start_response = self._start_auth(endpoint=endpoint, data=self.default_frontend_data, eppn=eppn)
+        state, _nonce = self._get_state_and_nonce(self.get_response_payload(start_response)["location"])
+        userinfo = self.get_mock_userinfo(issuing_country=country, nationality=country)
+        fake_client = self.app.oidc_client
+        assert isinstance(fake_client, FakeOidcRpClient)
+
+        fake_client.tokens = {"access_token": "access_token"}  # no id_token
+        fake_client.claims = {"sub": userinfo.sub}
+        fake_client.userinfo_response = userinfo.model_dump()
+        with self.app.test_request_context():
+            callback_endpoint = url_for("svipe_id.authn_callback")
+        response = self.browser.get(f"{callback_endpoint}?state={state}&code=mock_code")
+
+        assert response.status_code == HTTPStatus.FOUND
+        self._verify_status(
+            finish_url=response.headers.get("Location", ""),
+            frontend_action=FrontendAction(self.default_frontend_data["frontend_action"]),
+            frontend_state=self.default_frontend_data["frontend_state"],
+            method=self.default_frontend_data["method"],
+            expect_error=True,
+            expect_msg=SvipeIDMsg.authorization_error,
+        )

@@ -1,7 +1,6 @@
 import json
 from dataclasses import dataclass
 from datetime import UTC, datetime
-from urllib.parse import parse_qs, urlparse
 
 from flask import Blueprint, make_response, redirect, request, url_for
 from werkzeug import Response as WerkzeugResponse
@@ -95,7 +94,7 @@ def _authn(
         return AuthnResult(error=SvipeIDMsg.frontend_action_not_supported)
 
     try:
-        auth_url = current_app.oidc_client.authorization_url(
+        authn_data = current_app.oidc_client.mint_authn_request(
             redirect_uri=url_for("svipe_id.authn_callback", _external=True),
             # TODO: id_token instead of userinfo would be preferred but I can't get it to work
             extra_params={"claims": json.dumps({"userinfo": current_app.conf.svipe_client.claims_request})},
@@ -104,32 +103,27 @@ def _authn(
         current_app.logger.exception("Failed to create authorization request")
         return AuthnResult(error=SvipeIDMsg.authn_request_failed)
 
-    auth_url_query = urlparse(auth_url).query
-    try:
-        # Ignore PyCharm warning "Expected type 'bytes' ..." for "state" lookup
-        state = parse_qs(auth_url_query)["state"][0]
-    except KeyError:
-        current_app.logger.error(f'Failed to parse "state" from authn request: {auth_url_query}')
-        return AuthnResult(error=SvipeIDMsg.authn_request_failed)
-
     proofing_method = get_proofing_method(method, _frontend_action, current_app.conf)
     if not proofing_method:
         current_app.logger.error(f"Unknown method: {method}")
         return AuthnResult(error=SvipeIDMsg.method_not_available)
 
     authn_req = RP_AuthnRequest(
-        authn_id=OIDCState(state),
+        authn_id=OIDCState(authn_data.state),
         frontend_action=_frontend_action,
         frontend_state=frontend_state,
         post_authn_action=action,
         method=proofing_method.method,
         finish_url=authn_params.finish_url,
+        nonce=authn_data.nonce,
+        code_verifier=authn_data.code_verifier,
+        redirect_uri=authn_data.redirect_uri,
     )
     session.svipe_id.rp.authns[authn_req.authn_id] = authn_req
     current_app.logger.debug(f"Stored RP_AuthnRequest[{authn_req.authn_id}]: {authn_req}")
-    current_app.logger.debug(f"returning url: {auth_url}")
+    current_app.logger.debug(f"returning url: {authn_data.url}")
     current_app.stats.count(f"{proofing_method.method.value}_authn_request")
-    return AuthnResult(authn_id=authn_req.authn_id, url=auth_url, authn_req=authn_req)
+    return AuthnResult(authn_id=authn_req.authn_id, url=authn_data.url, authn_req=authn_req)
 
 
 @svipe_id_views.route("/authn-callback", methods=["GET"])
@@ -139,7 +133,7 @@ def authn_callback(user: User) -> WerkzeugResponse:
     This is the callback endpoint for the Svipe ID OIDC flow.
     """
     current_app.logger.debug("authn_callback called")
-    current_app.logger.debug(f"request.args: {request.args}")
+    current_app.logger.debug(f"request.args keys: {sorted(request.args.keys())}")
     authn_req = None
     oidc_state: OIDCState | None = None
     if "state" in request.args:
@@ -147,20 +141,22 @@ def authn_callback(user: User) -> WerkzeugResponse:
     if oidc_state is not None:
         authn_req = session.svipe_id.rp.authns.get(oidc_state)
 
-    if not oidc_state or not authn_req:
+    if not oidc_state or not authn_req or authn_req.callback_handled:
         # Perhaps an authn response received out of order - abort without destroying state
         # (User makes two requests, A and B. Response B arrives, user is happy and proceeds with their work.
         #  Then response A arrives late. Just silently abort, no need to mess up the users' session.)
         current_app.logger.info(
-            f"Response {oidc_state} does not match one in session, redirecting user to eduID Errors page"
+            f"Response {oidc_state} does not match an unanswered request in session, redirecting user to eduID Errors page"
         )
         if not current_app.conf.errors_url_template:
             return make_response("Unknown authn response", 400)
         return goto_errors_response(
             errors_url=current_app.conf.errors_url_template,
             ctx=EduidErrorsContext.OIDC_RESPONSE_UNSOLICITED,
-            rp=url_for("svipe_id.auth_callback", _external=True),
+            rp=url_for("svipe_id.authn_callback", _external=True),
         )
+    # consume the request before processing, a repeated callback must not run the action again
+    authn_req.callback_handled = True
     current_app.stats.count(name="authn_response")
 
     proofing_method = get_proofing_method(authn_req.method, authn_req.frontend_action, current_app.conf)
@@ -173,22 +169,42 @@ def authn_callback(user: User) -> WerkzeugResponse:
         return goto_errors_response(
             errors_url=current_app.conf.errors_url_template,
             ctx=EduidErrorsContext.OIDC_RESPONSE_FAIL,
-            rp=url_for("svipe_id.auth_callback", _external=True),
+            rp=url_for("svipe_id.authn_callback", _external=True),
         )
     current_app.stats.count(f"{proofing_method.method.value}_authn_response")
 
     formatted_finish_url = authn_req.formatted_finish_url(app_name=current_app.conf.app_name)
 
+    if (provider_error := request.args.get("error")) is not None:
+        # The error and error_description are controlled by the provider: log truncated, never show to the user
+        current_app.logger.warning(
+            f"Provider returned error {provider_error[:64]!r}, "
+            f"description {request.args.get('error_description', '')[:128]!r}"
+        )
+        current_app.stats.count(name="authn_error_response")
+        authn_req.error = True
+        authn_req.status = SvipeIDMsg.authorization_error.value
+        return redirect(formatted_finish_url)
+
     try:
-        token_response = current_app.oidc_client.fetch_token()
-        current_app.logger.debug(f"Got token response: {token_response}")
-        user_response = current_app.oidc_client.userinfo()
-        current_app.logger.debug(f"Got user response: {user_response}")
-        # TODO: look in to why we are not getting a full userinfo in token response anymore
-        if token_response.get("userinfo", {}).get("sub") != user_response.get("sub"):  # sub must match
-            raise OidcRpError("sub mismatch")
-        user_response.update(token_response.get("userinfo", {}))
-        current_app.logger.debug(f"merged user response and token respose userinfo: {user_response}")
+        code = request.args.get("code")
+        if authn_req.nonce is None or code is None:
+            raise OidcRpError("Missing nonce or code")
+        authn_result = current_app.oidc_client.finish(
+            code,
+            redirect_uri=authn_req.redirect_uri or url_for("svipe_id.authn_callback", _external=True),
+            nonce=authn_req.nonce,
+            code_verifier=authn_req.code_verifier,
+        )
+        current_app.logger.debug(f"Got ID token claims: {sorted(authn_result.claims)}")
+        # the client verifies that the sub of the userinfo matches the sub of the ID token
+        user_response = current_app.oidc_client.userinfo(authn_result)
+        current_app.logger.debug(f"Got user response claims: {sorted(user_response)}")
+        user_response.update(authn_result.claims)
+        id_token = authn_result.tokens.get("id_token")
+        if not id_token:
+            raise OidcRpError("Missing id_token in token response")
+        current_app.logger.debug(f"merged user response and ID token claims: {user_response}")
     except OidcRpError:
         current_app.logger.exception("Failed to get token response from Svipe ID")
         current_app.stats.count(name="token_response_failed")
@@ -202,7 +218,7 @@ def authn_callback(user: User) -> WerkzeugResponse:
 
     # end session after successful token response
     try:
-        current_app.oidc_client.end_session(id_token=token_response["id_token"])
+        current_app.oidc_client.end_session(id_token=id_token)
     except OidcRpError:
         # keep going even if we can't end the session
         current_app.logger.exception("Failed to end OIDC session")

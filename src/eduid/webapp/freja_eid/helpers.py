@@ -6,7 +6,6 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from eduid.userdb.identity import FrejaLoaLevel, FrejaRegistrationLevel
 from eduid.webapp.common.api.messages import TranslatableMsg
-from eduid.webapp.common.session import session
 
 __author__ = "lundberg"
 
@@ -33,24 +32,6 @@ class FrejaEIDMsg(TranslatableMsg):
     mfa_authn_success = "freja_eid.mfa_authn_success"
     mfa_authn_not_allowed = "freja_eid.mfa_authn_not_allowed"
     registration_level_not_satisfied = "freja_eid.registration_level_not_satisfied"
-
-
-class SessionOidcCache:
-    # Used to store json-encoded data (OAuth->BaseOAuth->FrameworkIntegration)
-    @staticmethod
-    def get(key: str) -> str | None:
-        logger.debug(f"Getting {key} from session.freja_eid.rp.authlib_cache")
-        return session.freja_eid.rp.authlib_cache.get(key)
-
-    @staticmethod
-    def set(key: str, value: str, expires: int | None = None) -> None:
-        session.freja_eid.rp.authlib_cache[key] = value
-        logger.debug(f"Set {key}={value} (expires={expires}) in session.freja_eid.rp.authlib_cache")
-
-    @staticmethod
-    def delete(key: str) -> None:
-        del session.freja_eid.rp.authlib_cache[key]
-        logger.debug(f"Deleted {key} from session.freja_eid.rp.authlib_cache")
 
 
 class UserInfoBase(BaseModel):

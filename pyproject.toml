@@ -50,10 +50,10 @@ dependencies = [
 [project.optional-dependencies]
 webapp = [
   "Flask",
-  "authlib",
   "captcha",
   "flask-babel",
   "flask-cors",
+  "pygrindvakt>=0.2.0,<0.3",
   "sentry-sdk[flask]",
   "user-agents",
 ]

@@ -447,13 +447,19 @@ class RP_AuthnRequest(BaseAuthnRequest):
     external_mfa_signup_identity: (
         ExternalMfaSignupFrejaEIDIdentity | ExternalMfaSignupFrejaEIDForeignIdentity | None
     ) = None
+    # Per-login OIDC values that must be kept until the callback, kept out of repr to not end up in logs
+    nonce: str | None = Field(default=None, repr=False)
+    code_verifier: str | None = Field(default=None, repr=False)
+    redirect_uri: str | None = None
+    # Set when the callback for this request has been received. A request is answered once, no matter the outcome,
+    # so a replayed callback can not run the action again. Separate from consumed, which some flows leave unset.
+    callback_handled: bool = False
 
     def formatted_finish_url(self, app_name: str) -> str:
         return self.finish_url.format(app_name=app_name, authn_id=self.authn_id)
 
 
 class RPAuthnData(BaseModel):
-    authlib_cache: dict[str, Any] = Field(default_factory=dict)
     authns: dict[OIDCState, RP_AuthnRequest] = Field(default_factory=dict)
 
     def _retained_authn_states(self) -> set[OIDCState]:
@@ -472,20 +478,6 @@ class RPAuthnData(BaseModel):
         retained_states = self._retained_authn_states()
         authns = {state: authn for state, authn in authns.items() if state in retained_states}
         return {k: v.model_dump() for k, v in authns.items()}
-
-    @field_serializer("authlib_cache")
-    def authlib_cache_cleanup(self, authlib_cache: dict[str, Any]) -> dict[str, Any]:
-        """
-        Keep authlib_cache from growing indefinitely with entries left behind by abandoned
-        (never-completed) authorization attempts. authlib's cache keys are of the form
-        "_state_{name}_{state}", correlated with the authns dict by the state value, so we
-        prune any cache entry whose state is not among the authns entries retained by
-        authns_cleanup.
-        """
-        retained_states = self._retained_authn_states()
-        return {
-            key: value for key, value in authlib_cache.items() if any(str(state) in key for state in retained_states)
-        }
 
 
 class SvipeIDNamespace(SessionNSBase):
