@@ -84,31 +84,18 @@
         </caption>
         {% if item.letter_proofing %}
         <tr>
-          <th scope="col">Letter sent</th>
+          <th scope="col">Letter sent to official address (folkbokföringsadressen)</th>
           <td>{{ item.letter_proofing.proofing_letter.is_sent|default("False") }}</td>
         </tr>
         {% if item.letter_proofing.proofing_letter.is_sent %}
         <tr>
-          <th scope="col">Letter sent timestamp</th>
+          <th scope="col">Letter sent to official address timestamp</th>
           <td>{{ item.letter_proofing.proofing_letter.sent_ts|datetimeformat }}</td>
         </tr>
         {% endif %}
         <tr>
           <th scope="col">National identity number</th>
           <td>{{ item.letter_proofing.nin.number }}</td>
-        </tr>
-        <tr>
-          <th scope="col">Official address</th>
-          <td>
-            {{ item.letter_proofing.proofing_letter.address.name.given_name }} {{
-            item.letter_proofing.proofing_letter.address.name.middle_name }} {{
-            item.letter_proofing.proofing_letter.address.name.surname }}<br />
-            {% if item.letter_proofing.proofing_letter.address.official_address.care_of %} C/O {{
-            item.letter_proofing.proofing_letter.address.official_address.care_of }}<br />
-            {% endif %} {{ item.letter_proofing.proofing_letter.address.official_address.address2 }}<br />
-            {{ item.letter_proofing.proofing_letter.address.official_address.postal_code }} {{
-            item.letter_proofing.proofing_letter.address.official_address.city }}
-          </td>
         </tr>
         {% else %}
         <tr>
