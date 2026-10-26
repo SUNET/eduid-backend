@@ -5,6 +5,9 @@ from typing import Any
 import pytest
 
 from eduid.common.config.base import FrontendAction
+from eduid.common.rpc.msg_relay import FullPostalAddress, Name, OfficialAddress
+from eduid.userdb.proofing import LetterProofingState, LetterProofingStateDB, NinProofingElement
+from eduid.userdb.proofing.element import SentLetterElement
 from eduid.webapp.common.api.testing import EduidAPITestCase
 from eduid.webapp.support.app import SupportApp, support_init_app
 
@@ -80,6 +83,32 @@ class SupportAppTests(EduidAPITestCase[SupportApp]):
         assert b"1 user was found using query" in response.data
         # look for the generated credential id for a webauthn security key
         assert b"sha256:4e8d75214d48bc726323fea84f7ac0e3af0e59a3853e251d30652c95af387e75" in response.data
+
+    def test_search_does_not_show_official_address(self) -> None:
+        address = FullPostalAddress(
+            Name=Name(GivenName="Tolvan", Surname="Tolvansson"),
+            OfficialAddress=OfficialAddress(Address2="Testgatan 12", PostalCode="11455", City="Teststad"),
+        )
+        letter_state = LetterProofingState(
+            eppn=self.test_user_eppn,
+            nin=NinProofingElement(
+                number="190001019802", created_by="test", is_verified=False, verification_code="abc123"
+            ),
+            proofing_letter=SentLetterElement(is_sent=True, address=address),
+            id=None,
+            modified_ts=None,
+        )
+        LetterProofingStateDB(self.app.conf.mongo_uri).save(letter_state, is_in_database=False)
+
+        existing_mail_address = self.test_user.mail_addresses.to_list()[0]
+        self.set_authn_action(eppn=self.test_user_eppn, frontend_action=FrontendAction.LOGIN, mock_mfa=True)
+        with self.session_cookie(self.browser, self.test_user_eppn) as client:
+            response = client.post("/search", data={"query": f"{existing_mail_address.email}"})
+        # The letter proofing state is shown, but not the address the letter was sent to
+        assert "Letter sent to official address (folkbokföringsadressen)".encode() in response.data
+        assert b"Official address</th>" not in response.data
+        assert b"Testgatan" not in response.data
+        assert b"Teststad" not in response.data
 
     def test_search_non_existing_user(self) -> None:
         non_existing_mail_address = "not_in_db@example.com"
