@@ -2,10 +2,20 @@ import re
 
 import nacl.secret
 import pytest
+import redis.client
+from pytest_mock import MockerFixture
 
 from eduid.common.config.base import RedisConfig
 from eduid.webapp.common.session.meta import SessionMeta
-from eduid.webapp.common.session.redis_session import RedisEncryptedSession, SessionManager, SessionOutOfSync
+from eduid.webapp.common.session.redis_session import (
+    _MAX_COMMIT_ATTEMPTS,
+    ChangeKind,
+    PathChange,
+    RedisEncryptedSession,
+    SessionManager,
+    SessionOutOfSync,
+    _diff_paths,
+)
 from eduid.webapp.common.session.testing import RedisTemporaryInstance
 
 
@@ -102,3 +112,183 @@ class TestSession:
         session3 = self.manager.get_session(meta=_meta, new=False)
         assert session3["foo"] == "bar"
         assert "bar" not in session3
+
+    def _inject_write_on_first_multi(self, mocker: MockerFixture, db_key: str, injected: bytes) -> list[int]:
+        """Make a concurrent write happen after the conflict check but before EXEC"""
+        original_multi = redis.client.Pipeline.multi
+        calls: list[int] = []
+
+        def _multi(pipe: redis.client.Pipeline, *args: object, **kwargs: object) -> object:
+            calls.append(1)
+            if len(calls) == 1:
+                self.redis_instance.conn.set(db_key, injected)
+            return original_multi(pipe, *args, **kwargs)
+
+        mocker.patch.object(redis.client.Pipeline, "multi", autospec=True, side_effect=_multi)
+        return calls
+
+    def test_commit_watch_retry_detects_conflict(self, mocker: MockerFixture) -> None:
+        """A write between the conflict check and EXEC must be detected on the WATCH retry"""
+        _meta = SessionMeta.new(app_secret=self.manager.secret)
+        session1 = self.manager.get_session(meta=_meta, new=True)
+        session1.commit()
+        session2 = self.manager.get_session(meta=_meta, new=False)
+        baseline = session2._raw_data
+        assert baseline is not None
+
+        other = self.manager.get_session(meta=_meta, new=False)
+        other["other"] = "writer"
+        injected = other.encrypt_data(other.to_dict())
+
+        multi_calls = self._inject_write_on_first_multi(mocker, session2.db_key, injected)
+        session2["mine"] = "data"
+        with pytest.raises(SessionOutOfSync):
+            session2.commit()
+
+        assert self.redis_instance.conn.get(session2.db_key) == injected
+        assert len(multi_calls) == 1
+        assert session2._raw_data == baseline
+
+    def test_commit_watch_retry_without_conflict(self, mocker: MockerFixture) -> None:
+        """A spurious WatchError (same bytes written back) must be retried and then succeed"""
+        _meta = SessionMeta.new(app_secret=self.manager.secret)
+        session1 = self.manager.get_session(meta=_meta, new=True)
+        session1.commit()
+        session2 = self.manager.get_session(meta=_meta, new=False)
+        baseline = session2._raw_data
+        assert baseline is not None
+
+        multi_calls = self._inject_write_on_first_multi(mocker, session2.db_key, baseline)
+        session2["mine"] = "data"
+        session2.commit()
+
+        assert len(multi_calls) == 2
+        now = self.redis_instance.conn.get(session2.db_key)
+        assert now != baseline
+        assert session2._raw_data == now
+        assert self.manager.get_session(meta=_meta, new=False)["mine"] == "data"
+
+    def test_commit_watch_contention_is_bounded(self, mocker: MockerFixture) -> None:
+        """A peer EXPIRE on every attempt (value unchanged) must not cause an unbounded retry loop"""
+        _meta = SessionMeta.new(app_secret=self.manager.secret)
+        session1 = self.manager.get_session(meta=_meta, new=True)
+        session1.commit()
+        session2 = self.manager.get_session(meta=_meta, new=False)
+        baseline = session2._raw_data
+        assert baseline is not None
+
+        original_multi = redis.client.Pipeline.multi
+        calls: list[int] = []
+
+        def _multi(pipe: redis.client.Pipeline, *args: object, **kwargs: object) -> object:
+            calls.append(1)
+            self.redis_instance.conn.expire(session2.db_key, 100)
+            return original_multi(pipe, *args, **kwargs)
+
+        mocker.patch.object(redis.client.Pipeline, "multi", autospec=True, side_effect=_multi)
+        session2["mine"] = "data"
+        with pytest.raises(SessionOutOfSync, match="contended"):
+            session2.commit()
+
+        assert len(calls) == _MAX_COMMIT_ATTEMPTS
+        assert session2._raw_data == baseline
+        assert self.redis_instance.conn.get(session2.db_key) == baseline
+
+    def test_renew_ttl_watch_contention_is_bounded(self, mocker: MockerFixture) -> None:
+        """A peer EXPIRE on every attempt (value unchanged) must not cause an unbounded retry loop"""
+        _meta = SessionMeta.new(app_secret=self.manager.secret)
+        session1 = self.manager.get_session(meta=_meta, new=True)
+        session1.commit()
+        session2 = self.manager.get_session(meta=_meta, new=False)
+        baseline = session2._raw_data
+        assert baseline is not None
+
+        original_multi = redis.client.Pipeline.multi
+        calls: list[int] = []
+
+        def _multi(pipe: redis.client.Pipeline, *args: object, **kwargs: object) -> object:
+            calls.append(1)
+            self.redis_instance.conn.expire(session2.db_key, 100)
+            return original_multi(pipe, *args, **kwargs)
+
+        mocker.patch.object(redis.client.Pipeline, "multi", autospec=True, side_effect=_multi)
+        with pytest.raises(SessionOutOfSync, match="contended"):
+            session2.renew_ttl()
+
+        assert len(calls) == _MAX_COMMIT_ATTEMPTS
+        assert self.redis_instance.conn.get(session2.db_key) == baseline
+
+    def test_renew_ttl_single_watch_collision_succeeds(self, mocker: MockerFixture) -> None:
+        """One WatchError collision followed by an unchanged key renews the ttl"""
+        _meta = SessionMeta.new(app_secret=self.manager.secret)
+        session1 = self.manager.get_session(meta=_meta, new=True)
+        session1.commit()
+        session2 = self.manager.get_session(meta=_meta, new=False)
+        baseline = session2._raw_data
+
+        original_multi = redis.client.Pipeline.multi
+        calls: list[int] = []
+
+        def _multi(pipe: redis.client.Pipeline, *args: object, **kwargs: object) -> object:
+            calls.append(1)
+            if len(calls) == 1:
+                self.redis_instance.conn.expire(session2.db_key, 100)
+            return original_multi(pipe, *args, **kwargs)
+
+        mocker.patch.object(redis.client.Pipeline, "multi", autospec=True, side_effect=_multi)
+        session2.renew_ttl()
+
+        assert len(calls) == 2
+        assert self.redis_instance.conn.get(session2.db_key) == baseline
+        assert self.redis_instance.conn.ttl(session2.db_key) == session2.ttl
+
+    def test_describe_conflict(self) -> None:
+        _meta = SessionMeta.new(app_secret=self.manager.secret)
+        session1 = self.manager.get_session(meta=_meta, new=True)
+        session1["keep"] = "x"
+        session1.commit()
+        session2 = self.manager.get_session(meta=_meta, new=False)
+        session1["foo"] = "bar"
+        session1.commit()
+        session2["bar"] = "baz"
+        with pytest.raises(SessionOutOfSync):
+            session2.commit()
+        conflict = session2.describe_conflict()
+        assert conflict.theirs == [PathChange(ChangeKind.ADDED, "foo")]
+        assert conflict.ours == [PathChange(ChangeKind.ADDED, "bar")]
+        assert conflict.key_deleted is False
+        assert conflict.other_removed_anything is False
+        assert conflict.generation_changed is False
+
+        session1.clear()
+        conflict = session2.describe_conflict()
+        assert conflict.theirs == []
+        assert conflict.key_deleted is True
+        assert conflict.other_removed_anything is True
+
+        # Recreated without the old content shows as removals
+        session1["new"] = "content"
+        session1.commit()
+        conflict = session2.describe_conflict()
+        assert conflict.key_deleted is False
+        assert conflict.theirs == [
+            PathChange(ChangeKind.CHANGED, "_generation_"),
+            PathChange(ChangeKind.REMOVED, "keep"),
+            PathChange(ChangeKind.ADDED, "new"),
+        ]
+        assert conflict.other_removed_anything is True
+        assert conflict.generation_changed is True
+
+
+def test_diff_paths() -> None:
+    old = {"a": 1, "b": {"x": 1, "y": {"deep": 1}}, "gone": 1}
+    new = {"a": 2, "b": {"x": 1, "y": {"deep": 2}, "z": 3}, "added": 1}
+    assert _diff_paths(old, new) == [
+        PathChange(ChangeKind.CHANGED, "a"),
+        PathChange(ChangeKind.ADDED, "added"),
+        PathChange(ChangeKind.CHANGED, "b.y.deep"),
+        PathChange(ChangeKind.ADDED, "b.z"),
+        PathChange(ChangeKind.REMOVED, "gone"),
+    ]
+    assert str(PathChange(ChangeKind.CHANGED, "a")) == "changed a"
+    assert _diff_paths(old, old) == []

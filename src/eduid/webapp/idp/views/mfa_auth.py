@@ -80,6 +80,12 @@ def mfa_auth(
     session.mfa_action.login_ref = ticket.request_ref
     session.mfa_action.eppn = user.eppn
 
+    # The grant is one-time. Commit its consumption now, BEFORE any authentication is recorded in the
+    # SSO session in MongoDB below. If another writer changed the Redis session meanwhile, this raises
+    # SessionOutOfSync (-> error response) while nothing has been recorded yet, rather than failing in
+    # response finalization after the SSO session already holds the upgraded authentication.
+    session.persist()
+
     result = _check_external_mfa(saved_mfa_action, user, ticket.request_ref)
     if result and result.response:
         return result.response
@@ -142,12 +148,11 @@ class CheckResult:
 def _check_external_mfa(mfa_action: MfaAction, user: User, ref: RequestRef) -> CheckResult | None:
     # Third party service MFA
     if mfa_action.success is True:  # Explicit check that success is the boolean True
-        if mfa_action.login_ref:
-            # TODO: Make this an unconditional check once frontend has been updated to pass login_ref to
-            #       the eidas /mfa-authenticate endpoint
-            if mfa_action.login_ref != ref:
-                current_app.logger.info("MFA data in session does not match this request, rejecting")
-                return None
+        if not mfa_action.login_ref or mfa_action.login_ref != ref:
+            current_app.logger.info(
+                "MFA data in session is missing login_ref or does not match this request, rejecting"
+            )
+            return None
 
         current_app.logger.info(f"User {user} logged in using external MFA service {mfa_action.issuer}")
 
