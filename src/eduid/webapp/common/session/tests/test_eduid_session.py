@@ -908,4 +908,6 @@ def test_any_matches() -> None:
 
 def test_session_path_patterns_reject_change_kind_prefix() -> None:
     with pytest.raises(ValueError, match="do not prefix"):
-        EduIDBaseAppConfig(app_name="test", session_fatal_other_writer_paths=["removed idp.ts"])  # type: ignore[call-arg]
+        SessionTestConfig.model_validate(
+            {"mongo_uri": "mongodb://x", "session_fatal_other_writer_paths": ["removed idp.ts"]}
+        )
