@@ -19,13 +19,16 @@ from eduid.webapp.common.session.eduid_session import (
     EduidNamespaces,
     EduidSession,
     SessionFactory,
-    _all_safe_to_lose,
-    _any_matches,
-    _path_matches,
 )
 from eduid.webapp.common.session.meta import SessionMeta
 from eduid.webapp.common.session.namespaces import IdP_SAMLPendingRequest, LoginApplication, RequestRef
-from eduid.webapp.common.session.redis_session import GENERATION_KEY, RedisEncryptedSession, SessionOutOfSync
+from eduid.webapp.common.session.redis_session import (
+    GENERATION_KEY,
+    ChangeKind,
+    PathChange,
+    RedisEncryptedSession,
+    SessionOutOfSync,
+)
 
 __author__ = "lundberg"
 
@@ -833,7 +836,7 @@ class EduidSessionTests(EduidAPITestCase[SessionTestApp]):
 )
 def test_path_matches_allowlist(path: str, expected: bool) -> None:
     patterns = SessionTestConfig.model_fields["session_safe_to_lose_paths"].default
-    assert any(_path_matches(path, pattern) for pattern in patterns) is expected
+    assert any(PathChange(ChangeKind.CHANGED, path).matches(pattern) for pattern in patterns) is expected
 
 
 DEFAULT_SAFE_TO_LOSE = ["idp.ts", "idp.sso_cookie_val", "idp.pending_requests.*.used"]
@@ -854,17 +857,26 @@ def test_invalid_safe_to_lose_path_rejected(bad: str) -> None:
 
 def test_all_safe_to_lose() -> None:
     p = DEFAULT_SAFE_TO_LOSE
-    assert _all_safe_to_lose([], p)
-    assert _all_safe_to_lose(["changed idp.ts", "changed idp.pending_requests.r.used", "removed idp.sso_cookie_val"], p)
-    assert not _all_safe_to_lose(["changed idp.ts", "added common.eppn"], p)
-    assert not _all_safe_to_lose(["added idp.pending_requests.r"], p)
-    assert not _all_safe_to_lose(["changed idp.pending_requests.r.other_field"], p)
+    assert PathChange.all_safe_to_lose([], p)
+    assert PathChange.all_safe_to_lose(
+        [
+            PathChange(ChangeKind.CHANGED, "idp.ts"),
+            PathChange(ChangeKind.CHANGED, "idp.pending_requests.r.used"),
+            PathChange(ChangeKind.REMOVED, "idp.sso_cookie_val"),
+        ],
+        p,
+    )
+    assert not PathChange.all_safe_to_lose(
+        [PathChange(ChangeKind.CHANGED, "idp.ts"), PathChange(ChangeKind.ADDED, "common.eppn")], p
+    )
+    assert not PathChange.all_safe_to_lose([PathChange(ChangeKind.ADDED, "idp.pending_requests.r")], p)
+    assert not PathChange.all_safe_to_lose([PathChange(ChangeKind.CHANGED, "idp.pending_requests.r.other_field")], p)
 
 
 def test_all_safe_to_lose_empty_patterns_never_swallows() -> None:
-    assert not _all_safe_to_lose(["changed idp.ts"], [])
+    assert not PathChange.all_safe_to_lose([PathChange(ChangeKind.CHANGED, "idp.ts")], [])
     # no net diff (a key changed and restored) must not be swallowed when the setting is disabled
-    assert not _all_safe_to_lose([], [])
+    assert not PathChange.all_safe_to_lose([], [])
 
 
 def test_default_fatal_other_writer_paths() -> None:
@@ -882,9 +894,18 @@ def test_invalid_fatal_other_writer_path_rejected(bad: str) -> None:
 
 def test_any_matches() -> None:
     p = ["idp.pending_requests.*.aborted"]
-    assert _any_matches(["changed idp.pending_requests.r.aborted"], p)
-    assert _any_matches(["changed idp.ts", "added idp.pending_requests.r.aborted"], p)
-    assert _any_matches(["removed idp.pending_requests.r.aborted"], p)
-    assert not _any_matches(["changed idp.ts", "added idp.pending_requests.r"], p)
-    assert not _any_matches([], p)
-    assert not _any_matches(["changed idp.pending_requests.r.aborted"], [])
+    assert PathChange.any_match([PathChange(ChangeKind.CHANGED, "idp.pending_requests.r.aborted")], p)
+    assert PathChange.any_match(
+        [PathChange(ChangeKind.CHANGED, "idp.ts"), PathChange(ChangeKind.ADDED, "idp.pending_requests.r.aborted")], p
+    )
+    assert PathChange.any_match([PathChange(ChangeKind.REMOVED, "idp.pending_requests.r.aborted")], p)
+    assert not PathChange.any_match(
+        [PathChange(ChangeKind.CHANGED, "idp.ts"), PathChange(ChangeKind.ADDED, "idp.pending_requests.r")], p
+    )
+    assert not PathChange.any_match([], p)
+    assert not PathChange.any_match([PathChange(ChangeKind.CHANGED, "idp.pending_requests.r.aborted")], [])
+
+
+def test_session_path_patterns_reject_change_kind_prefix() -> None:
+    with pytest.raises(ValueError, match="do not prefix"):
+        EduIDBaseAppConfig(app_name="test", session_fatal_other_writer_paths=["removed idp.ts"])  # type: ignore[call-arg]

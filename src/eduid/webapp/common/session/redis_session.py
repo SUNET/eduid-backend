@@ -49,7 +49,9 @@ import json
 import logging
 import secrets
 import typing
-from collections.abc import Iterator, Mapping
+from collections.abc import Iterable, Iterator, Mapping, Sequence
+from enum import StrEnum, unique
+from fnmatch import fnmatchcase
 from typing import Any, NamedTuple, cast
 
 import nacl.encoding
@@ -166,9 +168,68 @@ class SessionOutOfSync(Exception):
     pass
 
 
+@unique
+class ChangeKind(StrEnum):
+    ADDED = "added"
+    REMOVED = "removed"
+    CHANGED = "changed"
+
+
+class PathChange(NamedTuple):
+    """A single key path (no value) that differs between two dicts."""
+
+    kind: ChangeKind
+    path: str  # dotted
+
+    def __str__(self) -> str:
+        return f"{self.kind} {self.path}"
+
+    def matches(self, pattern: str) -> bool:
+        """
+        Segment-wise match of the dotted key path against a pattern ('*' wildcards, ChangeKind is ignored).
+
+        Both must have the same number of segments, so a pattern never matches a parent
+        (e.g. a whole pending request added/removed) or a deeper/sibling field.
+        """
+        path_parts = self.path.split(".")
+        pattern_parts = pattern.split(".")
+        if len(path_parts) != len(pattern_parts):
+            return False
+        return all(fnmatchcase(p, pat) for p, pat in zip(path_parts, pattern_parts, strict=True))
+
+    @staticmethod
+    def format(changes: Sequence[PathChange]) -> str:
+        """Human readable list for log lines, e.g. 'added foo, removed bar'."""
+        return ", ".join(map(str, changes)) or "none"
+
+    @staticmethod
+    def all_safe_to_lose(changes: Sequence[PathChange], patterns: Iterable[str]) -> bool:
+        """
+        Check that every change is covered by one of the patterns (EduIDBaseAppConfig.session_safe_to_lose_paths).
+        No patterns means nothing is safe to lose, even when there are no changes (a key changed and
+        restored leaves the session modified without a net diff).
+
+        changes is a Sequence (not an Iterable) so that it can not be a one-shot iterator, which would make
+        an empty result look like "nothing to lose".
+        """
+        patterns = tuple(patterns)
+        if not patterns:
+            return False
+        return all(any(c.matches(p) for p in patterns) for c in changes)
+
+    @staticmethod
+    def any_match(changes: Sequence[PathChange], patterns: Iterable[str]) -> bool:
+        """
+        Check that at least one change is covered by one of the patterns
+        (EduIDBaseAppConfig.session_fatal_other_writer_paths). No patterns means no match.
+        """
+        patterns = tuple(patterns)
+        return any(c.matches(p) for c in changes for p in patterns)
+
+
 def _diff_paths(
     old: Mapping[str, Any], new: Mapping[str, Any], prefix: str = "", depth: int | None = None
-) -> list[str]:
+) -> list[PathChange]:
     """
     List the key paths that differ between two dicts, without including any values.
 
@@ -176,20 +237,20 @@ def _diff_paths(
     :param new: The data to compare to the baseline
     :param prefix: Dotted path prefix of the dicts being compared
     :param depth: How many levels of nested dicts to recurse into, None for unlimited
-    :returns: Descriptions like 'added idp.foo', 'removed bar' or 'changed idp.ts'
+    :returns: Changes that stringify like 'added idp.foo', 'removed bar' or 'changed idp.ts'
     """
-    res: list[str] = []
+    res: list[PathChange] = []
     for k in sorted(old.keys() | new.keys()):
         path = f"{prefix}{k}"
         if k not in new:
-            res.append(f"removed {path}")
+            res.append(PathChange(ChangeKind.REMOVED, path))
         elif k not in old:
-            res.append(f"added {path}")
+            res.append(PathChange(ChangeKind.ADDED, path))
         elif old[k] != new[k]:
             if (depth is None or depth > 1) and isinstance(old[k], dict) and isinstance(new[k], dict):
                 res.extend(_diff_paths(old[k], new[k], prefix=f"{path}.", depth=None if depth is None else depth - 1))
             else:
-                res.append(f"changed {path}")
+                res.append(PathChange(ChangeKind.CHANGED, path))
     return res
 
 
@@ -209,8 +270,8 @@ class ConflictDescription(NamedTuple):
     current_generation: generation marker of the session now in the backend (None if absent or key deleted)
     """
 
-    theirs: list[str]
-    ours: list[str]
+    theirs: list[PathChange]
+    ours: list[PathChange]
     key_deleted: bool
     baseline_generation: str | None = None
     current_generation: str | None = None
@@ -229,7 +290,7 @@ class ConflictDescription(NamedTuple):
     @property
     def other_removed_anything(self) -> bool:
         """Secondary logout heuristic based on removed paths, see generation_changed for the primary guard."""
-        return self.key_deleted or any(c.startswith("removed ") for c in self.theirs)
+        return self.key_deleted or any(c.kind is ChangeKind.REMOVED for c in self.theirs)
 
 
 class RedisEncryptedSession(typing.MutableMapping[str, Any]):

@@ -9,6 +9,8 @@ from eduid.common.config.base import RedisConfig
 from eduid.webapp.common.session.meta import SessionMeta
 from eduid.webapp.common.session.redis_session import (
     _MAX_COMMIT_ATTEMPTS,
+    ChangeKind,
+    PathChange,
     RedisEncryptedSession,
     SessionManager,
     SessionOutOfSync,
@@ -252,8 +254,8 @@ class TestSession:
         with pytest.raises(SessionOutOfSync):
             session2.commit()
         conflict = session2.describe_conflict()
-        assert conflict.theirs == ["added foo"]
-        assert conflict.ours == ["added bar"]
+        assert conflict.theirs == [PathChange(ChangeKind.ADDED, "foo")]
+        assert conflict.ours == [PathChange(ChangeKind.ADDED, "bar")]
         assert conflict.key_deleted is False
         assert conflict.other_removed_anything is False
         assert conflict.generation_changed is False
@@ -269,7 +271,11 @@ class TestSession:
         session1.commit()
         conflict = session2.describe_conflict()
         assert conflict.key_deleted is False
-        assert conflict.theirs == ["changed _generation_", "removed keep", "added new"]
+        assert conflict.theirs == [
+            PathChange(ChangeKind.CHANGED, "_generation_"),
+            PathChange(ChangeKind.REMOVED, "keep"),
+            PathChange(ChangeKind.ADDED, "new"),
+        ]
         assert conflict.other_removed_anything is True
         assert conflict.generation_changed is True
 
@@ -278,10 +284,11 @@ def test_diff_paths() -> None:
     old = {"a": 1, "b": {"x": 1, "y": {"deep": 1}}, "gone": 1}
     new = {"a": 2, "b": {"x": 1, "y": {"deep": 2}, "z": 3}, "added": 1}
     assert _diff_paths(old, new) == [
-        "changed a",
-        "added added",
-        "changed b.y.deep",
-        "added b.z",
-        "removed gone",
+        PathChange(ChangeKind.CHANGED, "a"),
+        PathChange(ChangeKind.ADDED, "added"),
+        PathChange(ChangeKind.CHANGED, "b.y.deep"),
+        PathChange(ChangeKind.ADDED, "b.z"),
+        PathChange(ChangeKind.REMOVED, "gone"),
     ]
+    assert str(PathChange(ChangeKind.CHANGED, "a")) == "changed a"
     assert _diff_paths(old, old) == []

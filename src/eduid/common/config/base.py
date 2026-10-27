@@ -563,6 +563,11 @@ class EduIDBaseAppConfig(RootConfig, LoggingConfigMixin, StatsConfigMixin, Redis
         for entry in v:
             if not entry or any(not segment for segment in entry.split(".")):
                 raise ValueError(f"invalid {info.field_name} entry {entry!r}: empty path or empty segment")
+            if entry.partition(" ")[0] in ("added", "removed", "changed"):
+                raise ValueError(
+                    f"invalid {info.field_name} entry {entry!r}: patterns match the key path only, "
+                    "do not prefix them with added/removed/changed"
+                )
         return v
 
 

@@ -4,9 +4,8 @@ import json
 import logging
 import os
 import pprint
-from collections.abc import Iterable, Iterator
+from collections.abc import Iterator
 from datetime import datetime
-from fnmatch import fnmatchcase
 from typing import TYPE_CHECKING, cast
 
 from flask import Flask, Request, Response
@@ -40,6 +39,7 @@ from eduid.webapp.common.session.namespaces import (
 )
 from eduid.webapp.common.session.redis_session import (
     ConflictDescription,
+    PathChange,
     RedisEncryptedSession,
     SessionManager,
     SessionOutOfSync,
@@ -412,53 +412,6 @@ class EduidSession(SessionMixin):
                 raise
 
 
-def _path_matches(path: str, pattern: str) -> bool:
-    """
-    Segment-wise match of a dotted key path against a pattern.
-
-    Both must have the same number of segments, so a pattern never matches a parent
-    (e.g. a whole pending request added/removed) or a deeper/sibling field.
-    """
-    path_parts = path.split(".")
-    pattern_parts = pattern.split(".")
-    if len(path_parts) != len(pattern_parts):
-        return False
-    return all(fnmatchcase(p, pat) for p, pat in zip(path_parts, pattern_parts, strict=True))
-
-
-def _change_paths_matching(changes: Iterable[str], patterns: Iterable[str]) -> list[bool]:
-    """
-    For each change described by _diff_paths ('added x.y', 'removed x.y', 'changed x.y'), tell whether
-    its path (action prefix stripped) matches one of the patterns.
-    """
-    patterns = tuple(patterns)
-    result = []
-    for change in changes:
-        _action, _, path = change.partition(" ")
-        result.append(any(_path_matches(path, pattern) for pattern in patterns))
-    return result
-
-
-def _all_safe_to_lose(changes: Iterable[str], patterns: Iterable[str]) -> bool:
-    """
-    Check that every change is covered by one of the patterns (EduIDBaseAppConfig.session_safe_to_lose_paths).
-    No patterns means nothing is safe to lose, even when there are no changes (a key changed and
-    restored leaves the session modified without a net diff).
-    """
-    patterns = list(patterns)
-    if not patterns:
-        return False
-    return all(_change_paths_matching(changes, patterns))
-
-
-def _any_matches(changes: Iterable[str], patterns: Iterable[str]) -> bool:
-    """
-    Check that at least one change is covered by one of the patterns
-    (EduIDBaseAppConfig.session_fatal_other_writer_paths). No patterns means no match.
-    """
-    return any(_change_paths_matching(changes, patterns))
-
-
 class SessionFactory(SessionInterface):
     """
     Session factory, implementing flask.session.SessionInterface,
@@ -572,27 +525,27 @@ class SessionFactory(SessionInterface):
                 # content. Completing this request would e.g. send an assertion for a logged out session.
                 logger.error(
                     f"Session {session.short_id} was deleted or cleared by other writer, "
-                    f"failing the request: {conflict.theirs}"
+                    f"failing the request: {PathChange.format(conflict.theirs)}"
                 )
                 raise
-            if _any_matches(conflict.theirs, app.conf.session_fatal_other_writer_paths):
+            if PathChange.any_match(conflict.theirs, app.conf.session_fatal_other_writer_paths):
                 # Other writer changed state that invalidates what this request is about to answer
                 logger.error(
                     f"Session {session.short_id} state changed by other writer in a fatal path, "
-                    f"failing the request: {conflict.theirs}"
+                    f"failing the request: {PathChange.format(conflict.theirs)}"
                 )
                 raise
-            if not _all_safe_to_lose(conflict.ours, app.conf.session_safe_to_lose_paths):
+            if not PathChange.all_safe_to_lose(conflict.ours, app.conf.session_safe_to_lose_paths):
                 # Deny by default: fail closed unless every lost change is known to be harmless to lose
                 logger.error(
                     f"Session {session.short_id} state lost and not all changes are safe to lose, "
-                    f"failing the request: {conflict.ours}"
+                    f"failing the request: {PathChange.format(conflict.ours)}"
                 )
                 raise
             app.stats.count("session_state_lost")
             logger.error(
                 f"Session {session.short_id} state lost: our changes were NOT persisted "
-                f"(all safe to lose): {conflict.ours}"
+                f"(all safe to lose): {PathChange.format(conflict.ours)}"
             )
             # TODO: optional reload/re-apply/retry-once merge (needs per-namespace semantics)
         else:
@@ -628,12 +581,12 @@ class SessionFactory(SessionInterface):
         try:
             conflict = session._session.describe_conflict()
             logger.error(
-                f"Session {session.short_id} changed by other writer: {conflict.theirs}"
+                f"Session {session.short_id} changed by other writer: {PathChange.format(conflict.theirs)}"
                 f" (key deleted: {conflict.key_deleted})"
             )
             if conflict.generation_changed:
                 logger.error(f"Session {session.short_id} session generation changed: logout/reset by other writer")
-            logger.warning(f"Session {session.short_id} our attempted changes: {conflict.ours}")
+            logger.warning(f"Session {session.short_id} our attempted changes: {PathChange.format(conflict.ours)}")
             if logger.isEnabledFor(logging.DEBUG):
                 logger.debug(f"Session {session.short_id} our data:\n{pprint.pformat(session._session.to_dict())}")
             return conflict
