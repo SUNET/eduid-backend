@@ -6,6 +6,7 @@ from eduid.common.proofing_utils import (
 )
 from eduid.common.rpc.exceptions import MsgTaskFailed
 from eduid.common.rpc.msg_relay import FullPostalAddress, NavetData
+from eduid.userdb.exceptions import UserDoesNotExist, UserOutOfSync
 from eduid.userdb.identity import IdentityList
 from eduid.userdb.logs.element import NameUpdateProofing
 from eduid.userdb.meta import CleanerType
@@ -26,14 +27,19 @@ def gather_skv_users(context: Context) -> None:
     projection = {"eduPersonPrincipalName": 1, "identities": 1}
     for doc in context.central_db.get_unterminated_users_with_nin(projection=projection):
         eppn = doc["eduPersonPrincipalName"]
-        if context.cleaner_queue.user_in_queue(cleaner_type=CleanerType.SKV, eppn=eppn):
-            context.logger.debug(f"{eppn} already in queue")
-            skipped_count += 1
-        else:
-            identities = IdentityList.from_list_of_dicts(doc.get("identities", []))
-            queue_user = CleanerQueueUser(eppn=eppn, cleaner_type=CleanerType.SKV, identities=identities)
-            context.cleaner_queue.save(queue_user)
-            queued_count += 1
+        try:
+            if context.cleaner_queue.user_in_queue(cleaner_type=CleanerType.SKV, eppn=eppn):
+                context.logger.debug(f"{eppn} already in queue")
+                skipped_count += 1
+            else:
+                identities = IdentityList.from_list_of_dicts(doc.get("identities", []))
+                queue_user = CleanerQueueUser(eppn=eppn, cleaner_type=CleanerType.SKV, identities=identities)
+                context.cleaner_queue.save(queue_user)
+                queued_count += 1
+        except Exception:
+            # One bad user must not abort the sweep
+            context.logger.exception(f"gather_skv_users: failed to queue user {eppn}")
+            context.stats.count("skv_gather_failed")
     context.logger.info(f"gather_skv_users done: queued {queued_count}, skipped {skipped_count} already in queue")
 
 
@@ -80,9 +86,9 @@ def check_user_deregistered(context: Context, user: CleanerQueueUser, navet_data
 
     if cause in context.config.skv.termination_cause_codes:
         context.logger.info(f"User with eppn {user.eppn} should be terminated, cause: {cause.value} ({cause.name})")
-        terminate_user(context, user)
-        context.stats.count("skv_users_terminated")
-        context.stats.count(f"skv_users_terminated_cause_code_{cause.value}")
+        if terminate_user(context, user):
+            context.stats.count("skv_users_terminated")
+            context.stats.count(f"skv_users_terminated_cause_code_{cause.value}")
         return True
 
     context.stats.count(f"skv_users_not_terminated_cause_code_{cause.value}")
@@ -109,6 +115,8 @@ def check_user_official_name(context: Context, queue_user: CleanerQueueUser, nav
 
     # Update the user from the central db as they might have updated their name since being placed in the queue.
     user = context.central_db.get_user_by_eppn(queue_user.eppn)
+    # Snapshot before any mutation, used to detect concurrent central identities changes on save
+    original = user.model_copy(deep=True)
 
     # Compare current names with what we got from Navet and update if necessary.
     # If the names are the same, do nothing.
@@ -150,19 +158,40 @@ def check_user_official_name(context: Context, queue_user: CleanerQueueUser, nav
         return
 
     context.logger.info("Recorded verification in the proofing log")
-    save_and_sync_user(context, user)
+    try:
+        save_and_sync_user(context, user, original=original)
+    except UserOutOfSync:
+        context.logger.warning(f"User with eppn {user.eppn} changed in central db since load, name not updated")
+        context.stats.count(name="skv_user_out_of_sync")
+        return
+    except UserDoesNotExist:
+        context.logger.info(f"User with eppn {user.eppn} no longer exists, name not updated")
+        context.stats.count(name="skv_user_gone")
+        return
     context.stats.count(name="skv_name_updated")
 
 
-def terminate_user(context: Context, queue_user: CleanerQueueUser) -> None:
+def terminate_user(context: Context, queue_user: CleanerQueueUser) -> bool:
     """
     Terminate a user
     """
     if context.dry_run:
         context.logger.info(f"Dry run: Would terminate user with eppn {queue_user.eppn}")
         context.logger.debug(f"CleanerQueueUser: {queue_user!r}")
-        return
+        return False
     user = context.central_db.get_user_by_eppn(queue_user.eppn)
+    # Snapshot before mutation, used to detect concurrent central identities changes on save
+    original = user.model_copy(deep=True)
     user.terminated = utc_now()
-    save_and_sync_user(context, user)
+    try:
+        save_and_sync_user(context, user, original=original)
+    except UserOutOfSync:
+        context.logger.warning(f"User with eppn {queue_user.eppn} changed in central db since load, not terminated")
+        context.stats.count(name="skv_user_out_of_sync")
+        return False
+    except UserDoesNotExist:
+        context.logger.info(f"User with eppn {queue_user.eppn} no longer exists, not terminated")
+        context.stats.count(name="skv_user_gone")
+        return False
     context.logger.info(f"User with eppn {queue_user.eppn} marked as terminated.")
+    return True

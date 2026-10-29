@@ -14,6 +14,7 @@ class CleanerType(StrEnum):
     SKV = "skatteverket"
     TELE = "teleadress"
     LADOK = "ladok"
+    IDENTITY_AGE = "identity_age"
 
 
 class Meta(BaseModel):

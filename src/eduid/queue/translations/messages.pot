@@ -1,27 +1,27 @@
 # Translations template for PROJECT.
-# Copyright (C) 2024 ORGANIZATION
+# Copyright (C) 2026 ORGANIZATION
 # This file is distributed under the same license as the PROJECT project.
-# FIRST AUTHOR <EMAIL@ADDRESS>, 2024.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
 #
 #, fuzzy
 msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2024-04-15 11:07+0200\n"
+"POT-Creation-Date: 2026-10-20 11:07+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.14.0\n"
+"Generated-By: Babel 2.18.0\n"
 
-#: /home/lundberg/projects/eduid-backend/src/eduid/queue/templates/eduid_invite_mail_html.jinja2:1
+#: src/eduid/queue/templates/eduid_invite_mail_html.jinja2:1
 msgid "en"
 msgstr ""
 
-#: /home/lundberg/projects/eduid-backend/src/eduid/queue/templates/eduid_invite_mail_html.jinja2:3
+#: src/eduid/queue/templates/eduid_invite_mail_html.jinja2:3
 #, python-format
 msgid ""
 "\n"
@@ -34,7 +34,7 @@ msgid ""
 "    <p>(This is an automated email. Please do not reply.)</p>\n"
 msgstr ""
 
-#: /home/lundberg/projects/eduid-backend/src/eduid/queue/templates/eduid_invite_mail_txt.jinja2:2
+#: src/eduid/queue/templates/eduid_invite_mail_txt.jinja2:2
 #, python-format
 msgid ""
 "\n"
@@ -47,7 +47,7 @@ msgid ""
 "    (This is an automated email. Please do not reply.)\n"
 msgstr ""
 
-#: /home/lundberg/projects/eduid-backend/src/eduid/queue/templates/eduid_signup_email.html.jinja2:1
+#: src/eduid/queue/templates/eduid_signup_email.html.jinja2:1
 #, python-format
 msgid ""
 "\n"
@@ -62,7 +62,7 @@ msgid ""
 "\n"
 msgstr ""
 
-#: /home/lundberg/projects/eduid-backend/src/eduid/queue/templates/eduid_signup_email.txt.jinja2:1
+#: src/eduid/queue/templates/eduid_signup_email.txt.jinja2:1
 #, python-format
 msgid ""
 "\n"
@@ -77,7 +77,97 @@ msgid ""
 "\n"
 msgstr ""
 
-#: /home/lundberg/projects/eduid-backend/src/eduid/queue/templates/old_eduid_signup_email.html.jinja2:1
+#: src/eduid/queue/templates/group_invite_cancel_email.html.jinja2:1
+#, python-format
+msgid ""
+"\n"
+"    <p>Hi,</p>\n"
+"    <p>Your invite to the group %(group_display_name)s was canceled.</p>\n"
+"    <p>(This is an automated email. Please do not reply.)</p>\n"
+msgstr ""
+
+#: src/eduid/queue/templates/group_invite_cancel_email.txt.jinja2:1
+#, python-format
+msgid ""
+"\n"
+"\n"
+"Hi,\n"
+"\n"
+"Your invite to the group %(group_display_name)s was canceled.\n"
+"\n"
+"(This is an automated email. Please do not reply.)\n"
+"\n"
+msgstr ""
+
+#: src/eduid/queue/templates/group_invite_email.html.jinja2:1
+#, python-format
+msgid ""
+"\n"
+"    <p>Hi,</p>\n"
+"    <p>You are invited to join the group %(group_display_name)s with your <a href=%(site_url)s>%(site_name)s</a> "
+"account.</p>\n"
+"    <p>To accept or decline the invitation go to <a href=%(group_invite_url)s>%(group_invite_url)s</a>.</p>\n"
+"    <p>If you do not have an %(site_name)s account you can <a href=\"%(site_url)s\">create one</a>.</p>\n"
+"    <p>(This is an automated email. Please do not reply.)</p>\n"
+msgstr ""
+
+#: src/eduid/queue/templates/group_invite_email.txt.jinja2:1
+#, python-format
+msgid ""
+"\n"
+"Hi,\n"
+"\n"
+"You are invited to join the group %(group_display_name)s with your %(site_name)s account.\n"
+"\n"
+"To accept or decline the invitation go to %(group_invite_url)s.\n"
+"\n"
+"If you do not have an %(site_name)s account you can create one at\n"
+"%(site_url)s.\n"
+"\n"
+"(This is an automated email. Please do not reply.)\n"
+msgstr ""
+
+#: src/eduid/queue/templates/identity_expiry_warning_email.html.jinja2:5
+#, python-format
+msgid ""
+"\n"
+"    <p>Your identity verification at %(site_name)s expires on %(expires_at)s.</p>\n"
+"    <p>To keep your account verified, please log in and verify your identity again before that date.</p>\n"
+"    <p>(This is an automated email. Please do not reply.)</p>\n"
+msgstr ""
+
+#: src/eduid/queue/templates/identity_expiry_warning_email.txt.jinja2:1
+#, python-format
+msgid ""
+"\n"
+"    Your identity verification at %(site_name)s expires on %(expires_at)s.\n"
+"\n"
+"    To keep your account verified, please log in and verify your identity again before that date.\n"
+"\n"
+"    (This is an automated email. Please do not reply.)\n"
+msgstr ""
+
+#: src/eduid/queue/templates/identity_unverified_email.html.jinja2:5
+#, python-format
+msgid ""
+"\n"
+"    <p>Your identity verification at %(site_name)s has expired and your identity is no longer verified.</p>\n"
+"    <p>To verify your identity again, please log in and follow the instructions.</p>\n"
+"    <p>(This is an automated email. Please do not reply.)</p>\n"
+msgstr ""
+
+#: src/eduid/queue/templates/identity_unverified_email.txt.jinja2:1
+#, python-format
+msgid ""
+"\n"
+"    Your identity verification at %(site_name)s has expired and your identity is no longer verified.\n"
+"\n"
+"    To verify your identity again, please log in and follow the instructions.\n"
+"\n"
+"    (This is an automated email. Please do not reply.)\n"
+msgstr ""
+
+#: src/eduid/queue/templates/old_eduid_signup_email.html.jinja2:1
 #, python-format
 msgid ""
 "\n"
@@ -92,7 +182,7 @@ msgid ""
 "\n"
 msgstr ""
 
-#: /home/lundberg/projects/eduid-backend/src/eduid/queue/templates/old_eduid_signup_email.txt.jinja2:1
+#: src/eduid/queue/templates/old_eduid_signup_email.txt.jinja2:1
 #, python-format
 msgid ""
 "\n"
@@ -107,7 +197,28 @@ msgid ""
 "\n"
 msgstr ""
 
-#: /home/lundberg/projects/eduid-backend/src/eduid/queue/templates/reset_password_email.html.jinja2:1
+#: src/eduid/queue/templates/redo_verification_email.html.jinja2:5
+#, python-format
+msgid ""
+"\n"
+"    <p>You have tried to verify your account at <a href=\"%(site_url)s\">%(site_name)s</a>.</p>\n"
+"    <p>We encountered a problem and kindly ask you to verify you account again using a different verification "
+"method.</p>\n"
+"    <p>We apologize for any inconvenience.</p>\n"
+msgstr ""
+
+#: src/eduid/queue/templates/redo_verification_email.txt.jinja2:2
+#, python-format
+msgid ""
+"\n"
+"    You have tried to verify your account at %(site_name)s\n"
+"\n"
+"    We encountered a problem and kindly ask you to verify you account again using a different verification method.\n"
+"\n"
+"    We apologize for any inconvenience.\n"
+msgstr ""
+
+#: src/eduid/queue/templates/reset_password_email.html.jinja2:1
 #, python-format
 msgid ""
 "\n"
@@ -121,7 +232,7 @@ msgid ""
 "<p>(This is an automated email. Please do not reply.)</p>\n"
 msgstr ""
 
-#: /home/lundberg/projects/eduid-backend/src/eduid/queue/templates/reset_password_email.txt.jinja2:1
+#: src/eduid/queue/templates/reset_password_email.txt.jinja2:1
 #, python-format
 msgid ""
 "\n"
@@ -138,7 +249,7 @@ msgid ""
 "(This is an automated email. Please do not reply.)\n"
 msgstr ""
 
-#: /home/lundberg/projects/eduid-backend/src/eduid/queue/templates/termination_email.html.jinja2:5
+#: src/eduid/queue/templates/termination_email.html.jinja2:5
 #, python-format
 msgid ""
 "\n"
@@ -151,7 +262,7 @@ msgid ""
 "    <p>(This is an automated email. Please do not reply.)</p>\n"
 msgstr ""
 
-#: /home/lundberg/projects/eduid-backend/src/eduid/queue/templates/termination_email.txt.jinja2:2
+#: src/eduid/queue/templates/termination_email.txt.jinja2:2
 #, python-format
 msgid ""
 "\n"
@@ -164,7 +275,7 @@ msgid ""
 "    (This is an automated email. Please do not reply.)\n"
 msgstr ""
 
-#: /home/lundberg/projects/eduid-backend/src/eduid/queue/templates/verification_email.html.jinja2:1
+#: src/eduid/queue/templates/verification_email.html.jinja2:1
 #, python-format
 msgid ""
 "\n"
@@ -177,7 +288,7 @@ msgid ""
 "\n"
 msgstr ""
 
-#: /home/lundberg/projects/eduid-backend/src/eduid/queue/templates/verification_email.txt.jinja2:1
+#: src/eduid/queue/templates/verification_email.txt.jinja2:1
 #, python-format
 msgid ""
 "\n"
@@ -189,30 +300,50 @@ msgid ""
 "\n"
 msgstr ""
 
-#: /home/lundberg/projects/eduid-backend/src/eduid/queue/tests/test_mail_worker.py:133
-#: /home/lundberg/projects/eduid-backend/src/eduid/queue/workers/mail.py:229
+#: src/eduid/queue/tests/test_mail_worker.py:134 src/eduid/queue/workers/mail.py:284
 msgid "eduID registration"
 msgstr ""
 
-#: /home/lundberg/projects/eduid-backend/src/eduid/queue/tests/test_mail_worker.py:159
+#: src/eduid/queue/tests/test_mail_worker.py:158 src/eduid/queue/workers/mail.py:396
+#, python-format
+msgid "%(site_name)s identity verification is about to expire"
+msgstr ""
+
+#: src/eduid/queue/tests/test_mail_worker.py:189 src/eduid/queue/workers/mail.py:414
+#, python-format
+msgid "%(site_name)s identity verification has expired"
+msgstr ""
+
+#: src/eduid/queue/tests/test_mail_worker.py:222
 msgid "Reset password"
 msgstr ""
 
-#: /home/lundberg/projects/eduid-backend/src/eduid/queue/tests/test_mail_worker.py:186
-#: /home/lundberg/projects/eduid-backend/src/eduid/queue/workers/mail.py:261
+#: src/eduid/queue/tests/test_mail_worker.py:249 src/eduid/queue/workers/mail.py:316
 msgid "eduID verification email"
 msgstr ""
 
-#: /home/lundberg/projects/eduid-backend/src/eduid/queue/tests/test_mail_worker.py:211
-#: /home/lundberg/projects/eduid-backend/src/eduid/queue/workers/mail.py:277
+#: src/eduid/queue/tests/test_mail_worker.py:274 src/eduid/queue/workers/mail.py:332
 msgid "eduID account termination"
 msgstr ""
 
-#: /home/lundberg/projects/eduid-backend/src/eduid/queue/workers/mail.py:213
+#: src/eduid/queue/workers/mail.py:268
 msgid "eduID invitation"
 msgstr ""
 
-#: /home/lundberg/projects/eduid-backend/src/eduid/queue/workers/mail.py:245
+#: src/eduid/queue/workers/mail.py:300
 msgid "eduID reset password"
+msgstr ""
+
+#: src/eduid/queue/workers/mail.py:348
+msgid "Group invitation"
+msgstr ""
+
+#: src/eduid/queue/workers/mail.py:364
+msgid "Group invitation cancelled"
+msgstr ""
+
+#: src/eduid/queue/workers/mail.py:378
+#, python-format
+msgid "%(site_name)s account verification"
 msgstr ""
 
