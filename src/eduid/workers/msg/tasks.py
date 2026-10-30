@@ -2,24 +2,20 @@ import json
 import logging
 from collections import OrderedDict
 from http import HTTPStatus
-from typing import Any, ClassVar, cast
+from typing import Any, ClassVar
 
 from billiard.einfo import ExceptionInfo
 from celery.utils.log import get_task_logger
 from hammock import Hammock  # type: ignore[import-untyped]
-from smscom import SMSClient  # type: ignore[import-untyped]
 
-from eduid.common.config.base import EduidEnvironment
 from eduid.userdb.exceptions import DBConnectionError
 from eduid.workers.celery_typing import Task
 from eduid.workers.msg.cache import CacheMDB
 from eduid.workers.msg.common import MsgCelerySingleton
 from eduid.workers.msg.exceptions import NavetAPIException
 from eduid.workers.msg.utils import (
-    load_template,
     navet_get_all_data,
     navet_get_name_and_official_address,
-    navet_get_relations,
 )
 
 logger: logging.Logger = get_task_logger(__name__)
@@ -34,15 +30,8 @@ class MessageSender(Task[Any, Any]):
 
     abstract = True
 
-    _sms: SMSClient | None = None
     _navet_api: Hammock | None = None
     _cache_store: ClassVar[dict[str, CacheMDB]] = {}
-
-    @property
-    def sms(self) -> SMSClient:
-        if self._sms is None:
-            self._sms = SMSClient(MsgCelerySingleton.worker_config.sms_acc, MsgCelerySingleton.worker_config.sms_key)
-        return self._sms
 
     @property
     def navet_api(self) -> Hammock:
@@ -78,57 +67,6 @@ class MessageSender(Task[Any, Any]):
             logger.error("Task failed with db exception ConnectionError. Reloading db.")
             self.reload_db()
 
-    def send_message(
-        self,
-        message_type: str,
-        reference: str,
-        message_dict: dict[str, Any],
-        recipient: str,
-        template: str,
-        language: str,
-        subject: str | None = None,
-    ) -> str | None:
-        """
-        :param message_type: Message notification type (sms or mm)
-        :param reference: Unique reference id
-        :param message_dict: A dict of key value pairs used in the template of choice
-        :param recipient: Recipient mobile phone number or social security number (depends on the choice of
-                          message_type)
-        :param template: Name of the message template to use
-        :param language: Preferred language for the template.
-        :param subject: (Optional) Subject used in my messages service or email deliveries
-        :return: For type 'sms' a message id is returned if successful, if unsuccessful an error message is returned.
-                 For type 'mm' a message id is returned if successful, the message id can be used to verify if that the
-                 message has been delivered to the users mailbox service by calling
-                 check_distribution_status(message_id), if unsuccessful an error message is returned.
-        """
-        conf = MsgCelerySingleton.worker_config
-
-        msg = load_template(conf.template_dir, template, message_dict, language)
-
-        # Only log the message if devel_mode is enabled
-        if conf.devel_mode is True:
-            logger.debug(
-                f"\nType: {message_type}\nReference: {reference}\nRecipient: {recipient}"
-                f"\nLang: {language}\nSubject: {subject}\nMessage:\n {msg}"
-            )
-            return "devel_mode"
-
-        if message_type == "sms":
-            logger.debug(f"Sending SMS to {recipient} using template {template} and language {language}")
-            try:
-                msg_bytes = msg.encode("utf-8")
-                status = self.sms.send(msg_bytes, MsgCelerySingleton.worker_config.sms_sender, recipient, prio=2)
-            except Exception as e:  # XXX: smscom only raises Exception right now
-                logger.error(f"SMS task failed: {e}")
-                raise
-        else:
-            logger.error(f"Unknown message type: {message_type}")
-            raise NotImplementedError(f"message_type {message_type} is not implemented")
-
-        logger.debug(f"send_message result: {status}")
-        return cast(str, status)
-
     def get_postal_address(self, identity_number: str) -> OrderedDict[str, Any] | None:
         """
         Fetch name and postal address from NAVET
@@ -155,50 +93,6 @@ class MessageSender(Task[Any, Any]):
                     "OfficialAddress",
                     OrderedDict([("Address2", "\xd6RGATAN 79 LGH 10"), ("PostalCode", "12345"), ("City", "LANDET")]),
                 ),
-            ]
-        )
-        return result
-
-    def get_relations(self, identity_number: str) -> OrderedDict[str, Any] | None:
-        """
-        Fetch information about someones relatives from NAVET
-
-        :param identity_number: Swedish national identity number
-        :return: dict containing name and postal address
-        """
-        data = self._get_navet_data(identity_number)
-        # Filter relations from the Navet lookup results
-        return navet_get_relations(data)
-
-    @staticmethod
-    def get_devel_relations() -> OrderedDict[str, Any]:
-        """
-        Return a OrderedDict just as we would get from navet.
-        """
-        result = OrderedDict(
-            [
-                (
-                    "Relations",
-                    {
-                        "Relation": [
-                            {
-                                "RelationType": "VF",
-                                "RelationId": {"NationalIdentityNumber": "200202025678"},
-                                "RelationStartDate": "20020202",
-                            },
-                            {
-                                "RelationType": "VF",
-                                "RelationId": {"NationalIdentityNumber": "200101014567"},
-                                "RelationStartDate": "20010101",
-                            },
-                            {"RelationType": "FA", "RelationId": {"NationalIdentityNumber": "194004048989"}},
-                            {"RelationType": "MO", "RelationId": {"NationalIdentityNumber": "195010106543"}},
-                            {"RelationType": "B", "RelationId": {"NationalIdentityNumber": "200202025678"}},
-                            {"RelationType": "B", "RelationId": {"NationalIdentityNumber": "200101014567"}},
-                            {"RelationType": "M", "RelationId": {"NationalIdentityNumber": "197512125432"}},
-                        ]
-                    },
-                )
             ]
         )
         return result
@@ -274,41 +168,6 @@ class MessageSender(Task[Any, Any]):
             self.cache("navet_cache").add_cache_item(identity_number, json_data)
         return json_data
 
-    def sendsms(self, recipient: str, message: str, reference: str) -> str:
-        """
-        Send sms
-
-        :param recipient: the recipient of the sms
-        :param message: message as a string (160 chars per sms)
-        :param reference: Audit reference to help cross reference audit log and events
-
-        :return Transaction ID
-        """
-
-        # Just log the sms if in development mode
-        if (
-            MsgCelerySingleton.worker_config.environment is EduidEnvironment.dev
-            or MsgCelerySingleton.worker_config.devel_mode is True
-        ):
-            logger.debug("sendsms task:")
-            logger.debug(f"\nType: sms\nReference: {reference}\nRecipient: {recipient}\nMessage:\n{message}")
-            return "devel_mode"
-
-        #  0701740605-0701740699 is a unused range from PTS
-        #  https://www.pts.se/sv/bransch/telefoni/nummer-och-adressering/
-        #  telefonnummer-for-anvandning-i-bocker-och-filmer-etc/
-        UNUSED_RANGE_LOWER_END = 5
-        UNUSED_RANGE_UPPER_END = 99
-        if (
-            recipient.startswith("+467017406")
-            and UNUSED_RANGE_LOWER_END <= int(recipient.removeprefix("+467017406")) <= UNUSED_RANGE_UPPER_END
-        ):
-            logger.debug("sendsms task:")
-            logger.debug(f"\nType: sms\nReference: {reference}\nRecipient: {recipient}\nMessage:\n{message}")
-            return "no_op_number"
-
-        return cast(str, self.sms.send(message, MsgCelerySingleton.worker_config.sms_sender, recipient, prio=2))
-
     def pong(self, app_name: str | None) -> str:
         # Leverage cache to test mongo db health
         if self.cache("pong", 0).is_healthy():
@@ -317,21 +176,6 @@ class MessageSender(Task[Any, Any]):
             # Old clients don't send app_name, and text-match the response to be exactly 'pong' in the health checks
             return "pong"
         raise DBConnectionError("Database not healthy")
-
-
-@app.task(bind=True, base=MessageSender, name="eduid_msg.tasks.sendsms")
-def sendsms(self: MessageSender, recipient: str, message: str, reference: str) -> str:
-    """
-    :param self: base class
-    :param recipient: the recipient of the sms
-    :param message: message as a string (160 chars per sms)
-    :param reference: Audit reference to help cross reference audit log and events
-    """
-    try:
-        return self.sendsms(recipient, message, reference)
-    except Exception as e:
-        logger.exception("sendsms task error")
-        raise self.retry(countdown=1, max_retries=3, exc=e) from e
 
 
 @app.task(bind=True, base=MessageSender, name="eduid_msg.tasks.get_all_navet_data")
@@ -365,55 +209,6 @@ def get_postal_address(self: MessageSender, identity_number: str) -> OrderedDict
         return self.get_postal_address(identity_number)
     except Exception as e:
         logger.exception("get_postal_address task error")
-        raise self.retry(countdown=1, max_retries=3, exc=e) from e
-
-
-@app.task(bind=True, base=MessageSender, name="eduid_msg.tasks.get_relations_to")
-def get_relations_to(self: MessageSender, identity_number: str, relative_nin: str) -> list[str]:
-    """
-    Get the relative status between identity_number and relative_nin.
-
-    What is returned is a list of Navet codes. Known codes:
-      M = spouse (make/maka)
-      B = child (barn)
-      FA = father
-      MO = mother
-      VF = some kind of legal guardian status. Childs typically have ['B', 'VF'] it seems.
-
-    :param self: base class
-    :param identity_number: Swedish national identity number
-    :param relative_nin: Swedish national identity number
-    """
-    try:
-        relations = self.get_relations(identity_number)
-        if not relations:
-            return []
-        result = []
-        # ruff: disable[ERA001]
-        # Entrys in relations['Relations']['Relation'] (a list) look like this:
-        #
-        #    {
-        #        "RelationId" : {
-        #                "NationalIdentityNumber" : "200001011234
-        #        },
-        #        "RelationType" : "B",
-        #        "RelationStartDate" : "20000101"
-        #    },
-        #
-        # (I wonder what other types of Relations than Relation that NAVET can come up with...)
-        # ruff: enable[ERA001]
-        import pprint
-
-        logger.debug(
-            f"Looking for relations between {identity_number} and {relative_nin} in: {pprint.pformat(relations)}"
-        )
-        for d in relations["Relations"]["Relation"]:
-            if d.get("RelationId", {}).get("NationalIdentityNumber") == relative_nin:
-                if "RelationType" in d:
-                    result.append(d["RelationType"])
-        return result
-    except Exception as e:
-        logger.exception("get_relations_to task error")
         raise self.retry(countdown=1, max_retries=3, exc=e) from e
 
 

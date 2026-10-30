@@ -1,5 +1,4 @@
 import math
-from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import timedelta
 from enum import unique
@@ -7,15 +6,14 @@ from secrets import compare_digest
 from typing import Any
 
 from fido2.webauthn import UserVerificationRequirement
-from flask import render_template
 
 from eduid.common.config.base import EduidEnvironment
-from eduid.common.utils import generate_password, get_short_hash
+from eduid.common.utils import generate_password
 from eduid.queue.client import init_queue_item
 from eduid.queue.db.message.payload import EduidResetPasswordEmail
 from eduid.userdb.exceptions import UserDoesNotExist
-from eduid.userdb.logs import MailAddressProofing, PhoneNumberProofing
-from eduid.userdb.reset_password import ResetPasswordEmailAndPhoneState, ResetPasswordEmailState, ResetPasswordUser
+from eduid.userdb.logs import MailAddressProofing
+from eduid.userdb.reset_password import ResetPasswordEmailState, ResetPasswordUser
 from eduid.userdb.reset_password.element import CodeElement
 from eduid.userdb.user import User
 from eduid.webapp.common.api.exceptions import ThrottledException
@@ -41,15 +39,8 @@ class ResetPwMsg(TranslatableMsg):
     state_not_found = "resetpw.state-not-found"
     # Some required input data is empty
     missing_data = "resetpw.missing-data"
-    # The user has sent an SMS'ed code that corresponds to no known password
-    # reset request
-    unknown_phone_code = "resetpw.phone-code-unknown"
-    # The phone number choice is out of bounds
-    unknown_phone_number = "resetpw.phone-number-unknown"
     # The user has sent a code that has expired
     expired_email_code = "resetpw.expired-email-code"
-    # The user has sent an SMS'ed code that has expired
-    expired_phone_code = "resetpw.expired-phone-code"
     # Too many incorrect email code submissions against this state
     email_code_too_many_tries = "resetpw.email-code-too-many-tries"
     # No identity hint available; the frontend must prompt for the email address
@@ -64,15 +55,6 @@ class ResetPwMsg(TranslatableMsg):
     pw_reset_success = "resetpw.pw-reset-success"
     # The password has _NOT_ been successfully reset
     pw_reset_fail = "resetpw.pw-reset-fail"
-    # There was some problem sending the SMS with the (extra security) code.
-    send_sms_throttled = "resetpw.sms-throttled"
-    # Sending the SMS with the (extra security) code has been throttled.
-    send_sms_failure = "resetpw.send-sms-failed"
-    # A new (extra security) code has been generated and sent by SMS
-    # successfully
-    send_sms_success = "resetpw.send-sms-success"
-    # The phone number has not been verified. Should not happen.
-    phone_invalid = "resetpw.phone-invalid"
     # No user was found corresponding to the password reset state. Should not
     # happen.
     user_not_found = "resetpw.user-not-found"
@@ -107,7 +89,7 @@ class StateException(Exception):
 
 @dataclass
 class ResetPasswordContext:
-    state: ResetPasswordEmailState | ResetPasswordEmailAndPhoneState
+    state: ResetPasswordEmailState
     user: User
 
 
@@ -131,9 +113,7 @@ def get_context(email_code: str, email_address: str | None = None) -> ResetPassw
     return ResetPasswordContext(state=state, user=user)
 
 
-def get_pwreset_state(
-    email_code: str, email_address: str | None = None
-) -> ResetPasswordEmailState | ResetPasswordEmailAndPhoneState:
+def get_pwreset_state(email_code: str, email_address: str | None = None) -> ResetPasswordEmailState:
     """
     Get the password reset state for the current user and verify the provided code against it.
 
@@ -158,7 +138,6 @@ def get_pwreset_state(
     raises StateException in case of problems
     """
     mail_expiration_time = current_app.conf.email_code_timeout
-    sms_expiration_time = current_app.conf.phone_code_timeout
 
     eppn = session.common.eppn
     if eppn is None:
@@ -212,31 +191,11 @@ def get_pwreset_state(
 
     current_app.logger.debug(f"Found state for eppn {eppn}: {state}")
 
-    # Expiry checks run only after the caller has proven they hold the code. The phone
-    # branch below mutates the state, and no mutation may be reachable without that proof.
+    # Expiry checks run only after the caller has proven they hold the code.
     if state.email_code.is_expired(mail_expiration_time):
         current_app.logger.info(f"State expired for eppn {eppn}")
         current_app.stats.count(name="email_code_expired", value=1)
         raise StateException(msg=ResetPwMsg.expired_email_code)
-
-    if isinstance(state, ResetPasswordEmailAndPhoneState) and state.phone_code.is_expired(sms_expiration_time):
-        current_app.logger.info(f"Phone code expired for eppn {eppn}")
-        # Revert the state to EmailState to allow the user to choose extra security again.
-        # The attempt counter is carried over explicitly: this rebuild replaces the document,
-        # so anything left out of the constructor is silently reset to its default. The value
-        # is always zero here, because getting this far cleared it above - which is the point.
-        # Reading it off the state rather than hardcoding a zero keeps the rebuild honest if
-        # the clearing above ever moves.
-        current_app.password_reset_state_db.remove_state(state)
-        state = ResetPasswordEmailState(
-            eppn=state.eppn,
-            email_address=state.email_address,
-            email_code=state.email_code,
-            bad_attempts=state.bad_attempts,
-        )
-        current_app.password_reset_state_db.save(state, is_in_database=False)
-        current_app.stats.count(name="phone_code_expired", value=1)
-        raise StateException(msg=ResetPwMsg.expired_phone_code)
     return state
 
 
@@ -330,9 +289,7 @@ def generate_suggested_password(password_length: int) -> str:
     return password
 
 
-def extra_security_used(
-    state: ResetPasswordEmailState | ResetPasswordEmailAndPhoneState, mfa_used: bool = False
-) -> bool:
+def extra_security_used(state: ResetPasswordEmailState, mfa_used: bool = False) -> bool:
     """
     Check if any extra security method was used
 
@@ -342,8 +299,6 @@ def extra_security_used(
     """
     if state.email_code.is_verified and mfa_used:
         return True
-    if isinstance(state, ResetPasswordEmailAndPhoneState):
-        return state.email_code.is_verified and state.phone_code.is_verified
     return False
 
 
@@ -377,7 +332,7 @@ def unverify_user(user: ResetPasswordUser) -> None:
 
 def reset_user_password(
     user: User,
-    state: ResetPasswordEmailState | ResetPasswordEmailAndPhoneState,
+    state: ResetPasswordEmailState,
     password: str,
     mfa_used: bool = False,
 ) -> FluxData:
@@ -456,12 +411,6 @@ def get_extra_security_alternatives(user: User) -> dict[str, Any]:
     if any([alternatives.get("swedish_eid"), alternatives.get("eidas"), alternatives.get("freja_eid")]):
         session.mfa_action.eppn = user.eppn
 
-    if user.phone_numbers.verified:
-        verified_phone_numbers = [
-            {"number": item.number, "index": n} for n, item in enumerate(user.phone_numbers.verified)
-        ]
-        alternatives["phone_numbers"] = verified_phone_numbers
-
     tokens = fido_tokens.get_user_credentials(user, mfa_approved=True)
 
     if tokens:
@@ -474,23 +423,6 @@ def get_extra_security_alternatives(user: User) -> dict[str, Any]:
             credential_data=tokens,
         ).model_dump()
 
-    return alternatives
-
-
-def mask_alternatives(alternatives: dict[str, Any]) -> dict[str, Any]:
-    """
-    :param alternatives: Extra security alternatives collected from user
-    :return: Masked extra security alternatives
-    """
-    if alternatives:
-        # Phone numbers
-        masked_phone_numbers = []
-        for phone_number in alternatives.get("phone_numbers", []):
-            number = phone_number["number"]
-            masked_number = "{}{}".format("X" * (len(number) - 2), number[len(number) - 2 :])
-            masked_phone_numbers.append({"number": masked_number, "index": phone_number["index"]})
-
-        alternatives["phone_numbers"] = masked_phone_numbers
     return alternatives
 
 
@@ -515,67 +447,6 @@ def verify_email_address(state: ResetPasswordEmailState) -> bool:
         state.email_code.is_verified = True
         current_app.password_reset_state_db.save(state)
         current_app.logger.info(f"Email code marked as used for {user}")
-        return True
-
-    return False
-
-
-def send_verify_phone_code(state: ResetPasswordEmailState, phone_number: str) -> None:
-    phone_state = ResetPasswordEmailAndPhoneState.from_email_state(
-        state, phone_number=phone_number, phone_code=get_short_hash()
-    )
-    current_app.password_reset_state_db.save(phone_state)
-
-    template = "reset_password_sms.txt.jinja2"
-    context = {"verification_code": phone_state.phone_code.code}
-    send_sms(
-        phone_number=phone_state.phone_number, text_template=template, reference=phone_state.reference, context=context
-    )
-    current_app.logger.info(f"Sent password reset sms to user with eppn: {state.eppn}")
-    if current_app.conf.debug and current_app.conf.environment in [EduidEnvironment.staging, EduidEnvironment.dev]:
-        current_app.logger.debug(f"Sent password reset sms with code: {phone_state.phone_code.code}")
-    current_app.logger.debug(f"Phone number: {phone_state.phone_number}")
-
-
-def send_sms(phone_number: str, text_template: str, reference: str, context: Mapping[str, Any] | None = None) -> None:
-    """
-    :param phone_number: the recipient of the sms
-    :param text_template: message as a jinja template
-    :param context: template context
-    :param reference: Audit reference to help cross reference audit log and events
-    """
-    _context = {
-        "site_url": current_app.conf.eduid_site_url,
-        "site_name": current_app.conf.eduid_site_name,
-    }
-    if context is not None:
-        _context.update(context)
-
-    message = render_template(text_template, **_context)
-    current_app.msg_relay.sendsms(recipient=phone_number, message=message, reference=reference)
-
-
-def verify_phone_number(state: ResetPasswordEmailAndPhoneState) -> bool:
-    """
-    :param state: Password reset state
-    """
-
-    user = current_app.central_userdb.get_user_by_eppn(state.eppn)
-    if not user:
-        current_app.logger.error(f"Could not find user {user}")
-        return False
-
-    proofing_element = PhoneNumberProofing(
-        eppn=user.eppn,
-        created_by="security",
-        phone_number=state.phone_number,
-        reference=state.reference,
-        proofing_version="2013v1",
-    )
-    if current_app.proofing_log.save(proofing_element):
-        state.phone_code.is_verified = True
-        current_app.password_reset_state_db.save(state)
-        current_app.logger.info(f"Phone code marked as used for {user}")
         return True
 
     return False

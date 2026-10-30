@@ -105,11 +105,6 @@ class ResetPasswordVerifyEmailResponseSchema(FluxStandardAction):
     payload = fields.Nested(ResetPasswordVerifyEmailResponsePayload)
 
 
-class ResetPasswordExtraSecPhoneSchema(EduidSchema, CSRFRequestMixin):
-    email_code = fields.String(required=True)
-    phone_index = fields.Integer(required=True)
-
-
 class ResetPasswordWithCodeSchema(EduidSchema, CSRFRequestMixin):
     email_code = fields.String(required=True)
     password = fields.String(required=True)
@@ -120,12 +115,6 @@ class SuggestedPasswordResponseSchema(FluxStandardAction):
         suggested_password = fields.String(required=True)
 
     payload = fields.Nested(SuggestedPasswordPayload, many=False)
-
-
-class NewPasswordSecurePhoneRequestSchema(EduidSchema, CSRFRequestMixin):
-    email_code = fields.String(required=True)
-    password = fields.String(required=True)
-    phone_code = fields.String(required=True)
 
 
 class NewPasswordRequestSchema(EduidSchema, CSRFRequestMixin):

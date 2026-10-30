@@ -25,19 +25,4 @@ class MsgConfig(WorkerConfig):
     navet_api_uri: str = ""
     navet_api_user: str = ""
     navet_api_verify_ssl: bool = False
-    sms_acc: str = ""
-    sms_key: str = ""
-    sms_sender: str = "eduID"
     template_dir: str = ""
-
-
-class MobConfig(WorkerConfig):
-    """
-    Configuration for the lookup mobile celery worker
-    """
-
-    log_path: str = ""
-    teleadress_client_password: str = ""
-    teleadress_client_user: str = ""
-    teleadress_client_url: str = "http://api.teleadress.se/WSDL/nnapiwebservice.wsdl"
-    teleadress_client_port: str = "NNAPIWebServiceSoap"

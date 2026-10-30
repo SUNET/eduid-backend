@@ -28,7 +28,6 @@ from eduid.webapp.common.session.namespaces import (
     IdP_Namespace,
     MfaAction,
     OrcidNamespace,
-    Phone,
     ResetPasswordNS,
     SamlEidNamespace,
     SecurityNS,
@@ -58,7 +57,6 @@ class EduidNamespaces(BaseModel):
     common: Common | None = None
     mfa_action: MfaAction | None = None
     signup: Signup | None = None
-    phone: Phone | None = None
     reset_password: ResetPasswordNS | None = None
     security: SecurityNS | None = None
     idp: IdP_Namespace | None = None
@@ -212,12 +210,6 @@ class EduidSession(SessionMixin):
     def signup(self) -> None:
         self._namespaces.signup = None
         del self["signup"]
-
-    @property
-    def phone(self) -> Phone:
-        if not self._namespaces.phone:
-            self._namespaces.phone = Phone.from_dict(self._session.get("phone", {}))
-        return self._namespaces.phone
 
     @property
     def reset_password(self) -> ResetPasswordNS:

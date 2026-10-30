@@ -1,7 +1,7 @@
 import copy
 import datetime
 import json
-from collections.abc import Callable, Iterable, Mapping
+from collections.abc import Mapping
 from datetime import timedelta
 from http import HTTPStatus
 from typing import Any, cast
@@ -19,7 +19,7 @@ from eduid.userdb.credentials import Password, Webauthn
 from eduid.userdb.fixtures.fido_credentials import webauthn_credential
 from eduid.userdb.fixtures.fido_credentials import webauthn_credential as sample_credential
 from eduid.userdb.fixtures.users import UserFixtures
-from eduid.userdb.reset_password import ResetPasswordEmailAndPhoneState, ResetPasswordEmailState
+from eduid.userdb.reset_password import ResetPasswordEmailState
 from eduid.userdb.reset_password.element import CodeElement
 from eduid.webapp.common.api.messages import TranslatableMsg
 from eduid.webapp.common.api.testing import CSRFTestClient, EduidAPITestCase
@@ -36,7 +36,6 @@ from eduid.webapp.reset_password.helpers import (
     ResetPwMsg,
     generate_suggested_password,
     get_extra_security_alternatives,
-    send_verify_phone_code,
 )
 
 __author__ = "eperez"
@@ -67,7 +66,6 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
                 "available_languages": {"en": "English", "sv": "Svenska"},
                 "vccs_url": "http://vccs",
                 "email_code_timeout": 7200,
-                "phone_code_timeout": 600,
                 "password_entropy": 25,
                 "dashboard_url": "https://dashboard.dev.eduid.se",
             }
@@ -198,122 +196,6 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
                 data.update(data2)
 
             return c.post(url, data=json.dumps(data), content_type=self.content_type_json)
-
-    def _post_choose_extra_sec(
-        self,
-        sendsms_side_effect: Callable[..., Any] | Exception | Iterable[Any] | None = None,
-        data1: dict[str, Any] | None = None,
-        data2: dict[str, Any] | None = None,
-        data3: dict[str, Any] | None = None,
-        repeat: bool = False,
-    ) -> TestResponse:
-        """
-        Test choosing extra security via a confirmed phone number to reset the password.
-        First create the reset password state in the database, then POST the generated code
-        to get the configuration for the reset password form, and finally POST the code and
-        an index selecting the phone number to use for extra security.
-
-        :param data1: to control what email is sent to create the state and start the process
-        :param data2: to control the code sent to obtain configuration for the reset form
-        :param data3: to control what data is sent (what confirmed pone number is chosen) to send
-                      an SMS with an extra security verification code.
-        :param repeat: if True, try to trigger sending the SMS twice.
-        """
-        mock_request_user_sync = self.mocker.patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-        self.mocker.patch("eduid.webapp.common.authn.vccs.get_vccs_client", return_value=MockVCCSClient())
-        mock_sendsms = self.mocker.patch("eduid.common.rpc.msg_relay.MsgRelay.sendsms", return_value=True)
-        mock_request_user_sync.side_effect = self.request_user_sync
-        if sendsms_side_effect:
-            mock_sendsms.side_effect = sendsms_side_effect
-
-        response = self._post_email_address(data1=data1)
-        state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user.eppn)
-        assert isinstance(state, ResetPasswordEmailState)
-
-        with self.app.test_request_context():
-            conf_url = url_for("reset_password.verify_email", _external=True)
-            extra_security_phone_url = url_for("reset_password.choose_extra_security_phone", _external=True)
-
-        with self.session_cookie_anon(self.browser) as c:
-            data = {
-                "email_code": state.email_code.code,
-                "csrf_token": self.get_response_payload(response)["csrf_token"],
-            }
-            if data2 is not None:
-                data.update(data2)
-            response = c.post(conf_url, data=json.dumps(data), content_type=self.content_type_json)
-            assert response.status_code == 200
-
-        with self.session_cookie_anon(self.browser) as c:
-            data = {
-                "csrf_token": self.get_response_payload(response)["csrf_token"],
-                "email_code": state.email_code.code,
-                "phone_index": "0",
-            }
-            if data3 is not None:
-                data.update(data3)
-
-            response = c.post(extra_security_phone_url, data=json.dumps(data), content_type=self.content_type_json)
-            if repeat:
-                response = c.post(extra_security_phone_url, data=json.dumps(data), content_type=self.content_type_json)
-            return response
-
-    def _post_reset_password_secure_phone(
-        self,
-        data1: dict[str, Any] | None = None,
-        data2: dict[str, Any] | None = None,
-    ) -> TestResponse:
-        """
-        Test fully resetting the password with extra security via a verification code sent by SMS.
-        First initialize the reset password state by POSTing an email to the initial endpoint,
-        then retrieve the state form the db and modify it in the way that choosing extra security
-        with a verified phone number would, and finally POST the verification codes and
-        the new password to finally reset the password.
-
-        :param data1: To control the email sent to initiate the process
-        :param data2: To control the data sent to actually finally reset the password.
-        """
-        mock_request_user_sync = self.mocker.patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-        self.mocker.patch("eduid.webapp.common.authn.vccs.get_vccs_client", return_value=MockVCCSClient())
-        self.mocker.patch("eduid.common.rpc.msg_relay.MsgRelay.sendsms", return_value=True)
-        mock_request_user_sync.side_effect = self.request_user_sync
-
-        response = self._post_email_address(data1=data1)
-        state1 = self.app.password_reset_state_db.get_state_by_eppn(self.test_user.eppn)
-        assert isinstance(state1, ResetPasswordEmailState)
-
-        user = self.app.central_userdb.get_user_by_eppn(self.test_user.eppn)
-        with self.app.test_request_context():
-            alternatives = get_extra_security_alternatives(user)
-        state1.extra_security = alternatives
-        state1.email_code.is_verified = True
-        self.app.password_reset_state_db.save(state1)
-
-        phone_number = state1.extra_security["phone_numbers"][0]
-        with self.app.test_request_context():
-            send_verify_phone_code(state1, phone_number["number"])
-            url = url_for("reset_password.set_new_pw_extra_security_phone", _external=True)
-
-        state2 = self.app.password_reset_state_db.get_state_by_eppn(self.test_user.eppn)
-        assert isinstance(state2, ResetPasswordEmailAndPhoneState)
-
-        with self.session_cookie_anon(self.browser) as c:
-            new_password = generate_suggested_password(self.app.conf.password_length)
-            with c.session_transaction() as sess:
-                sess.reset_password.generated_password_hash = hash_password(new_password)
-                # See _post_reset_password: this helper marks the state verified in the db
-                # rather than going through /verify-email/, so the session needs the eppn too.
-                sess.common.eppn = self.test_user.eppn
-            data = {
-                "csrf_token": self.get_response_payload(response)["csrf_token"],
-                "email_code": state2.email_code.code,
-                "phone_code": state2.phone_code.code,
-                "password": new_password,
-            }
-            if data2 is not None:
-                data.update(data2)
-
-        return c.post(url, data=json.dumps(data), content_type=self.content_type_json)
 
     def _post_reset_password_security_key(
         self,
@@ -462,51 +344,6 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
         with self.session_cookie_and_magic_cookie_anon(self.browser, magic_cookie_name=magic_cookie_name) as client:
             eppn = quote_plus(self.test_user.eppn)
             return client.get(f"/get-email-code?eppn={eppn}")
-
-    def _get_phone_code_backdoor(
-        self,
-        sendsms_side_effect: Callable[..., Any] | Exception | Iterable[Any] | None = None,
-        magic_cookie_name: str | None = None,
-    ) -> TestResponse:
-        """
-        Test choosing extra security via a confirmed phone number to reset the password,
-        and getting the generated phone verification code through the backdoor
-        """
-        mock_request_user_sync = self.mocker.patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-        self.mocker.patch("eduid.webapp.common.authn.vccs.get_vccs_client", return_value=MockVCCSClient())
-        mock_sendsms = self.mocker.patch("eduid.common.rpc.msg_relay.MsgRelay.sendsms", return_value=True)
-        mock_request_user_sync.side_effect = self.request_user_sync
-        if sendsms_side_effect:
-            mock_sendsms.side_effect = sendsms_side_effect
-
-        response = self._post_email_address()
-        state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user.eppn)
-        assert isinstance(state, ResetPasswordEmailState)
-
-        with self.app.test_request_context():
-            config_url = url_for("reset_password.verify_email", _external=True)
-            extra_security_phone_url = url_for("reset_password.choose_extra_security_phone", _external=True)
-
-        with self.session_cookie_anon(self.browser) as client:
-            data = {
-                "email_code": state.email_code.code,
-                "csrf_token": self.get_response_payload(response)["csrf_token"],
-            }
-            response = client.post(config_url, data=json.dumps(data), content_type=self.content_type_json)
-            assert response.status_code == 200
-
-        with self.session_cookie_and_magic_cookie_anon(self.browser, magic_cookie_name=magic_cookie_name) as client:
-            data = {
-                "csrf_token": self.get_response_payload(response)["csrf_token"],
-                "email_code": state.email_code.code,
-                "phone_index": "0",
-            }
-            response = client.post(extra_security_phone_url, data=json.dumps(data), content_type=self.content_type_json)
-            assert response.status_code == 200
-
-            eppn = quote_plus(self.test_user.eppn)
-
-            return client.get(f"/get-phone-code?eppn={eppn}")
 
     def _get_captcha(
         self,
@@ -831,7 +668,6 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
                 "extra_security": {
                     "swedish_eid": True,
                     "eidas": True,
-                    "phone_numbers": [{"index": 0, "number": "XXXXXXXXXX09"}],
                 },
                 "success": True,
                 "zxcvbn_terms": ["John", "Smith", "johnsmith", "johnsmith2"],
@@ -903,6 +739,27 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
                 csrf_token = sess.get_csrf_token()
             data = {"email_code": email_code, "csrf_token": csrf_token}
             return c.post(verify_url, data=json.dumps(data), content_type=self.content_type_json)
+
+    def test_legacy_phone_state_does_not_block_a_new_reset(self) -> None:
+        """A user with a leftover email_and_phone state from the removed phone flow can still reset."""
+        legacy = ResetPasswordEmailState(
+            eppn=self.test_user.eppn,
+            email_address="johnsmith@example.com",
+            email_code=CodeElement.parse(application="test", code_or_element="legacy-code"),
+        ).to_dict()
+        legacy["method"] = "email_and_phone"
+        legacy["phone_number"] = "+46700011336"
+        legacy["phone_code"] = CodeElement.parse(application="test", code_or_element="legacy-phone-code").to_dict()
+        self.app.password_reset_state_db._coll.insert_one(legacy)
+
+        self._post_email_address()
+        state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user.eppn)
+        assert state is not None
+        assert state.email_code.code != "legacy-code"
+
+        self._check_success_response(
+            self._post_verify_email(email_code=state.email_code.code), type_="POST_RESET_PASSWORD_VERIFY_EMAIL_SUCCESS"
+        )
 
     def test_verify_email_without_session_is_rejected(self) -> None:
         """A valid code with no identity hint must not resolve anything."""
@@ -1151,40 +1008,6 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
                 assert sess.common.eppn == self.test_user.eppn
                 assert sess.reset_password.email.address == self.test_user.mail_addresses.primary.email
 
-    def test_wrong_code_does_not_downgrade_phone_state(self) -> None:
-        """A wrong code must not reach the phone-expiry branch, which mutates the state."""
-        self.mocker.patch("eduid.common.rpc.msg_relay.MsgRelay.sendsms", return_value=True)
-        self._post_email_address()
-        state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user.eppn)
-        assert isinstance(state, ResetPasswordEmailState)
-
-        user = self.app.central_userdb.get_user_by_eppn(self.test_user.eppn)
-        with self.app.test_request_context():
-            state.extra_security = get_extra_security_alternatives(user)
-            state.email_code.is_verified = True
-            self.app.password_reset_state_db.save(state)
-            send_verify_phone_code(state, state.extra_security["phone_numbers"][0]["number"])
-
-        upgraded = self.app.password_reset_state_db.get_state_by_eppn(self.test_user.eppn)
-        assert isinstance(upgraded, ResetPasswordEmailAndPhoneState)
-
-        # Expire the phone code, then submit a WRONG email code.
-        self.app.conf.phone_code_timeout = timedelta(0)
-        with self.app.test_request_context():
-            verify_url = url_for("reset_password.verify_email", _external=True)
-        with self.session_cookie_anon(self.browser) as c:
-            with c.session_transaction() as sess:
-                csrf_token = sess.get_csrf_token()
-            data = {"email_code": "wrong-code", "csrf_token": csrf_token}
-            response = c.post(verify_url, data=json.dumps(data), content_type=self.content_type_json)
-
-        self._check_error_response(
-            response, type_="POST_RESET_PASSWORD_VERIFY_EMAIL_FAIL", msg=ResetPwMsg.state_not_found
-        )
-        # The state must NOT have been downgraded back to a plain email state.
-        after = self.app.password_reset_state_db.get_state_by_eppn(self.test_user.eppn)
-        assert isinstance(after, ResetPasswordEmailAndPhoneState)
-
     def test_non_ascii_code_is_rejected_cleanly(self) -> None:
         """A non-ASCII code is just a wrong code, not an unhandled TypeError from compare_digest."""
         self._post_email_address()
@@ -1355,94 +1178,6 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
                 response, type_="POST_RESET_PASSWORD_VERIFY_EMAIL_FAIL", msg=ResetPwMsg.state_not_found
             )
 
-    def test_counter_survives_upgrade_to_phone_state(self) -> None:
-        """The counter must not reset when the state is upgraded to email-and-phone.
-
-        Task 2's review flagged that nothing pinned this. It is not exploitable today,
-        because reaching the upgrade requires an already-verified email code — an attacker
-        without the code cannot trigger it. But the counter becomes load-bearing here, so
-        pin it rather than rely on that argument holding after future edits.
-        """
-        self.mocker.patch("eduid.common.rpc.msg_relay.MsgRelay.sendsms", return_value=True)
-        self._post_email_address()
-        state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user.eppn)
-        assert state is not None
-
-        # Verify first - a correct code clears the counter, so a bad guess made before this
-        # point would not survive to be observed. Then one bad guess to put the counter up.
-        self._post_verify_email(email_code=state.email_code.code)
-        self._post_verify_email(email_code="wrong-code")
-        state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user.eppn)
-        assert state is not None
-        assert state.bad_attempts == 1
-
-        state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user.eppn)
-        assert isinstance(state, ResetPasswordEmailState)
-        user = self.app.central_userdb.get_user_by_eppn(self.test_user.eppn)
-        with self.app.test_request_context():
-            state.extra_security = get_extra_security_alternatives(user)
-            self.app.password_reset_state_db.save(state)
-            send_verify_phone_code(state, state.extra_security["phone_numbers"][0]["number"])
-
-        upgraded = self.app.password_reset_state_db.get_state_by_eppn(self.test_user.eppn)
-        assert isinstance(upgraded, ResetPasswordEmailAndPhoneState)
-        assert upgraded.bad_attempts == 1
-
-    def test_downgrade_from_phone_state_carries_the_counter(self) -> None:
-        """The phone-expiry branch rebuilds the state, which must not resurrect a stale counter.
-
-        The rebuild is behind the code comparison, and a correct code clears the counter, so
-        the value it carries over is always zero today. Pin that: if the rebuild ever wrote
-        back the pre-comparison count instead, a user who just proved they hold the code would
-        be handed their old strikes back at the exact moment the flow restarts.
-        """
-        self.mocker.patch("eduid.common.rpc.msg_relay.MsgRelay.sendsms", return_value=True)
-        self._post_email_address()
-        state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user.eppn)
-        assert state is not None
-        email_code = state.email_code.code
-
-        self._post_verify_email(email_code=email_code)
-
-        state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user.eppn)
-        assert isinstance(state, ResetPasswordEmailState)
-        user = self.app.central_userdb.get_user_by_eppn(self.test_user.eppn)
-        with self.app.test_request_context():
-            state.extra_security = get_extra_security_alternatives(user)
-            self.app.password_reset_state_db.save(state)
-            send_verify_phone_code(state, state.extra_security["phone_numbers"][0]["number"])
-
-        upgraded = self.app.password_reset_state_db.get_state_by_eppn(self.test_user.eppn)
-        assert isinstance(upgraded, ResetPasswordEmailAndPhoneState)
-        # Put strikes on the phone state out of band: every route to a non-zero counter here
-        # runs through a correct code, which clears it.
-        upgraded.bad_attempts = self.app.conf.email_code_max_bad_attempts - 1
-        self.app.password_reset_state_db.save(upgraded)
-
-        # Expire the phone code and submit the correct email code, which downgrades the state.
-        self.app.conf.phone_code_timeout = timedelta(0)
-        response = self._post_verify_email(email_code=email_code)
-        self._check_error_response(
-            response, type_="POST_RESET_PASSWORD_VERIFY_EMAIL_FAIL", msg=ResetPwMsg.expired_phone_code
-        )
-
-        downgraded = self.app.password_reset_state_db.get_state_by_eppn(self.test_user.eppn)
-        assert isinstance(downgraded, ResetPasswordEmailState)
-        assert not isinstance(downgraded, ResetPasswordEmailAndPhoneState)
-        # Cleared by the correct code, and the rebuild carried the cleared value, not the
-        # stale one it was loaded with.
-        assert downgraded.bad_attempts == 0
-
-    def _post_extra_security_phone(self, email_code: str, phone_index: int = 0) -> TestResponse:
-        """POST a code to /extra-security-phone/ reusing the session from earlier requests."""
-        with self.app.test_request_context():
-            url = url_for("reset_password.choose_extra_security_phone", _external=True)
-        with self.session_cookie_anon(self.browser) as c:
-            with c.session_transaction() as sess:
-                csrf_token = sess.get_csrf_token()
-            data = {"email_code": email_code, "phone_index": str(phone_index), "csrf_token": csrf_token}
-            return c.post(url, data=json.dumps(data), content_type=self.content_type_json)
-
     def test_correct_code_clears_bad_attempts(self) -> None:
         """Proving possession of the code hands the user their full budget of attempts back.
 
@@ -1480,7 +1215,9 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
         who mistyped twice before getting it right would have a single strike left to cover
         the whole rest of the flow.
         """
-        self.mocker.patch("eduid.common.rpc.msg_relay.MsgRelay.sendsms", return_value=True)
+        mock_request_user_sync = self.mocker.patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
+        self.mocker.patch("eduid.webapp.common.authn.vccs.get_vccs_client", return_value=MockVCCSClient())
+        mock_request_user_sync.side_effect = self.request_user_sync
         self._post_email_address()
         state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user.eppn)
         assert state is not None
@@ -1500,26 +1237,29 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
         # makes the cap mean anything - but the budget was refilled, so nothing locks.
         for expected in range(1, self.app.conf.email_code_max_bad_attempts):
             self._check_error_response(
-                self._post_extra_security_phone(email_code="wrong-code"),
-                type_="POST_RESET_PASSWORD_EXTRA_SECURITY_PHONE_FAIL",
+                self._post_new_password_no_extra_security(email_code="wrong-code"),
+                type_="POST_RESET_PASSWORD_NEW_PASSWORD_FAIL",
                 msg=ResetPwMsg.state_not_found,
             )
             state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user.eppn)
             assert state is not None
             assert state.bad_attempts == expected
 
-        # And the flow completes, with the counter cleared again on the way through.
+        # And the flow completes with the correct code, which a locked state would have refused.
         self._check_success_response(
-            self._post_extra_security_phone(email_code=correct_code),
-            type_="POST_RESET_PASSWORD_EXTRA_SECURITY_PHONE_SUCCESS",
-            msg=ResetPwMsg.send_sms_success,
+            self._post_new_password_no_extra_security(email_code=correct_code),
+            type_="POST_RESET_PASSWORD_NEW_PASSWORD_SUCCESS",
+            msg=ResetPwMsg.pw_reset_success,
         )
-        state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user.eppn)
-        assert state is not None
-        assert state.bad_attempts == 0
+
+    def _post_new_password_no_extra_security(self, email_code: str) -> TestResponse:
+        """POST a code to /new-password/ reusing the session from earlier requests."""
+        return self._post_after_verification_view(
+            "reset_password.set_new_pw_no_extra_security", {"email_code": email_code, "password": "T%7j 8/tT a0=b"}
+        )
 
     def _post_after_verification_view(self, endpoint: str, payload: dict[str, Any]) -> TestResponse:
-        """POST to one of the five views that run after /verify-email/, reusing self.browser."""
+        """POST to one of the views that run after /verify-email/, reusing self.browser."""
         with self.app.test_request_context():
             url = url_for(endpoint, _external=True)
         with self.session_cookie_anon(self.browser) as c:
@@ -1530,7 +1270,7 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
 
     @staticmethod
     def _post_verification_views(email_code: str) -> list[tuple[str, dict[str, Any], str]]:
-        """The five views that run after /verify-email/, with a body each of them accepts.
+        """The views that run after /verify-email/, with a body each of them accepts.
 
         Bodies that pass schema validation, so the request reaches the view rather than being
         turned back by @UnmarshalWith - otherwise a test of the view's own guard would prove
@@ -1542,16 +1282,6 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
                 "reset_password.set_new_pw_no_extra_security",
                 {"email_code": email_code, "password": password},
                 "POST_RESET_PASSWORD_NEW_PASSWORD_FAIL",
-            ),
-            (
-                "reset_password.choose_extra_security_phone",
-                {"email_code": email_code, "phone_index": 0},
-                "POST_RESET_PASSWORD_EXTRA_SECURITY_PHONE_FAIL",
-            ),
-            (
-                "reset_password.set_new_pw_extra_security_phone",
-                {"email_code": email_code, "password": password, "phone_code": "123456"},
-                "POST_RESET_PASSWORD_NEW_PASSWORD_EXTRA_SECURITY_PHONE_FAIL",
             ),
             (
                 "reset_password.set_new_pw_extra_security_key",
@@ -1616,7 +1346,6 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
         # and be caught by the assertions below rather than by a connection error.
         mock_request_user_sync = self.mocker.patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
         self.mocker.patch("eduid.webapp.common.authn.vccs.get_vccs_client", return_value=MockVCCSClient())
-        self.mocker.patch("eduid.common.rpc.msg_relay.MsgRelay.sendsms", return_value=True)
         mock_request_user_sync.side_effect = self.request_user_sync
 
         self._post_email_address()
@@ -1750,8 +1479,8 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
 
         for expected in range(1, self.app.conf.email_code_max_bad_attempts + 1):
             self._check_error_response(
-                self._post_extra_security_phone(email_code="wrong-code"),
-                type_="POST_RESET_PASSWORD_EXTRA_SECURITY_PHONE_FAIL",
+                self._post_new_password_no_extra_security(email_code="wrong-code"),
+                type_="POST_RESET_PASSWORD_NEW_PASSWORD_FAIL",
                 msg=ResetPwMsg.state_not_found,
             )
             state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user.eppn)
@@ -1761,8 +1490,8 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
         # The cap is reached, so guessing stops there - and so does the correct code.
         for code in ("wrong-code", correct_code):
             self._check_error_response(
-                self._post_extra_security_phone(email_code=code),
-                type_="POST_RESET_PASSWORD_EXTRA_SECURITY_PHONE_FAIL",
+                self._post_new_password_no_extra_security(email_code=code),
+                type_="POST_RESET_PASSWORD_NEW_PASSWORD_FAIL",
                 msg=ResetPwMsg.email_code_too_many_tries,
             )
 
@@ -1785,8 +1514,8 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
 
         # Even the correct code is refused, and it does not clear the counter on its way out.
         self._check_error_response(
-            self._post_extra_security_phone(email_code=correct_code),
-            type_="POST_RESET_PASSWORD_EXTRA_SECURITY_PHONE_FAIL",
+            self._post_new_password_no_extra_security(email_code=correct_code),
+            type_="POST_RESET_PASSWORD_NEW_PASSWORD_FAIL",
             msg=ResetPwMsg.email_code_too_many_tries,
         )
         state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user.eppn)
@@ -1918,137 +1647,6 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
         assert isinstance(password, Password)
         assert not password.is_generated
 
-    def test_post_choose_extra_sec(self) -> None:
-        response = self._post_choose_extra_sec()
-        self._check_success_response(
-            response, type_="POST_RESET_PASSWORD_EXTRA_SECURITY_PHONE_SUCCESS", msg=ResetPwMsg.send_sms_success
-        )
-
-    def test_post_choose_extra_sec_sms_fail(self) -> None:
-        self.app.conf.throttle_sms = timedelta(seconds=300)
-        from eduid.common.rpc.exceptions import MsgTaskFailed
-
-        response = self._post_choose_extra_sec(sendsms_side_effect=MsgTaskFailed())
-        self._check_error_response(
-            response, type_="POST_RESET_PASSWORD_EXTRA_SECURITY_PHONE_FAIL", msg=ResetPwMsg.send_sms_failure
-        )
-
-    def test_post_choose_extra_sec_throttled(self) -> None:
-        self.app.conf.throttle_sms = datetime.timedelta(minutes=5)
-        response = self._post_choose_extra_sec(repeat=True)
-        self._check_error_response(
-            response, type_="POST_RESET_PASSWORD_EXTRA_SECURITY_PHONE_FAIL", msg=ResetPwMsg.send_sms_throttled
-        )
-
-    def test_post_choose_extra_sec_not_throttled(self) -> None:
-        self.app.conf.throttle_sms = timedelta(0)
-        response = self._post_choose_extra_sec(repeat=True)
-        self._check_success_response(
-            response, type_="POST_RESET_PASSWORD_EXTRA_SECURITY_PHONE_SUCCESS", msg=ResetPwMsg.send_sms_success
-        )
-
-    def test_post_choose_extra_sec_wrong_code(self) -> None:
-        """A failed /verify-email/ leaves no verified session, so the next view refuses outright.
-
-        data2 is the code sent to /verify-email/, so this arrives at /extra-security-phone/
-        with the correct code but nothing to show it was ever proven. That used to resolve the
-        state anyway - through the address start_reset_pw put in the session - and answer
-        email-not-validated, which told the caller their code was right.
-        """
-        data2 = {"email_code": "wrong-code"}
-        response = self._post_choose_extra_sec(data2=data2)
-        self._check_error_response(
-            response, type_="POST_RESET_PASSWORD_EXTRA_SECURITY_PHONE_FAIL", msg=ResetPwMsg.invalid_session
-        )
-
-    def test_post_choose_extra_sec_bad_phone_index(self) -> None:
-        data3 = {"phone_index": "3"}
-        response = self._post_choose_extra_sec(data3=data3)
-        self._check_error_response(
-            response, type_="POST_RESET_PASSWORD_EXTRA_SECURITY_PHONE_FAIL", msg=ResetPwMsg.unknown_phone_number
-        )
-
-    def test_post_choose_extra_sec_wrong_csrf_token(self) -> None:
-        data3 = {"csrf_token": "wrong-token"}
-        response = self._post_choose_extra_sec(data3=data3)
-        self._check_error_response(
-            response,
-            type_="POST_RESET_PASSWORD_EXTRA_SECURITY_PHONE_FAIL",
-            error={"csrf_token": ["CSRF failed to validate"]},
-        )
-
-    def test_post_choose_extra_sec_wrong_final_code(self) -> None:
-        data3 = {"email_code": "wrong-code"}
-        response = self._post_choose_extra_sec(data3=data3)
-        self._check_error_response(
-            response, type_="POST_RESET_PASSWORD_EXTRA_SECURITY_PHONE_FAIL", msg=ResetPwMsg.state_not_found
-        )
-
-    def test_post_reset_password_secure_phone(self) -> None:
-        response = self._post_reset_password_secure_phone()
-        self._check_success_response(
-            response,
-            type_="POST_RESET_PASSWORD_NEW_PASSWORD_EXTRA_SECURITY_PHONE_SUCCESS",
-            msg=ResetPwMsg.pw_reset_success,
-        )
-
-        # check that the user still has verified data
-        user = self.app.central_userdb.get_user_by_eppn(self.test_user.eppn)
-        verified_phone_numbers = user.phone_numbers.verified
-        assert len(verified_phone_numbers) == 1
-        verified_identities = user.identities.verified
-        assert len(verified_identities) == 3
-
-    def test_post_reset_password_secure_phone_verify_fail(self) -> None:
-        self.mocker.patch("eduid.webapp.reset_password.views.reset_password.verify_phone_number", return_value=False)
-        response = self._post_reset_password_secure_phone()
-        self._check_error_response(
-            response, type_="POST_RESET_PASSWORD_NEW_PASSWORD_EXTRA_SECURITY_PHONE_FAIL", msg=ResetPwMsg.phone_invalid
-        )
-
-    def test_post_reset_password_secure_phone_wrong_csrf_token(self) -> None:
-        data2 = {"csrf_token": "wrong-code"}
-        response = self._post_reset_password_secure_phone(data2=data2)
-        self._check_error_response(
-            response,
-            type_="POST_RESET_PASSWORD_NEW_PASSWORD_EXTRA_SECURITY_PHONE_FAIL",
-            error={"csrf_token": ["CSRF failed to validate"]},
-        )
-
-    def test_post_reset_password_secure_phone_wrong_email_code(self) -> None:
-        data2 = {"email_code": "wrong-code"}
-        response = self._post_reset_password_secure_phone(data2=data2)
-        self._check_error_response(
-            response, type_="POST_RESET_PASSWORD_NEW_PASSWORD_EXTRA_SECURITY_PHONE_FAIL", msg=ResetPwMsg.state_not_found
-        )
-
-    def test_post_reset_password_secure_phone_wrong_sms_code(self) -> None:
-        data2 = {"phone_code": "wrong-code"}
-        response = self._post_reset_password_secure_phone(data2=data2)
-        self._check_error_response(
-            response,
-            type_="POST_RESET_PASSWORD_NEW_PASSWORD_EXTRA_SECURITY_PHONE_FAIL",
-            msg=ResetPwMsg.unknown_phone_code,
-        )
-
-    def test_post_reset_password_secure_phone_non_ascii_sms_code(self) -> None:
-        """A non-ASCII phone code is just a wrong code, not a TypeError out of compare_digest."""
-        data2 = {"phone_code": "åäö123"}
-        response = self._post_reset_password_secure_phone(data2=data2)
-        assert response.status_code == 200
-        self._check_error_response(
-            response,
-            type_="POST_RESET_PASSWORD_NEW_PASSWORD_EXTRA_SECURITY_PHONE_FAIL",
-            msg=ResetPwMsg.unknown_phone_code,
-        )
-
-    def test_post_reset_password_secure_phone_weak_password(self) -> None:
-        data2 = {"password": "pw"}
-        response = self._post_reset_password_secure_phone(data2=data2)
-        self._check_error_response(
-            response, type_="POST_RESET_PASSWORD_NEW_PASSWORD_EXTRA_SECURITY_PHONE_FAIL", msg=ResetPwMsg.resetpw_weak
-        )
-
     def test_post_reset_password_security_key(self) -> None:
         response = self._post_reset_password_security_key()
         self._check_success_response(
@@ -2159,36 +1757,12 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
 
     def test_post_reset_password_secure_email_timeout(self) -> None:
         self.app.conf.email_code_timeout = timedelta(0)
-        response = self._post_reset_password_secure_phone()
+        response = self._post_reset_password_secure_external_mfa()
         self._check_error_response(
             response,
-            type_="POST_RESET_PASSWORD_NEW_PASSWORD_EXTRA_SECURITY_PHONE_FAIL",
+            type_="POST_RESET_PASSWORD_NEW_PASSWORD_EXTRA_SECURITY_EXTERNAL_MFA_FAIL",
             msg=ResetPwMsg.expired_email_code,
         )
-
-    def test_post_reset_password_secure_phone_timeout(self) -> None:
-        self.app.conf.phone_code_timeout = timedelta(0)
-        response = self._post_reset_password_secure_phone()
-        self._check_error_response(
-            response,
-            type_="POST_RESET_PASSWORD_NEW_PASSWORD_EXTRA_SECURITY_PHONE_FAIL",
-            msg=ResetPwMsg.expired_phone_code,
-        )
-
-    def test_post_reset_password_secure_phone_custom(self) -> None:
-        data2 = {"password": "other-password"}
-        response = self._post_reset_password_secure_phone(data2=data2)
-        self._check_success_response(
-            response,
-            type_="POST_RESET_PASSWORD_NEW_PASSWORD_EXTRA_SECURITY_PHONE_SUCCESS",
-            msg=ResetPwMsg.pw_reset_success,
-        )
-
-        # check that the password is marked as generated
-        user = self.app.private_userdb.get_user_by_eppn(self.test_user.eppn)
-        password = user.credentials.to_list()[0]
-        assert isinstance(password, Password)
-        assert not password.is_generated
 
     def test_revoke_termination_on_password_reset(self) -> None:
         # mark user as terminated
@@ -2242,45 +1816,5 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
         self.app.conf.environment = EduidEnvironment("dev")
 
         resp = self._get_email_code_backdoor()
-
-        assert resp.status_code == 400
-
-    def test_get_phone_code_backdoor(self) -> None:
-        self.app.conf.magic_cookie = "magic-cookie"
-        self.app.conf.magic_cookie_name = "magic"
-        self.app.conf.environment = EduidEnvironment("dev")
-
-        resp = self._get_phone_code_backdoor()
-
-        state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user.eppn)
-        assert isinstance(state, ResetPasswordEmailAndPhoneState)
-
-        assert resp.status_code == 200
-        assert resp.data == state.phone_code.code.encode("ascii")
-
-    def test_get_phone_code_no_backdoor_in_pro(self) -> None:
-        self.app.conf.magic_cookie = "magic-cookie"
-        self.app.conf.magic_cookie_name = "magic"
-        self.app.conf.environment = EduidEnvironment("production")
-
-        resp = self._get_phone_code_backdoor()
-
-        assert resp.status_code == 400
-
-    def test_get_phone_code_no_backdoor_misconfigured1(self) -> None:
-        self.app.conf.magic_cookie = "magic-cookie"
-        self.app.conf.magic_cookie_name = ""
-        self.app.conf.environment = EduidEnvironment("dev")
-
-        resp = self._get_phone_code_backdoor(magic_cookie_name="wrong_name")
-
-        assert resp.status_code == 400
-
-    def test_get_phone_code_no_backdoor_misconfigured2(self) -> None:
-        self.app.conf.magic_cookie = ""
-        self.app.conf.magic_cookie_name = "magic"
-        self.app.conf.environment = EduidEnvironment("dev")
-
-        resp = self._get_phone_code_backdoor()
 
         assert resp.status_code == 400

@@ -12,7 +12,6 @@ from flask import current_app as flask_current_app
 from eduid.common.config.base import VCCSConfigMixin
 from eduid.common.misc.timeutil import utc_now
 from eduid.common.rpc.am_relay import AmRelay
-from eduid.common.rpc.lookup_mobile_relay import LookupMobileRelay
 from eduid.common.rpc.msg_relay import MsgRelay
 from eduid.webapp.common.authn.vccs import check_password
 from eduid.webapp.common.session.redis_session import get_redis_pool
@@ -158,23 +157,6 @@ def check_msg() -> bool:
     except Exception as exc:
         log_failure_info("check_msg", msg="msg health check failed", exc=exc)
         check_restart("check_msg", restart=0, terminate=120)
-    return False
-
-
-def check_lookup_mobile() -> bool:
-    current_app = get_current_app()
-
-    _relay: LookupMobileRelay | None = getattr(current_app, "lookup_mobile_relay", None)
-    if not _relay:
-        return True
-    try:
-        res = _relay.ping()
-        if res == f"pong for {_relay.app_name}":
-            reset_failure_info("check_lookup_mobile")
-            return True
-    except Exception as exc:
-        log_failure_info("check_lookup_mobile", msg="lookup_mobile health check failed", exc=exc)
-        check_restart("check_lookup_mobile", restart=0, terminate=120)
     return False
 
 

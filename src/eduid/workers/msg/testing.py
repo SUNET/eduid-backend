@@ -32,9 +32,6 @@ class MsgMongoTestCase(MongoTestCase):
             },
             "mongo_uri": self.tmp_db.uri,
             "mongo_dbname": "test",
-            "sms_acc": "foo",
-            "sms_key": "bar",
-            "sms_sender": "Test sender",
             "template_dir": str(data_path),
             "message_rate_limit": 2,
         }
