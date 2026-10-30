@@ -1,4 +1,3 @@
-import dataclasses
 import logging
 import threading
 import time
@@ -14,7 +13,12 @@ from pygrindvakt.keys import SigningKey
 from pygrindvakt.metadata import ProviderMetadata
 from pytest_mock import MockerFixture
 
-from eduid.common.clients.oidc_client.base import OidcAuthnResult, OidcRpClientConfig, OidcRpError
+from eduid.common.clients.oidc_client.base import (
+    ASYMMETRIC_SIGNING_ALGORITHMS,
+    OidcAuthnResult,
+    OidcRpClientConfig,
+    OidcRpError,
+)
 from eduid.common.clients.oidc_client.grindvakt_client import GrindvaktOidcRpClient, init_oidc_rp_client
 from eduid.common.clients.oidc_client.testing import RecordedRequest, StaticHttpClient, half_hash
 
@@ -143,75 +147,98 @@ class TestGrindvaktOidcRpClient:
         assert len(self.http.requests_to(f"{ISSUER}/.well-known/openid-configuration")) == 1
 
     def test_discovery_failure_backoff_fails_fast(self) -> None:
-        now = [1000.0]
-        client = self._client(discovery_failure_backoff=10)
-        client._clock = lambda: now[0]
+        client = self._client(discovery_failure_backoff=1)
         del self.http.responses[f"{ISSUER}/.well-known/openid-configuration"]
 
-        for _ in range(2):
-            with pytest.raises(OidcRpError):
-                client.mint_authn_request(REDIRECT_URI)
+        with pytest.raises(OidcRpError):
+            client.mint_authn_request(REDIRECT_URI)
+        with pytest.raises(OidcRpError, match="code=discovery_backoff"):
+            client.mint_authn_request(REDIRECT_URI)
         # the second call failed without any request to the OP
         assert len(self.http.requests_to(f"{ISSUER}/.well-known/openid-configuration")) == 1
 
         # after the back-off a new attempt is made, and succeeds
-        now[0] += 11
+        time.sleep(1.5)
         self.http.add_json(f"{ISSUER}/.well-known/openid-configuration", self.metadata)
         assert client.mint_authn_request(REDIRECT_URI).state
         assert len(self.http.requests_to(f"{ISSUER}/.well-known/openid-configuration")) == 2
 
     def test_discovery_refreshed_after_ttl(self) -> None:
-        now = [1000.0]
-        client = self._client(discovery_ttl=3600)
-        client._clock = lambda: now[0]
+        # the OP says max-age=3600, discovery_ttl caps it
+        client = self._client(discovery_ttl=1)
 
         client.mint_authn_request(REDIRECT_URI)
-        now[0] += 3599
-        client.mint_authn_request(REDIRECT_URI)
-        assert len(self.http.requests_to(f"{ISSUER}/.well-known/openid-configuration")) == 1
-
         changed = {**self.metadata, "token_endpoint": f"{ISSUER}/new-token"}
         self.http.add_json(f"{ISSUER}/.well-known/openid-configuration", changed)
-        now[0] += 2
+        time.sleep(1.5)
+
         assert client._get_provider().info.token_endpoint == f"{ISSUER}/new-token"
         assert len(self.http.requests_to(f"{ISSUER}/.well-known/openid-configuration")) == 2
 
     def test_jwks_cache_reused_when_jwks_uri_and_issuer_unchanged(self) -> None:
-        now = [1000.0]
-        client = self._client(discovery_ttl=100)
-        client._clock = lambda: now[0]
+        client = self._client()
         first = client._get_provider().jwks
 
-        now[0] += 101
+        client._discovery.refresh()
 
         assert client._get_provider().jwks is first
+        assert len(self.http.requests_to(f"{ISSUER}/.well-known/openid-configuration")) == 2
 
-    def test_jwks_cache_not_reused_when_issuer_differs(self) -> None:
-        now = [1000.0]
-        client = self._client(discovery_ttl=100)
-        client._clock = lambda: now[0]
-        provider = client._get_provider()
-        # a cache bound to another issuer, with the same jwks_uri as the refreshed metadata
-        stale = rp.JwksCache(self.http, self.metadata["jwks_uri"], "https://other.example.com")
-        client._provider = dataclasses.replace(provider, jwks=stale)
+    def test_jwks_cache_replaced_when_jwks_uri_changes(self) -> None:
+        client = self._client()
+        first = client._get_provider().jwks
+        new_jwks_uri = f"{ISSUER}/new-jwks"
+        self.http.add_json(f"{ISSUER}/.well-known/openid-configuration", {**self.metadata, "jwks_uri": new_jwks_uri})
 
-        now[0] += 101
+        client._discovery.refresh()
+
         refreshed = client._get_provider().jwks
-
-        assert refreshed is not stale
-        assert refreshed.issuer == ISSUER
+        assert refreshed is not first
+        assert refreshed.jwks_uri == new_jwks_uri
 
     def test_stale_metadata_used_when_refresh_fails(self) -> None:
-        now = [1000.0]
-        client = self._client(discovery_ttl=100, discovery_failure_backoff=10)
-        client._clock = lambda: now[0]
+        client = self._client(discovery_ttl=1, discovery_failure_backoff=10)
         client.mint_authn_request(REDIRECT_URI)
         del self.http.responses[f"{ISSUER}/.well-known/openid-configuration"]
+        time.sleep(1.5)
 
-        now[0] += 101
-        assert client.mint_authn_request(REDIRECT_URI).state  # stale metadata, refresh failed
-        assert client.mint_authn_request(REDIRECT_URI).state  # backing off, no new request
+        with pytest.warns(UserWarning, match="stale discovery metadata"):
+            first = client.mint_authn_request(REDIRECT_URI)  # stale metadata, refresh failed
+        second = client.mint_authn_request(REDIRECT_URI)  # backing off, no new request
+        assert first.state
+        assert second.state
         assert len(self.http.requests_to(f"{ISSUER}/.well-known/openid-configuration")) == 2
+
+    def test_init_wires_discovery_cache_config(self, mocker: MockerFixture) -> None:
+        spy = mocker.patch(
+            "eduid.common.clients.oidc_client.grindvakt_client.rp.DiscoveryCache", wraps=rp.DiscoveryCache
+        )
+
+        self._client(discovery_ttl=1800, discovery_timeout=6, discovery_failure_backoff=7)
+
+        assert spy.call_args.args[1] == ISSUER
+        assert spy.call_args.kwargs == {
+            "default_ttl": 1800,
+            "min_ttl": 60,
+            "max_ttl": 1800,
+            "failure_backoff": 7,
+            "stale_on_error": True,
+            "max_stale": 86400,
+            "fetch_timeout": 6.0,
+        }
+
+    def test_compatibility_mismatch_is_logged_once(self, caplog: pytest.LogCaptureFixture) -> None:
+        self.metadata["code_challenge_methods_supported"] = ["plain"]
+        self.http.add_json(f"{ISSUER}/.well-known/openid-configuration", self.metadata)
+        client = self._client()
+
+        with caplog.at_level(logging.WARNING):
+            client.mint_authn_request(REDIRECT_URI)
+            client.mint_authn_request(REDIRECT_URI)
+
+        records = [r for r in caplog.records if "compatibility" in r.getMessage()]
+        assert len(records) == 1
+        assert "S256" in records[0].getMessage()
 
     def test_finish_success_sends_code_verifier(self) -> None:
         client = self._client()
@@ -698,6 +725,9 @@ class TestIssuerHandling:
             "https://op.example.com/#",
             "https:///oidc",
             "https://",
+            "https://op.example.com/a b",
+            " https://op.example.com",
+            "https://op.example.com\\x",
         ],
     )
     def test_validator_rejects_invalid_issuers(self, issuer: str) -> None:
@@ -712,6 +742,24 @@ class TestIssuerHandling:
 
         assert "hunter2" not in str(exc_info.value)
         assert "hunter2" not in repr(exc_info.value)
+
+    @pytest.mark.parametrize(
+        "issuer",
+        [
+            "https://user:hunter2@op.example.com",
+            "https://user:hunter2@op.example.com/a b",
+            "https://op.example.com/hunter2 x",
+        ],
+    )
+    def test_validator_error_does_not_leak_value(self, issuer: str) -> None:
+        with pytest.raises(ValidationError) as exc_info:
+            OidcRpClientConfig(client_id=CLIENT_ID, client_secret="secret", issuer=issuer)
+
+        assert "hunter2" not in str(exc_info.value)
+        assert "hunter2" not in repr(exc_info.value)
+
+    def test_asymmetric_algorithms_supported_by_pygrindvakt(self) -> None:
+        assert set(rp.asymmetric_algorithms()) >= ASYMMETRIC_SIGNING_ALGORITHMS
 
     def test_trailing_slash_mismatch_fails_and_logs_issuer(self, caplog: pytest.LogCaptureFixture) -> None:
         # the OP publishes an issuer without trailing slash, but the RP is configured with one
@@ -750,7 +798,7 @@ class _GatedHttpClient:
 class _TimeoutHttpClient(_GatedHttpClient):
     def get(self, url: str) -> Any:  # noqa: ANN401
         self.inner.requests.append(RecordedRequest(method="GET", url=url))
-        return 504, b"", None  # what a gateway answers when the OP does not respond in time
+        return 504, b"", None, []  # what a gateway answers when the OP does not respond in time
 
 
 class TestDiscoveryConcurrency:
@@ -808,20 +856,21 @@ class TestDiscoveryConcurrency:
         first.join(timeout=10)
         assert len(self.http.requests_to(self.discovery_url)) == 1
 
-    def test_stale_metadata_served_while_another_thread_refreshes(self) -> None:
-        now = [1000.0]
-        client = self._client(discovery_ttl=100)
-        client._clock = lambda: now[0]
+    def test_stale_metadata_served_after_fetch_timeout_while_refreshing(self) -> None:
+        client = self._client(discovery_ttl=1, discovery_timeout=1)
         client._get_provider()  # cold start, gate open
-        now[0] += 101
+        time.sleep(1.5)
         self.gated.entered.clear()
         self.gated.gate.clear()
         refresher = threading.Thread(target=client._get_provider)
         refresher.start()
         assert self.gated.entered.wait(timeout=10)
 
-        # the refresh is in flight and holds the lock: this call must not wait for it
-        assert client._get_provider().info.issuer == ISSUER
+        # the refresh is in flight: this call waits at most discovery_timeout, then gets the stale document
+        started = time.monotonic()
+        with pytest.warns(UserWarning, match="stale discovery metadata"):
+            assert client._get_provider().info.issuer == ISSUER
+        assert time.monotonic() - started < 5
 
         self.gated.gate.set()
         refresher.join(timeout=10)
