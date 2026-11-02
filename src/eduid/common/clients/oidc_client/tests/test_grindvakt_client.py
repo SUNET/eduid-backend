@@ -984,7 +984,8 @@ class TestDiscoveryConcurrency:
         started = time.monotonic()
         with pytest.raises(OidcRpError):
             client._get_provider()
-        assert time.monotonic() - started < 5
+        # one wait for the in-flight refresh, not one per cache lookup
+        assert time.monotonic() - started < 1.6
 
         self.gated.gate.set()
         first.join(timeout=10)

@@ -93,6 +93,9 @@ class GrindvaktOidcRpClient:
             fetch_timeout=float(config.discovery_timeout),
         )
         self._compat_checked = False
+        # The key cache last handed out. DiscoveryCache keeps one JwksCache object while the jwks_uri and issuer are
+        # unchanged, so it is reused to avoid a second wait on an in-flight refresh (see _get_provider).
+        self._jwks: rp.JwksCache | None = None
 
     def _get_provider(self) -> _Provider:
         # Discovery is done lazily so that an unreachable provider does not prevent app start. The document is
@@ -107,7 +110,12 @@ class GrindvaktOidcRpClient:
         try:
             for _ in range(_PROVIDER_READ_ATTEMPTS):
                 info = self._discovery.info()
-                jwks = self._discovery.jwks()
+                known = self._jwks
+                if known is not None and known.jwks_uri == info.jwks_uri and known.issuer == info.issuer:
+                    # no second cache lookup: while a refresh is in flight each lookup waits up to discovery_timeout
+                    jwks = known
+                else:
+                    jwks = self._discovery.jwks()
                 if jwks.jwks_uri == info.jwks_uri:
                     break
                 # the document was refreshed between the two reads and the jwks_uri changed, read both again
@@ -121,6 +129,7 @@ class GrindvaktOidcRpClient:
                 # discovery errors (e.g. issuer mismatch) carry no secrets, unlike token endpoint errors
                 logger.exception(f"OIDC discovery failed for issuer {self._issuer!r}")
             raise _wrap("discovery", err) from None
+        self._jwks = jwks
         provider = _Provider(info=info, jwks=jwks)
         if not self._compat_checked:
             # advisory and never raises, concurrent first requests may at worst log the mismatches twice
