@@ -7,8 +7,8 @@ from urllib.parse import parse_qs, urlparse
 import pytest
 from flask import Flask
 from pydantic import ValidationError
+from pygrindvakt import GrindvaktError, jwt, keys, rp
 from pygrindvakt import http as gv_http
-from pygrindvakt import jwt, keys, rp
 from pygrindvakt.keys import SigningKey
 from pygrindvakt.metadata import ProviderMetadata
 from pytest_mock import MockerFixture
@@ -195,6 +195,25 @@ class TestGrindvaktOidcRpClient:
         refreshed = client._get_provider().jwks
         assert refreshed is not first
         assert refreshed.jwks_uri == new_jwks_uri
+
+    def test_document_with_other_issuer_is_refused_on_refresh(self) -> None:
+        # Issuer binding of the cached JwksCache is delegated to pygrindvakt: a document whose issuer differs from the
+        # configured one is neither cached nor served, so the key set stays bound to the configured issuer
+        client = self._client()
+        first = client._get_provider().jwks
+        other = "https://other.example.com"
+        self.http.add_json(
+            f"{ISSUER}/.well-known/openid-configuration",
+            {**self.metadata, "issuer": other, "jwks_uri": f"{other}/jwks"},
+        )
+
+        with pytest.raises(GrindvaktError):
+            client._discovery.refresh()
+
+        jwks = client._get_provider().jwks
+        assert jwks is first
+        assert jwks.issuer == ISSUER
+        assert jwks.jwks_uri == self.metadata["jwks_uri"]
 
     def test_stale_metadata_used_when_refresh_fails(self) -> None:
         client = self._client(discovery_ttl=1, discovery_failure_backoff=10)

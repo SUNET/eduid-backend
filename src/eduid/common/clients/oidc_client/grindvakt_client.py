@@ -101,6 +101,8 @@ class GrindvaktOidcRpClient:
         #  - when that is not enough, they are given the stale document if there is one, otherwise they fail
         #  - after a failed fetch no new attempt is made for discovery_failure_backoff seconds, in that time
         #    (and when a refresh fails) the stale document is served for up to a day, otherwise calls fail fast
+        # The issuer of the document is checked on every fetch, and the JwksCache is replaced when the jwks_uri or
+        # issuer changes: both are delegated to pygrindvakt and pinned by tests, a pygrindvakt bump must keep them.
         try:
             info = self._discovery.info()
             jwks = self._discovery.jwks()
