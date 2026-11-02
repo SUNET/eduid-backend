@@ -7,6 +7,7 @@ from datetime import UTC, datetime
 from enum import StrEnum
 from typing import Any, Literal
 
+from dateutil.relativedelta import relativedelta
 from pydantic import Field
 
 from eduid.userdb.element import ElementKey, VerifiedElement, VerifiedElementList
@@ -87,6 +88,22 @@ class IdentityElement(VerifiedElement, ABC):
     def to_frontend_format(self) -> dict[str, Any]:
         return super().to_dict()
 
+    @property
+    def verified_at(self) -> datetime | None:
+        """
+        The point in time the identity was verified.
+
+        Falls back to created_ts for identities without verified_ts, unless created_ts is the placeholder
+        used for elements that have no created_ts in the database.
+
+        :returns: Timestamp of verification, or None if it can not be determined
+        """
+        if self.verified_ts is not None:
+            return self.verified_ts
+        if self.no_created_ts_in_db:
+            return None
+        return self.created_ts
+
     def get_missing_proofing_method(self) -> IdentityProofingMethod | None:
         """
         Returns the proofing method that is missing for this identity
@@ -109,6 +126,48 @@ class IdentityElement(VerifiedElement, ABC):
             case _:
                 logger.warning(f"Unknown verified_by value: {self.verified_by}")
                 return None
+
+
+class IdentityAgeStatus(StrEnum):
+    OK = "ok"
+    WARN = "warn"
+    EXPIRED = "expired"
+    UNKNOWN = "unknown"
+
+
+def identity_expires_at(identity: IdentityElement, max_age: relativedelta) -> datetime | None:
+    """
+    :param identity: The identity
+    :param max_age: Maximum age of a verification
+    :returns: When the verification of the identity expires, or None if verification time is unknown
+    """
+    verified_at = identity.verified_at
+    if verified_at is None:
+        return None
+    return verified_at + max_age
+
+
+def get_identity_age_status(
+    identity: IdentityElement, now: datetime, max_age: relativedelta, warning_period: relativedelta
+) -> IdentityAgeStatus:
+    """
+    Classify a verified identity by the age of its verification.
+
+    :param identity: The identity
+    :param now: Current time
+    :param max_age: Maximum age of a verification
+    :param warning_period: How long before expiry the identity is considered to be in need of a warning
+    :returns: UNKNOWN if verification time is unknown, EXPIRED if now is at or past expiry, WARN if now is at or
+        past the start of the warning period, otherwise OK
+    """
+    expires_at = identity_expires_at(identity, max_age)
+    if expires_at is None:
+        return IdentityAgeStatus.UNKNOWN
+    if now >= expires_at:
+        return IdentityAgeStatus.EXPIRED
+    if now >= expires_at - warning_period:
+        return IdentityAgeStatus.WARN
+    return IdentityAgeStatus.OK
 
 
 class NinIdentity(IdentityElement):
@@ -291,6 +350,18 @@ class IdentityList(VerifiedElementList[IdentityElement]):
     def replace(self, element: IdentityElement) -> None:
         self.remove(key=element.key)
         self.add(element=element)
+
+    def unverify(self, identity_type: IdentityType) -> None:
+        """
+        Mark an identity as not verified. verified_ts and verified_by are kept.
+
+        :param identity_type: Type of identity to unverify
+        :raises KeyError: if the user has no such identity
+        """
+        element = self.find(ElementKey(identity_type))
+        if element is None:
+            raise KeyError(f"No identity of type {identity_type}")
+        element.is_verified = False
 
     @property
     def is_verified(self) -> bool:

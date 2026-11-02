@@ -5,6 +5,7 @@ from iso3166 import countries
 from pymongo.errors import PyMongoError
 
 from eduid.common.config.base import ProofingConfigMixin
+from eduid.common.misc.timeutil import utc_now
 from eduid.common.rpc.exceptions import AmTaskFailed
 from eduid.userdb import User
 from eduid.userdb.credentials import Credential
@@ -145,6 +146,7 @@ class FrejaEIDProofingFunctions(ProofingFunctions[FrejaEIDDocumentUserInfo]):
                 year=date_of_birth.year, month=date_of_birth.month, day=date_of_birth.day, tzinfo=UTC
             ),
             is_verified=True,
+            verified_ts=utc_now(),
             proofing_method=IdentityProofingMethod.FREJA_EID,
             proofing_version=current_app.conf.freja_eid_proofing_version,
             user_id=self.session_info.user_id,
