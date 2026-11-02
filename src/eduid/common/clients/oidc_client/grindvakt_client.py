@@ -43,8 +43,6 @@ def _wrap(operation: str, err: Exception) -> OidcRpError:
 # Raise discovery_timeout for an OP with a slow or large jwks_uri. The JwksCache TTLs are pygrindvakt's defaults.
 # Floor for the discovery document lifetime (lower when discovery_ttl is), even if the OP sends no-cache or max-age=0
 _MIN_DISCOVERY_TTL = 60
-# How long (seconds) an expired discovery document may be served when refetching it fails
-_MAX_DISCOVERY_STALE = 86400
 # Error codes of pygrindvakt discovery failures that are expected and already logged by the original failure
 _QUIET_DISCOVERY_CODES = ("discovery_backoff", "discovery_fetch_timeout")
 
@@ -89,7 +87,7 @@ class GrindvaktOidcRpClient:
             max_ttl=config.discovery_ttl,
             failure_backoff=config.discovery_failure_backoff,
             stale_on_error=True,
-            max_stale=_MAX_DISCOVERY_STALE,
+            max_stale=config.discovery_max_stale,
             fetch_timeout=float(config.discovery_timeout),
         )
         self._compat_checked = False
@@ -100,7 +98,7 @@ class GrindvaktOidcRpClient:
         # thread at a time fetches it, the others wait for that fetch for at most discovery_timeout seconds:
         #  - when that is not enough, they are given the stale document if there is one, otherwise they fail
         #  - after a failed fetch no new attempt is made for discovery_failure_backoff seconds, in that time
-        #    (and when a refresh fails) the stale document is served for up to a day, otherwise calls fail fast
+        #    (and when a refresh fails) the stale document is served for up to discovery_max_stale seconds, otherwise calls fail fast
         # The issuer of the document is checked on every fetch, and the JwksCache is replaced when the jwks_uri or
         # issuer changes: both are delegated to pygrindvakt and pinned by tests, a pygrindvakt bump must keep them.
         try:

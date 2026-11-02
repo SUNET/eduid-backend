@@ -121,6 +121,8 @@ class OidcRpClientConfig(BaseModel):
     discovery_timeout: int = Field(default=8, ge=1)
     # After a failed discovery, do not retry for this many seconds
     discovery_failure_backoff: int = Field(default=10, ge=0)
+    # How long (seconds) an expired discovery document may still be served when refetching it fails
+    discovery_max_stale: int = Field(default=3600, ge=0)
     # Outbound HTTP timeouts, in seconds
     http_connect_timeout: int = 5
     http_read_timeout: int = 15

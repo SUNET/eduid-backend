@@ -233,7 +233,7 @@ class TestGrindvaktOidcRpClient:
             "eduid.common.clients.oidc_client.grindvakt_client.rp.DiscoveryCache", wraps=rp.DiscoveryCache
         )
 
-        self._client(discovery_ttl=1800, discovery_timeout=6, discovery_failure_backoff=7)
+        self._client(discovery_ttl=1800, discovery_timeout=6, discovery_failure_backoff=7, discovery_max_stale=3600)
 
         assert spy.call_args.args[1] == ISSUER
         assert spy.call_args.kwargs == {
@@ -242,7 +242,7 @@ class TestGrindvaktOidcRpClient:
             "max_ttl": 1800,
             "failure_backoff": 7,
             "stale_on_error": True,
-            "max_stale": 86400,
+            "max_stale": 3600,
             "fetch_timeout": 6.0,
         }
 
