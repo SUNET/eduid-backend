@@ -1,21 +1,12 @@
-import ipaddress
 from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Any, Literal, Protocol, Self
 from urllib.parse import urlsplit
 
-from pydantic import AnyUrl, BaseModel, ConfigDict, Field, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+from pygrindvakt import ConfigError, rp
 
 __author__ = "lundberg"
-
-
-def _is_loopback_host(host: str) -> bool:
-    if host.lower() == "localhost":
-        return True
-    try:
-        return ipaddress.ip_address(host).is_loopback
-    except ValueError:
-        return False
 
 
 # Asymmetric JWS algorithms accepted for ID token signatures (never "none" or the shared secret HS* family)
@@ -23,7 +14,7 @@ ASYMMETRIC_SIGNING_ALGORITHMS = frozenset(
     {"RS256", "RS384", "RS512", "PS256", "PS384", "PS512", "ES256", "ES384", "ES512", "EdDSA"}
 )
 # pygrindvakt refuses a leeway above this many seconds
-MAX_LEEWAY = 300
+MAX_LEEWAY = rp.MAX_ID_TOKEN_LEEWAY
 
 
 class OidcRpError(Exception):
@@ -91,29 +82,22 @@ class OidcRpClientConfig(BaseModel):
     @classmethod
     def _validate_issuer(cls, v: str) -> str:
         """
-        Check the OIDC issuer constraints (https URL with a host, no credentials, query or fragment), mirroring
-        what pygrindvakt discovery accepts: plain http only for loopback hosts. The string is returned exactly
-        as configured, it is used as is for discovery and issuer matching. Messages never echo the value,
+        Check the issuer syntax with pygrindvakt (https URL, plain http only for loopback hosts, no credentials,
+        query, fragment, whitespace or backslashes) and require a host. The string is returned exactly as
+        configured, it is used as is for discovery and issuer matching. Messages never echo the value,
         as it may contain credentials.
         """
-        AnyUrl(v)  # syntax check
         try:
-            parts = urlsplit(v)
-            host = parts.hostname
-            _ = parts.port  # validates the port
-        except ValueError:
-            raise ValueError("issuer is not a valid URL") from None
-        if "?" in v or "#" in v:
-            raise ValueError("issuer must not contain a query or fragment")
-        if parts.username is not None or parts.password is not None or "@" in parts.netloc:
-            raise ValueError("issuer must not contain credentials")
-        if not host:
+            rp.validate_issuer(v)
+            host = urlsplit(v).hostname
+        except (ConfigError, ValueError):
+            raise ValueError(
+                "issuer must be an https URL (http only for loopback hosts) without credentials, query, "
+                "fragment, whitespace or backslashes"
+            ) from None
+        if not host:  # pygrindvakt accepts e.g. "https:///oidc"
             raise ValueError("issuer must contain a host")
-        if parts.scheme == "https":
-            return v
-        if parts.scheme == "http" and _is_loopback_host(host):
-            return v
-        raise ValueError("issuer must be an https URL (http is only allowed for loopback hosts)")
+        return v
 
     @model_validator(mode="after")
     def _validate_acr(self) -> Self:
@@ -132,11 +116,13 @@ class OidcRpClientConfig(BaseModel):
         return self
 
     # How long (seconds) discovered provider metadata is cached
-    discovery_ttl: int = 3600
+    discovery_ttl: int = Field(default=3600, ge=1)
     # Upper bound (seconds) for a discovery request, and for waiting for another thread's discovery
-    discovery_timeout: int = 8
+    discovery_timeout: int = Field(default=8, ge=1)
     # After a failed discovery, do not retry for this many seconds
-    discovery_failure_backoff: int = 10
+    discovery_failure_backoff: int = Field(default=10, ge=0)
+    # How long (seconds) an expired discovery document may still be served when refetching it fails
+    discovery_max_stale: int = Field(default=3600, ge=0)
     # Outbound HTTP timeouts, in seconds
     http_connect_timeout: int = 5
     http_read_timeout: int = 15

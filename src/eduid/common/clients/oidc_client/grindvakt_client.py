@@ -1,11 +1,8 @@
 from __future__ import annotations
 
 import logging
-import threading
-import time
-from collections.abc import Callable, Mapping, Sequence
-from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, cast
+from collections.abc import Mapping, Sequence
+from typing import TYPE_CHECKING, Any, NamedTuple, cast
 
 from flask import Flask
 from pygrindvakt import GrindvaktError, rp
@@ -40,8 +37,19 @@ def _wrap(operation: str, err: Exception) -> OidcRpError:
     return OidcRpError(f"{operation} failed: {type(err).__name__} (code={code})")
 
 
-@dataclass(frozen=True)
-class _Provider:
+# pygrindvakt's DiscoveryCache builds its JwksCache from the one http client it is given, so JWKS fetches use the
+# discovery client (and its tight discovery_timeout budget), not the token/userinfo client. This was accepted: an
+# expired key set is never served, so a JWKS fetch slower than discovery_timeout fails the login until the next try.
+# Raise discovery_timeout for an OP with a slow or large jwks_uri. The JwksCache TTLs are pygrindvakt's defaults.
+# Floor for the discovery document lifetime (lower when discovery_ttl is), even if the OP sends no-cache or max-age=0
+_MIN_DISCOVERY_TTL = 60
+# How many times info and jwks are read again when a refresh by another thread changes the jwks_uri between the reads
+_PROVIDER_READ_ATTEMPTS = 3
+# Error codes of pygrindvakt discovery failures that are expected and already logged by the original failure
+_QUIET_DISCOVERY_CODES = ("discovery_backoff", "discovery_fetch_timeout")
+
+
+class _Provider(NamedTuple):
     info: rp.ProviderInfo
     jwks: rp.JwksCache
 
@@ -54,7 +62,6 @@ class GrindvaktOidcRpClient:
         config: OidcRpClientConfig,
         redirect_uris: Sequence[str],
         http: HttpClientProtocol | gv_http.ReqwestClient | None = None,
-        clock: Callable[[], float] = time.monotonic,
         discovery_http: HttpClientProtocol | gv_http.ReqwestClient | None = None,
     ) -> None:
         if config.code_challenge_method not in (None, "S256"):
@@ -73,73 +80,79 @@ class GrindvaktOidcRpClient:
         )
         self._http = http if http is not None else gv_http.ReqwestClient()
         # discovery has its own, tighter, timeouts than token/userinfo requests
-        self._discovery_http = discovery_http if discovery_http is not None else self._http
-        self._clock = clock
-        self._provider: _Provider | None = None
-        self._provider_expires = 0.0
-        self._failed_at: float | None = None
-        self._lock = threading.Lock()
+        discovery_http = discovery_http if discovery_http is not None else self._http
+        self._discovery = rp.DiscoveryCache(
+            discovery_http,
+            config.issuer,
+            default_ttl=config.discovery_ttl,
+            min_ttl=min(_MIN_DISCOVERY_TTL, config.discovery_ttl),
+            max_ttl=config.discovery_ttl,
+            failure_backoff=config.discovery_failure_backoff,
+            stale_on_error=True,
+            max_stale=config.discovery_max_stale,
+            fetch_timeout=float(config.discovery_timeout),
+        )
+        self._compat_checked = False
+        # The key cache last handed out. DiscoveryCache keeps one JwksCache object while the jwks_uri and issuer are
+        # unchanged, so it is reused to avoid a second wait on an in-flight refresh (see _get_provider).
+        self._jwks: rp.JwksCache | None = None
 
     def _get_provider(self) -> _Provider:
-        # Discovery is done lazily so that an unreachable provider does not prevent app start. The result
-        # is cached for discovery_ttl seconds. After a failure no new attempt is made for
-        # discovery_failure_backoff seconds. Only one thread at a time does discovery:
-        #  - with stale metadata, other threads keep serving it while one refreshes
-        #  - on cold start, other threads wait at most discovery_timeout seconds for the one doing discovery
-        now = self._clock()
-        provider = self._provider
-        if provider is not None and now < self._provider_expires:
-            return provider
-        if (backoff := self._backing_off(now)) is not None:
-            return backoff
-        if provider is not None:
-            if not self._lock.acquire(blocking=False):
-                return provider
-        elif not self._lock.acquire(timeout=self._config.discovery_timeout):
-            raise OidcRpError("discovery in progress, giving up waiting")
+        # Discovery is done lazily so that an unreachable provider does not prevent app start. The document is
+        # cached by pygrindvakt for at most discovery_ttl seconds (less if the OP's Cache-Control says so). Only one
+        # thread at a time fetches it, the others wait for that fetch for at most discovery_timeout seconds:
+        #  - when that is not enough, they are given the stale document if there is one, otherwise they fail
+        #  - after a failed fetch no new attempt is made for discovery_failure_backoff seconds, in that time
+        #    (and when a refresh fails) the stale document is served for up to discovery_max_stale seconds,
+        #    otherwise calls fail fast
+        # The issuer of the document is checked on every fetch, and the JwksCache is replaced when the jwks_uri or
+        # issuer changes: both are delegated to pygrindvakt and pinned by tests, a pygrindvakt bump must keep them.
         try:
-            return self._discover_locked()
-        finally:
-            self._lock.release()
-
-    def _discover_locked(self) -> _Provider:
-        # re-check, another thread may have finished while we waited for the lock
-        now = self._clock()
-        if self._provider is not None and now < self._provider_expires:
-            return self._provider
-        if (backoff := self._backing_off(now)) is not None:
-            return backoff
-        try:
-            metadata = rp.discover(self._discovery_http, self._issuer)
-            info = rp.ProviderInfo.from_metadata(metadata)
-            if info.jwks_uri is None:
-                raise ValueError("no jwks_uri in provider metadata")
-            old = self._provider
-            if old is not None and old.jwks.jwks_uri == info.jwks_uri and old.jwks.issuer == info.issuer:
-                jwks = old.jwks  # keep the cached key set
+            for _ in range(_PROVIDER_READ_ATTEMPTS):
+                info = self._discovery.info()
+                known = self._jwks
+                if known is not None and known.jwks_uri == info.jwks_uri and known.issuer == info.issuer:
+                    # no second cache lookup: while a refresh is in flight each lookup waits up to discovery_timeout
+                    jwks = known
+                else:
+                    jwks = self._discovery.jwks()
+                if jwks.jwks_uri == info.jwks_uri:
+                    break
+                # the document was refreshed between the two reads and the jwks_uri changed, read both again
             else:
-                jwks = rp.JwksCache(self._http, info.jwks_uri, info.issuer)
+                raise OidcRpError("discovery metadata changed while it was being read")
+        except OidcRpError:
+            logger.warning(f"OIDC discovery for issuer {self._issuer!r}: jwks_uri keeps changing between reads")
+            raise
         except _CAUGHT_EXCEPTIONS as err:
-            self._failed_at = self._clock()
-            # discovery errors (e.g. issuer mismatch) carry no secrets, unlike token endpoint errors
-            logger.exception(f"OIDC discovery failed for issuer {self._issuer!r}")
-            if self._provider is not None:
-                # keep using the stale metadata until a refresh succeeds
-                return self._provider
+            if getattr(err, "code", None) not in _QUIET_DISCOVERY_CODES:
+                # discovery errors (e.g. issuer mismatch) carry no secrets, unlike token endpoint errors
+                logger.exception(f"OIDC discovery failed for issuer {self._issuer!r}")
             raise _wrap("discovery", err) from None
-        self._failed_at = None
-        self._provider = _Provider(info=info, jwks=jwks)
-        self._provider_expires = self._clock() + self._config.discovery_ttl
-        return self._provider
+        self._jwks = jwks
+        provider = _Provider(info=info, jwks=jwks)
+        if not self._compat_checked:
+            # advisory and never raises, concurrent first requests may at worst log the mismatches twice
+            self._check_compatibility(info)
+            self._compat_checked = True
+        return provider
 
-    def _backing_off(self, now: float) -> _Provider | None:
-        """Within the back-off after a failed discovery: return stale metadata if any, otherwise fail fast."""
-        failed_at = self._failed_at
-        if failed_at is None or now - failed_at >= self._config.discovery_failure_backoff:
-            return None
-        if self._provider is not None:
-            return self._provider
-        raise OidcRpError("discovery failed recently, not retrying yet")
+    def _check_compatibility(self, info: rp.ProviderInfo) -> None:
+        """Log (advisory only) where the provider's discovery document contradicts our configuration."""
+        try:
+            mismatches = rp.check_rp_compatibility(
+                info,
+                client=self._rp,
+                pkce=self._config.code_challenge_method == "S256",
+                algorithms=self._config.allowed_algorithms,
+                scopes=self._config.scopes,
+                acr_values=self._config.acr_values or None,
+            )
+        except _CAUGHT_EXCEPTIONS:
+            logger.exception(f"OIDC compatibility check failed for issuer {self._issuer!r}")
+            return
+        for mismatch in mismatches:
+            logger.warning(f"OIDC provider {self._issuer!r} compatibility: {mismatch}")
 
     def mint_authn_request(self, redirect_uri: str, extra_params: Mapping[str, str] | None = None) -> AuthnRequestData:
         provider = self._get_provider()

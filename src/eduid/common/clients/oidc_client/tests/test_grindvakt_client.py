@@ -1,4 +1,3 @@
-import dataclasses
 import logging
 import threading
 import time
@@ -8,13 +7,18 @@ from urllib.parse import parse_qs, urlparse
 import pytest
 from flask import Flask
 from pydantic import ValidationError
+from pygrindvakt import GrindvaktError, jwt, keys, rp
 from pygrindvakt import http as gv_http
-from pygrindvakt import jwt, keys, rp
 from pygrindvakt.keys import SigningKey
 from pygrindvakt.metadata import ProviderMetadata
 from pytest_mock import MockerFixture
 
-from eduid.common.clients.oidc_client.base import OidcAuthnResult, OidcRpClientConfig, OidcRpError
+from eduid.common.clients.oidc_client.base import (
+    ASYMMETRIC_SIGNING_ALGORITHMS,
+    OidcAuthnResult,
+    OidcRpClientConfig,
+    OidcRpError,
+)
 from eduid.common.clients.oidc_client.grindvakt_client import GrindvaktOidcRpClient, init_oidc_rp_client
 from eduid.common.clients.oidc_client.testing import RecordedRequest, StaticHttpClient, half_hash
 
@@ -143,75 +147,212 @@ class TestGrindvaktOidcRpClient:
         assert len(self.http.requests_to(f"{ISSUER}/.well-known/openid-configuration")) == 1
 
     def test_discovery_failure_backoff_fails_fast(self) -> None:
-        now = [1000.0]
-        client = self._client(discovery_failure_backoff=10)
-        client._clock = lambda: now[0]
+        client = self._client(discovery_failure_backoff=1)
         del self.http.responses[f"{ISSUER}/.well-known/openid-configuration"]
 
-        for _ in range(2):
-            with pytest.raises(OidcRpError):
-                client.mint_authn_request(REDIRECT_URI)
+        with pytest.raises(OidcRpError):
+            client.mint_authn_request(REDIRECT_URI)
+        with pytest.raises(OidcRpError, match="code=discovery_backoff"):
+            client.mint_authn_request(REDIRECT_URI)
         # the second call failed without any request to the OP
         assert len(self.http.requests_to(f"{ISSUER}/.well-known/openid-configuration")) == 1
 
         # after the back-off a new attempt is made, and succeeds
-        now[0] += 11
+        time.sleep(1.5)
         self.http.add_json(f"{ISSUER}/.well-known/openid-configuration", self.metadata)
         assert client.mint_authn_request(REDIRECT_URI).state
         assert len(self.http.requests_to(f"{ISSUER}/.well-known/openid-configuration")) == 2
 
     def test_discovery_refreshed_after_ttl(self) -> None:
-        now = [1000.0]
-        client = self._client(discovery_ttl=3600)
-        client._clock = lambda: now[0]
+        # the OP says max-age=3600, discovery_ttl caps it
+        client = self._client(discovery_ttl=1)
 
         client.mint_authn_request(REDIRECT_URI)
-        now[0] += 3599
-        client.mint_authn_request(REDIRECT_URI)
-        assert len(self.http.requests_to(f"{ISSUER}/.well-known/openid-configuration")) == 1
-
         changed = {**self.metadata, "token_endpoint": f"{ISSUER}/new-token"}
         self.http.add_json(f"{ISSUER}/.well-known/openid-configuration", changed)
-        now[0] += 2
+        time.sleep(1.5)
+
         assert client._get_provider().info.token_endpoint == f"{ISSUER}/new-token"
         assert len(self.http.requests_to(f"{ISSUER}/.well-known/openid-configuration")) == 2
 
     def test_jwks_cache_reused_when_jwks_uri_and_issuer_unchanged(self) -> None:
-        now = [1000.0]
-        client = self._client(discovery_ttl=100)
-        client._clock = lambda: now[0]
+        client = self._client()
         first = client._get_provider().jwks
 
-        now[0] += 101
+        client._discovery.refresh()
 
         assert client._get_provider().jwks is first
+        assert len(self.http.requests_to(f"{ISSUER}/.well-known/openid-configuration")) == 2
 
-    def test_jwks_cache_not_reused_when_issuer_differs(self) -> None:
-        now = [1000.0]
-        client = self._client(discovery_ttl=100)
-        client._clock = lambda: now[0]
-        provider = client._get_provider()
-        # a cache bound to another issuer, with the same jwks_uri as the refreshed metadata
-        stale = rp.JwksCache(self.http, self.metadata["jwks_uri"], "https://other.example.com")
-        client._provider = dataclasses.replace(provider, jwks=stale)
+    def test_jwks_cache_replaced_when_jwks_uri_changes(self) -> None:
+        client = self._client()
+        first = client._get_provider().jwks
+        new_jwks_uri = f"{ISSUER}/new-jwks"
+        self.http.add_json(f"{ISSUER}/.well-known/openid-configuration", {**self.metadata, "jwks_uri": new_jwks_uri})
 
-        now[0] += 101
+        client._discovery.refresh()
+
         refreshed = client._get_provider().jwks
+        assert refreshed is not first
+        assert refreshed.jwks_uri == new_jwks_uri
 
-        assert refreshed is not stale
-        assert refreshed.issuer == ISSUER
+    def test_document_with_other_issuer_is_refused_on_refresh(self) -> None:
+        # Issuer binding of the cached JwksCache is delegated to pygrindvakt: a document whose issuer differs from the
+        # configured one is neither cached nor served, so the key set stays bound to the configured issuer
+        client = self._client()
+        first = client._get_provider().jwks
+        other = "https://other.example.com"
+        self.http.add_json(
+            f"{ISSUER}/.well-known/openid-configuration",
+            {**self.metadata, "issuer": other, "jwks_uri": f"{other}/jwks"},
+        )
+
+        with pytest.raises(GrindvaktError):
+            client._discovery.refresh()
+
+        jwks = client._get_provider().jwks
+        assert jwks is first
+        assert jwks.issuer == ISSUER
+        assert jwks.jwks_uri == self.metadata["jwks_uri"]
 
     def test_stale_metadata_used_when_refresh_fails(self) -> None:
-        now = [1000.0]
-        client = self._client(discovery_ttl=100, discovery_failure_backoff=10)
-        client._clock = lambda: now[0]
+        client = self._client(discovery_ttl=1, discovery_failure_backoff=10)
         client.mint_authn_request(REDIRECT_URI)
         del self.http.responses[f"{ISSUER}/.well-known/openid-configuration"]
+        time.sleep(1.5)
 
-        now[0] += 101
-        assert client.mint_authn_request(REDIRECT_URI).state  # stale metadata, refresh failed
-        assert client.mint_authn_request(REDIRECT_URI).state  # backing off, no new request
+        with pytest.warns(UserWarning, match="stale discovery metadata"):
+            first = client.mint_authn_request(REDIRECT_URI)  # stale metadata, refresh failed
+        second = client.mint_authn_request(REDIRECT_URI)  # backing off, no new request
+        assert first.state
+        assert second.state
         assert len(self.http.requests_to(f"{ISSUER}/.well-known/openid-configuration")) == 2
+
+    def test_init_wires_discovery_cache_config(self, mocker: MockerFixture) -> None:
+        spy = mocker.patch(
+            "eduid.common.clients.oidc_client.grindvakt_client.rp.DiscoveryCache", wraps=rp.DiscoveryCache
+        )
+
+        self._client(discovery_ttl=1800, discovery_timeout=6, discovery_failure_backoff=7, discovery_max_stale=3600)
+
+        assert spy.call_args.args[1] == ISSUER
+        assert spy.call_args.kwargs == {
+            "default_ttl": 1800,
+            "min_ttl": 60,
+            "max_ttl": 1800,
+            "failure_backoff": 7,
+            "stale_on_error": True,
+            "max_stale": 3600,
+            "fetch_timeout": 6.0,
+        }
+
+    def test_jwks_is_fetched_with_the_discovery_http_client(self) -> None:
+        # Documents the accepted behaviour: pygrindvakt's DiscoveryCache fetches the JWKS with the client it was given
+        discovery_http = StaticHttpClient()
+        discovery_http.add_json(f"{ISSUER}/.well-known/openid-configuration", self.metadata)
+        discovery_http.add_json(self.metadata["jwks_uri"], self.key.to_public_jwks())
+        conf = OidcRpClientConfig(client_id=CLIENT_ID, client_secret="secret", issuer=ISSUER)
+        client = GrindvaktOidcRpClient(conf, [REDIRECT_URI], http=self.http, discovery_http=discovery_http)
+
+        client._get_provider().jwks.jwks()
+
+        assert len(discovery_http.requests_to(self.metadata["jwks_uri"])) == 1
+        assert self.http.requests_to(self.metadata["jwks_uri"]) == []
+
+    def test_compatibility_mismatch_is_logged_once(self, caplog: pytest.LogCaptureFixture) -> None:
+        self.metadata["code_challenge_methods_supported"] = ["plain"]
+        self.http.add_json(f"{ISSUER}/.well-known/openid-configuration", self.metadata)
+        client = self._client()
+
+        with caplog.at_level(logging.WARNING):
+            client.mint_authn_request(REDIRECT_URI)
+            client.mint_authn_request(REDIRECT_URI)
+
+        records = [r for r in caplog.records if "compatibility" in r.getMessage()]
+        assert len(records) == 1
+        assert "S256" in records[0].getMessage()
+
+    def test_get_provider_retakes_info_when_jwks_uri_changed_between_calls(self, mocker: MockerFixture) -> None:
+        client = self._client()
+        old_info = client._discovery.info()
+        new_jwks_uri = f"{ISSUER}/new-jwks"
+        self.http.add_json(new_jwks_uri, self.key.to_public_jwks())
+        self.http.add_json(f"{ISSUER}/.well-known/openid-configuration", {**self.metadata, "jwks_uri": new_jwks_uri})
+        other = self._client()
+        new_info = other._discovery.info()
+        new_jwks = other._discovery.jwks()
+        assert old_info.jwks_uri != new_jwks_uri
+        assert new_jwks.jwks_uri == new_jwks_uri
+
+        fake = mocker.MagicMock()
+        fake.info.side_effect = [old_info, new_info]
+        fake.jwks.return_value = new_jwks
+        client._discovery = fake
+
+        provider = client._get_provider()
+
+        assert fake.info.call_count == 2
+        assert fake.jwks.call_count == 2
+        assert provider.info is new_info
+        assert provider.info.jwks_uri == provider.jwks.jwks_uri == new_jwks_uri
+
+    def test_get_provider_gives_up_when_jwks_uri_keeps_changing(self, mocker: MockerFixture) -> None:
+        client = self._client()
+        info = client._discovery.info()
+        other_jwks = rp.JwksCache(self.http, f"{ISSUER}/other-jwks", ISSUER)
+        fake = mocker.MagicMock()
+        fake.info.return_value = info
+        fake.jwks.return_value = other_jwks
+        client._discovery = fake
+
+        with pytest.raises(OidcRpError, match="changed while it was being read"):
+            client._get_provider()
+
+        assert fake.info.call_count == fake.jwks.call_count == 3
+
+    def test_compatibility_check_failure_is_logged_once_and_not_fatal(
+        self, mocker: MockerFixture, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        check = mocker.patch(
+            "eduid.common.clients.oidc_client.grindvakt_client.rp.check_rp_compatibility",
+            side_effect=GrindvaktError("boom"),
+        )
+        client = self._client()
+
+        with caplog.at_level(logging.ERROR):
+            assert client.mint_authn_request(REDIRECT_URI).state
+            assert client.mint_authn_request(REDIRECT_URI).state
+
+        assert check.call_count == 1
+        records = [r for r in caplog.records if "compatibility check failed" in r.getMessage()]
+        assert len(records) == 1
+        assert records[0].exc_info is not None
+
+    def test_discovery_backoff_error_is_not_logged_with_traceback(self, caplog: pytest.LogCaptureFixture) -> None:
+        client = self._client(discovery_failure_backoff=60)
+        del self.http.responses[f"{ISSUER}/.well-known/openid-configuration"]
+
+        with caplog.at_level(logging.ERROR):
+            with pytest.raises(OidcRpError):
+                client.mint_authn_request(REDIRECT_URI)
+            first = [r for r in caplog.records if r.exc_info]
+            caplog.clear()
+            with pytest.raises(OidcRpError, match="code=discovery_backoff"):
+                client.mint_authn_request(REDIRECT_URI)
+            second = [r for r in caplog.records if r.exc_info]
+
+        assert len(first) == 1
+        assert "OIDC discovery failed" in first[0].getMessage()
+        assert second == []
+
+    def test_stale_metadata_not_served_beyond_max_stale(self) -> None:
+        client = self._client(discovery_ttl=1, discovery_max_stale=1, discovery_failure_backoff=0)
+        client.mint_authn_request(REDIRECT_URI)
+        del self.http.responses[f"{ISSUER}/.well-known/openid-configuration"]
+        time.sleep(2.5)  # past ttl (1s) + max_stale (1s)
+
+        with pytest.raises(OidcRpError):
+            client.mint_authn_request(REDIRECT_URI)
 
     def test_finish_success_sends_code_verifier(self) -> None:
         client = self._client()
@@ -614,6 +755,26 @@ class TestGrindvaktOidcRpClient:
         with pytest.raises(ValidationError, match="distinct"):
             self._client(userinfo_trust="typed", userinfo_typ=typ)
 
+    @pytest.mark.parametrize("trust", [True, False])
+    def test_userinfo_typ_passed_to_pygrindvakt_only_with_trust(self, mocker: MockerFixture, trust: bool) -> None:
+        # userinfo_trust "typed" requires userinfo_typ in the config, so "trust without typ" is unreachable
+        spy = mocker.patch(
+            "eduid.common.clients.oidc_client.grindvakt_client.rp.fetch_userinfo", return_value={"sub": "subject"}
+        )
+        extra = {"userinfo_trust": "typed", "userinfo_typ": "userinfo+jwt"} if trust else {}
+        client = self._client(**extra)
+        result = self._finish(client, self._id_token("nonce"), "nonce")
+
+        client.userinfo(result)
+
+        kwargs = spy.call_args.kwargs
+        if trust:
+            assert kwargs["trust"] == "typed"
+            assert kwargs["typ"] == "userinfo+jwt"
+        else:
+            assert "trust" not in kwargs
+            assert "typ" not in kwargs
+
     def test_userinfo_without_access_token(self) -> None:
         client = self._client()
         result = OidcAuthnResult(claims={"sub": "subject"}, tokens={})
@@ -698,6 +859,9 @@ class TestIssuerHandling:
             "https://op.example.com/#",
             "https:///oidc",
             "https://",
+            "https://op.example.com/a b",
+            " https://op.example.com",
+            "https://op.example.com\\x",
         ],
     )
     def test_validator_rejects_invalid_issuers(self, issuer: str) -> None:
@@ -712,6 +876,24 @@ class TestIssuerHandling:
 
         assert "hunter2" not in str(exc_info.value)
         assert "hunter2" not in repr(exc_info.value)
+
+    @pytest.mark.parametrize(
+        "issuer",
+        [
+            "https://user:hunter2@op.example.com",
+            "https://user:hunter2@op.example.com/a b",
+            "https://op.example.com/hunter2 x",
+        ],
+    )
+    def test_validator_error_does_not_leak_value(self, issuer: str) -> None:
+        with pytest.raises(ValidationError) as exc_info:
+            OidcRpClientConfig(client_id=CLIENT_ID, client_secret="secret", issuer=issuer)
+
+        assert "hunter2" not in str(exc_info.value)
+        assert "hunter2" not in repr(exc_info.value)
+
+    def test_asymmetric_algorithms_supported_by_pygrindvakt(self) -> None:
+        assert set(rp.asymmetric_algorithms()) >= ASYMMETRIC_SIGNING_ALGORITHMS
 
     def test_trailing_slash_mismatch_fails_and_logs_issuer(self, caplog: pytest.LogCaptureFixture) -> None:
         # the OP publishes an issuer without trailing slash, but the RP is configured with one
@@ -750,7 +932,7 @@ class _GatedHttpClient:
 class _TimeoutHttpClient(_GatedHttpClient):
     def get(self, url: str) -> Any:  # noqa: ANN401
         self.inner.requests.append(RecordedRequest(method="GET", url=url))
-        return 504, b"", None  # what a gateway answers when the OP does not respond in time
+        return 504, b"", None, []  # what a gateway answers when the OP does not respond in time
 
 
 class TestDiscoveryConcurrency:
@@ -802,26 +984,42 @@ class TestDiscoveryConcurrency:
         started = time.monotonic()
         with pytest.raises(OidcRpError):
             client._get_provider()
-        assert time.monotonic() - started < 5
+        # one wait for the in-flight refresh, not one per cache lookup
+        assert time.monotonic() - started < 1.6
 
         self.gated.gate.set()
         first.join(timeout=10)
         assert len(self.http.requests_to(self.discovery_url)) == 1
 
-    def test_stale_metadata_served_while_another_thread_refreshes(self) -> None:
-        now = [1000.0]
-        client = self._client(discovery_ttl=100)
-        client._clock = lambda: now[0]
+    def test_cold_start_waiter_timeout_is_not_logged_with_traceback(self, caplog: pytest.LogCaptureFixture) -> None:
+        client = self._client(discovery_timeout=1)
+        self.gated.gate.clear()
+        first = threading.Thread(target=client._get_provider)
+        first.start()
+        assert self.gated.entered.wait(timeout=10)
+
+        with caplog.at_level(logging.ERROR), pytest.raises(OidcRpError, match="code=discovery_fetch_timeout"):
+            client._get_provider()
+
+        self.gated.gate.set()
+        first.join(timeout=10)
+        assert [r for r in caplog.records if r.exc_info and r.thread == threading.main_thread().ident] == []
+
+    def test_stale_metadata_served_after_fetch_timeout_while_refreshing(self) -> None:
+        client = self._client(discovery_ttl=1, discovery_timeout=1)
         client._get_provider()  # cold start, gate open
-        now[0] += 101
+        time.sleep(1.5)
         self.gated.entered.clear()
         self.gated.gate.clear()
         refresher = threading.Thread(target=client._get_provider)
         refresher.start()
         assert self.gated.entered.wait(timeout=10)
 
-        # the refresh is in flight and holds the lock: this call must not wait for it
-        assert client._get_provider().info.issuer == ISSUER
+        # the refresh is in flight: this call waits at most discovery_timeout, then gets the stale document
+        started = time.monotonic()
+        with pytest.warns(UserWarning, match="stale discovery metadata"):
+            assert client._get_provider().info.issuer == ISSUER
+        assert time.monotonic() - started < 5
 
         self.gated.gate.set()
         refresher.join(timeout=10)
