@@ -37,6 +37,10 @@ def _wrap(operation: str, err: Exception) -> OidcRpError:
     return OidcRpError(f"{operation} failed: {type(err).__name__} (code={code})")
 
 
+# pygrindvakt's DiscoveryCache builds its JwksCache from the one http client it is given, so JWKS fetches use the
+# discovery client (and its tight discovery_timeout budget), not the token/userinfo client. This was accepted: an
+# expired key set is never served, so a JWKS fetch slower than discovery_timeout fails the login until the next try.
+# Raise discovery_timeout for an OP with a slow or large jwks_uri. The JwksCache TTLs are pygrindvakt's defaults.
 # Floor for the discovery document lifetime (lower when discovery_ttl is), even if the OP sends no-cache or max-age=0
 _MIN_DISCOVERY_TTL = 60
 # How long (seconds) an expired discovery document may be served when refetching it fails

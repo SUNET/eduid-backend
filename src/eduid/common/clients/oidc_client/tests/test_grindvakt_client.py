@@ -227,6 +227,19 @@ class TestGrindvaktOidcRpClient:
             "fetch_timeout": 6.0,
         }
 
+    def test_jwks_is_fetched_with_the_discovery_http_client(self) -> None:
+        # Documents the accepted behaviour: pygrindvakt's DiscoveryCache fetches the JWKS with the client it was given
+        discovery_http = StaticHttpClient()
+        discovery_http.add_json(f"{ISSUER}/.well-known/openid-configuration", self.metadata)
+        discovery_http.add_json(self.metadata["jwks_uri"], self.key.to_public_jwks())
+        conf = OidcRpClientConfig(client_id=CLIENT_ID, client_secret="secret", issuer=ISSUER)
+        client = GrindvaktOidcRpClient(conf, [REDIRECT_URI], http=self.http, discovery_http=discovery_http)
+
+        client._get_provider().jwks.jwks()
+
+        assert len(discovery_http.requests_to(self.metadata["jwks_uri"])) == 1
+        assert self.http.requests_to(self.metadata["jwks_uri"]) == []
+
     def test_compatibility_mismatch_is_logged_once(self, caplog: pytest.LogCaptureFixture) -> None:
         self.metadata["code_challenge_methods_supported"] = ["plain"]
         self.http.add_json(f"{ISSUER}/.well-known/openid-configuration", self.metadata)
