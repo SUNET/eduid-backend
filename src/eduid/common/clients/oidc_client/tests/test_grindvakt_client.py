@@ -272,6 +272,73 @@ class TestGrindvaktOidcRpClient:
         assert len(records) == 1
         assert "S256" in records[0].getMessage()
 
+    def test_get_provider_retakes_info_when_jwks_uri_changed_between_calls(self, mocker: MockerFixture) -> None:
+        client = self._client()
+        old_info = client._discovery.info()
+        new_jwks_uri = f"{ISSUER}/new-jwks"
+        self.http.add_json(new_jwks_uri, self.key.to_public_jwks())
+        self.http.add_json(f"{ISSUER}/.well-known/openid-configuration", {**self.metadata, "jwks_uri": new_jwks_uri})
+        other = self._client()
+        new_info = other._discovery.info()
+        new_jwks = other._discovery.jwks()
+        assert old_info.jwks_uri != new_jwks_uri
+        assert new_jwks.jwks_uri == new_jwks_uri
+
+        fake = mocker.MagicMock()
+        fake.info.side_effect = [old_info, new_info]
+        fake.jwks.return_value = new_jwks
+        client._discovery = fake
+
+        provider = client._get_provider()
+
+        assert fake.info.call_count == 2
+        assert provider.info is new_info
+        assert provider.info.jwks_uri == provider.jwks.jwks_uri == new_jwks_uri
+
+    def test_compatibility_check_failure_is_logged_once_and_not_fatal(
+        self, mocker: MockerFixture, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        check = mocker.patch(
+            "eduid.common.clients.oidc_client.grindvakt_client.rp.check_rp_compatibility",
+            side_effect=GrindvaktError("boom"),
+        )
+        client = self._client()
+
+        with caplog.at_level(logging.ERROR):
+            assert client.mint_authn_request(REDIRECT_URI).state
+            assert client.mint_authn_request(REDIRECT_URI).state
+
+        assert check.call_count == 1
+        records = [r for r in caplog.records if "compatibility check failed" in r.getMessage()]
+        assert len(records) == 1
+        assert records[0].exc_info is not None
+
+    def test_discovery_backoff_error_is_not_logged_with_traceback(self, caplog: pytest.LogCaptureFixture) -> None:
+        client = self._client(discovery_failure_backoff=60)
+        del self.http.responses[f"{ISSUER}/.well-known/openid-configuration"]
+
+        with caplog.at_level(logging.ERROR):
+            with pytest.raises(OidcRpError):
+                client.mint_authn_request(REDIRECT_URI)
+            first = [r for r in caplog.records if r.exc_info]
+            caplog.clear()
+            with pytest.raises(OidcRpError, match="code=discovery_backoff"):
+                client.mint_authn_request(REDIRECT_URI)
+            second = [r for r in caplog.records if r.exc_info]
+
+        assert len(first) == 1
+        assert "OIDC discovery failed" in first[0].getMessage()
+        assert second == []
+
+    def test_stale_metadata_not_served_beyond_max_stale(self) -> None:
+        client = self._client(discovery_ttl=1, discovery_max_stale=1, discovery_failure_backoff=0)
+        client.mint_authn_request(REDIRECT_URI)
+        del self.http.responses[f"{ISSUER}/.well-known/openid-configuration"]
+        time.sleep(2.5)  # past ttl (1s) + max_stale (1s)
+
+        with pytest.raises(OidcRpError):
+            client.mint_authn_request(REDIRECT_URI)
+
     def test_finish_success_sends_code_verifier(self) -> None:
         client = self._client()
         data = client.mint_authn_request(REDIRECT_URI)
@@ -673,6 +740,26 @@ class TestGrindvaktOidcRpClient:
         with pytest.raises(ValidationError, match="distinct"):
             self._client(userinfo_trust="typed", userinfo_typ=typ)
 
+    @pytest.mark.parametrize("trust", [True, False])
+    def test_userinfo_typ_passed_to_pygrindvakt_only_with_trust(self, mocker: MockerFixture, trust: bool) -> None:
+        # userinfo_trust "typed" requires userinfo_typ in the config, so "trust without typ" is unreachable
+        spy = mocker.patch(
+            "eduid.common.clients.oidc_client.grindvakt_client.rp.fetch_userinfo", return_value={"sub": "subject"}
+        )
+        extra = {"userinfo_trust": "typed", "userinfo_typ": "userinfo+jwt"} if trust else {}
+        client = self._client(**extra)
+        result = self._finish(client, self._id_token("nonce"), "nonce")
+
+        client.userinfo(result)
+
+        kwargs = spy.call_args.kwargs
+        if trust:
+            assert kwargs["trust"] == "typed"
+            assert kwargs["typ"] == "userinfo+jwt"
+        else:
+            assert "trust" not in kwargs
+            assert "typ" not in kwargs
+
     def test_userinfo_without_access_token(self) -> None:
         client = self._client()
         result = OidcAuthnResult(claims={"sub": "subject"}, tokens={})
@@ -887,6 +974,20 @@ class TestDiscoveryConcurrency:
         self.gated.gate.set()
         first.join(timeout=10)
         assert len(self.http.requests_to(self.discovery_url)) == 1
+
+    def test_cold_start_waiter_timeout_is_not_logged_with_traceback(self, caplog: pytest.LogCaptureFixture) -> None:
+        client = self._client(discovery_timeout=1)
+        self.gated.gate.clear()
+        first = threading.Thread(target=client._get_provider)
+        first.start()
+        assert self.gated.entered.wait(timeout=10)
+
+        with caplog.at_level(logging.ERROR), pytest.raises(OidcRpError, match="code=discovery_fetch_timeout"):
+            client._get_provider()
+
+        self.gated.gate.set()
+        first.join(timeout=10)
+        assert [r for r in caplog.records if r.exc_info and r.thread == threading.main_thread().ident] == []
 
     def test_stale_metadata_served_after_fetch_timeout_while_refreshing(self) -> None:
         client = self._client(discovery_ttl=1, discovery_timeout=1)
