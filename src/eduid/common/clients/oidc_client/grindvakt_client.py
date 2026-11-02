@@ -43,6 +43,8 @@ def _wrap(operation: str, err: Exception) -> OidcRpError:
 # Raise discovery_timeout for an OP with a slow or large jwks_uri. The JwksCache TTLs are pygrindvakt's defaults.
 # Floor for the discovery document lifetime (lower when discovery_ttl is), even if the OP sends no-cache or max-age=0
 _MIN_DISCOVERY_TTL = 60
+# How many times info and jwks are read again when a refresh by another thread changes the jwks_uri between the reads
+_PROVIDER_READ_ATTEMPTS = 3
 # Error codes of pygrindvakt discovery failures that are expected and already logged by the original failure
 _QUIET_DISCOVERY_CODES = ("discovery_backoff", "discovery_fetch_timeout")
 
@@ -98,15 +100,22 @@ class GrindvaktOidcRpClient:
         # thread at a time fetches it, the others wait for that fetch for at most discovery_timeout seconds:
         #  - when that is not enough, they are given the stale document if there is one, otherwise they fail
         #  - after a failed fetch no new attempt is made for discovery_failure_backoff seconds, in that time
-        #    (and when a refresh fails) the stale document is served for up to discovery_max_stale seconds, otherwise calls fail fast
+        #    (and when a refresh fails) the stale document is served for up to discovery_max_stale seconds,
+        #    otherwise calls fail fast
         # The issuer of the document is checked on every fetch, and the JwksCache is replaced when the jwks_uri or
         # issuer changes: both are delegated to pygrindvakt and pinned by tests, a pygrindvakt bump must keep them.
         try:
-            info = self._discovery.info()
-            jwks = self._discovery.jwks()
-            if jwks.jwks_uri != info.jwks_uri:
-                # the document was refreshed between the two calls and the jwks_uri changed, take info again
+            for _ in range(_PROVIDER_READ_ATTEMPTS):
                 info = self._discovery.info()
+                jwks = self._discovery.jwks()
+                if jwks.jwks_uri == info.jwks_uri:
+                    break
+                # the document was refreshed between the two reads and the jwks_uri changed, read both again
+            else:
+                raise OidcRpError("discovery metadata changed while it was being read")
+        except OidcRpError:
+            logger.warning(f"OIDC discovery for issuer {self._issuer!r}: jwks_uri keeps changing between reads")
+            raise
         except _CAUGHT_EXCEPTIONS as err:
             if getattr(err, "code", None) not in _QUIET_DISCOVERY_CODES:
                 # discovery errors (e.g. issuer mismatch) carry no secrets, unlike token endpoint errors

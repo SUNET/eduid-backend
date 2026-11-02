@@ -292,8 +292,23 @@ class TestGrindvaktOidcRpClient:
         provider = client._get_provider()
 
         assert fake.info.call_count == 2
+        assert fake.jwks.call_count == 2
         assert provider.info is new_info
         assert provider.info.jwks_uri == provider.jwks.jwks_uri == new_jwks_uri
+
+    def test_get_provider_gives_up_when_jwks_uri_keeps_changing(self, mocker: MockerFixture) -> None:
+        client = self._client()
+        info = client._discovery.info()
+        other_jwks = rp.JwksCache(self.http, f"{ISSUER}/other-jwks", ISSUER)
+        fake = mocker.MagicMock()
+        fake.info.return_value = info
+        fake.jwks.return_value = other_jwks
+        client._discovery = fake
+
+        with pytest.raises(OidcRpError, match="changed while it was being read"):
+            client._get_provider()
+
+        assert fake.info.call_count == fake.jwks.call_count == 3
 
     def test_compatibility_check_failure_is_logged_once_and_not_fatal(
         self, mocker: MockerFixture, caplog: pytest.LogCaptureFixture
