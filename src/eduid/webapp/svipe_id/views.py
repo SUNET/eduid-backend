@@ -9,7 +9,13 @@ from eduid.common.clients.oidc_client import OidcRpError
 from eduid.common.config.base import FrontendAction
 from eduid.userdb import User
 from eduid.webapp.common.api.decorators import MarshalWith, UnmarshalWith, require_user
-from eduid.webapp.common.api.errors import EduidErrorsContext, goto_errors_response
+from eduid.webapp.common.api.errors import (
+    EduidErrorsContext,
+    RejectedCallback,
+    goto_errors_response,
+    oidc_response_rejected_terminal,
+    resolve_oidc_callback,
+)
 from eduid.webapp.common.api.helpers import check_magic_cookie
 from eduid.webapp.common.api.messages import AuthnStatusMsg, FluxData, TranslatableMsg, error_response, success_response
 from eduid.webapp.common.api.schemas.authn_status import StatusRequestSchema, StatusResponseSchema
@@ -133,28 +139,14 @@ def authn_callback(user: User) -> WerkzeugResponse:
     This is the callback endpoint for the Svipe ID OIDC flow.
     """
     current_app.logger.debug("authn_callback called")
-    current_app.logger.debug(f"request.args keys: {sorted(request.args.keys())}")
-    authn_req = None
-    oidc_state: OIDCState | None = None
-    if "state" in request.args:
-        oidc_state = OIDCState(request.args["state"])
-    if oidc_state is not None:
-        authn_req = session.svipe_id.rp.authns.get(oidc_state)
+    current_app.logger.debug(f"request.args keys: {sorted(request.args.keys())!r}")
+    resolved = resolve_oidc_callback(
+        current_app.oidc_client, request.args, session.svipe_id.rp.authns, "svipe_id.authn_callback"
+    )
+    if isinstance(resolved, WerkzeugResponse):
+        return resolved
+    authn_req = resolved.authn_req
 
-    if not oidc_state or not authn_req or authn_req.callback_handled:
-        # Perhaps an authn response received out of order - abort without destroying state
-        # (User makes two requests, A and B. Response B arrives, user is happy and proceeds with their work.
-        #  Then response A arrives late. Just silently abort, no need to mess up the users' session.)
-        current_app.logger.info(
-            f"Response {oidc_state} does not match an unanswered request in session, redirecting user to eduID Errors page"
-        )
-        if not current_app.conf.errors_url_template:
-            return make_response("Unknown authn response", 400)
-        return goto_errors_response(
-            errors_url=current_app.conf.errors_url_template,
-            ctx=EduidErrorsContext.OIDC_RESPONSE_UNSOLICITED,
-            rp=url_for("svipe_id.authn_callback", _external=True),
-        )
     # consume the request before processing, a repeated callback must not run the action again
     authn_req.callback_handled = True
     current_app.stats.count(name="authn_response")
@@ -175,11 +167,17 @@ def authn_callback(user: User) -> WerkzeugResponse:
 
     formatted_finish_url = authn_req.formatted_finish_url(app_name=current_app.conf.app_name)
 
-    if (provider_error := request.args.get("error")) is not None:
-        # The error and error_description are controlled by the provider: log truncated, never show to the user
+    if isinstance(resolved, RejectedCallback):
+        return oidc_response_rejected_terminal(
+            resolved.error, authn_req, status=SvipeIDMsg.authorization_error.value, finish_url=formatted_finish_url
+        )
+    callback = resolved.callback
+
+    if callback.is_error:
+        # error and error_description_safe are controlled by the provider: logged escaped, never shown to the user
         current_app.logger.warning(
-            f"Provider returned error {provider_error[:64]!r}, "
-            f"description {request.args.get('error_description', '')[:128]!r}"
+            f"Provider returned error {callback.error!r} (known: {callback.error_known}), "
+            f"description {callback.error_description_safe!r}"
         )
         current_app.stats.count(name="authn_error_response")
         authn_req.error = True
@@ -187,7 +185,7 @@ def authn_callback(user: User) -> WerkzeugResponse:
         return redirect(formatted_finish_url)
 
     try:
-        code = request.args.get("code")
+        code = callback.code
         if authn_req.nonce is None or code is None:
             raise OidcRpError("Missing nonce or code")
         authn_result = current_app.oidc_client.finish(

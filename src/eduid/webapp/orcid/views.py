@@ -1,6 +1,6 @@
 import json
 
-from flask import Blueprint, make_response, redirect, request, url_for
+from flask import Blueprint, redirect, request, url_for
 from werkzeug.wrappers import Response as WerkzeugResponse
 
 from eduid.common.clients.oidc_client import OidcRpError
@@ -8,7 +8,11 @@ from eduid.common.config.base import FrontendAction
 from eduid.userdb.proofing import ProofingUser
 from eduid.userdb.user import User
 from eduid.webapp.common.api.decorators import MarshalWith, UnmarshalWith, require_user
-from eduid.webapp.common.api.errors import EduidErrorsContext, goto_errors_response
+from eduid.webapp.common.api.errors import (
+    RejectedCallback,
+    oidc_response_rejected_terminal,
+    resolve_oidc_callback,
+)
 from eduid.webapp.common.api.messages import (
     AuthnStatusMsg,
     FluxData,
@@ -97,37 +101,31 @@ def connect_orcid(user: User, frontend_action: str, frontend_state: str | None =
 @orcid_views.route("/authorization-response", methods=["GET"])
 @require_user
 def authn_callback(user: User) -> WerkzeugResponse:
-    current_app.logger.debug(f"authn_callback called with arg keys: {sorted(request.args.keys())}")
+    current_app.logger.debug(f"authn_callback called with arg keys: {sorted(request.args.keys())!r}")
 
-    oidc_state: OIDCState | None = None
-    authn_req: RP_AuthnRequest | None = None
-    if "state" in request.args:
-        oidc_state = OIDCState(request.args["state"])
-    if oidc_state is not None:
-        authn_req = session.orcid.rp.authns.get(oidc_state)
-
-    if not oidc_state or not authn_req or authn_req.callback_handled:
-        current_app.logger.info(
-            f"Response {oidc_state} does not match an unanswered request in session, redirecting user to eduID Errors page"
-        )
-        if not current_app.conf.errors_url_template:
-            return make_response("Unknown authn response", 400)
-        return goto_errors_response(
-            errors_url=current_app.conf.errors_url_template,
-            ctx=EduidErrorsContext.OIDC_RESPONSE_UNSOLICITED,
-            rp=url_for("orcid.authn_callback", _external=True),
-        )
+    resolved = resolve_oidc_callback(
+        current_app.oidc_client, request.args, session.orcid.rp.authns, "orcid.authn_callback"
+    )
+    if isinstance(resolved, WerkzeugResponse):
+        return resolved
+    authn_req = resolved.authn_req
 
     # consume the request before processing, a repeated callback must not run the action again
     authn_req.callback_handled = True
     current_app.stats.count(name="authn_response")
     formatted_finish_url = authn_req.formatted_finish_url(app_name=current_app.conf.app_name)
 
-    if (provider_error := request.args.get("error")) is not None:
-        # The error and error_description are controlled by the provider: log truncated, never show to the user
+    if isinstance(resolved, RejectedCallback):
+        return oidc_response_rejected_terminal(
+            resolved.error, authn_req, status=OrcidMsg.authz_error.value, finish_url=formatted_finish_url
+        )
+    callback = resolved.callback
+
+    if callback.is_error:
+        # error and error_description_safe are controlled by the provider: logged escaped, never shown to the user
         current_app.logger.warning(
-            f"Provider returned error {provider_error[:64]!r}, "
-            f"description {request.args.get('error_description', '')[:128]!r}"
+            f"Provider returned error {callback.error!r} (known: {callback.error_known}), "
+            f"description {callback.error_description_safe!r}"
         )
         current_app.stats.count(name="authn_error_response")
         authn_req.error = True
@@ -135,7 +133,7 @@ def authn_callback(user: User) -> WerkzeugResponse:
         return redirect(formatted_finish_url)
 
     try:
-        code = request.args.get("code")
+        code = callback.code
         if authn_req.nonce is None or code is None:
             raise OidcRpError("Missing nonce or code")
         authn_result = current_app.oidc_client.finish(

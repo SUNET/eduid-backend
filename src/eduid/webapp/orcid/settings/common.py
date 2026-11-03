@@ -5,6 +5,9 @@ __author__ = "lundberg"
 
 
 class OrcidClientConfig(OidcRpClientConfig):
+    # ORCID's discovery document does not advertise authorization_response_iss_parameter_supported,
+    # so a missing iss in the authorization response is tolerated (require_iss stays False)
+    require_iss: bool = False
     # ORCID's discovery document does not advertise PKCE support
     code_challenge_method: str | None = None
 
