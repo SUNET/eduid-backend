@@ -169,7 +169,7 @@ def authn_callback(user: User) -> WerkzeugResponse:
 
     if isinstance(resolved, RejectedCallback):
         return oidc_response_rejected_terminal(
-            resolved.error, authn_req, status=SvipeIDMsg.authorization_error.value, finish_url=formatted_finish_url
+            authn_req, status=SvipeIDMsg.authorization_error.value, finish_url=formatted_finish_url
         )
     callback = resolved.callback
 

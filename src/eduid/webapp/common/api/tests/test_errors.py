@@ -1,4 +1,3 @@
-import logging
 from typing import cast
 
 import pytest
@@ -45,28 +44,19 @@ def _app(errors_url_template: str | None) -> Flask:
     return app
 
 
-def test_oidc_response_rejected_no_template(caplog: pytest.LogCaptureFixture) -> None:
+def test_oidc_response_rejected_no_template() -> None:
     app = _app(None)
-    with app.test_request_context(), caplog.at_level(logging.DEBUG):
-        res = oidc_response_rejected(OidcRpError("bad thing"), "x.cb")
+    with app.test_request_context():
+        res = oidc_response_rejected("x.cb")
     assert res.status_code == 400
     assert res.get_data(as_text=True) == "Bad authn response"
     assert app.stats.counted == ["authn_response_rejected"]  # type: ignore[attr-defined]
-    # rejection logging is done once by the OidcRpClient, the helper adds no record
-    assert [r for r in caplog.records if "bad thing" in r.getMessage()] == []
-
-
-def test_oidc_response_rejected_iss_mismatch_adds_no_record(caplog: pytest.LogCaptureFixture) -> None:
-    app = _app(None)
-    with app.test_request_context(), caplog.at_level(logging.DEBUG):
-        oidc_response_rejected(OidcRpIssMismatchError("iss mismatch"), "x.cb")
-    assert [r for r in caplog.records if "iss mismatch" in r.getMessage()] == []
 
 
 def test_oidc_response_rejected_redirect() -> None:
     app = _app("https://errors.example/?ctx={ERRORURL_CTX}&rp={ERRORURL_RP}")
     with app.test_request_context():
-        res = oidc_response_rejected(OidcRpError("bad"), "x.cb")
+        res = oidc_response_rejected("x.cb")
     assert res.status_code == 302
     assert "ctx=oidc_response_fail" in res.headers["Location"]
     assert "rp=http://localhost/cb" in res.headers["Location"]
@@ -110,13 +100,12 @@ def test_pending_authn_already_handled() -> None:
     assert authn == before
 
 
-def test_oidc_response_rejected_terminal(caplog: pytest.LogCaptureFixture) -> None:
+def test_oidc_response_rejected_terminal() -> None:
     app = _app(None)
     authn = _authn()
     authn.callback_handled = True
-    with app.test_request_context(), caplog.at_level(logging.DEBUG):
+    with app.test_request_context():
         res = oidc_response_rejected_terminal(
-            OidcRpError("bad thing"),
             authn,
             status="some.error",
             finish_url=authn.formatted_finish_url(app_name="testapp"),
@@ -127,8 +116,6 @@ def test_oidc_response_rejected_terminal(caplog: pytest.LogCaptureFixture) -> No
     assert authn.status == "some.error"
     assert authn.consumed is False
     assert app.stats.counted == ["authn_response_rejected"]  # type: ignore[attr-defined]
-    # rejection logging is done once by the OidcRpClient, the helper adds no record
-    assert [r for r in caplog.records if "bad thing" in r.getMessage()] == []
 
 
 def test_oidc_response_rejected_terminal_sets_callback_handled() -> None:
@@ -136,9 +123,7 @@ def test_oidc_response_rejected_terminal_sets_callback_handled() -> None:
     authn = _authn()
     assert authn.callback_handled is False
     with app.test_request_context():
-        oidc_response_rejected_terminal(
-            OidcRpError("bad"), authn, status="some.error", finish_url="https://fe/testapp/S"
-        )
+        oidc_response_rejected_terminal(authn, status="some.error", finish_url="https://fe/testapp/S")
     assert authn.callback_handled is True
 
 
@@ -201,7 +186,7 @@ def test_resolve_iss_mismatch_attributable_counted_once() -> None:
     assert app.stats.counted == ["authn_iss_mismatch"]  # type: ignore[attr-defined]
     # the caller counts the rejection when it terminates the authn
     with app.test_request_context():
-        oidc_response_rejected_terminal(res.error, res.authn_req, status="s", finish_url="https://f.example/")
+        oidc_response_rejected_terminal(res.authn_req, status="s", finish_url="https://f.example/")
     assert app.stats.counted == ["authn_iss_mismatch", "authn_response_rejected"]  # type: ignore[attr-defined]
 
 

@@ -42,7 +42,7 @@ def goto_errors_response(
     return redirect(fmt_url)
 
 
-def oidc_response_rejected(err: OidcRpError, callback_endpoint: str) -> WerkzeugResponse:
+def oidc_response_rejected(callback_endpoint: str) -> WerkzeugResponse:
     """
     Reject a malformed or ambiguous OIDC authorization response, or one with an iss mismatch, that can not be
     attributed to exactly one unhandled pending authn (see pending_authn_for_rejected_callback).
@@ -50,7 +50,6 @@ def oidc_response_rejected(err: OidcRpError, callback_endpoint: str) -> Werkzeug
     The pending authns are left unchanged. The rejection itself is logged once by the OidcRpClient (INFO for a
     malformed response, WARNING for an iss mismatch), not here.
 
-    :param err: The error from OidcRpClient.parse_callback
     :param callback_endpoint: Flask endpoint of the authn callback view, e.g. "orcid.authn_callback"
     :returns: 400 if no errors_url_template is configured, otherwise a redirect to the errors page
     """
@@ -84,15 +83,12 @@ def pending_authn_for_rejected_callback(
     return authn_req
 
 
-def oidc_response_rejected_terminal(
-    err: OidcRpError, authn_req: "RP_AuthnRequest", *, status: str, finish_url: str
-) -> WerkzeugResponse:
+def oidc_response_rejected_terminal(authn_req: "RP_AuthnRequest", *, status: str, finish_url: str) -> WerkzeugResponse:
     """
     Reject a malformed OIDC authorization response that belongs to a known pending authn, and terminate that authn
     as failed like a provider error response. Sets authn_req.callback_handled itself, so the authn is
     consumed whichever way the caller reached this helper.
 
-    :param err: The error from OidcRpClient.parse_callback
     :param authn_req: The pending authn the response belongs to
     :param status: Status to set on the authn, the authorization error message of the app
     :param finish_url: Formatted finish url of the authn
@@ -150,7 +146,7 @@ def resolve_oidc_callback(
         # unhandled authn. Otherwise it is rejected without touching any authn.
         rejected_authn = pending_authn_for_rejected_callback(args, authns)
         if rejected_authn is None:
-            return oidc_response_rejected(err, callback_endpoint)
+            return oidc_response_rejected(callback_endpoint)
         return RejectedCallback(authn_req=rejected_authn, error=err)
 
     # The state is only matched against the authn requests in this session, that is the state binding (CSRF check)

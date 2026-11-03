@@ -1093,19 +1093,25 @@ class TestParseCallback:
         ids=["dup_state", "dup_code_blank", "dup_error_description", "code_and_error", "neither", "jarm_response"],
     )
     def test_malformed_rejected(self, pairs: list[tuple[str, str]]) -> None:
+        client = self._client()
+
         with pytest.raises(OidcRpError) as exc_info:
-            self._client().parse_callback(pairs)
+            client.parse_callback(pairs)
 
         assert not isinstance(exc_info.value, OidcRpIssMismatchError)
 
     def test_wrong_params_type_is_not_wrapped(self) -> None:
         # A plain dict is a programming error, not a malformed response: TypeError must propagate
+        client = self._client()
+
         with pytest.raises(TypeError):
-            self._client().parse_callback({"state": "s", "code": "c"})  # type: ignore[arg-type]
+            client.parse_callback({"state": "s", "code": "c"})  # type: ignore[arg-type]
 
     def test_rejection_log_does_not_echo_values(self, caplog: pytest.LogCaptureFixture) -> None:
+        client = self._client()
+
         with caplog.at_level(logging.DEBUG), pytest.raises(OidcRpError):
-            self._client().parse_callback([("state", "very-secret-1"), ("state", "very-secret-2"), ("code", "c")])
+            client.parse_callback([("state", "very-secret-1"), ("state", "very-secret-2"), ("code", "c")])
 
         assert "very-secret" not in caplog.text
         # a shape rejection is reachable without a session: one INFO line, no WARNING
@@ -1130,18 +1136,23 @@ class TestParseCallback:
     )
     def test_iss_mismatch(self, iss: str) -> None:
         for require_iss in (True, False):
+            client = self._client(require_iss=require_iss)
             with pytest.raises(OidcRpIssMismatchError, match="iss mismatch"):
-                self._client(require_iss=require_iss).parse_callback([("state", "s"), ("code", "c"), ("iss", iss)])
+                client.parse_callback([("state", "s"), ("code", "c"), ("iss", iss)])
 
     def test_iss_mismatch_is_logged_as_warning(self, caplog: pytest.LogCaptureFixture) -> None:
+        client = self._client()
+
         with caplog.at_level(logging.DEBUG), pytest.raises(OidcRpIssMismatchError):
-            self._client().parse_callback([("state", "s"), ("code", "c"), ("iss", "https://evil.example.com/op")])
+            client.parse_callback([("state", "s"), ("code", "c"), ("iss", "https://evil.example.com/op")])
 
         assert [r.levelno for r in caplog.records if "iss mismatch" in r.getMessage()] == [logging.WARNING]
 
     def test_missing_iss_required(self) -> None:
+        client = self._client(require_iss=True)
+
         with pytest.raises(OidcRpIssMismatchError, match="iss mismatch"):
-            self._client(require_iss=True).parse_callback([("state", "s"), ("code", "c")])
+            client.parse_callback([("state", "s"), ("code", "c")])
 
     def test_missing_iss_not_required_by_default(self) -> None:
         assert OidcRpClientConfig(client_id="c", client_secret="s", issuer=ISSUER).require_iss is False
@@ -1151,8 +1162,10 @@ class TestParseCallback:
         assert cb.code == "c"
 
     def test_iss_mismatch_on_error_response(self) -> None:
+        client = self._client()
+
         with pytest.raises(OidcRpIssMismatchError, match="iss mismatch"):
-            self._client().parse_callback([("state", "s"), ("error", "access_denied"), ("iss", "https://evil.example")])
+            client.parse_callback([("state", "s"), ("error", "access_denied"), ("iss", "https://evil.example")])
 
     def test_provider_error_returned(self) -> None:
         cb = self._client().parse_callback([("state", "s"), ("error", "access_denied"), ("iss", ISSUER)])
