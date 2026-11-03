@@ -5,10 +5,18 @@ from collections.abc import Mapping, Sequence
 from typing import TYPE_CHECKING, Any, NamedTuple, cast
 
 from flask import Flask
-from pygrindvakt import GrindvaktError, rp
+from pygrindvakt import BadRequestError, GrindvaktError, rp
 from pygrindvakt import http as gv_http
 
-from eduid.common.clients.oidc_client.base import AuthnRequestData, OidcAuthnResult, OidcRpClientConfig, OidcRpError
+from eduid.common.clients.oidc_client.base import (
+    AuthnRequestData,
+    CallbackParams,
+    OidcAuthnResult,
+    OidcCallback,
+    OidcRpClientConfig,
+    OidcRpError,
+    OidcRpIssMismatchError,
+)
 
 if TYPE_CHECKING:
     # stub-only protocol type, does not exist at runtime
@@ -35,6 +43,38 @@ def _wrap(operation: str, err: Exception) -> OidcRpError:
     code = getattr(err, "code", None)
     logger.warning(f"OIDC {operation} failed: {type(err).__name__} (code={code})")
     return OidcRpError(f"{operation} failed: {type(err).__name__} (code={code})")
+
+
+def parse_authorization_callback(
+    params: CallbackParams | Sequence[tuple[str, str]], *, issuer: str, require_iss: bool
+) -> OidcCallback:
+    """
+    Shape-check an authorization response and compare its iss (RFC 9207) with issuer. Makes no provider requests.
+
+    A present iss is always compared, require_iss only decides if a missing iss is an error. This also applies to
+    error responses. Raises OidcRpError for malformed/ambiguous responses and OidcRpIssMismatchError for iss mismatches.
+    """
+    try:
+        resp = rp.parse_authorization_response(params)
+    except BadRequestError as err:
+        # the message of BadRequestError is fixed text and never echoes request values
+        logger.info(f"OIDC authorization response rejected: {err}")
+        raise OidcRpError(f"authorization response rejected: {err}") from None
+    except GrindvaktError as err:
+        raise _wrap("authorization response", err) from None
+    if not resp.matches_iss(issuer, required=require_iss):
+        logger.warning(
+            f"OIDC authorization response iss mismatch: iss is None: {resp.iss is None}, "
+            f"iss: {(resp.iss or '')[:256]!r}"
+        )
+        raise OidcRpIssMismatchError("authorization response iss mismatch")
+    return OidcCallback(
+        state=resp.state,
+        code=resp.code,
+        error=resp.error,
+        error_known=resp.error_known,
+        error_description_safe=resp.error_description_safe,
+    )
 
 
 # pygrindvakt's DiscoveryCache builds its JwksCache from the one http client it is given, so JWKS fetches use the
@@ -153,6 +193,23 @@ class GrindvaktOidcRpClient:
             return
         for mismatch in mismatches:
             logger.warning(f"OIDC provider {self._issuer!r} compatibility: {mismatch}")
+        # advisory: RFC 9207 iss support as advertised by the OP (raw metadata, not otherwise exposed)
+        raw = getattr(getattr(info, "metadata", None), "raw", None)
+        advertised = raw.get("authorization_response_iss_parameter_supported") if isinstance(raw, Mapping) else None
+        if advertised is True and not self._config.require_iss:
+            logger.warning(
+                f"OIDC provider {self._issuer!r} advertises authorization_response_iss_parameter_supported, "
+                "consider require_iss=True"
+            )
+        elif advertised is not True and self._config.require_iss:
+            logger.warning(
+                f"OIDC provider {self._issuer!r} does not advertise authorization_response_iss_parameter_supported "
+                "but require_iss is True, callbacks without iss will be rejected"
+            )
+
+    def parse_callback(self, params: CallbackParams | Sequence[tuple[str, str]]) -> OidcCallback:
+        # No _get_provider(): this needs no discovery, so a bad callback never triggers provider requests
+        return parse_authorization_callback(params, issuer=self._issuer, require_iss=self._config.require_iss)
 
     def mint_authn_request(self, redirect_uri: str, extra_params: Mapping[str, str] | None = None) -> AuthnRequestData:
         provider = self._get_provider()

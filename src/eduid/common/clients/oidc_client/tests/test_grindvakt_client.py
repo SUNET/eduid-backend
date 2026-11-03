@@ -12,15 +12,17 @@ from pygrindvakt import http as gv_http
 from pygrindvakt.keys import SigningKey
 from pygrindvakt.metadata import ProviderMetadata
 from pytest_mock import MockerFixture
+from werkzeug.datastructures import ImmutableMultiDict
 
 from eduid.common.clients.oidc_client.base import (
     ASYMMETRIC_SIGNING_ALGORITHMS,
     OidcAuthnResult,
     OidcRpClientConfig,
     OidcRpError,
+    OidcRpIssMismatchError,
 )
 from eduid.common.clients.oidc_client.grindvakt_client import GrindvaktOidcRpClient, init_oidc_rp_client
-from eduid.common.clients.oidc_client.testing import RecordedRequest, StaticHttpClient, half_hash
+from eduid.common.clients.oidc_client.testing import FakeOidcRpClient, RecordedRequest, StaticHttpClient, half_hash
 
 __author__ = "lundberg"
 
@@ -1048,3 +1050,202 @@ class TestDiscoveryConcurrency:
             "request_timeout": 6,
             "user_agent": "eduid-freja_eid",
         } in calls
+
+
+class TestParseCallback:
+    @pytest.fixture(autouse=True)
+    def setup(self) -> None:
+        self.http = StaticHttpClient()
+
+    def _client(self, **config: Any) -> GrindvaktOidcRpClient:
+        conf = OidcRpClientConfig(client_id=CLIENT_ID, client_secret="secret", issuer=ISSUER, **config)
+        return GrindvaktOidcRpClient(conf, [REDIRECT_URI], http=self.http)
+
+    def test_ok_multidict_without_http_request(self) -> None:
+        cb = self._client().parse_callback(ImmutableMultiDict({"state": "s1", "code": "c1"}))
+
+        assert cb.state == "s1"
+        assert cb.code == "c1"
+        assert not cb.is_error
+        assert self.http.requests == []
+
+    def test_ok_pairs(self) -> None:
+        cb = self._client().parse_callback([("state", "s1"), ("code", "c1")])
+
+        assert (cb.state, cb.code) == ("s1", "c1")
+
+    def test_repr_hides_state_and_code(self) -> None:
+        cb = self._client().parse_callback([("state", "secret-state"), ("code", "secret-code")])
+
+        assert "secret-state" not in repr(cb)
+        assert "secret-code" not in repr(cb)
+
+    @pytest.mark.parametrize(
+        "pairs",
+        [
+            [("state", "a"), ("state", "b"), ("code", "c")],
+            [("state", "a"), ("code", "c"), ("code", "")],
+            [("state", "a"), ("error", "access_denied"), ("error_description", "x"), ("error_description", "y")],
+            [("state", "a"), ("code", "c"), ("error", "access_denied")],
+            [("state", "a")],
+            [("state", "a"), ("response", "eyJ.e30.sig")],
+        ],
+        ids=["dup_state", "dup_code_blank", "dup_error_description", "code_and_error", "neither", "jarm_response"],
+    )
+    def test_malformed_rejected(self, pairs: list[tuple[str, str]]) -> None:
+        with pytest.raises(OidcRpError) as exc_info:
+            self._client().parse_callback(pairs)
+
+        assert not isinstance(exc_info.value, OidcRpIssMismatchError)
+
+    def test_wrong_params_type_is_not_wrapped(self) -> None:
+        # A plain dict is a programming error, not a malformed response: TypeError must propagate
+        with pytest.raises(TypeError):
+            self._client().parse_callback({"state": "s", "code": "c"})  # type: ignore[arg-type]
+
+    def test_rejection_log_does_not_echo_values(self, caplog: pytest.LogCaptureFixture) -> None:
+        with caplog.at_level(logging.DEBUG), pytest.raises(OidcRpError):
+            self._client().parse_callback([("state", "very-secret-1"), ("state", "very-secret-2"), ("code", "c")])
+
+        assert "very-secret" not in caplog.text
+        # a shape rejection is reachable without a session: one INFO line, no WARNING
+        rejected = [r for r in caplog.records if "authorization response" in r.getMessage()]
+        assert [r.levelno for r in rejected] == [logging.INFO]
+
+    def test_iss_match(self) -> None:
+        cb = self._client(require_iss=True).parse_callback([("state", "s"), ("code", "c"), ("iss", ISSUER)])
+
+        assert cb.code == "c"
+
+    @pytest.mark.parametrize(
+        "iss",
+        [
+            "https://evil.example.com/op",
+            f"{ISSUER}/",
+            "HTTPS://op.example.com/op",
+            "https://op.example.com/OP",  # case variant of the path
+            "https://OP.example.com/op",  # case variant of the host
+            "https://\u043ep.example.com/op",  # homoglyph: Cyrillic o in the host
+        ],
+    )
+    def test_iss_mismatch(self, iss: str) -> None:
+        for require_iss in (True, False):
+            with pytest.raises(OidcRpIssMismatchError, match="iss mismatch"):
+                self._client(require_iss=require_iss).parse_callback([("state", "s"), ("code", "c"), ("iss", iss)])
+
+    def test_iss_mismatch_is_logged_as_warning(self, caplog: pytest.LogCaptureFixture) -> None:
+        with caplog.at_level(logging.DEBUG), pytest.raises(OidcRpIssMismatchError):
+            self._client().parse_callback([("state", "s"), ("code", "c"), ("iss", "https://evil.example.com/op")])
+
+        assert [r.levelno for r in caplog.records if "iss mismatch" in r.getMessage()] == [logging.WARNING]
+
+    def test_missing_iss_required(self) -> None:
+        with pytest.raises(OidcRpIssMismatchError, match="iss mismatch"):
+            self._client(require_iss=True).parse_callback([("state", "s"), ("code", "c")])
+
+    def test_missing_iss_not_required_by_default(self) -> None:
+        assert OidcRpClientConfig(client_id="c", client_secret="s", issuer=ISSUER).require_iss is False
+
+        cb = self._client().parse_callback([("state", "s"), ("code", "c")])
+
+        assert cb.code == "c"
+
+    def test_iss_mismatch_on_error_response(self) -> None:
+        with pytest.raises(OidcRpIssMismatchError, match="iss mismatch"):
+            self._client().parse_callback([("state", "s"), ("error", "access_denied"), ("iss", "https://evil.example")])
+
+    def test_provider_error_returned(self) -> None:
+        cb = self._client().parse_callback([("state", "s"), ("error", "access_denied"), ("iss", ISSUER)])
+
+        assert cb.is_error
+        assert cb.error == "access_denied"
+        assert cb.error_known is True
+        assert cb.code is None
+
+    def test_unknown_error_kept(self) -> None:
+        cb = self._client().parse_callback([("state", "s"), ("error", "some_new_error")])
+
+        assert cb.error == "some_new_error"
+        assert cb.error_known is False
+
+    @pytest.mark.parametrize(
+        "description",
+        ["<script>alert(1)</script>", "a\nb\r\nc", "x\x1b[31my", "z" * 3000],
+        ids=["html", "nl", "esc", "long"],
+    )
+    def test_hostile_error_description(self, description: str, caplog: pytest.LogCaptureFixture) -> None:
+        with caplog.at_level(logging.DEBUG):
+            cb = self._client().parse_callback(
+                [("state", "s"), ("error", "access_denied"), ("error_description", description)]
+            )
+
+        safe = cb.error_description_safe
+        assert safe is not None
+        assert len(safe) <= 256
+        assert not any(ord(ch) < 32 or ord(ch) == 127 for ch in safe)
+        assert description not in caplog.text
+
+    def test_compat_advisory_both_directions(self, caplog: pytest.LogCaptureFixture) -> None:
+        metadata = ProviderMetadata(ISSUER, ISSUER)
+        for advertised, require_iss, expected in (
+            (True, False, "consider require_iss=True"),
+            (False, True, "callbacks without iss will be rejected"),
+        ):
+            raw = metadata.to_dict()
+            if advertised:
+                raw["authorization_response_iss_parameter_supported"] = True
+            http = StaticHttpClient()
+            http.add_json(f"{ISSUER}/.well-known/openid-configuration", raw)
+            http.add_json(raw["jwks_uri"], _signing_key().to_public_jwks())
+            conf = OidcRpClientConfig(
+                client_id=CLIENT_ID, client_secret="secret", issuer=ISSUER, require_iss=require_iss
+            )
+            client = GrindvaktOidcRpClient(conf, [REDIRECT_URI], http=http)
+            caplog.clear()
+            with caplog.at_level(logging.WARNING):
+                client.mint_authn_request(REDIRECT_URI)
+            assert expected in caplog.text
+
+    def test_compat_advisory_silent_when_consistent(self, caplog: pytest.LogCaptureFixture) -> None:
+        raw = ProviderMetadata(ISSUER, ISSUER).to_dict()
+        self.http.add_json(f"{ISSUER}/.well-known/openid-configuration", raw)
+        self.http.add_json(raw["jwks_uri"], _signing_key().to_public_jwks())
+        with caplog.at_level(logging.WARNING):
+            self._client().mint_authn_request(REDIRECT_URI)
+        assert "authorization_response_iss_parameter_supported" not in caplog.text
+
+    @pytest.mark.parametrize(
+        "pairs",
+        [
+            [("state", "s"), ("code", "c")],
+            [("state", "s"), ("code", "c"), ("iss", ISSUER)],
+            [("state", "s"), ("code", "c"), ("iss", "https://evil.example")],
+            [("state", "s"), ("state", "t"), ("code", "c")],
+            [("state", "s"), ("error", "weird"), ("error_description", "<b>\n")],
+        ],
+    )
+    def test_fake_and_real_parity(self, pairs: list[tuple[str, str]]) -> None:
+        real = self._client()
+        fake = FakeOidcRpClient(issuer=ISSUER)
+
+        real_error: OidcRpError | None = None
+        expected = None
+        try:
+            expected = real.parse_callback(pairs)
+        except OidcRpError as err:
+            real_error = err
+
+        if real_error is None:
+            assert fake.parse_callback(pairs) == expected
+        else:
+            with pytest.raises(OidcRpError) as exc_info:
+                fake.parse_callback(pairs)
+            assert str(exc_info.value) == str(real_error)
+
+    def test_fake_raise_on_parse_callback(self) -> None:
+        fake = FakeOidcRpClient(raise_on_parse_callback=OidcRpError("boom"))
+
+        with pytest.raises(OidcRpError, match="boom"):
+            fake.parse_callback([("state", "s"), ("code", "c")])
+
+        assert fake.parse_callback_calls == [[("state", "s"), ("code", "c")]]

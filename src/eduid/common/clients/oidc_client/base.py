@@ -1,5 +1,5 @@
-from collections.abc import Mapping
-from dataclasses import dataclass
+from collections.abc import Iterable, Mapping, Sequence
+from dataclasses import dataclass, field
 from typing import Any, Literal, Protocol, Self
 from urllib.parse import urlsplit
 
@@ -19,6 +19,10 @@ MAX_LEEWAY = rp.MAX_ID_TOKEN_LEEWAY
 
 class OidcRpError(Exception):
     """The only OIDC RP client error type visible to webapps using OidcRpClient."""
+
+
+class OidcRpIssMismatchError(OidcRpError):
+    """The authorization response iss did not match the configured issuer."""
 
 
 class OidcRpClientConfig(BaseModel):
@@ -53,6 +57,10 @@ class OidcRpClientConfig(BaseModel):
     # keeps an ID token from being accepted as a signed userinfo response.
     userinfo_trust: Literal["typed"] | None = None
     userinfo_typ: str | None = None
+    # RFC 9207: a present iss in the authorization response is always compared with the issuer. require_iss only
+    # decides if a missing iss is an error. Set True only for OPs that send iss, i.e. advertise
+    # authorization_response_iss_parameter_supported. The decision is made per OP in the app settings.
+    require_iss: bool = False
 
     @field_validator("leeway")
     @classmethod
@@ -148,6 +156,33 @@ class OidcAuthnResult:
     tokens: dict[str, Any]
 
 
+class CallbackParams(Protocol):
+    """A multi-dict of callback parameters, e.g. werkzeug's MultiDict (request.args)."""
+
+    def lists(self) -> Iterable[tuple[str, list[str]]]: ...
+
+
+@dataclass(frozen=True)
+class OidcCallback:
+    """
+    A shape-checked authorization response. Nothing in it is trusted yet: the caller must still bind state to its
+    session. State and code are kept out of repr. error_description_safe is escaped and length limited.
+
+    state must be matched against the session by exact dict lookup (as the views do), never by string comparison.
+    error_description_safe may contain HTML: log it only, never render it.
+    """
+
+    state: str | None = field(repr=False)
+    code: str | None = field(repr=False)
+    error: str | None
+    error_known: bool
+    error_description_safe: str | None
+
+    @property
+    def is_error(self) -> bool:
+        return self.error is not None
+
+
 class OidcRpClient(Protocol):
     """
     Interface for an OIDC Relying Party client, decoupling webapps from the underlying
@@ -159,6 +194,15 @@ class OidcRpClient(Protocol):
 
     def mint_authn_request(self, redirect_uri: str, extra_params: Mapping[str, str] | None = None) -> AuthnRequestData:
         """Build an authorization request. extra_params may hold claims, acr_values, prompt etc."""
+        ...
+
+    def parse_callback(self, params: CallbackParams | Sequence[tuple[str, str]]) -> OidcCallback:
+        """
+        Shape-check an authorization response and verify its iss (RFC 9207) without any provider request.
+
+        Raises OidcRpError for a malformed or ambiguous response (repeated or empty parameters, both or neither of
+        code and error, ...) and for an iss mismatch. Error responses from the provider are returned, not raised.
+        """
         ...
 
     def finish(self, code: str, *, redirect_uri: str, nonce: str, code_verifier: str | None) -> OidcAuthnResult:
