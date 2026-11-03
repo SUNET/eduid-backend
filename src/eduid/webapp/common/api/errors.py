@@ -1,4 +1,3 @@
-import logging
 from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import datetime
@@ -43,27 +42,18 @@ def goto_errors_response(
     return redirect(fmt_url)
 
 
-def _log_rejected(err: OidcRpError) -> None:
-    """
-    Log a rejected authorization response, one line per request. Shape rejections are reachable by anyone
-    without a session and are logged at INFO, an iss mismatch is a security event and is logged at WARNING.
-    """
-    level = logging.WARNING if isinstance(err, OidcRpIssMismatchError) else logging.INFO
-    current_app.logger.log(level, f"Authorization response rejected: {err}")
-
-
 def oidc_response_rejected(err: OidcRpError, callback_endpoint: str) -> WerkzeugResponse:
     """
     Reject a malformed or ambiguous OIDC authorization response, or one with an iss mismatch, that can not be
     attributed to exactly one unhandled pending authn (see pending_authn_for_rejected_callback).
 
-    The pending authns are left unchanged.
+    The pending authns are left unchanged. The rejection itself is logged once by the OidcRpClient (INFO for a
+    malformed response, WARNING for an iss mismatch), not here.
 
     :param err: The error from OidcRpClient.parse_callback
     :param callback_endpoint: Flask endpoint of the authn callback view, e.g. "orcid.authn_callback"
     :returns: 400 if no errors_url_template is configured, otherwise a redirect to the errors page
     """
-    _log_rejected(err)
     current_app.stats.count(name="authn_response_rejected")  # type: ignore[attr-defined]
     errors_url_template: str | None = current_app.conf.errors_url_template  # type: ignore[attr-defined]
     if not errors_url_template:
@@ -108,7 +98,6 @@ def oidc_response_rejected_terminal(
     :param finish_url: Formatted finish url of the authn
     :returns: A redirect to finish_url
     """
-    _log_rejected(err)
     current_app.stats.count(name="authn_response_rejected")  # type: ignore[attr-defined]
     authn_req.callback_handled = True
     authn_req.error = True

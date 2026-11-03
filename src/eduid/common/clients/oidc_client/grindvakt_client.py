@@ -53,6 +53,9 @@ def parse_authorization_callback(
 
     A present iss is always compared, require_iss only decides if a missing iss is an error. This also applies to
     error responses. Raises OidcRpError for malformed/ambiguous responses and OidcRpIssMismatchError for iss mismatches.
+
+    A rejection is logged here, and only here: INFO for a malformed response, WARNING for an iss mismatch. Callers
+    count it but must not log it again.
     """
     try:
         resp = rp.parse_authorization_response(params)

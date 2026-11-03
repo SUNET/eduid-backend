@@ -1699,6 +1699,10 @@ class FrejaEIDTests(ProofingTests[FrejaEIDApp]):
         )
         return state, fake_client
 
+    @staticmethod
+    def _rejection_records(caplog: pytest.LogCaptureFixture) -> list[logging.LogRecord]:
+        return [r for r in caplog.records if "authorization response" in r.getMessage().lower()]
+
     def _assert_rejected(self, response: TestResponse, state: str, fake_client: FakeOidcRpClient) -> None:
         assert response.status_code == HTTPStatus.FOUND
         location = urlparse(response.headers["Location"])
@@ -1726,29 +1730,38 @@ class FrejaEIDTests(ProofingTests[FrejaEIDApp]):
         assert urlparse(response.headers["Location"]).path != "/errors"
         self._assert_authz_error(state, response)
 
-    def test_callback_duplicate_state_rejected(self) -> None:
+    def test_callback_duplicate_state_rejected(self, caplog: pytest.LogCaptureFixture) -> None:
         state, fake_client = self._rejected_callback_setup()
 
-        response = self.browser.get(f"/authn-callback?state={state}&state=other&code=mock_code")
+        with caplog.at_level(logging.DEBUG):
+            response = self.browser.get(f"/authn-callback?state={state}&state=other&code=mock_code")
 
         self._assert_rejected(response, state, fake_client)
+        records = self._rejection_records(caplog)
+        assert [r.levelno for r in records] == [logging.INFO], [r.getMessage() for r in records]
 
-    def test_callback_duplicate_code_rejected(self) -> None:
+    def test_callback_duplicate_code_rejected(self, caplog: pytest.LogCaptureFixture) -> None:
         state, fake_client = self._rejected_callback_setup()
 
-        response = self.browser.get(f"/authn-callback?state={state}&code=mock_code&code=")
+        with caplog.at_level(logging.DEBUG):
+            response = self.browser.get(f"/authn-callback?state={state}&code=mock_code&code=")
 
         self._assert_terminal(response, state, fake_client)
+        records = self._rejection_records(caplog)
+        assert [r.levelno for r in records] == [logging.INFO], [r.getMessage() for r in records]
 
-    def test_callback_wrong_iss_rejected(self) -> None:
+    def test_callback_wrong_iss_rejected(self, caplog: pytest.LogCaptureFixture) -> None:
         state, fake_client = self._rejected_callback_setup()
         count_spy = self.mocker.spy(self.app.stats, "count")
 
-        response = self.browser.get(f"/authn-callback?state={state}&code=mock_code&iss=https://evil.example.com/")
+        with caplog.at_level(logging.DEBUG):
+            response = self.browser.get(f"/authn-callback?state={state}&code=mock_code&iss=https://evil.example.com/")
 
         self._assert_terminal(response, state, fake_client)
         iss_mismatch_calls = [c for c in count_spy.call_args_list if c.kwargs.get("name") == "authn_iss_mismatch"]
         assert len(iss_mismatch_calls) == 1
+        records = self._rejection_records(caplog)
+        assert [r.levelno for r in records] == [logging.WARNING], [r.getMessage() for r in records]
 
     def test_client_config_require_iss_pinned(self) -> None:
         # Changing require_iss is a deliberate decision: only do it after verifying that the provider's discovery
@@ -1766,16 +1779,19 @@ class FrejaEIDTests(ProofingTests[FrejaEIDApp]):
         assert "a\\nINJECTED" in caplog.text
 
     @pytest.mark.parametrize("state_arg", ["", "&state=unknown-state"])
-    def test_callback_wrong_iss_not_attributable(self, state_arg: str) -> None:
+    def test_callback_wrong_iss_not_attributable(self, caplog: pytest.LogCaptureFixture, state_arg: str) -> None:
         state, fake_client = self._rejected_callback_setup()
         count_spy = self.mocker.spy(self.app.stats, "count")
 
-        response = self.browser.get(f"/authn-callback?code=mock_code&iss=https://evil.example.com/{state_arg}")
+        with caplog.at_level(logging.DEBUG):
+            response = self.browser.get(f"/authn-callback?code=mock_code&iss=https://evil.example.com/{state_arg}")
 
         # generic oidc_response_fail, the pending authn is untouched
         self._assert_rejected(response, state, fake_client)
         iss_mismatch_calls = [c for c in count_spy.call_args_list if c.kwargs.get("name") == "authn_iss_mismatch"]
         assert len(iss_mismatch_calls) == 1
+        records = self._rejection_records(caplog)
+        assert [r.levelno for r in records] == [logging.WARNING], [r.getMessage() for r in records]
 
     def test_callback_missing_iss_rejected_when_required(self) -> None:
         state, fake_client = self._rejected_callback_setup()

@@ -52,16 +52,15 @@ def test_oidc_response_rejected_no_template(caplog: pytest.LogCaptureFixture) ->
     assert res.status_code == 400
     assert res.get_data(as_text=True) == "Bad authn response"
     assert app.stats.counted == ["authn_response_rejected"]  # type: ignore[attr-defined]
-    assert [(r.levelno, r.getMessage()) for r in caplog.records if "bad thing" in r.getMessage()] == [
-        (logging.INFO, "Authorization response rejected: bad thing")
-    ]
+    # rejection logging is done once by the OidcRpClient, the helper adds no record
+    assert [r for r in caplog.records if "bad thing" in r.getMessage()] == []
 
 
-def test_oidc_response_rejected_iss_mismatch_is_warning(caplog: pytest.LogCaptureFixture) -> None:
+def test_oidc_response_rejected_iss_mismatch_adds_no_record(caplog: pytest.LogCaptureFixture) -> None:
     app = _app(None)
     with app.test_request_context(), caplog.at_level(logging.DEBUG):
         oidc_response_rejected(OidcRpIssMismatchError("iss mismatch"), "x.cb")
-    assert [r.levelno for r in caplog.records if "iss mismatch" in r.getMessage()] == [logging.WARNING]
+    assert [r for r in caplog.records if "iss mismatch" in r.getMessage()] == []
 
 
 def test_oidc_response_rejected_redirect() -> None:
@@ -128,9 +127,8 @@ def test_oidc_response_rejected_terminal(caplog: pytest.LogCaptureFixture) -> No
     assert authn.status == "some.error"
     assert authn.consumed is False
     assert app.stats.counted == ["authn_response_rejected"]  # type: ignore[attr-defined]
-    assert [(r.levelno, r.getMessage()) for r in caplog.records if "bad thing" in r.getMessage()] == [
-        (logging.INFO, "Authorization response rejected: bad thing")
-    ]
+    # rejection logging is done once by the OidcRpClient, the helper adds no record
+    assert [r for r in caplog.records if "bad thing" in r.getMessage()] == []
 
 
 def test_oidc_response_rejected_terminal_sets_callback_handled() -> None:
