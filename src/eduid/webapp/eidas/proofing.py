@@ -1,6 +1,6 @@
 from typing import Any
 
-from eduid.common.config.base import ProofingConfigMixin
+from eduid.common.config.base import SwedenConnectProofingConfigMixin
 from eduid.common.models.saml_models import BaseSessionInfo
 from eduid.webapp.common.proofing.base import ProofingFunctions
 from eduid.webapp.common.proofing.swedenconnect.proofing import EidasProofingFunctions, FrejaProofingFunctions
@@ -10,9 +10,9 @@ from eduid.webapp.common.proofing.swedenconnect.session_info import ForeignEidSe
 def get_proofing_functions(
     session_info: BaseSessionInfo,
     app_name: str,
-    config: ProofingConfigMixin,
+    config: SwedenConnectProofingConfigMixin,
     backdoor: bool,
-) -> ProofingFunctions[Any]:
+) -> ProofingFunctions[Any, SwedenConnectProofingConfigMixin]:
     if isinstance(session_info, NinSessionInfo):
         return FrejaProofingFunctions(session_info=session_info, app_name=app_name, config=config, backdoor=backdoor)
     elif isinstance(session_info, ForeignEidSessionInfo):

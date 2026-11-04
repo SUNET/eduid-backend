@@ -40,7 +40,7 @@ def parse_mfa_register_args(
     args: ACSArgs,
     *,
     common_saml_checks: Callable[[ACSArgs], ACSResult | None] | None,
-    get_proofing_functions: Callable[..., ProofingFunctions[Any]],
+    get_proofing_functions: Callable[..., ProofingFunctions[Any, Any]],
     method_not_available_msg: TranslatableMsg,
     app: EduIDBaseApp,
 ) -> MfaRegisterParsed | ACSResult:
