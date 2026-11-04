@@ -12,12 +12,15 @@ from dataclasses import dataclass
 from typing import Any
 
 from eduid.userdb.credentials.external import TrustFramework
-from eduid.webapp.bankid.saml_session_info import BankIDSessionInfo
 from eduid.webapp.common.api.app import EduIDBaseApp
 from eduid.webapp.common.api.messages import TranslatableMsg
 from eduid.webapp.common.authn.acs_registry import ACSArgs, ACSResult
 from eduid.webapp.common.proofing.base import ProofingFunctions
-from eduid.webapp.eidas.saml_session_info import ForeignEidSessionInfo, NinSessionInfo
+from eduid.webapp.common.proofing.swedenconnect.session_info import (
+    BankIDSessionInfo,
+    ForeignEidSessionInfo,
+    NinSessionInfo,
+)
 from eduid.webapp.freja_eid.helpers import FrejaEIDDocumentUserInfo
 from eduid.webapp.svipe_id.helpers import SvipeDocumentUserInfo
 

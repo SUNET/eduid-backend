@@ -10,10 +10,13 @@ from typing import Any
 from eduid.common.config.base import ProofingConfigMixin
 from eduid.common.models.saml_models import BaseSessionInfo
 from eduid.webapp.bankid.proofing import BankIDProofingFunctions
-from eduid.webapp.bankid.saml_session_info import BankIDSessionInfo
 from eduid.webapp.common.proofing.base import ProofingFunctions
+from eduid.webapp.common.proofing.swedenconnect.session_info import (
+    BankIDSessionInfo,
+    ForeignEidSessionInfo,
+    NinSessionInfo,
+)
 from eduid.webapp.eidas.proofing import EidasProofingFunctions, FrejaProofingFunctions
-from eduid.webapp.eidas.saml_session_info import ForeignEidSessionInfo, NinSessionInfo
 
 __author__ = "lundberg"
 

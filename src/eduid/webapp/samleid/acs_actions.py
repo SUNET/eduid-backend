@@ -11,6 +11,11 @@ from eduid.webapp.common.proofing.shared_actions import (
     run_verify_credential,
     run_verify_identity,
 )
+from eduid.webapp.common.proofing.swedenconnect.session_info import (
+    BankIDSessionInfo,
+    ForeignEidSessionInfo,
+    NinSessionInfo,
+)
 from eduid.webapp.common.session import session
 from eduid.webapp.common.session.namespaces import (
     ExternalMfaSignupBankIDIdentity,
@@ -20,7 +25,6 @@ from eduid.webapp.common.session.namespaces import (
 from eduid.webapp.samleid.app import current_samleid_app as current_app
 from eduid.webapp.samleid.helpers import SamlEidMsg
 from eduid.webapp.samleid.proofing import get_proofing_functions
-from eduid.webapp.samleid.saml_session_info import BankIDSessionInfo, ForeignEidSessionInfo, NinSessionInfo
 
 __author__ = "lundberg"
 
