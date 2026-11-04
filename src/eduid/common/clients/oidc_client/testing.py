@@ -1,12 +1,18 @@
 import base64
 import hashlib
 import json
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
 from typing import Any
 from urllib.parse import urlencode
 
-from eduid.common.clients.oidc_client.base import AuthnRequestData, OidcAuthnResult, OidcRpError
+from eduid.common.clients.oidc_client.base import (
+    AuthnRequestData,
+    CallbackParams,
+    OidcAuthnResult,
+    OidcCallback,
+    OidcRpError,
+)
 
 __author__ = "lundberg"
 
@@ -23,6 +29,9 @@ class FakeOidcRpClient:
     """
 
     authorization_endpoint: str = "https://example.com/op/authorize"
+    issuer: str = "https://example.com/op/"
+    # The fake accepts a callback without iss by default, a present iss is still compared with issuer
+    require_iss: bool = False
     state: str = "fake-state"
     nonce: str = "fake-nonce"
     code_verifier: str | None = "fake-code-verifier"
@@ -31,10 +40,12 @@ class FakeOidcRpClient:
     userinfo_response: dict[str, Any] = field(default_factory=dict)
 
     raise_on_mint: OidcRpError | None = None
+    raise_on_parse_callback: OidcRpError | None = None
     raise_on_finish: OidcRpError | None = None
     raise_on_userinfo: OidcRpError | None = None
     raise_on_end_session: OidcRpError | None = None
 
+    parse_callback_calls: list[Any] = field(default_factory=list)
     finish_calls: list[dict[str, Any]] = field(default_factory=list)
     end_session_calls: list[str] = field(default_factory=list)
 
@@ -56,6 +67,15 @@ class FakeOidcRpClient:
             code_verifier=self.code_verifier,
             redirect_uri=redirect_uri,
         )
+
+    def parse_callback(self, params: CallbackParams | Sequence[tuple[str, str]]) -> OidcCallback:
+        self.parse_callback_calls.append(params)
+        if self.raise_on_parse_callback is not None:
+            raise self.raise_on_parse_callback
+        # Imported here so that importing this module does not pull in pygrindvakt
+        from eduid.common.clients.oidc_client.grindvakt_client import parse_authorization_callback
+
+        return parse_authorization_callback(params, issuer=self.issuer, require_iss=self.require_iss)
 
     def finish(self, code: str, *, redirect_uri: str, nonce: str, code_verifier: str | None) -> OidcAuthnResult:
         self.finish_calls.append(

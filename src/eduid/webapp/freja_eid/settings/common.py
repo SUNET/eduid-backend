@@ -15,6 +15,9 @@ __author__ = "lundberg"
 
 
 class FrejaEIDClientConfig(OidcRpClientConfig):
+    # Freja's discovery document does not advertise authorization_response_iss_parameter_supported,
+    # so a missing iss in the authorization response is tolerated (require_iss stays False)
+    require_iss: bool = False
     acr_values: list[str] = Field(default=[])
     scopes: list[str] = Field(
         default=[

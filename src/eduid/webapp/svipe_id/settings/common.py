@@ -14,6 +14,9 @@ __author__ = "lundberg"
 
 
 class SvipeClientConfig(OidcRpClientConfig):
+    # require_iss is left False until Svipe's discovery document is verified to advertise
+    # authorization_response_iss_parameter_supported, set it to True if it does
+    require_iss: bool = False
     require_at_hash: bool = True
     require_c_hash: bool = True
     acr_values: list[str] = Field(default=["face_present"])

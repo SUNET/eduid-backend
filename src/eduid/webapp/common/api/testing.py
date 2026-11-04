@@ -142,6 +142,9 @@ class EduidAPITestCase[T: EduIDBaseApp](CommonTestCase):
 
         # Save app conf so mutations by individual tests don't leak to subsequent tests.
         _saved_conf = deepcopy(self.app.conf)
+        # Some apps (OIDC RP webapps) hold a client that tests replace or mutate, restore it as well.
+        _has_oidc_client = hasattr(self.app, "oidc_client")
+        _saved_oidc_client = getattr(self.app, "oidc_client", None)
 
         _users = UserFixtures()
         _standard_test_users = {
@@ -172,6 +175,8 @@ class EduidAPITestCase[T: EduIDBaseApp](CommonTestCase):
         # Restore conf so mutations in this test don't affect the next test.
         if _saved_conf is not None:
             self.app._conf = _saved_conf
+        if _has_oidc_client:
+            self.app.oidc_client = _saved_oidc_client  # type: ignore[attr-defined]
 
         try:
             for this in vars(self.app).values():

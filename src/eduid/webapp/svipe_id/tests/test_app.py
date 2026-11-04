@@ -1,4 +1,5 @@
 import json
+import logging
 import time
 import uuid
 from collections.abc import Iterator
@@ -1060,6 +1061,256 @@ class SvipeIdTests(ProofingTests[SvipeIdApp]):
             frontend_action=FrontendAction(self.default_frontend_data["frontend_action"]),
             frontend_state=self.default_frontend_data["frontend_state"],
             method=self.default_frontend_data["method"],
+            expect_error=True,
+            expect_msg=SvipeIDMsg.authorization_error,
+        )
+
+    def _rejected_callback_setup(self) -> tuple[str, FakeOidcRpClient]:
+        state = self._cb_start()
+        fake_client = self.app.oidc_client
+        assert isinstance(fake_client, FakeOidcRpClient)
+        fake_client.issuer = "https://example.com/op/"
+        self.app.conf.errors_url_template = (
+            "http://localhost/errors?code={ERRORURL_CODE}&ctx={ERRORURL_CTX}&rp={ERRORURL_RP}"
+        )
+        return state, fake_client
+
+    @staticmethod
+    def _rejection_records(caplog: pytest.LogCaptureFixture) -> list[logging.LogRecord]:
+        return [r for r in caplog.records if "authorization response" in r.getMessage().lower()]
+
+    def _assert_rejected(self, response: TestResponse, state: str, fake_client: FakeOidcRpClient) -> None:
+        assert response.status_code == HTTPStatus.FOUND
+        location = urlparse(response.headers["Location"])
+        assert location.path == "/errors"
+        assert parse_qs(location.query)["ctx"] == ["oidc_response_fail"]
+        assert fake_client.finish_calls == []
+        # the pending authn is neither consumed nor modified
+        with self.browser.session_transaction() as sess:
+            authn_req = sess.svipe_id.rp.authns[OIDCState(state)]
+            assert not authn_req.callback_handled
+            assert not authn_req.consumed
+            assert not authn_req.error
+
+    def _assert_terminal(self, response: TestResponse, state: str, fake_client: FakeOidcRpClient) -> None:
+        assert response.status_code == HTTPStatus.FOUND
+        assert fake_client.finish_calls == []
+        # the pending authn is terminated like a provider error, and the user goes to its finish url
+        with self.browser.session_transaction() as sess:
+            authn_req = sess.svipe_id.rp.authns[OIDCState(state)]
+            assert authn_req.callback_handled is True
+            assert authn_req.error is True
+            assert authn_req.status == SvipeIDMsg.authorization_error.value
+            assert not authn_req.consumed
+            assert response.headers["Location"] == authn_req.formatted_finish_url(app_name=self.app.conf.app_name)
+        assert urlparse(response.headers["Location"]).path != "/errors"
+        self._assert_authz_error(state, response)
+
+    def test_callback_duplicate_state_rejected(self, caplog: pytest.LogCaptureFixture) -> None:
+        state, fake_client = self._rejected_callback_setup()
+
+        with caplog.at_level(logging.DEBUG):
+            response = self.browser.get(f"/authn-callback?state={state}&state=other&code=mock_code")
+
+        self._assert_rejected(response, state, fake_client)
+        records = self._rejection_records(caplog)
+        assert [r.levelno for r in records] == [logging.INFO], [r.getMessage() for r in records]
+
+    def test_callback_duplicate_code_rejected(self, caplog: pytest.LogCaptureFixture) -> None:
+        state, fake_client = self._rejected_callback_setup()
+
+        with caplog.at_level(logging.DEBUG):
+            response = self.browser.get(f"/authn-callback?state={state}&code=mock_code&code=")
+
+        self._assert_terminal(response, state, fake_client)
+        records = self._rejection_records(caplog)
+        assert [r.levelno for r in records] == [logging.INFO], [r.getMessage() for r in records]
+
+    def test_callback_wrong_iss_rejected(self, caplog: pytest.LogCaptureFixture) -> None:
+        state, fake_client = self._rejected_callback_setup()
+        count_spy = self.mocker.spy(self.app.stats, "count")
+
+        with caplog.at_level(logging.DEBUG):
+            response = self.browser.get(f"/authn-callback?state={state}&code=mock_code&iss=https://evil.example.com/")
+
+        self._assert_terminal(response, state, fake_client)
+        iss_mismatch_calls = [c for c in count_spy.call_args_list if c.kwargs.get("name") == "authn_iss_mismatch"]
+        assert len(iss_mismatch_calls) == 1
+        records = self._rejection_records(caplog)
+        assert [r.levelno for r in records] == [logging.WARNING], [r.getMessage() for r in records]
+
+    def test_client_config_require_iss_pinned(self) -> None:
+        # Changing require_iss is a deliberate decision: only do it after verifying that the provider's discovery
+        # document advertises authorization_response_iss_parameter_supported.
+        conf = SvipeClientConfig(client_id="c", client_secret="s", issuer="https://op.example.com/")
+        assert conf.require_iss is False
+
+    def test_callback_hostile_arg_name_not_log_forged(self, caplog: pytest.LogCaptureFixture) -> None:
+        state, _fake_client = self._rejected_callback_setup()
+
+        with caplog.at_level(logging.DEBUG):
+            self.browser.get(f"/authn-callback?state={state}&code=mock_code&a%0AINJECTED=1")
+
+        assert not [r for r in caplog.records if "\nINJECTED" in r.getMessage()]
+        assert "a\\nINJECTED" in caplog.text
+
+    @pytest.mark.parametrize("state_arg", ["", "&state=unknown-state"])
+    def test_callback_wrong_iss_not_attributable(self, caplog: pytest.LogCaptureFixture, state_arg: str) -> None:
+        state, fake_client = self._rejected_callback_setup()
+        count_spy = self.mocker.spy(self.app.stats, "count")
+
+        with caplog.at_level(logging.DEBUG):
+            response = self.browser.get(f"/authn-callback?code=mock_code&iss=https://evil.example.com/{state_arg}")
+
+        # generic oidc_response_fail, the pending authn is untouched
+        self._assert_rejected(response, state, fake_client)
+        iss_mismatch_calls = [c for c in count_spy.call_args_list if c.kwargs.get("name") == "authn_iss_mismatch"]
+        assert len(iss_mismatch_calls) == 1
+        records = self._rejection_records(caplog)
+        assert [r.levelno for r in records] == [logging.WARNING], [r.getMessage() for r in records]
+
+    def test_callback_missing_iss_rejected_when_required(self) -> None:
+        state, fake_client = self._rejected_callback_setup()
+        fake_client.require_iss = True
+
+        response = self.browser.get(f"/authn-callback?state={state}&code=mock_code")
+
+        self._assert_terminal(response, state, fake_client)
+
+    def test_callback_state_only_terminal(self) -> None:
+        state, fake_client = self._rejected_callback_setup()
+
+        response = self.browser.get(f"/authn-callback?state={state}")
+
+        self._assert_terminal(response, state, fake_client)
+
+    def test_callback_same_state_twice_rejected(self) -> None:
+        state, fake_client = self._rejected_callback_setup()
+
+        response = self.browser.get(f"/authn-callback?state={state}&state={state}&code=mock_code")
+
+        self._assert_rejected(response, state, fake_client)
+
+    def test_callback_empty_state_rejected(self) -> None:
+        state, fake_client = self._rejected_callback_setup()
+
+        response = self.browser.get("/authn-callback?state=&code=mock_code")
+
+        self._assert_rejected(response, state, fake_client)
+
+    def test_callback_unknown_state_malformed_rejected(self) -> None:
+        state, fake_client = self._rejected_callback_setup()
+
+        response = self.browser.get("/authn-callback?state=unknown&code=mock_code&code=")
+
+        # rejected as malformed, not treated as unsolicited
+        self._assert_rejected(response, state, fake_client)
+
+    def test_callback_malformed_after_handled_rejected(self) -> None:
+        state, fake_client = self._rejected_callback_setup()
+        first = self.browser.get(f"/authn-callback?state={state}&error=access_denied")
+        self._assert_authz_error(state, first)
+
+        response = self.browser.get(f"/authn-callback?state={state}&code=mock_code&code=")
+
+        assert response.status_code == HTTPStatus.FOUND
+        location = urlparse(response.headers["Location"])
+        assert location.path == "/errors"
+        assert parse_qs(location.query)["ctx"] == ["oidc_response_fail"]
+        assert fake_client.finish_calls == []
+        self._assert_authz_error(state, first)
+        with self.browser.session_transaction() as sess:
+            assert sess.svipe_id.rp.authns[OIDCState(state)].status == SvipeIDMsg.authorization_error.value
+
+    def test_callback_rejected_without_errors_url(self) -> None:
+        state, fake_client = self._rejected_callback_setup()
+        self.app.conf.errors_url_template = None
+
+        response = self.browser.get(f"/authn-callback?state={state}&state=other&code=mock_code")
+
+        assert response.status_code == HTTPStatus.BAD_REQUEST
+        assert fake_client.finish_calls == []
+
+    def test_callback_matching_iss_accepted(self) -> None:
+        state, fake_client = self._rejected_callback_setup()
+        fake_client.require_iss = True
+        fake_client.claims = {"sub": "sub"}
+        fake_client.tokens = {"access_token": "access_token"}  # incomplete, so the flow ends in an error status
+
+        response = self.browser.get(f"/authn-callback?state={state}&code=mock_code&iss=https://example.com/op/")
+
+        # parse_callback accepted the response, the code was exchanged
+        assert len(fake_client.finish_calls) == 1
+        assert response.status_code == HTTPStatus.FOUND
+        assert urlparse(response.headers["Location"]).path != "/errors"
+
+    def test_callback_hostile_provider_error_description(self, caplog: pytest.LogCaptureFixture) -> None:
+        state, fake_client = self._rejected_callback_setup()
+        hostile = "EVIL<script>%0Afake log line%1B[31m"
+
+        with caplog.at_level(logging.DEBUG):
+            response = self.browser.get(
+                f"/authn-callback?state={state}&error=access_denied&error_description={hostile}"
+            )
+
+        assert response.status_code == HTTPStatus.FOUND
+        assert "EVIL" not in response.headers["Location"]
+        assert fake_client.finish_calls == []
+        assert "EVIL" in caplog.text  # logged, but escaped
+        assert "\nfake log line" not in caplog.text
+        assert "\x1b" not in caplog.text
+        self._assert_authz_error(state, response)
+
+    def test_callback_unknown_provider_error(self) -> None:
+        state, fake_client = self._rejected_callback_setup()
+
+        response = self.browser.get(f"/authn-callback?state={state}&error=some_new_error")
+
+        assert response.status_code == HTTPStatus.FOUND
+        assert fake_client.finish_calls == []
+        self._assert_authz_error(state, response)
+
+    def test_callback_wrong_iss_rejected_with_real_oidc_client(self) -> None:
+        state = self._cb_start_real()
+        http = self.static_http
+        requests_before = len(http.requests)
+        self.app.conf.errors_url_template = (
+            "http://localhost/errors?code={ERRORURL_CODE}&ctx={ERRORURL_CTX}&rp={ERRORURL_RP}"
+        )
+
+        response = self.browser.get(f"/authn-callback?state={state}&code=mock_code&iss=https://evil.example.com/")
+
+        assert response.status_code == HTTPStatus.FOUND
+        assert urlparse(response.headers["Location"]).path != "/errors"
+        assert len(http.requests) == requests_before  # no token request
+        with self.browser.session_transaction() as sess:
+            authn_req = sess.svipe_id.rp.authns[OIDCState(state)]
+            assert authn_req.callback_handled is True
+            assert response.headers["Location"] == authn_req.formatted_finish_url(app_name=self.app.conf.app_name)
+
+    def _cb_start(self) -> str:
+        eppn = self.unverified_test_user.eppn
+        with self.app.test_request_context():
+            endpoint = url_for("svipe_id.verify_identity")
+        start_response = self._start_auth(endpoint=endpoint, data=self.default_frontend_data, eppn=eppn)
+        return self._get_state_and_nonce(self.get_response_payload(start_response)["location"])[0]
+
+    def _cb_start_real(self) -> str:
+        eppn = self.unverified_test_user.eppn
+        with self.app.test_request_context():
+            endpoint = url_for("svipe_id.verify_identity")
+        start_response = self._start_auth_with_real_oidc_client(
+            endpoint=endpoint, data=self.default_frontend_data, eppn=eppn
+        )
+        return self._get_state_and_nonce(self.get_response_payload(start_response)["location"])[0]
+
+    def _assert_authz_error(self, state: str, response: TestResponse) -> None:
+        data = self.default_frontend_data
+        self._verify_status(
+            finish_url=response.headers.get("Location", ""),
+            frontend_action=FrontendAction(data["frontend_action"]),
+            frontend_state=data["frontend_state"],
+            method=data["method"],
             expect_error=True,
             expect_msg=SvipeIDMsg.authorization_error,
         )
