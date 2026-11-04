@@ -11,6 +11,7 @@ from eduid.webapp.common.proofing.shared_actions import (
     run_verify_credential,
     run_verify_identity,
 )
+from eduid.webapp.common.proofing.swedenconnect.proofing import get_swedenconnect_proofing_functions
 from eduid.webapp.common.proofing.swedenconnect.session_info import (
     BankIDSessionInfo,
     ForeignEidSessionInfo,
@@ -24,7 +25,6 @@ from eduid.webapp.common.session.namespaces import (
 )
 from eduid.webapp.samleid.app import current_samleid_app as current_app
 from eduid.webapp.samleid.helpers import SamlEidMsg
-from eduid.webapp.samleid.proofing import get_proofing_functions
 
 __author__ = "lundberg"
 
@@ -63,7 +63,7 @@ def samleid_verify_identity_action(user: User, args: ACSArgs) -> ACSResult:
         user,
         args,
         common_saml_checks=common_saml_checks,
-        get_proofing_functions=get_proofing_functions,
+        get_proofing_functions=get_swedenconnect_proofing_functions,
         method_not_available_msg=SamlEidMsg.method_not_available,
         identity_verify_success_msg=SamlEidMsg.identity_verify_success,
         app=current_app,
@@ -93,7 +93,7 @@ def samleid_verify_credential_action(user: User, args: ACSArgs) -> ACSResult:
         user,
         args,
         common_saml_checks=common_saml_checks,
-        get_proofing_functions=get_proofing_functions,
+        get_proofing_functions=get_swedenconnect_proofing_functions,
         method_not_available_msg=SamlEidMsg.method_not_available,
         credential_not_found_msg=SamlEidMsg.credential_not_found,
         identity_not_matching_msg=SamlEidMsg.identity_not_matching,
@@ -122,7 +122,7 @@ def samleid_mfa_authenticate_action(args: ACSArgs) -> ACSResult:
     result = run_mfa_authenticate(
         args,
         common_saml_checks=common_saml_checks,
-        get_proofing_functions=get_proofing_functions,
+        get_proofing_functions=get_swedenconnect_proofing_functions,
         get_user=lambda: current_app.central_userdb.get_user_by_eppn(session.mfa_action.eppn),
         method_not_available_msg=SamlEidMsg.method_not_available,
         identity_not_matching_msg=SamlEidMsg.identity_not_matching,
@@ -139,7 +139,7 @@ def samleid_mfa_register_action(args: ACSArgs) -> ACSResult:
     parsed = parse_mfa_register_args(
         args,
         common_saml_checks=common_saml_checks,
-        get_proofing_functions=get_proofing_functions,
+        get_proofing_functions=get_swedenconnect_proofing_functions,
         method_not_available_msg=SamlEidMsg.method_not_available,
         app=current_app,
     )
