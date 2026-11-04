@@ -13,7 +13,6 @@ from eduid.userdb.proofing import NinProofingElement, ProofingUser
 from eduid.userdb.proofing.state import NinProofingState
 from eduid.webapp.bankid.app import current_bankid_app as current_app
 from eduid.webapp.bankid.helpers import BankIDMsg
-from eduid.webapp.bankid.saml_session_info import BankIDSessionInfo
 from eduid.webapp.common.api.helpers import verify_nin_for_user
 from eduid.webapp.common.api.messages import CommonMsg
 from eduid.webapp.common.proofing.base import (
@@ -26,6 +25,7 @@ from eduid.webapp.common.proofing.base import (
     VerifyUserResult,
 )
 from eduid.webapp.common.proofing.methods import ProofingMethod
+from eduid.webapp.common.proofing.swedenconnect.session_info import BankIDSessionInfo
 
 
 @dataclass

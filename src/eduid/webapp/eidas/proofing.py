@@ -33,9 +33,9 @@ from eduid.webapp.common.proofing.base import (
     VerifyUserResult,
 )
 from eduid.webapp.common.proofing.methods import ProofingMethod
+from eduid.webapp.common.proofing.swedenconnect.session_info import ForeignEidSessionInfo, NinSessionInfo
 from eduid.webapp.eidas.app import current_eidas_app as current_app
 from eduid.webapp.eidas.helpers import EidasMsg
-from eduid.webapp.eidas.saml_session_info import ForeignEidSessionInfo, NinSessionInfo
 
 
 @dataclass

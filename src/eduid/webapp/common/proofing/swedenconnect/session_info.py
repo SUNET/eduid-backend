@@ -1,4 +1,11 @@
-import logging
+"""
+Session info models for Sweden Connect assertions.
+
+The NIN (Freja eID/SwedenConnect), foreign eID and BankID models are intentionally separate: the required fields
+(dateOfBirth vs authContextParams) are what tell the assertion types apart, and consumers dispatch on the class to
+decide which proofing functions and trust framework to use. Do not merge them.
+"""
+
 from datetime import date
 
 from pydantic import Field
@@ -9,10 +16,7 @@ from eduid.userdb.identity import PridPersistence
 __author__ = "lundberg"
 
 
-logger = logging.getLogger(__name__)
-
-
-class NinAttributes(SAMLAttributes):
+class SwedenConnectNinAttributes(SAMLAttributes):
     nin: str = Field(alias="personalIdentityNumber")
     given_name: str = Field(alias="givenName")
     surname: str = Field(alias="sn")
@@ -46,8 +50,21 @@ class ForeignEidAttributes(SAMLAttributes):
 
 
 class NinSessionInfo(BaseSessionInfo):
-    attributes: NinAttributes = Field(alias="ava")
+    attributes: SwedenConnectNinAttributes = Field(alias="ava")
 
 
 class ForeignEidSessionInfo(BaseSessionInfo):
     attributes: ForeignEidAttributes = Field(alias="ava")
+
+
+class BankIDNinAttributes(SAMLAttributes):
+    nin: str = Field(alias="personalIdentityNumber")
+    given_name: str = Field(alias="givenName")
+    surname: str = Field(alias="sn")
+    display_name: str | None = Field(default=None, alias="displayName")
+    auth_context_params: str = Field(alias="authContextParams")
+    transaction_id: str = Field(alias="transactionIdentifier")
+
+
+class BankIDSessionInfo(BaseSessionInfo):
+    attributes: BankIDNinAttributes = Field(alias="ava")
