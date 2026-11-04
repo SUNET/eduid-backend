@@ -1,9 +1,8 @@
-from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import UTC, datetime
-from typing import Any, Protocol, cast
+from typing import Any
 
-from eduid.common.config.base import ProofingConfigMixin
+from eduid.common.config.base import SwedenConnectProofingConfigMixin
 from eduid.common.misc.timeutil import utc_now
 from eduid.common.models.saml_models import BaseSessionInfo
 from eduid.common.rpc.exceptions import AmTaskFailed
@@ -45,21 +44,10 @@ from eduid.webapp.common.proofing.swedenconnect.session_info import (
 )
 
 
-class _HasLoaMap(Protocol):
-    @property
-    def authn_context_loa_map(self) -> Mapping[str, str]: ...
-
-
-def _loa_map() -> Mapping[str, str]:
-    # TODO: replaced by SwedenConnectProofingConfigMixin (refactor step 4), which makes this statically checked
-    conf = current_proofing_app.conf
-    if not hasattr(conf, "authn_context_loa_map"):
-        raise RuntimeError(f"{type(conf).__name__} lacks authn_context_loa_map")
-    return cast(_HasLoaMap, conf).authn_context_loa_map
-
-
 @dataclass
-class SwedenConnectProofingFunctions[BaseSessionInfoVar: BaseSessionInfo](ProofingFunctions[BaseSessionInfoVar]):
+class SwedenConnectProofingFunctions[BaseSessionInfoVar: BaseSessionInfo](
+    ProofingFunctions[BaseSessionInfoVar, SwedenConnectProofingConfigMixin]
+):
     def get_mfa_data(self) -> GenericResult[MfaData]:
         return GenericResult(
             result=MfaData(
@@ -72,7 +60,7 @@ class SwedenConnectProofingFunctions[BaseSessionInfoVar: BaseSessionInfo](Proofi
     def get_current_loa(self) -> GenericResult[str | None]:
         if self.session_info.authn_context is None:
             return GenericResult(result=None)
-        current_loa = _loa_map().get(self.session_info.authn_context)
+        current_loa = self.config.authn_context_loa_map.get(self.session_info.authn_context)
         return GenericResult(result=current_loa)
 
     def get_identity(self, user: User) -> IdentityElement | None:
@@ -467,9 +455,9 @@ class UnsupportedMethod(Exception):
 def get_swedenconnect_proofing_functions(
     session_info: BaseSessionInfo,
     app_name: str,
-    config: ProofingConfigMixin,
+    config: SwedenConnectProofingConfigMixin,
     backdoor: bool,
-) -> ProofingFunctions[Any]:
+) -> ProofingFunctions[Any, SwedenConnectProofingConfigMixin]:
     """
     Get the appropriate proofing functions based on session info type.
 
@@ -484,6 +472,10 @@ def get_swedenconnect_proofing_functions(
     :returns: The appropriate proofing functions instance
     :raises UnsupportedMethod: If the session info type is not supported
     """
+    # The callers pass app.conf through untyped callables, so the type checkers cannot verify the config class
+    if not isinstance(config, SwedenConnectProofingConfigMixin):
+        raise TypeError(f"{type(config).__name__} lacks the Sweden Connect LoA config mixin")
+
     # Exact class match: the session info classes must stay siblings, a subclass must never be routed to another
     # eID's proofing functions.
     if type(session_info) is NinSessionInfo:

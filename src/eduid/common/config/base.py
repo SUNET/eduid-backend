@@ -10,7 +10,7 @@ from enum import Enum, StrEnum, unique
 from importlib.resources import files
 from pathlib import Path
 from re import Pattern
-from typing import IO, Annotated, Any
+from typing import IO, Annotated, Any, Self
 
 from fido2.webauthn import (
     AttestationConveyancePreference,
@@ -18,7 +18,7 @@ from fido2.webauthn import (
     UserVerificationRequirement,
 )
 from fido_mds.models.fido_mds import AuthenticatorStatus
-from pydantic import AfterValidator, BaseModel, ConfigDict, Field, ValidationInfo, field_validator
+from pydantic import AfterValidator, BaseModel, ConfigDict, Field, ValidationInfo, field_validator, model_validator
 
 from eduid.userdb.credentials import CredentialProofingMethod
 from eduid.userdb.credentials.external import TrustFramework
@@ -510,6 +510,58 @@ class ProofingConfigMixin(FrontendActionMixin):
     security_key_foreign_eid_proofing_version: str = Field(default="2022v1")
     security_key_freja_eid_proofing_version: str = Field(default="2024v1")
     security_key_foreign_freja_eid_proofing_version: str = Field(default="2025v1")
+
+
+class SwedenConnectProofingConfigMixin(ProofingConfigMixin):
+    """Config for proofing apps using Sweden Connect (SAML) identity providers."""
+
+    # Federation config - union of eidas and bankid LOA mappings
+    loa_authn_context_map: dict[str, str] = Field(
+        default={
+            # Sweden Connect LOA levels
+            "loa1": "http://id.elegnamnden.se/loa/1.0/loa1",
+            "loa2": "http://id.elegnamnden.se/loa/1.0/loa2",
+            "loa3": "http://id.elegnamnden.se/loa/1.0/loa3",
+            "uncertified-loa3": "http://id.swedenconnect.se/loa/1.0/uncertified-loa3",
+            "loa4": "http://id.elegnamnden.se/loa/1.0/loa4",
+            # eIDAS LOA levels
+            "eidas-low": "http://id.elegnamnden.se/loa/1.0/eidas-low",
+            "eidas-sub": "http://id.elegnamnden.se/loa/1.0/eidas-sub",
+            "eidas-high": "http://id.elegnamnden.se/loa/1.0/eidas-high",
+            "eidas-nf-low": "http://id.elegnamnden.se/loa/1.0/eidas-nf-low",
+            "eidas-nf-sub": "http://id.elegnamnden.se/loa/1.0/eidas-nf-sub",
+            "eidas-nf-high": "http://id.elegnamnden.se/loa/1.0/eidas-nf-high",
+        }
+    )
+
+    @model_validator(mode="after")
+    def _check_loa_map_is_injective(self) -> Self:
+        # authn_context_loa_map inverts this map, so two LoA names sharing one URI would silently relabel assurance
+        values = list(self.loa_authn_context_map.values())
+        if len(set(values)) != len(values):
+            duplicates = sorted({v for v in values if values.count(v) > 1})
+            raise ValueError(f"loa_authn_context_map maps LoA names to duplicate URIs: {duplicates}")
+        return self
+
+    @property
+    def authn_context_loa_map(self) -> dict[str, str]:
+        # not cached: the config fields are writable, a cached inverse would go stale after reassignment
+        return {value: key for key, value in self.loa_authn_context_map.items()}
+
+    # Staging nin map (for eidas compatibility)
+    nin_attribute_map: Mapping[str, str] = Field(
+        default={
+            #  'test nin': 'user nin'
+        }
+    )
+
+    # magic cookie IdP is used for integration tests when magic cookie is set
+    magic_cookie_idp: str | None = None
+    magic_cookie_bankid_idp: str | None = None
+    magic_cookie_foreign_id_idp: str | None = None
+
+    # Feature flags
+    allow_eidas_credential_verification: bool = False
 
 
 class EduIDBaseAppConfig(RootConfig, LoggingConfigMixin, StatsConfigMixin, RedisConfigMixin):

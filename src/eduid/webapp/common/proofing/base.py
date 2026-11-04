@@ -67,10 +67,10 @@ class MfaData:
 
 
 @dataclass()
-class ProofingFunctions[SessionInfoVar](ABC):
+class ProofingFunctions[SessionInfoVar, ConfigVar: ProofingConfigMixin = ProofingConfigMixin](ABC):
     session_info: SessionInfoVar
     app_name: str
-    config: ProofingConfigMixin
+    config: ConfigVar
     backdoor: bool
 
     def get_current_loa(self) -> GenericResult[str | None]:

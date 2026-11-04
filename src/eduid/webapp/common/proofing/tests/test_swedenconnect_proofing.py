@@ -5,13 +5,13 @@ The proofing functions are constructed directly with real session info objects, 
 user objects. Only the ambient ``current_proofing_app`` is replaced.
 """
 
-from collections.abc import Mapping
 from datetime import UTC, datetime
 
 import pytest
+from pydantic import ValidationError
 from pytest_mock import MockerFixture, MockType
 
-from eduid.common.config.base import ProofingConfigMixin
+from eduid.common.config.base import ProofingConfigMixin, SwedenConnectProofingConfigMixin
 from eduid.userdb.credentials import Credential
 from eduid.userdb.credentials.base import CredentialProofingMethod
 from eduid.userdb.credentials.fido import Webauthn
@@ -34,16 +34,10 @@ from eduid.webapp.common.proofing.swedenconnect.session_info import (
 
 _ISSUER = "https://idp.example.com"
 _LOA_PREFIX = "http://id.elegnamnden.se/loa/1.0/"
-_LOA_MAP: Mapping[str, str] = {
-    f"{_LOA_PREFIX}loa3": "loa3",
-    f"{_LOA_PREFIX}eidas-nf-sub": "eidas-nf-sub",
-    f"{_LOA_PREFIX}eidas-nf-high": "eidas-nf-high",
-    f"{_LOA_PREFIX}eidas-nf-low": "eidas-nf-low",
-}
 _PROOFING_MODULE = "eduid.webapp.common.proofing.swedenconnect.proofing"
 
 
-class _Config(ProofingConfigMixin):
+class _Config(SwedenConnectProofingConfigMixin):
     pass
 
 
@@ -51,7 +45,6 @@ class _Config(ProofingConfigMixin):
 def proofing_app(mocker: MockerFixture) -> MockType:
     app: MockType = mocker.MagicMock()
     mocker.patch(f"{_PROOFING_MODULE}.current_proofing_app", new=app)
-    app.conf.authn_context_loa_map = _LOA_MAP
     app.conf.app_name = "testing"
     return app
 
@@ -302,3 +295,40 @@ def test_authn_context_mismatch_message_values_are_stable() -> None:
     # these strings are the frontend contract, shared with the eidas and bankid webapps
     assert SwedenConnectProofingMsg.authn_context_mismatch_eidas.value == "eidas.authn_context_mismatch"
     assert SwedenConnectProofingMsg.authn_context_mismatch_bankid.value == "bankid.authn_context_mismatch"
+
+
+def test_loa_map_with_duplicate_uris_is_rejected() -> None:
+    uri = f"{_LOA_PREFIX}loa3"
+    with pytest.raises(ValidationError, match="duplicate URIs"):
+        _Config(loa_authn_context_map={"loa3": uri, "eidas-nf-high": uri})
+
+
+def test_default_loa_map_is_injective() -> None:
+    uris = list(_Config().loa_authn_context_map.values())
+    assert len(set(uris)) == len(uris)
+
+
+@pytest.mark.parametrize("loa", ["loa3", "eidas-nf-sub", "eidas-nf-high", "eidas-nf-low"])
+def test_current_loa_resolves_labels(loa: str) -> None:
+    assert _eidas(_authn_info(loa)).get_current_loa().result == loa
+
+
+def test_current_loa_is_none_for_unknown_authn_context() -> None:
+    assert _eidas([("http://example.com/unknown", [], "2026-01-01T12:00:00Z")]).get_current_loa().result is None
+
+
+def test_dispatcher_rejects_config_without_loa_mixin() -> None:
+    config = ProofingConfigMixin()
+    with pytest.raises(TypeError, match="lacks the Sweden Connect LoA config mixin"):
+        get_swedenconnect_proofing_functions(
+            session_info=_freja().session_info,
+            app_name="testing",
+            config=config,  # type: ignore[arg-type]
+            backdoor=False,
+        )
+
+
+def test_authn_context_loa_map_follows_config_assignment() -> None:
+    config = _Config()
+    config.loa_authn_context_map = {"custom": "http://example.com/custom"}
+    assert config.authn_context_loa_map == {"http://example.com/custom": "custom"}
