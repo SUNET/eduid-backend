@@ -197,16 +197,13 @@ def test_eidas_mark_credential_accepts_substantial_and_high(loa: str) -> None:
     assert cred.is_verified is True
 
 
-def test_eidas_mark_credential_accepts_nf_low_today() -> None:
-    # KNOWN INCONSISTENCY (flagged for review): mark_credential_as_verified currently accepts "eidas-nf-low", but the
-    # outer gate (ProofingConfigMixin.foreign_required_loa, default eidas-nf-sub/eidas-nf-high) excludes nf-low, so
-    # nf-low never reaches this point in the normal flow. This test documents what the code does today; if the
-    # guard is tightened to match the outer gate, flip this assertion.
+def test_eidas_mark_credential_rejects_nf_low() -> None:
+    # the credential guard follows the configured foreign_required_loa (default eidas-nf-sub/eidas-nf-high)
     cred = _credential()
     result = _eidas(_authn_info("eidas-nf-low")).mark_credential_as_verified(cred, "eidas-nf-low")
-    assert result.error is None
-    assert cred.is_verified is True
-    assert "eidas-nf-low" not in _Config().foreign_required_loa
+    assert result.error == SwedenConnectProofingMsg.authn_context_mismatch_eidas
+    assert result.credential is None
+    assert cred.is_verified is False
 
 
 # --- eIDAS _can_replace_identity ---

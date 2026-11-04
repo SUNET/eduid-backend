@@ -353,7 +353,7 @@ class EidasProofingFunctions(SwedenConnectProofingFunctions[ForeignEidSessionInf
         return False
 
     def mark_credential_as_verified(self, credential: Credential, loa: str | None) -> VerifyCredentialResult:
-        if loa not in ["eidas-nf-low", "eidas-nf-sub", "eidas-nf-high"]:
+        if loa not in self.config.foreign_required_loa:
             return VerifyCredentialResult(error=SwedenConnectProofingMsg.authn_context_mismatch_eidas)
 
         credential.is_verified = True
