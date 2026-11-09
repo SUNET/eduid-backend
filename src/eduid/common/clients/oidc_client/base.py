@@ -1,5 +1,6 @@
 from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Any, Literal, Protocol, Self
 from urllib.parse import urlsplit
 
@@ -30,7 +31,30 @@ class OidcRpClientConfig(BaseModel):
     model_config = ConfigDict(hide_input_in_errors=True)
 
     client_id: str
-    client_secret: str
+    client_secret: str | None = None
+    # How the client authenticates at the token endpoint. client_secret_basic is what pygrindvakt has always used
+    # for a client with a client_secret. private_key_jwt (Sweden Connect) needs client_signing_key_path.
+    token_endpoint_auth_method: Literal["client_secret_basic", "client_secret_post", "private_key_jwt"] = (
+        "client_secret_basic"
+    )
+    # NOTE: the client signing and request object fields below are inherited by the freja_eid, svipe_id and orcid
+    # client configs. Changing them in a running app's config changes how its client authenticates, and the public
+    # key of the RP must already be registered at the OP.
+    # PEM file (absolute path) with the private key used for private_key_jwt client assertions.
+    # Preferred setup is two distinct keys: this one for client assertions and client_request_object_key_path for
+    # request objects. If use_request_object is set without a request object key, this key signs the request objects
+    # too. Reusing it is only safe if the OP enforces aud (the token endpoint), sub = client_id and a single-use jti
+    # on client assertions (RFC 7521 sections 4.2-4.3), because the request object is visible in the authorization URL.
+    client_signing_key_path: Path | str | None = None
+    client_signing_key_kid: str | None = None
+    # JWS alg for the signing key, None means the alg is inferred from the key type
+    client_signing_alg: str | None = None
+    # Separate PEM key for signed request objects, falls back to client_signing_key_* when not set
+    client_request_object_key_path: Path | str | None = None
+    client_request_object_key_kid: str | None = None
+    client_request_object_signing_alg: str | None = None
+    # Send the authorization request as a signed request object (RFC 9101), needs a request object or client signing key
+    use_request_object: bool = False
     # The exact issuer string of the provider, used as is for discovery and issuer matching
     issuer: str
     code_challenge_method: str | None = Field(default="S256")
@@ -106,6 +130,61 @@ class OidcRpClientConfig(BaseModel):
         if not host:  # pygrindvakt accepts e.g. "https:///oidc"
             raise ValueError("issuer must contain a host")
         return v
+
+    @field_validator("client_signing_alg", "client_request_object_signing_alg")
+    @classmethod
+    def _validate_client_signing_alg(cls, v: str | None) -> str | None:
+        if v is not None and v not in ASYMMETRIC_SIGNING_ALGORITHMS:
+            raise ValueError(
+                f"unsupported client signing algorithm, expected one of {sorted(ASYMMETRIC_SIGNING_ALGORITHMS)}"
+            )
+        return v
+
+    @field_validator(
+        "client_signing_key_path",
+        "client_signing_key_kid",
+        "client_request_object_key_path",
+        "client_request_object_key_kid",
+    )
+    @classmethod
+    def _validate_not_empty(cls, v: Path | str | None) -> Path | str | None:
+        if v is not None and not str(v):
+            raise ValueError("must not be empty, use null to leave it unset")
+        return v
+
+    @field_validator("client_signing_key_path", "client_request_object_key_path")
+    @classmethod
+    def _validate_key_path_absolute(cls, v: Path | str | None) -> Path | str | None:
+        if v is not None and str(v) and not Path(v).is_absolute():
+            raise ValueError("must be an absolute path")
+        return v
+
+    @model_validator(mode="after")
+    def _validate_client_authentication(self) -> Self:
+        if self.token_endpoint_auth_method == "private_key_jwt":
+            if not self.client_signing_key_path:
+                raise ValueError("token_endpoint_auth_method private_key_jwt requires client_signing_key_path")
+            if self.client_secret:
+                raise ValueError("client_secret must not be set with token_endpoint_auth_method private_key_jwt")
+        elif not self.client_secret:
+            raise ValueError(f"token_endpoint_auth_method {self.token_endpoint_auth_method} requires client_secret")
+        if self.use_request_object and not (self.client_request_object_key_path or self.client_signing_key_path):
+            raise ValueError("use_request_object requires client_request_object_key_path or client_signing_key_path")
+        if not self.client_request_object_key_path and (
+            self.client_request_object_key_kid or self.client_request_object_signing_alg
+        ):
+            raise ValueError(
+                "client_request_object_key_kid and client_request_object_signing_alg "
+                "require client_request_object_key_path"
+            )
+        if self.client_request_object_key_path and self.client_signing_key_path:
+            if Path(self.client_request_object_key_path) == Path(self.client_signing_key_path):
+                raise ValueError("client_request_object_key_path must differ from client_signing_key_path")
+            if self.client_request_object_key_kid and self.client_request_object_key_kid == self.client_signing_key_kid:
+                raise ValueError("client_request_object_key_kid must differ from client_signing_key_kid")
+        if not self.client_signing_key_path and (self.client_signing_key_kid or self.client_signing_alg):
+            raise ValueError("client_signing_key_kid and client_signing_alg require client_signing_key_path")
+        return self
 
     @model_validator(mode="after")
     def _validate_acr(self) -> Self:
