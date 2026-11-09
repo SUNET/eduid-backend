@@ -1,10 +1,16 @@
+import base64
+import json
 import logging
+import os
 import threading
 import time
+from pathlib import Path
 from typing import Any
 from urllib.parse import parse_qs, urlparse
 
 import pytest
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.asymmetric import ec
 from flask import Flask
 from pydantic import ValidationError
 from pygrindvakt import GrindvaktError, jwt, keys, rp
@@ -1262,3 +1268,353 @@ class TestParseCallback:
             fake.parse_callback([("state", "s"), ("code", "c")])
 
         assert fake.parse_callback_calls == [[("state", "s"), ("code", "c")]]
+
+
+def _write_ec_pem(path: Path) -> Path:
+    key = ec.generate_private_key(ec.SECP256R1())
+    path.write_bytes(
+        key.private_bytes(serialization.Encoding.PEM, serialization.PrivateFormat.PKCS8, serialization.NoEncryption())
+    )
+    return path
+
+
+def _unverified_claims(token: str) -> dict[str, Any]:
+    payload = token.split(".")[1]
+    claims: dict[str, Any] = json.loads(base64.urlsafe_b64decode(payload + "=" * (-len(payload) % 4)))
+    return claims
+
+
+class TestClientConfigValidation:
+    def test_defaults_unchanged(self) -> None:
+        conf = OidcRpClientConfig(client_id=CLIENT_ID, client_secret="secret", issuer=ISSUER)
+
+        assert conf.token_endpoint_auth_method == "client_secret_basic"
+        assert conf.client_signing_key_path is None
+        assert conf.client_signing_key_kid is None
+        assert conf.client_signing_alg is None
+        assert conf.use_request_object is False
+
+    @pytest.mark.parametrize(
+        "kwargs",
+        [
+            {"client_secret": "secret"},
+            {"client_secret": "secret", "token_endpoint_auth_method": "client_secret_post"},
+            {"client_secret": "secret", "client_signing_key_path": "/k.pem", "use_request_object": True},
+            {"client_secret": "secret", "client_request_object_key_path": "/ro.pem", "use_request_object": True},
+            {
+                "client_secret": "secret",
+                "client_signing_key_path": "/k.pem",
+                "client_signing_key_kid": "a",
+                "client_request_object_key_path": "/ro.pem",
+                "client_request_object_key_kid": "b",
+                "client_request_object_signing_alg": "ES256",
+                "use_request_object": True,
+            },
+            {"token_endpoint_auth_method": "private_key_jwt", "client_signing_key_path": "/k.pem"},
+            {
+                "token_endpoint_auth_method": "private_key_jwt",
+                "client_signing_key_path": "/k.pem",
+                "client_signing_alg": "ES256",
+                "client_signing_key_kid": "k1",
+                "use_request_object": True,
+            },
+        ],
+    )
+    def test_valid_combinations(self, kwargs: dict[str, Any]) -> None:
+        OidcRpClientConfig(client_id=CLIENT_ID, issuer=ISSUER, **kwargs)
+
+    @pytest.mark.parametrize(
+        "kwargs",
+        [
+            {},
+            {"token_endpoint_auth_method": "client_secret_post"},
+            {"token_endpoint_auth_method": "private_key_jwt"},
+            {
+                "token_endpoint_auth_method": "private_key_jwt",
+                "client_secret": "secret",
+                "client_signing_key_path": "/k",
+            },
+            {"client_secret": "secret", "use_request_object": True},
+            {"client_secret": "secret", "client_signing_alg": "ES256"},
+            {"client_secret": "secret", "client_signing_key_kid": "k1"},
+            {"client_secret": "secret", "client_signing_key_path": "/k", "client_signing_alg": "HS256"},
+            {"client_secret": "secret", "token_endpoint_auth_method": "none"},
+            {"client_secret": "secret", "client_signing_key_path": "/k", "client_signing_key_kid": ""},
+            {"client_secret": "secret", "client_signing_key_path": ""},
+            {"client_secret": "secret", "client_signing_key_path": "relative/key.pem"},
+            {"client_secret": "secret", "client_request_object_key_path": "key.pem"},
+            {"client_secret": "secret", "client_request_object_key_path": "/k", "client_request_object_key_kid": ""},
+            {"client_secret": "secret", "client_request_object_key_path": ""},
+            {"client_secret": "secret", "client_request_object_key_kid": "k1"},
+            {"client_secret": "secret", "client_request_object_signing_alg": "ES256"},
+            {
+                "client_secret": "secret",
+                "client_request_object_key_path": "/k",
+                "client_request_object_signing_alg": "none",
+            },
+            {
+                "client_secret": "secret",
+                "client_signing_key_path": "/k",
+                "client_request_object_key_path": "/k",
+            },
+            {
+                "client_secret": "secret",
+                "client_signing_key_path": "/k1",
+                "client_signing_key_kid": "same",
+                "client_request_object_key_path": "/k2",
+                "client_request_object_key_kid": "same",
+            },
+        ],
+    )
+    def test_invalid_combinations(self, kwargs: dict[str, Any]) -> None:
+        with pytest.raises(ValidationError):
+            OidcRpClientConfig(client_id=CLIENT_ID, issuer=ISSUER, **kwargs)
+
+
+class TestSwedenConnectClient:
+    @pytest.fixture(autouse=True)
+    def setup(self, tmp_path: Path) -> None:
+        self.op_key = _signing_key()
+        self.pem = _write_ec_pem(tmp_path / "client.pem")
+        self.metadata = ProviderMetadata(ISSUER, ISSUER).to_dict()
+        self.http = StaticHttpClient()
+        self.http.add_json(f"{ISSUER}/.well-known/openid-configuration", self.metadata)
+        self.http.add_json(self.metadata["jwks_uri"], self.op_key.to_public_jwks())
+
+    def _client(self, **config: Any) -> GrindvaktOidcRpClient:
+        conf = OidcRpClientConfig(
+            client_id=CLIENT_ID,
+            issuer=ISSUER,
+            token_endpoint_auth_method="private_key_jwt",
+            client_signing_key_path=self.pem,
+            client_signing_key_kid="client-key",
+            **config,
+        )
+        return GrindvaktOidcRpClient(conf, [REDIRECT_URI], http=self.http)
+
+    def test_private_key_jwt_token_request(self) -> None:
+        client = self._client()
+        data = client.mint_authn_request(REDIRECT_URI)
+        now = int(time.time())
+        id_token = jwt.sign(
+            self.op_key,
+            {"iss": ISSUER, "sub": "subject", "aud": CLIENT_ID, "exp": now + 300, "iat": now, "nonce": data.nonce},
+        )
+        self.http.add_json(
+            self.metadata["token_endpoint"],
+            {"access_token": "at", "token_type": "Bearer", "id_token": id_token, "expires_in": 3600},
+        )
+
+        client.finish("code", redirect_uri=REDIRECT_URI, nonce=data.nonce, code_verifier=data.code_verifier)
+
+        (token_request,) = self.http.requests_to(self.metadata["token_endpoint"])
+        assert token_request.form is not None
+        form = dict(token_request.form)
+        assert "client_secret" not in form
+        assert form["client_assertion_type"] == "urn:ietf:params:oauth:client-assertion-type:jwt-bearer"
+        claims = _unverified_claims(form["client_assertion"])
+        assert claims["iss"] == CLIENT_ID
+        assert claims["sub"] == CLIENT_ID
+        assert claims["aud"] == self.metadata["token_endpoint"]
+        assert claims["exp"] > int(time.time())
+        assert claims["jti"]
+        assert "authorization" not in {name.lower() for name, _ in token_request.headers or []}
+
+    def _pub_jwk(self, path: Path, kid: str) -> dict[str, Any]:
+        return keys.signing_key_from_pem(path.read_bytes(), None, kid).public_jwk()
+
+    def _verify(self, token: str, jwk: dict[str, Any]) -> dict[str, Any]:
+        return jwt.verify_with_jwk(jwk, token, jwt.Validation().with_allowed_algorithms(["ES256"]))
+
+    def test_separate_request_object_key(self, tmp_path: Path) -> None:
+        ro_pem = _write_ec_pem(tmp_path / "ro.pem")
+        client = self._client(
+            use_request_object=True, client_request_object_key_path=ro_pem, client_request_object_key_kid="ro-key"
+        )
+        data = client.mint_authn_request(REDIRECT_URI)
+        self.http.add_json(self.metadata["token_endpoint"], {"error": "invalid_grant"}, status=400)
+        with pytest.raises(OidcRpError):
+            client.finish("code", redirect_uri=REDIRECT_URI, nonce=data.nonce, code_verifier=None)
+
+        request_object = parse_qs(urlparse(data.url).query)["request"][0]
+        (token_request,) = self.http.requests_to(self.metadata["token_endpoint"])
+        assertion = dict(token_request.form or [])["client_assertion"]
+        assert jwt.peek_header(request_object)["kid"] == "ro-key"
+        assert jwt.peek_header(assertion)["kid"] == "client-key"
+        ro_jwk = self._pub_jwk(ro_pem, "ro-key")
+        assertion_jwk = self._pub_jwk(self.pem, "client-key")
+        assert self._verify(request_object, ro_jwk)["state"] == data.state
+        assert self._verify(assertion, assertion_jwk)["sub"] == CLIENT_ID
+        with pytest.raises(GrindvaktError):
+            self._verify(request_object, assertion_jwk)
+        with pytest.raises(GrindvaktError):
+            self._verify(assertion, ro_jwk)
+
+    def test_request_object_falls_back_to_client_key(self) -> None:
+        data = self._client(use_request_object=True).mint_authn_request(REDIRECT_URI)
+
+        request_object = parse_qs(urlparse(data.url).query)["request"][0]
+        assert jwt.peek_header(request_object)["kid"] == "client-key"
+        assert self._verify(request_object, self._pub_jwk(self.pem, "client-key"))["nonce"] == data.nonce
+
+    def test_missing_request_object_key_file_is_config_error(self, tmp_path: Path) -> None:
+        with pytest.raises(ValueError, match=r"client_request_object_key_path .* is not a regular file"):
+            self._client(use_request_object=True, client_request_object_key_path=tmp_path / "nope.pem")
+
+    def test_new_assertion_for_every_token_request(self) -> None:
+        client = self._client()
+        for _ in range(2):
+            self.http.add_json(self.metadata["token_endpoint"], {"error": "invalid_grant"}, status=400)
+            with pytest.raises(OidcRpError):
+                client.finish("code", redirect_uri=REDIRECT_URI, nonce="n", code_verifier=None)
+
+        requests = self.http.requests_to(self.metadata["token_endpoint"])
+        jtis = {_unverified_claims(dict(r.form or [])["client_assertion"])["jti"] for r in requests}
+        assert len(jtis) == 2
+
+    def test_request_object_in_authorization_url(self) -> None:
+        client = self._client(use_request_object=True)
+
+        data = client.mint_authn_request(REDIRECT_URI)
+
+        query = parse_qs(urlparse(data.url).query)
+        claims = _unverified_claims(query["request"][0])
+        assert claims["client_id"] == CLIENT_ID
+        assert claims["iss"] == CLIENT_ID
+        assert claims["aud"] in (ISSUER, self.metadata["authorization_endpoint"])
+        assert claims["redirect_uri"] == REDIRECT_URI
+        assert claims["state"] == data.state
+        assert claims["nonce"] == data.nonce
+        assert claims["code_challenge_method"] == "S256"
+        assert claims["code_challenge"]
+
+    def test_no_request_object_by_default(self) -> None:
+        data = self._client().mint_authn_request(REDIRECT_URI)
+
+        assert "request" not in parse_qs(urlparse(data.url).query)
+
+    def test_client_secret_flow_unchanged(self) -> None:
+        conf = OidcRpClientConfig(client_id=CLIENT_ID, client_secret="secret", issuer=ISSUER)
+        client = GrindvaktOidcRpClient(conf, [REDIRECT_URI], http=self.http)
+        self.http.add_json(self.metadata["token_endpoint"], {"error": "invalid_grant"}, status=400)
+
+        with pytest.raises(OidcRpError):
+            client.finish("code", redirect_uri=REDIRECT_URI, nonce="n", code_verifier=None)
+
+        (token_request,) = self.http.requests_to(self.metadata["token_endpoint"])
+        assert "client_assertion" not in dict(token_request.form or [])
+        assert "authorization" in {name.lower() for name, _ in token_request.headers or []}
+
+    def test_client_secret_post_token_request(self) -> None:
+        conf = OidcRpClientConfig(
+            client_id=CLIENT_ID,
+            client_secret="secret",
+            issuer=ISSUER,
+            token_endpoint_auth_method="client_secret_post",
+        )
+        client = GrindvaktOidcRpClient(conf, [REDIRECT_URI], http=self.http)
+        self.http.add_json(self.metadata["token_endpoint"], {"error": "invalid_grant"}, status=400)
+
+        with pytest.raises(OidcRpError):
+            client.finish("code", redirect_uri=REDIRECT_URI, nonce="n", code_verifier=None)
+
+        (token_request,) = self.http.requests_to(self.metadata["token_endpoint"])
+        form = dict(token_request.form or [])
+        assert form["client_id"] == CLIENT_ID
+        assert form["client_secret"] == "secret"
+        assert "client_assertion" not in form
+        assert "authorization" not in {name.lower() for name, _ in token_request.headers or []}
+
+    def test_request_object_with_client_secret_basic(self) -> None:
+        conf = OidcRpClientConfig(
+            client_id=CLIENT_ID,
+            client_secret="secret",
+            issuer=ISSUER,
+            client_signing_key_path=self.pem,
+            use_request_object=True,
+        )
+        client = GrindvaktOidcRpClient(conf, [REDIRECT_URI], http=self.http)
+
+        data = client.mint_authn_request(REDIRECT_URI)
+        self.http.add_json(self.metadata["token_endpoint"], {"error": "invalid_grant"}, status=400)
+        with pytest.raises(OidcRpError):
+            client.finish("code", redirect_uri=REDIRECT_URI, nonce=data.nonce, code_verifier=None)
+
+        assert "request" in parse_qs(urlparse(data.url).query)
+        (token_request,) = self.http.requests_to(self.metadata["token_endpoint"])
+        assert "client_assertion" not in dict(token_request.form or [])
+        assert "authorization" in {name.lower() for name, _ in token_request.headers or []}
+
+    def test_signing_alg_inconsistent_with_key_is_config_error(self) -> None:
+        with pytest.raises(ValueError, match="invalid client_signing_key") as excinfo:
+            self._client(client_signing_alg="RS256")
+        assert "PRIVATE KEY" not in str(excinfo.value)
+
+    def test_empty_client_secret_with_private_key_jwt_is_config_error(self) -> None:
+        with pytest.raises(ValueError, match=r"invalid OIDC client configuration: ConfigError: .*client_secret"):
+            self._client(client_secret="")
+
+    def test_client_secret_never_in_config_error(self) -> None:
+        conf = OidcRpClientConfig.model_construct(
+            client_id=CLIENT_ID,
+            issuer=ISSUER,
+            client_secret="TOP-SECRET-VALUE",
+            token_endpoint_auth_method="private_key_jwt",
+            client_signing_key_path=self.pem,
+            client_signing_key_kid=None,
+            client_signing_alg=None,
+            client_request_object_key_path=None,
+            client_request_object_key_kid=None,
+            client_request_object_signing_alg=None,
+            use_request_object=False,
+            scopes=["openid"],
+            code_challenge_method="S256",
+        )
+
+        with pytest.raises(ValueError, match="invalid OIDC client configuration") as excinfo:
+            GrindvaktOidcRpClient(conf, [REDIRECT_URI], http=self.http)
+        assert "TOP-SECRET-VALUE" not in str(excinfo.value)
+
+    def test_key_load_is_logged_without_private_material(self, caplog: pytest.LogCaptureFixture) -> None:
+        with caplog.at_level(logging.INFO, logger="eduid.common.clients.oidc_client.grindvakt_client"):
+            self._client()
+
+        (message,) = [r.getMessage() for r in caplog.records if "Loaded client_signing_key" in r.getMessage()]
+        assert str(self.pem) in message
+        assert "kid=client-key" in message
+        assert "alg=ES256" in message
+        assert "thumbprint=" in message
+        assert "PRIVATE" not in message
+
+    def test_key_path_directory_rejected(self, tmp_path: Path) -> None:
+        self.pem = tmp_path
+        with pytest.raises(ValueError, match="not a regular file"):
+            self._client()
+
+    def test_key_path_fifo_rejected_without_blocking(self, tmp_path: Path) -> None:
+        if not hasattr(os, "mkfifo"):
+            pytest.skip("mkfifo not supported")
+        self.pem = tmp_path / "fifo.pem"
+        os.mkfifo(self.pem)
+        with pytest.raises(ValueError, match="not a regular file"):
+            self._client()
+
+    def test_oversized_key_file_rejected(self, tmp_path: Path) -> None:
+        self.pem = tmp_path / "big.pem"
+        self.pem.write_bytes(b"x" * (64 * 1024 + 1))
+        with pytest.raises(ValueError, match="larger than"):
+            self._client()
+
+    def test_missing_key_file_is_config_error_at_init(self, tmp_path: Path) -> None:
+        self.pem = tmp_path / "missing.pem"
+
+        with pytest.raises(ValueError, match=r"client_signing_key_path .* is not a regular file"):
+            self._client()
+
+    def test_invalid_key_file_is_config_error_at_init(self, tmp_path: Path) -> None:
+        self.pem = tmp_path / "bad.pem"
+        self.pem.write_text("-----BEGIN PRIVATE KEY-----\nSECRETGARBAGE\n-----END PRIVATE KEY-----\n")
+
+        with pytest.raises(ValueError, match="invalid client_signing_key") as excinfo:
+            self._client()
+        assert "SECRETGARBAGE" not in str(excinfo.value)
