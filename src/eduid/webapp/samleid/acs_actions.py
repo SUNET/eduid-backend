@@ -1,30 +1,17 @@
-from datetime import UTC, datetime
-
 from eduid.userdb import User
 from eduid.webapp.common.api.decorators import require_user
 from eduid.webapp.common.authn.acs_enums import SamlEidAcsAction
 from eduid.webapp.common.authn.acs_registry import ACSArgs, ACSResult, acs_action
-from eduid.webapp.common.proofing.mfa_signup import parse_mfa_register_args
-from eduid.webapp.common.proofing.shared_actions import (
-    run_common_saml_checks,
-    run_mfa_authenticate,
-    run_verify_credential,
-    run_verify_identity,
-)
-from eduid.webapp.common.proofing.swedenconnect.proofing import get_swedenconnect_proofing_functions
-from eduid.webapp.common.proofing.swedenconnect.session_info import (
-    BankIDSessionInfo,
-    ForeignEidSessionInfo,
-    NinSessionInfo,
+from eduid.webapp.common.proofing.shared_actions import run_common_saml_checks
+from eduid.webapp.common.proofing.swedenconnect.flow import (
+    sc_mfa_authenticate,
+    sc_mfa_register,
+    sc_verify_credential,
+    sc_verify_identity,
 )
 from eduid.webapp.common.session import session
-from eduid.webapp.common.session.namespaces import (
-    ExternalMfaSignupBankIDIdentity,
-    ExternalMfaSignupEIDASIdentity,
-    ExternalMfaSignupSwedenConnectIdentity,
-)
 from eduid.webapp.samleid.app import current_samleid_app as current_app
-from eduid.webapp.samleid.helpers import SamlEidMsg
+from eduid.webapp.samleid.helpers import SAMLEID_MSGS, SamlEidMsg
 
 __author__ = "lundberg"
 
@@ -59,15 +46,7 @@ def samleid_verify_identity_action(user: User, args: ACSArgs) -> ACSResult:
 
     :returns: ACS action result
     """
-    return run_verify_identity(
-        user,
-        args,
-        common_saml_checks=common_saml_checks,
-        get_proofing_functions=get_swedenconnect_proofing_functions,
-        method_not_available_msg=SamlEidMsg.method_not_available,
-        identity_verify_success_msg=SamlEidMsg.identity_verify_success,
-        app=current_app,
-    )
+    return sc_verify_identity(user, args, SAMLEID_MSGS, common_checks=common_saml_checks, app=current_app)
 
 
 @acs_action(SamlEidAcsAction.verify_credential)
@@ -89,17 +68,7 @@ def samleid_verify_credential_action(user: User, args: ACSArgs) -> ACSResult:
 
     :returns: ACS action result
     """
-    return run_verify_credential(
-        user,
-        args,
-        common_saml_checks=common_saml_checks,
-        get_proofing_functions=get_swedenconnect_proofing_functions,
-        method_not_available_msg=SamlEidMsg.method_not_available,
-        credential_not_found_msg=SamlEidMsg.credential_not_found,
-        identity_not_matching_msg=SamlEidMsg.identity_not_matching,
-        credential_verify_success_msg=SamlEidMsg.credential_verify_success,
-        app=current_app,
-    )
+    return sc_verify_credential(user, args, SAMLEID_MSGS, common_checks=common_saml_checks, app=current_app)
 
 
 @acs_action(SamlEidAcsAction.mfa_authenticate)
@@ -119,79 +88,17 @@ def samleid_mfa_authenticate_action(args: ACSArgs) -> ACSResult:
 
     :returns: ACS action result
     """
-    result = run_mfa_authenticate(
+    return sc_mfa_authenticate(
         args,
-        common_saml_checks=common_saml_checks,
-        get_proofing_functions=get_swedenconnect_proofing_functions,
+        SAMLEID_MSGS,
+        common_checks=common_saml_checks,
         get_user=lambda: current_app.central_userdb.get_user_by_eppn(session.mfa_action.eppn),
-        method_not_available_msg=SamlEidMsg.method_not_available,
-        identity_not_matching_msg=SamlEidMsg.identity_not_matching,
-        mfa_authn_success_msg=SamlEidMsg.mfa_authn_success,
         app=current_app,
     )
-    return result
 
 
 @acs_action(SamlEidAcsAction.mfa_register)
 def samleid_mfa_register_action(args: ACSArgs) -> ACSResult:
     """Parse a signup-flow external MFA assertion and persist identity + LoA
     on the SP_AuthnRequest. No user yet, no DB write, no proofing log."""
-    parsed = parse_mfa_register_args(
-        args,
-        common_saml_checks=common_saml_checks,
-        get_proofing_functions=get_swedenconnect_proofing_functions,
-        method_not_available_msg=SamlEidMsg.method_not_available,
-        app=current_app,
-    )
-    if isinstance(parsed, ACSResult):
-        return parsed
-
-    match parsed.session_info:
-        case NinSessionInfo():
-            if parsed.session_info.authn_context is None:
-                current_app.logger.debug(f"{parsed.session_info=}")
-                raise RuntimeError("No authn context found for NinSessionInfo")
-            args.authn_req.external_mfa_signup_identity = ExternalMfaSignupSwedenConnectIdentity(
-                authn_context_class=parsed.session_info.authn_context,
-                framework=parsed.framework,
-                given_name=parsed.session_info.attributes.given_name,
-                issuer=parsed.session_info.issuer,
-                loa=parsed.loa,
-                nin=parsed.session_info.attributes.nin,
-                surname=parsed.session_info.attributes.surname,
-            )
-        case ForeignEidSessionInfo():
-            if parsed.session_info.authn_context is None:
-                current_app.logger.debug(f"{parsed.session_info=}")
-                raise RuntimeError("No authn context found for ForeignEidSessionInfo")
-            args.authn_req.external_mfa_signup_identity = ExternalMfaSignupEIDASIdentity(
-                authn_context_class=parsed.session_info.authn_context,
-                country_code=parsed.session_info.attributes.country_code,
-                date_of_birth=datetime.combine(
-                    parsed.session_info.attributes.date_of_birth, datetime.min.time(), tzinfo=UTC
-                ),
-                eidas_person_identifier=parsed.session_info.attributes.eidas_person_identifier,
-                prid=parsed.session_info.attributes.prid,
-                prid_persistence=parsed.session_info.attributes.prid_persistence,
-                framework=parsed.framework,
-                given_name=parsed.session_info.attributes.given_name,
-                issuer=parsed.session_info.issuer,
-                loa=parsed.loa,
-                surname=parsed.session_info.attributes.surname,
-                transaction_id=parsed.session_info.attributes.transaction_identifier,
-            )
-        case BankIDSessionInfo():
-            args.authn_req.external_mfa_signup_identity = ExternalMfaSignupBankIDIdentity(
-                given_name=parsed.session_info.attributes.given_name,
-                surname=parsed.session_info.attributes.surname,
-                nin=parsed.session_info.attributes.nin,
-                transaction_id=parsed.session_info.attributes.transaction_id,
-                framework=parsed.framework,
-                loa=parsed.loa,
-                issuer=parsed.session_info.issuer,
-            )
-        case _:
-            current_app.logger.error(f"Unsupported session info type: {type(parsed.session_info)}")
-            return ACSResult(message=SamlEidMsg.method_not_available)
-
-    return ACSResult(success=True, message=SamlEidMsg.mfa_authn_success)
+    return sc_mfa_register(args, SAMLEID_MSGS, common_checks=common_saml_checks, app=current_app)
