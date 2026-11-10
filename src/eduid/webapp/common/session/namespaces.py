@@ -11,7 +11,7 @@ from uuid import UUID
 
 from fido2.webauthn import AuthenticatorAttachment
 from fido_mds.models.webauthn import AttestationFormat
-from pydantic import BaseModel, Field, ValidationError, field_serializer
+from pydantic import BaseModel, Field, ValidationError, field_serializer, model_validator
 
 from eduid.common.config.base import FrontendAction
 from eduid.common.misc.timeutil import utc_now
@@ -192,7 +192,7 @@ class Credentials(SessionNSBase):
 
 class SignupExternalMfa(BaseModel):
     completed: bool = False
-    app_name: str  # "eidas" | "bankid" | "freja_eid" | "samleid"
+    app_name: str  # "eidas" | "bankid" | "freja_eid" | "samleid" | "oidceid"
     method: str  # "eidas" | "freja" | "bankid" | "freja_eid"
     authn_id: AuthnRequestRef | OIDCState
     loa: str
@@ -308,6 +308,21 @@ class ExternalMfaSignupIdentity(BaseModel, ABC):
     framework: TrustFramework
     loa: str
 
+    @model_validator(mode="after")
+    def _check_framework_matches_class(self) -> Self:
+        """
+        Downstream code branches on the class (identity/proofing log) and on `framework`
+        (credential type/proofing method), so the two must agree.
+        """
+        try:
+            expected = EXTERNAL_MFA_SIGNUP_IDENTITY_FRAMEWORK[type(self)]
+        except KeyError:
+            # a new subclass must be added to the mapping - fail loudly rather than skip the check
+            raise TypeError(f"{type(self).__name__} has no expected TrustFramework registered") from None
+        if self.framework != expected:
+            raise ValueError(f"{type(self).__name__} requires framework {expected}, got {self.framework}")
+        return self
+
 
 class ExternalMfaSignupBankIDIdentity(ExternalMfaSignupIdentity):
     nin: str
@@ -351,6 +366,16 @@ class ExternalMfaSignupFrejaEIDForeignIdentity(ExternalMfaSignupIdentity):
 class ExternalMfaSignupSwedenConnectIdentity(ExternalMfaSignupIdentity):
     nin: str
     authn_context_class: str
+
+
+# The TrustFramework each identity class must be created with. Svipe has no identity class.
+EXTERNAL_MFA_SIGNUP_IDENTITY_FRAMEWORK: Mapping[type[ExternalMfaSignupIdentity], TrustFramework] = {
+    ExternalMfaSignupBankIDIdentity: TrustFramework.BANKID,
+    ExternalMfaSignupEIDASIdentity: TrustFramework.EIDAS,
+    ExternalMfaSignupFrejaEIDIdentity: TrustFramework.FREJA,
+    ExternalMfaSignupFrejaEIDForeignIdentity: TrustFramework.FREJA,
+    ExternalMfaSignupSwedenConnectIdentity: TrustFramework.SWECONN,
+}
 
 
 class BaseAuthnRequest(BaseModel, ABC):
@@ -440,8 +465,17 @@ class AuthnNamespace(SessionNSBase):
 
 class RP_AuthnRequest(BaseAuthnRequest):
     authn_id: OIDCState
+    # Pydantic picks the class from this union by the fields present, which relies on the members being
+    # disjoint: SwedenConnect needs nin + authn_context_class, BankID has nin but no authn_context_class,
+    # eIDAS has authn_context_class but no nin. The class/framework validator on
+    # ExternalMfaSignupIdentity is the backstop. TrustFramework.SVIPE has no identity class.
     external_mfa_signup_identity: (
-        ExternalMfaSignupFrejaEIDIdentity | ExternalMfaSignupFrejaEIDForeignIdentity | None
+        ExternalMfaSignupFrejaEIDIdentity
+        | ExternalMfaSignupFrejaEIDForeignIdentity
+        | ExternalMfaSignupBankIDIdentity
+        | ExternalMfaSignupEIDASIdentity
+        | ExternalMfaSignupSwedenConnectIdentity
+        | None
     ) = None
     # Per-login OIDC values that must be kept until the callback, kept out of repr to not end up in logs
     nonce: str | None = Field(default=None, repr=False)
@@ -455,8 +489,8 @@ class RP_AuthnRequest(BaseAuthnRequest):
         return self.finish_url.format(app_name=app_name, authn_id=self.authn_id)
 
 
-class RPAuthnData(BaseModel):
-    authns: dict[OIDCState, RP_AuthnRequest] = Field(default_factory=dict)
+class RPAuthnData[T: RP_AuthnRequest = RP_AuthnRequest](BaseModel):
+    authns: dict[OIDCState, T] = Field(default_factory=dict)
 
     def _retained_authn_states(self) -> set[OIDCState]:
         """
@@ -470,7 +504,7 @@ class RPAuthnData(BaseModel):
         return set(authns.keys())
 
     @field_serializer("authns")
-    def authns_cleanup(self, authns: dict[OIDCState, RP_AuthnRequest]) -> dict[OIDCState, Any]:
+    def authns_cleanup(self, authns: dict[OIDCState, T]) -> dict[OIDCState, Any]:
         retained_states = self._retained_authn_states()
         authns = {state: authn for state, authn in authns.items() if state in retained_states}
         return {k: v.model_dump() for k, v in authns.items()}
@@ -494,3 +528,14 @@ class OrcidNamespace(SessionNSBase):
 
 class SamlEidNamespace(SessionNSBase):
     sp: SPAuthnData = Field(default=SPAuthnData())
+
+
+class OidcEidAuthnRequest(RP_AuthnRequest):
+    # The issuer of the OP this specific request was sent to. It is required: a callback MUST validate
+    # the `iss` of the response against this value (RFC 9207) and must never fall back to a configured
+    # or default issuer, as that would allow an OP mix-up attack with more than one OP configured.
+    oidc_issuer: str = Field(min_length=1)
+
+
+class OidcEidNamespace(SessionNSBase):
+    rp: RPAuthnData[OidcEidAuthnRequest] = Field(default_factory=RPAuthnData[OidcEidAuthnRequest])
