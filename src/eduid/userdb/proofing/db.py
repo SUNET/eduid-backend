@@ -231,3 +231,8 @@ class FrejaEIDProofingUserDB(ProofingUserDB):
 class SamlEidProofingUserDB(ProofingUserDB):
     def __init__(self, db_uri: str, db_name: str = "eduid_samleid", auto_expire: timedelta | None = None) -> None:
         super().__init__(db_uri, db_name, auto_expire=auto_expire)
+
+
+class OidcEidProofingUserDB(ProofingUserDB):
+    def __init__(self, db_uri: str, db_name: str = "eduid_oidceid", auto_expire: timedelta | None = None) -> None:
+        super().__init__(db_uri, db_name, auto_expire=auto_expire)

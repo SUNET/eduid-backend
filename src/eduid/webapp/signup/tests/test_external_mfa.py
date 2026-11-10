@@ -31,6 +31,7 @@ from eduid.webapp.common.session.namespaces import (
     ExternalMfaSignupFrejaEIDIdentity,
     ExternalMfaSignupIdentity,
     ExternalMfaSignupSwedenConnectIdentity,
+    OidcEidAuthnRequest,
     OIDCState,
     RP_AuthnRequest,
     SP_AuthnRequest,
@@ -38,6 +39,7 @@ from eduid.webapp.common.session.namespaces import (
 )
 from eduid.webapp.signup.app import SignupApp, signup_init_app
 from eduid.webapp.signup.helpers import SignupMsg
+from eduid.webapp.signup.proofing import identity_proofing_version_for_framework
 from eduid.webapp.signup.tests.test_app import BaseSignupTests
 
 logger = logging.getLogger(__name__)
@@ -82,6 +84,51 @@ class ExternalMfaSignupTestsBase(BaseSignupTests):
         with self.session_cookie_anon(self.browser) as client:
             with client.session_transaction() as sess:
                 sess.bankid.sp.authns[AuthnRequestRef(authn_id)] = req
+
+    def _seed_oidceid_authn(
+        self,
+        authn_id: str = "authn-oidceid-1",
+        nin: str = "198001011234",
+        framework: TrustFramework = TrustFramework.BANKID,
+    ) -> None:
+        ident: ExternalMfaSignupBankIDIdentity | ExternalMfaSignupSwedenConnectIdentity
+        # mirror production, where the framework is derived from the proofing method (get_proofing_method)
+        method = ProofingMethods.BANKID if framework == TrustFramework.BANKID else ProofingMethods.FREJA
+        match framework:
+            case TrustFramework.BANKID:
+                ident = ExternalMfaSignupBankIDIdentity(
+                    framework=framework,
+                    given_name="Signe",
+                    issuer="bankid",
+                    loa="uncertified-loa3",
+                    nin=nin,
+                    surname="Svensson",
+                    transaction_id="test-transaction-id",
+                )
+            case TrustFramework.SWECONN:
+                ident = ExternalMfaSignupSwedenConnectIdentity(
+                    framework=framework,
+                    given_name="Signe",
+                    issuer="swedenconnect",
+                    loa="loa3",
+                    nin=nin,
+                    surname="Svensson",
+                    authn_context_class="authn_context_class",
+                )
+            case _:
+                raise NotImplementedError(f"TrustFramework {framework} is not supported")
+        req = OidcEidAuthnRequest(
+            authn_id=OIDCState(authn_id),
+            method=method.value,
+            frontend_action=FrontendAction.SIGNUP_EXTERNAL_MFA,
+            finish_url=_FINISH_URL,
+            authn_instant=utc_now(),
+            oidc_issuer="https://op.example.com",
+            external_mfa_signup_identity=ident,
+        )
+        with self.session_cookie_anon(self.browser) as client:
+            with client.session_transaction() as sess:
+                sess.oidceid.rp.authns[OIDCState(authn_id)] = req
 
     def _seed_freja_eid_authn(
         self,
@@ -998,6 +1045,22 @@ class ExternalMfaSignupTests(ExternalMfaSignupTestsBase):
                 "freja_proofing_version",
                 IdentityProofingMethod.SWEDEN_CONNECT,
             ),
+            # oidceid RP with bankid-style NIN
+            (
+                "oidceid",
+                TrustFramework.BANKID,
+                BankIDCredential,
+                "oidceid_proofing_version",
+                IdentityProofingMethod.BANKID,
+            ),
+            # oidceid RP with Swedish Freja (SwedenConnect) NIN
+            (
+                "oidceid",
+                TrustFramework.SWECONN,
+                SwedenConnectCredential,
+                "oidceid_proofing_version",
+                IdentityProofingMethod.SWEDEN_CONNECT,
+            ),
             # freja_eid RP — TrustFramework.FREJA → FrejaCredential
             (
                 "freja_eid",
@@ -1028,6 +1091,8 @@ class ExternalMfaSignupTests(ExternalMfaSignupTestsBase):
             self._seed_eidas_authn(nin=nin, authn_id=authn_id)
         elif app_name == "samleid":
             self._seed_samleid_authn(nin=nin, authn_id=authn_id, framework=framework)
+        elif app_name == "oidceid":
+            self._seed_oidceid_authn(nin=nin, authn_id=authn_id, framework=framework)
         elif app_name == "freja_eid":
             self._seed_freja_eid_authn(nin=nin, authn_id=authn_id)
         else:
@@ -1081,6 +1146,22 @@ class ExternalMfaSignupTests(ExternalMfaSignupTestsBase):
     # ------------------------------------------------------------------
     # Re-validation of external MFA at /create-user time
     # ------------------------------------------------------------------
+
+    @pytest.mark.parametrize(
+        "framework", [TrustFramework.SWECONN, TrustFramework.EIDAS, TrustFramework.BANKID, TrustFramework.FREJA]
+    )
+    def test_identity_version_selection(self, framework: TrustFramework) -> None:
+        conf = self.app.conf
+        framework_versions = {
+            TrustFramework.SWECONN: conf.freja_proofing_version,
+            TrustFramework.EIDAS: conf.foreign_eid_proofing_version,
+            TrustFramework.BANKID: conf.bankid_proofing_version,
+            TrustFramework.FREJA: conf.freja_eid_proofing_version,
+        }
+        with self.app.app_context():
+            assert identity_proofing_version_for_framework(framework, "oidceid") == conf.oidceid_proofing_version
+            for app_name in ("samleid", "eidas", "bankid", "freja_eid"):
+                assert identity_proofing_version_for_framework(framework, app_name) == framework_versions[framework]
 
     def test_create_user_rejects_stale_external_mfa(self) -> None:
         """External MFA stored long before /create-user is rejected as too old."""
@@ -1245,6 +1326,33 @@ class ExternalMfaWebauthnVerificationTests(ExternalMfaSignupTestsBase):
         log_entries = list(self.app.proofing_log._coll.find({"eduPersonPrincipalName": eppn}))
         # There should be entries for: email, identity proofing, and credential verification
         assert len(log_entries) >= 3
+
+    def test_webauthn_verified_with_oidceid_uses_oidceid_proofing_version(self) -> None:
+        """Credential and identity proofing versions for oidceid come from oidceid_proofing_version."""
+        self._seed_oidceid_authn(nin="198001011234", authn_id="authn-1", framework=TrustFramework.SWECONN)
+        self._call_external_mfa_register("oidceid", "authn-1")
+        self._set_webauthn_in_session(registered_at=utc_now())
+        self._prepare_for_create_user(given_name="Anna", surname="Andersson", email="anna.oidceid@example.com")
+
+        self._create_user(data={"use_webauthn": True})
+
+        with self.session_cookie_anon(self.browser) as client:
+            with client.session_transaction() as sess:
+                eppn = sess.common.eppn
+        assert eppn is not None
+
+        expected = self.app.conf.oidceid_proofing_version
+        assert expected != self.app.conf.security_key_proofing_version
+        webauthn_creds = self._get_user_webauthn_credentials(eppn)
+        assert len(webauthn_creds) == 1
+        assert webauthn_creds[0].is_verified is True
+        assert webauthn_creds[0].proofing_version == expected
+
+        log_entries = list(self.app.proofing_log._coll.find({"eduPersonPrincipalName": eppn}))
+        # email entry keeps its own version; every other (identity and credential) entry carries the oidceid version
+        external = [e for e in log_entries if e.get("proofing_method") != "e-mail"]
+        assert len(external) >= 1, log_entries
+        assert all(e["proofing_version"] == expected for e in external), log_entries
 
     def test_webauthn_not_verified_stale_external_mfa(self) -> None:
         """Webauthn credential stays unverified when external MFA authn_instant is too old."""

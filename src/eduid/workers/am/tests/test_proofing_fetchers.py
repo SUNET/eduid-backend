@@ -546,3 +546,21 @@ class AttributeFetcherLadokTests(ProofingTestCase):
         self.fetcher.private_db.save(proofing_user)
 
         assert self.fetcher.fetch_attrs(proofing_user.user_id) == {"$unset": {"ladok": None}}
+
+
+class AttributeFetcherOidcEidTests(ProofingTestCase):
+    fetcher_name = "eduid_oidceid"
+
+    def test_whitelists_are_pinned(self) -> None:
+        from eduid.workers.am.ams import eduid_oidceid
+
+        # the legacy "nins" attribute is only ever removed, never written, by oidceid
+        assert set(eduid_oidceid.whitelist_set_attrs) == {
+            "passwords",
+            "identities",
+            "givenName",
+            "chosen_given_name",
+            "surname",
+            "legal_name",
+        }
+        assert set(eduid_oidceid.whitelist_unset_attrs) == {"identities", "chosen_given_name", "nins", "displayName"}
