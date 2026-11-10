@@ -439,6 +439,7 @@ def record_user_identity(signup_user: SignupUser, external_mfa: SignupExternalMf
                     registration_level=external_mfa.ident.registration_level,
                     loa_level=external_mfa.ident.loa_level,
                     verified_by=current_app.conf.app_name,
+                    verified_ts=utc_now(),
                 )
             )
         case _:

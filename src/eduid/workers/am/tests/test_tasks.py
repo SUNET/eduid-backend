@@ -401,3 +401,10 @@ class TestTasks(AMTestCase):
         }
         new_attributes = check_locked_identity(self.amdb, user_id, attributes, "test")
         assert attributes == new_attributes
+
+
+class TestJobRunnerAllowlist:
+    def test_identities_allowlisted(self) -> None:
+        from eduid.workers.am.ams import eduid_job_runner
+
+        assert "identities" in eduid_job_runner.whitelist_set_attrs

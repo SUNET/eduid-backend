@@ -24,8 +24,14 @@ class CleanerQueueDB(UserDB[CleanerQueueUser]):
     def __init__(self, db_uri: str, db_name: str = "eduid_job_runner", collection: str = "cleaner_queue") -> None:
         super().__init__(db_uri, db_name, collection)
 
+        # The same eppn may be queued once per cleaner type (e.g. both SKV and IDENTITY_AGE), so uniqueness is
+        # per (eppn, cleaner_type). setup_indexes drops indexes not listed here, so the old eppn-only unique
+        # index "eppn-index-v1" is removed automatically on startup.
         indexes = {
-            "eppn-index-v1": {"key": [("eduPersonPrincipalName", 1)], "unique": True},
+            "eppn-cleaner-type-index-v1": {
+                "key": [("eduPersonPrincipalName", 1), ("cleaner_type", 1)],
+                "unique": True,
+            },
             "creation-index-v1": {"key": [("meta.created_ts", 1)], "unique": False},
         }
         self.setup_indexes(indexes)

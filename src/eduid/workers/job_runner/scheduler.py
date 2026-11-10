@@ -3,6 +3,7 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler  # type: ignore[impo
 from eduid.common.config.exceptions import BadConfiguration
 from eduid.workers.job_runner.config import EnvironmentOrWorkerName, JobCronConfig, JobName
 from eduid.workers.job_runner.context import Context
+from eduid.workers.job_runner.jobs.identity_age import gather_identity_age_users, process_identity_age_users
 from eduid.workers.job_runner.jobs.skv import check_skv_users, gather_skv_users
 
 
@@ -51,5 +52,9 @@ class JobScheduler(AsyncIOScheduler):  # type: ignore[misc]
                     self.add_job(gather_skv_users, "cron", **params, args=(context,))
                 case "check_skv_users":
                     self.add_job(check_skv_users, "cron", **params, args=(context,))
+                case "gather_identity_age_users":
+                    self.add_job(gather_identity_age_users, "cron", **params, args=(context,))
+                case "process_identity_age_users":
+                    self.add_job(process_identity_age_users, "cron", **params, args=(context,))
                 case _:
                     raise BadConfiguration("unknown job in config")

@@ -1,8 +1,10 @@
+import hashlib
 import logging
 from dataclasses import replace
 from typing import Any
 
 from bson import ObjectId
+from pymongo.errors import DuplicateKeyError
 
 from eduid.queue.db.payload import Payload
 from eduid.queue.db.queue_item import QueueItem
@@ -13,6 +15,16 @@ from eduid.userdb.exceptions import MultipleDocumentsReturned
 logger = logging.getLogger(__name__)
 
 __author__ = "lundberg"
+
+
+def deterministic_item_id(dedup_key: str) -> ObjectId:
+    """
+    Derive a stable item_id (an ObjectId, 12 bytes) from a deduplication key: the first 12 bytes of its SHA-256.
+
+    Used with QueueDB.save_if_absent to make queueing idempotent. Random ObjectIds are timestamp based, so a
+    collision with one is practically impossible.
+    """
+    return ObjectId(hashlib.sha256(dedup_key.encode("utf-8")).digest()[:12])
 
 
 class QueuePayloadMixin:
@@ -67,3 +79,18 @@ class QueueDB(BaseDB, QueuePayloadMixin):
         test_doc = {"_id": item.item_id}
         res = self._coll.replace_one(test_doc, item.to_dict(), upsert=True)
         return res.acknowledged
+
+    def save_if_absent(self, item: QueueItem) -> bool:
+        """
+        Insert the item unless an item with the same item_id already exists. An existing item is never
+        overwritten (unlike save), so a processing state is not reset. Together with deterministic_item_id this
+        makes queueing idempotent for as long as the first item is still in the collection (until it has been
+        handled by a worker and removed, or discarded).
+
+        :returns: True if the item was inserted, False if an item with this item_id already existed
+        """
+        try:
+            self._coll.insert_one(item.to_dict())
+        except DuplicateKeyError:
+            return False
+        return True

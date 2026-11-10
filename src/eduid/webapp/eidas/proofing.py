@@ -3,6 +3,7 @@ from datetime import UTC, datetime
 from typing import Any
 
 from eduid.common.config.base import ProofingConfigMixin
+from eduid.common.misc.timeutil import utc_now
 from eduid.common.models.saml_models import BaseSessionInfo
 from eduid.common.rpc.exceptions import AmTaskFailed
 from eduid.userdb import EIDASIdentity, User
@@ -217,6 +218,7 @@ class EidasProofingFunctions(SwedenConnectProofingFunctions[ForeignEidSessionInf
             country_code=self.session_info.attributes.country_code,
             verified_by=current_app.conf.app_name,
             is_verified=True,
+            verified_ts=utc_now(),
             proofing_method=IdentityProofingMethod.SWEDEN_CONNECT,
             proofing_version=self.config.foreign_eid_proofing_version,
         )

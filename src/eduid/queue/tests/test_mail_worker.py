@@ -14,7 +14,13 @@ from eduid.common.config.parsers import load_config
 from eduid.common.misc.timeutil import utc_now
 from eduid.queue.config import QueueWorkerConfig
 from eduid.queue.db.message import EduidSignupEmail
-from eduid.queue.db.message.payload import EduidResetPasswordEmail, EduidTerminationEmail, EduidVerificationEmail
+from eduid.queue.db.message.payload import (
+    EduidIdentityExpiryWarningEmail,
+    EduidIdentityUnverifiedEmail,
+    EduidResetPasswordEmail,
+    EduidTerminationEmail,
+    EduidVerificationEmail,
+)
 from eduid.queue.testing import IsolatedWorkerDBMixin, QueueAsyncioTest, SMPTDFixTemporaryInstance
 from eduid.queue.workers.mail import MailQueueWorker
 
@@ -137,6 +143,70 @@ class TestMailWorker(QueueAsyncioTest):
             if lang == "sv":
                 assert "Subject: eduID-registrering" in msg_string
                 assert "Du har registrerat noone@example.com som e-postadress" in msg_string
+
+    def test_identity_expiry_warning_mail_translations(self) -> None:
+        for lang in ["en", "sv"]:
+            payload = EduidIdentityExpiryWarningEmail(
+                email="noone@example.com",
+                reference="test",
+                language=lang,
+                site_name="Test App",
+                expires_at="2030-01-31",
+            )
+            with self.worker._jinja2.select_language(lang) as env:
+                subject = env.gettext("%(site_name)s identity verification is about to expire") % {
+                    "site_name": payload.site_name
+                }
+                msg = self.worker._build_mail(
+                    translation_env=env.jinja2_env,
+                    subject=subject,
+                    txt_template="identity_expiry_warning_email.txt.jinja2",
+                    html_template="identity_expiry_warning_email.html.jinja2",
+                    data=payload,
+                )
+            msg_string = str(msg)
+            body = msg.get_body(preferencelist=("plain",)).get_content()  # type: ignore[union-attr]
+            assert "2030-01-31" in msg_string
+            assert "http" not in msg_string
+            assert "identity_type" not in msg_string
+            if lang == "en":
+                assert "Subject: Test App identity verification is about to expire" in msg_string
+                assert "Your identity verification at Test App expires on 2030-01-31." in body
+            if lang == "sv":
+                assert "Subject: Din identitetsverifiering hos Test App" in msg_string
+                assert "Din identitet är verifierad hos Test App till och med 2030-01-31." in body
+
+    def test_identity_unverified_mail_translations(self) -> None:
+        for lang in ["en", "sv"]:
+            payload = EduidIdentityUnverifiedEmail(
+                email="noone@example.com",
+                reference="test",
+                language=lang,
+                site_name="Test App",
+            )
+            with self.worker._jinja2.select_language(lang) as env:
+                subject = env.gettext("%(site_name)s identity verification has expired") % {
+                    "site_name": payload.site_name
+                }
+                msg = self.worker._build_mail(
+                    translation_env=env.jinja2_env,
+                    subject=subject,
+                    txt_template="identity_unverified_email.txt.jinja2",
+                    html_template="identity_unverified_email.html.jinja2",
+                    data=payload,
+                )
+            msg_string = str(msg)
+            assert "http" not in msg_string
+            assert "identity_type" not in msg_string
+            body = msg.get_body(preferencelist=("plain",)).get_content()  # type: ignore[union-attr]
+            if lang == "en":
+                assert "Subject: Test App identity verification has expired" in msg_string
+                assert "Your identity verification at Test App has expired" in body
+                assert "your identity is no longer verified" in body
+            if lang == "sv":
+                assert "Subject: Din identitetsverifiering hos Test App har gått ut" in msg_string
+                assert "Din identitetsverifiering hos Test App har gått ut" in body
+                assert "din identitet är inte längre verifierad" in body
 
     def test_reset_password_mail_translations(self) -> None:
         for lang in ["en", "sv"]:
