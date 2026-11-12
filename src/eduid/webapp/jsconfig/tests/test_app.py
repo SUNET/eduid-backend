@@ -51,6 +51,7 @@ class JSConfigTests(EduidAPITestCase[JSConfigApp]):
                     "login_next_url": "https://idp.example.com/services/idp/next",
                     "login_request_other_url": "https://idp.example.com/services/idp/other",
                     "login_service_url": "https://idp.example.com/services/idp",
+                    "oidceid_service_url": "https://dashboard.example.com/services/oidceid",
                     "orcid_service_url": "https://dashboard.example.com/services/orcid",
                     "password_entropy": 25,
                     "password_length": 12,

@@ -145,6 +145,9 @@ class EduidAPITestCase[T: EduIDBaseApp](CommonTestCase):
         # Some apps (OIDC RP webapps) hold a client that tests replace or mutate, restore it as well.
         _has_oidc_client = hasattr(self.app, "oidc_client")
         _saved_oidc_client = getattr(self.app, "oidc_client", None)
+        # Apps with one client per OpenID Provider (oidceid) hold a dict of clients, keep a copy of it
+        _has_oidc_clients = hasattr(self.app, "oidc_clients")
+        _saved_oidc_clients = dict(getattr(self.app, "oidc_clients", None) or {})
 
         _users = UserFixtures()
         _standard_test_users = {
@@ -177,6 +180,8 @@ class EduidAPITestCase[T: EduIDBaseApp](CommonTestCase):
             self.app._conf = _saved_conf
         if _has_oidc_client:
             self.app.oidc_client = _saved_oidc_client  # type: ignore[attr-defined]
+        if _has_oidc_clients:
+            self.app.oidc_clients = _saved_oidc_clients  # type: ignore[attr-defined]
 
         try:
             for this in vars(self.app).values():

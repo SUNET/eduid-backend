@@ -117,14 +117,41 @@ def build_authn_params(
     return params
 
 
-def _auth_time_iso(auth_time: object) -> str | None:
+def auth_time_datetime(auth_time: object) -> datetime | None:
+    """Parse an auth_time claim (seconds since epoch) to a datetime, None if it is not a valid timestamp."""
     # bool is an int subclass, but never a timestamp
     if isinstance(auth_time, bool) or not isinstance(auth_time, int | float):
         return None
     try:
-        return datetime.fromtimestamp(auth_time, tz=UTC).isoformat()
+        return datetime.fromtimestamp(auth_time, tz=UTC)
     except (OverflowError, OSError, ValueError):
         return None
+
+
+# The only claims that may be taken from the userinfo response. acr, auth_time, iss (and the rest of the
+# authentication data) must come from the verified ID token, never from userinfo.
+USERINFO_IDENTITY_CLAIMS = frozenset(
+    {
+        CLAIM_PERSONAL_IDENTITY_NUMBER,
+        CLAIM_COORDINATION_NUMBER,
+        CLAIM_PRID,
+        CLAIM_PRID_PERSISTENCE,
+        CLAIM_EIDAS_PERSON_IDENTIFIER,
+        CLAIM_EIDAS_COUNTRY,
+        CLAIM_MAPPED_PERSONAL_IDENTITY_NUMBER,
+        CLAIM_GIVEN_NAME,
+        CLAIM_FAMILY_NAME,
+        CLAIM_BIRTHDATE,
+        CLAIM_NAME,
+    }
+)
+
+
+def merge_userinfo(id_token_claims: Mapping[str, Any], userinfo: Mapping[str, Any]) -> dict[str, Any]:
+    """Add the identity claims of the userinfo response to the ID token claims. The ID token claims win."""
+    merged = {name: value for name, value in userinfo.items() if name in USERINFO_IDENTITY_CLAIMS}
+    merged.update(id_token_claims)
+    return merged
 
 
 def _put(ava: dict[str, list[str]], name: str, claims: Mapping[str, Any], *claim_names: str) -> None:
@@ -148,7 +175,8 @@ def claims_to_session_info(claims: Mapping[str, Any], *, method: ProofingMethods
     :returns: SessionInfo, or None if the acr or auth_time claim is missing
     """
     acr = claims.get("acr")
-    auth_time = _auth_time_iso(claims.get("auth_time"))
+    auth_time_dt = auth_time_datetime(claims.get("auth_time"))
+    auth_time = auth_time_dt.isoformat() if auth_time_dt else None
     issuer = claims.get("iss")
     if not isinstance(acr, str) or not acr or auth_time is None or not isinstance(issuer, str):
         return None

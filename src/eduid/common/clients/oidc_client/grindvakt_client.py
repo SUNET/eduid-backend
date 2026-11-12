@@ -134,16 +134,10 @@ class GrindvaktOidcRpClient:
             or self._signing_key
         )
         # The redirect URIs are registered on the client, a per-request redirect_uri must match one of them exactly
+        self._redirect_uris = list(redirect_uris)
+        self._scoped_rp_clients: dict[tuple[str, ...], rp.RpClient] = {}
         try:
-            self._rp = rp.RpClient(
-                config.client_id,
-                redirect_uris[0],
-                redirect_uris=list(redirect_uris),
-                scope=" ".join(config.scopes),
-                client_secret=config.client_secret,
-                auth_method=config.token_endpoint_auth_method,
-                signing_key=self._signing_key if config.token_endpoint_auth_method == "private_key_jwt" else None,
-            )
+            self._rp = self._build_rp_client(config.scopes)
         except _CAUGHT_EXCEPTIONS as err:
             # pygrindvakt config errors name parameters, never values, so the message is safe to include
             detail = f": {err}" if isinstance(err, ConfigError) else ""
@@ -166,6 +160,18 @@ class GrindvaktOidcRpClient:
         # The key cache last handed out. DiscoveryCache keeps one JwksCache object while the jwks_uri and issuer are
         # unchanged, so it is reused to avoid a second wait on an in-flight refresh (see _get_provider).
         self._jwks: rp.JwksCache | None = None
+
+    def _build_rp_client(self, scopes: Sequence[str]) -> rp.RpClient:
+        config = self._config
+        return rp.RpClient(
+            config.client_id,
+            self._redirect_uris[0],
+            redirect_uris=self._redirect_uris,
+            scope=" ".join(scopes),
+            client_secret=config.client_secret,
+            auth_method=config.token_endpoint_auth_method,
+            signing_key=self._signing_key if config.token_endpoint_auth_method == "private_key_jwt" else None,
+        )
 
     @staticmethod
     def _load_pem_key(path: Path | str | None, alg: str | None, kid: str | None, name: str) -> keys.SigningKey | None:
@@ -267,7 +273,26 @@ class GrindvaktOidcRpClient:
         # No _get_provider(): this needs no discovery, so a bad callback never triggers provider requests
         return parse_authorization_callback(params, issuer=self._issuer, require_iss=self._config.require_iss)
 
-    def mint_authn_request(self, redirect_uri: str, extra_params: Mapping[str, str] | None = None) -> AuthnRequestData:
+    def mint_authn_request(
+        self, redirect_uri: str, extra_params: Mapping[str, str] | None = None, scopes: Sequence[str] | None = None
+    ) -> AuthnRequestData:
+        rp_client = self._rp
+        if scopes is not None:
+            # checked before any provider request: invalid input needs no network
+            if "openid" not in scopes:
+                raise OidcRpError("authorization request failed: scopes must include openid")
+            # the scope parameter is owned by the pygrindvakt client (extra may not carry it), so a client with
+            # the per-request scopes is used. It does not depend on the provider metadata, so it is safe to keep
+            # one per scope set across discovery refreshes.
+            key = tuple(scopes)
+            scoped = self._scoped_rp_clients.get(key)
+            if scoped is None:
+                try:
+                    scoped = self._build_rp_client(scopes)
+                except _CAUGHT_EXCEPTIONS as err:
+                    raise _wrap("authorization request", err) from None
+                self._scoped_rp_clients[key] = scoped
+            rp_client = scoped
         provider = self._get_provider()
         extra = dict(extra_params or {})
         if self._config.acr_values and "acr_values" not in extra:
@@ -278,7 +303,7 @@ class GrindvaktOidcRpClient:
         try:
             url, state, nonce, verifier = rp.begin(
                 provider.info,
-                self._rp,
+                rp_client,
                 extra=extra,
                 redirect_uri=redirect_uri,
                 pkce=self._config.code_challenge_method == "S256",

@@ -49,6 +49,7 @@ from eduid.webapp.common.session.namespaces import (
     ExternalMfaSignupBankIDIdentity,
     ExternalMfaSignupEIDASIdentity,
     ExternalMfaSignupSwedenConnectIdentity,
+    OIDCState,
     RP_AuthnRequest,
     SP_AuthnRequest,
 )
@@ -245,7 +246,7 @@ def select_magic_cookie_idp(
     return None
 
 
-def reset_mfa_action_for_login(authn_id: AuthnRequestRef) -> None:
+def reset_mfa_action_for_login(authn_id: AuthnRequestRef | OIDCState) -> None:
     """
     Wipe the shared (common namespace) session.mfa_action before an external MFA login redirect.
 
@@ -262,7 +263,7 @@ def reset_mfa_action_for_login(authn_id: AuthnRequestRef) -> None:
     del session.mfa_action
     session.mfa_action.login_ref = saved_mfa_action.login_ref
     session.mfa_action.eppn = saved_mfa_action.eppn
-    session.mfa_action.authn_req_ref = authn_id
+    session.mfa_action.authn_req_ref = AuthnRequestRef(authn_id)
 
 
 VERIFY_CREDENTIAL_ACTION = FrontendAction.VERIFY_CREDENTIAL
@@ -301,7 +302,9 @@ def check_verify_credential_request(
     return check_reauthn(frontend_action=_frontend_action, user=user, credential_requested=credential)
 
 
-def build_status_payload(authn_id: AuthnRequestRef, authn: SP_AuthnRequest | RP_AuthnRequest) -> dict[str, Any]:
+def build_status_payload(
+    authn_id: AuthnRequestRef | OIDCState, authn: SP_AuthnRequest | RP_AuthnRequest
+) -> dict[str, Any]:
     """Build the /get-status payload for an authn request."""
     payload: dict[str, Any] = {
         "authn_id": authn_id,

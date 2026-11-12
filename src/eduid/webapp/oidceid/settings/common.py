@@ -93,3 +93,14 @@ class OidcEidConfig(
             if value and value not in issuers:
                 raise ValueError(f"{field_name} {value!r} does not match the issuer of any configured provider")
         return self
+
+    @model_validator(mode="after")
+    def _check_userinfo_is_signed(self) -> Self:
+        # Identity claims (NIN, prid) fetched from userinfo must not be trusted on transport security alone.
+        if self.fetch_userinfo:
+            unsigned = [provider.issuer for provider in self.providers if provider.userinfo_trust != "typed"]
+            if unsigned:
+                raise ValueError(
+                    f"fetch_userinfo requires userinfo_trust 'typed' on every provider, missing: {unsigned}"
+                )
+        return self

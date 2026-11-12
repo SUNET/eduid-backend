@@ -74,3 +74,12 @@ def test_duplicate_issuers_rejected() -> None:
 def test_acr_values_rejected() -> None:
     with pytest.raises(ValidationError, match="acr_values must not be set"):
         SwedenConnectOidcClientConfig(**_provider(OP1), acr_values=["http://id.elegnamnden.se/loa/1.0/loa3"])
+
+
+def test_fetch_userinfo_requires_signed_userinfo() -> None:
+    with pytest.raises(ValidationError, match="fetch_userinfo requires userinfo_trust"):
+        _conf(providers=[_provider(OP1)], fetch_userinfo=True)
+
+    signed = _provider(OP1) | {"userinfo_trust": "typed", "userinfo_typ": "userinfo+jwt"}
+    conf = _conf(providers=[signed], fetch_userinfo=True)
+    assert conf.fetch_userinfo is True
