@@ -339,6 +339,7 @@ class eduid_samleid(AttributeFetcher):
 class eduid_oidceid(AttributeFetcher):
     whitelist_set_attrs: ClassVar[list[str]] = [
         "passwords",
+        "nins",  # Old format
         "identities",
         "givenName",
         "chosen_given_name",
