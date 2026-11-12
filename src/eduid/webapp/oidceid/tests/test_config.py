@@ -83,3 +83,8 @@ def test_fetch_userinfo_requires_signed_userinfo() -> None:
     signed = _provider(OP1) | {"userinfo_trust": "typed", "userinfo_typ": "userinfo+jwt"}
     conf = _conf(providers=[signed], fetch_userinfo=True)
     assert conf.fetch_userinfo is True
+
+
+def test_require_iss_is_default() -> None:
+    assert SwedenConnectOidcClientConfig(**_provider(OP1)).require_iss is True
+    assert SwedenConnectOidcClientConfig(**_provider(OP1), require_iss=False).require_iss is False

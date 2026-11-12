@@ -35,6 +35,10 @@ class SwedenConnectOidcClientConfig(OidcRpClientConfig):
         "private_key_jwt"
     )
     scopes: list[str] = Field(default=["openid"])
+    # All providers share one redirect URI, so without an authorization response iss (RFC 9207) a mix-up could make
+    # the code and PKCE verifier go to the wrong token endpoint before any ID token is validated. Only set this to
+    # False for an OP that does not send iss, and then understand that the mix-up protection is gone for that OP.
+    require_iss: bool = True
     acr_values: list[str] = Field(default_factory=list)
 
     @model_validator(mode="after")

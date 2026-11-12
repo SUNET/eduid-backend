@@ -1861,10 +1861,33 @@ class CallbackTests(OidcEidTests):
                     "id_token": jwt.sign(self.signing_keys[OP_A], claims),
                 },
             )
-            response = browser.get(f"/authn-callback?state={state}&code=mock_code")
+            response = browser.get(f"/authn-callback?state={state}&code=mock_code&iss={OP_A}")
             assert response.status_code == HTTPStatus.FOUND
             status = self._status(browser, state)
             assert status["status"] == OidcEidMsg.authorization_error.value
+        self._assert_not_verified(eppn)
+
+    def test_callback_without_iss_is_rejected_before_token_exchange(self) -> None:
+        # all OPs share one redirect URI: without iss (RFC 9207) the code must not be sent to any token endpoint
+        http = self._install_real_client(OP_A)
+        eppn = self.test_unverified_user_eppn
+        with self.session_cookie(self.browser, eppn) as browser:
+            location = self._start(browser, "/verify-identity", FREJA, FrontendAction.VERIFY_IDENTITY)
+            assert location is not None
+            state, issuer = self._pending_authn(browser)
+            claims = self.build_claims(FREJA, self.test_user_nin, issuer)
+            claims["nonce"] = self._auth_query(location)["nonce"][0]
+            http.add_json(
+                self.metadata["token_endpoint"],
+                {
+                    "access_token": "access_token",
+                    "token_type": "Bearer",
+                    "id_token": jwt.sign(self.signing_keys[OP_A], claims),
+                },
+            )
+            response = browser.get(f"/authn-callback?state={state}&code=mock_code")
+            assert response.status_code == HTTPStatus.FOUND
+        assert http.requests_to(self.metadata["token_endpoint"]) == []
         self._assert_not_verified(eppn)
 
     def test_get_status_of_pending_request(self) -> None:
