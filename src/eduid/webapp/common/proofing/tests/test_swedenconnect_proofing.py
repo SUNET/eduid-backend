@@ -287,8 +287,9 @@ def test_dispatcher_rejects_session_info_subclass() -> None:
             "dateOfBirth": ["1978-01-01"],
         },
     )
+    config = _Config()
     with pytest.raises(UnsupportedMethod):
-        get_swedenconnect_proofing_functions(session_info=sub, app_name="testing", config=_Config(), backdoor=False)
+        get_swedenconnect_proofing_functions(session_info=sub, app_name="testing", config=config, backdoor=False)
 
 
 def test_authn_context_mismatch_message_values_are_stable() -> None:
@@ -319,9 +320,10 @@ def test_current_loa_is_none_for_unknown_authn_context() -> None:
 
 def test_dispatcher_rejects_config_without_loa_mixin() -> None:
     config = ProofingConfigMixin()
+    session_info = _freja().session_info
     with pytest.raises(TypeError, match="lacks the Sweden Connect LoA config mixin"):
         get_swedenconnect_proofing_functions(
-            session_info=_freja().session_info,
+            session_info=session_info,
             app_name="testing",
             config=config,  # type: ignore[arg-type]
             backdoor=False,

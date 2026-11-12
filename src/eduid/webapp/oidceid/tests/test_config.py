@@ -57,8 +57,9 @@ def test_idps_match_providers() -> None:
     ],
 )
 def test_idp_not_matching_provider_rejected(field: str) -> None:
+    providers = [_provider(OP1)]
     with pytest.raises(ValidationError, match=field):
-        _conf(providers=[_provider(OP1)], **{field: OP2})
+        _conf(providers=providers, **{field: OP2})
 
 
 def test_idp_without_providers_rejected() -> None:
@@ -67,18 +68,21 @@ def test_idp_without_providers_rejected() -> None:
 
 
 def test_duplicate_issuers_rejected() -> None:
+    providers = [_provider(OP1), _provider(OP1)]
     with pytest.raises(ValidationError, match="unique"):
-        _conf(providers=[_provider(OP1), _provider(OP1)])
+        _conf(providers=providers)
 
 
 def test_acr_values_rejected() -> None:
+    provider = _provider(OP1)
     with pytest.raises(ValidationError, match="acr_values must not be set"):
-        SwedenConnectOidcClientConfig(**_provider(OP1), acr_values=["http://id.elegnamnden.se/loa/1.0/loa3"])
+        SwedenConnectOidcClientConfig(**provider, acr_values=["http://id.elegnamnden.se/loa/1.0/loa3"])
 
 
 def test_fetch_userinfo_requires_signed_userinfo() -> None:
+    unsigned = [_provider(OP1)]
     with pytest.raises(ValidationError, match="fetch_userinfo requires userinfo_trust"):
-        _conf(providers=[_provider(OP1)], fetch_userinfo=True)
+        _conf(providers=unsigned, fetch_userinfo=True)
 
     signed = _provider(OP1) | {"userinfo_trust": "typed", "userinfo_typ": "userinfo+jwt"}
     conf = _conf(providers=[signed], fetch_userinfo=True)
