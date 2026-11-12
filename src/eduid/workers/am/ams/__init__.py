@@ -26,6 +26,7 @@ from eduid.userdb.proofing.db import (
     BankIDProofingUserDB,
     FrejaEIDProofingUserDB,
     LadokProofingUserDB,
+    OidcEidProofingUserDB,
     SamlEidProofingUserDB,
     SvideIDProofingUserDB,
 )
@@ -333,3 +334,25 @@ class eduid_samleid(AttributeFetcher):
     @classmethod
     def get_user_db(cls, uri: str) -> SamlEidProofingUserDB:
         return SamlEidProofingUserDB(uri)
+
+
+class eduid_oidceid(AttributeFetcher):
+    whitelist_set_attrs: ClassVar[list[str]] = [
+        "passwords",
+        "nins",  # Old format
+        "identities",
+        "givenName",
+        "chosen_given_name",
+        "surname",
+        "legal_name",
+    ]
+    whitelist_unset_attrs: ClassVar[list[str]] = [
+        "identities",
+        "chosen_given_name",
+        "nins",  # Old format
+        "displayName",  # deprecated
+    ]
+
+    @classmethod
+    def get_user_db(cls, uri: str) -> OidcEidProofingUserDB:
+        return OidcEidProofingUserDB(uri)

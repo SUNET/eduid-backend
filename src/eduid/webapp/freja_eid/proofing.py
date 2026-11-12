@@ -131,7 +131,7 @@ class FrejaEIDProofingFunctions(ProofingFunctions[FrejaEIDDocumentUserInfo]):
 
         # user has to be LOA3_NR for an identity
         # TODO: technically we could allow LOA2_NR but that level seems not to exist
-        if self.get_current_loa().result not in current_app.conf.freja_eid_required_loa:
+        if self.get_current_loa().result not in self.config.freja_eid_required_loa:
             return VerifyUserResult(error=FrejaEIDMsg.registration_level_not_satisfied)
 
         existing_identity = user.identities.freja

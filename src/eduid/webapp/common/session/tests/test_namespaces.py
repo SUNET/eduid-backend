@@ -4,21 +4,31 @@ from collections.abc import Mapping
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
+import pytest
+from pydantic import ValidationError
+
 from eduid.common.config.base import FrontendAction
 from eduid.common.config.parsers import load_config
 from eduid.common.misc.timeutil import utc_now
 from eduid.common.testing_base import normalised_data
 from eduid.userdb.credentials.external import TrustFramework
+from eduid.userdb.identity import FrejaLoaLevel, FrejaRegistrationLevel, PridPersistence
 from eduid.webapp.common.api.testing import EduidAPITestCase
 from eduid.webapp.common.proofing.methods import ProofingMethods
 from eduid.webapp.common.session.eduid_session import EduidSession, SessionFactory
 from eduid.webapp.common.session.meta import SessionMeta
 from eduid.webapp.common.session.namespaces import (
+    EXTERNAL_MFA_SIGNUP_IDENTITY_FRAMEWORK,
     AuthnRequestRef,
     ExternalMfaSignupBankIDIdentity,
     ExternalMfaSignupEIDASIdentity,
     ExternalMfaSignupFrejaEIDForeignIdentity,
+    ExternalMfaSignupFrejaEIDIdentity,
+    ExternalMfaSignupIdentity,
+    ExternalMfaSignupSwedenConnectIdentity,
     FrejaEIDNamespace,
+    OidcEidAuthnRequest,
+    OidcEidNamespace,
     OIDCState,
     RP_AuthnRequest,
     RPAuthnData,
@@ -386,3 +396,183 @@ def test_signup_external_mfa_eidas_roundtrip() -> None:
     sns = Signup(external_mfa=ext)
     rebuilt = Signup(**sns.model_dump())
     assert rebuilt.external_mfa == ext
+
+
+def test_oidceid_namespace_roundtrip() -> None:
+    state = OIDCState(str(uuid.uuid4()))
+    identity = ExternalMfaSignupSwedenConnectIdentity(
+        framework=TrustFramework.SWECONN,
+        given_name="Signe",
+        surname="Svensson",
+        issuer="swedenconnect",
+        loa="loa3",
+        nin="198001011234",
+        authn_context_class="authn_context_class",
+    )
+    namespace = OidcEidNamespace()
+    namespace.rp.authns[state] = OidcEidAuthnRequest(
+        authn_id=state,
+        frontend_action=FrontendAction.VERIFY_IDENTITY,
+        finish_url="some_url",
+        oidc_issuer="https://op.example.com",
+        external_mfa_signup_identity=identity,
+    )
+
+    rebuilt = OidcEidNamespace.from_dict(namespace.to_dict())
+
+    assert isinstance(rebuilt.rp.authns[state], OidcEidAuthnRequest)
+    assert rebuilt.rp.authns[state].oidc_issuer == "https://op.example.com"
+    assert rebuilt.rp.authns[state].external_mfa_signup_identity == identity
+
+
+@pytest.mark.parametrize("issuer", [None, ""])
+def test_oidceid_authn_request_requires_issuer(issuer: str | None) -> None:
+    kwargs: dict[str, Any] = {
+        "authn_id": OIDCState("a-state"),
+        "frontend_action": FrontendAction.VERIFY_IDENTITY,
+        "finish_url": "some_url",
+    }
+    if issuer is not None:
+        kwargs["oidc_issuer"] = issuer
+    with pytest.raises(ValidationError):
+        OidcEidAuthnRequest(**kwargs)
+
+
+def test_oidceid_namespace_authn_without_issuer_fails_to_load() -> None:
+    """A stored oidceid authn lacking oidc_issuer is rejected: from_dict raises, as for other invalid namespace data."""
+    state = OIDCState(str(uuid.uuid4()))
+    data = {
+        "rp": {
+            "authns": {
+                state: {
+                    "authn_id": state,
+                    "frontend_action": FrontendAction.VERIFY_IDENTITY.value,
+                    "finish_url": "some_url",
+                }
+            }
+        }
+    }
+
+    with pytest.raises(ValidationError):
+        OidcEidNamespace.from_dict(data)
+
+
+def test_single_op_rp_authn_request_has_no_oidc_issuer() -> None:
+    """freja_eid/svipe_id/orcid are single-OP; their shared request model has no issuer and old sessions load."""
+    assert "oidc_issuer" not in RP_AuthnRequest.model_fields
+    state = OIDCState(str(uuid.uuid4()))
+    old_data = {
+        "rp": {
+            "authns": {
+                state: {
+                    "authn_id": state,
+                    "frontend_action": FrontendAction.VERIFY_IDENTITY.value,
+                    "finish_url": "some_url",
+                }
+            }
+        }
+    }
+
+    namespace = FrejaEIDNamespace.from_dict(old_data)
+
+    assert namespace.rp.authns[state].external_mfa_signup_identity is None
+
+
+def _identity_kwargs(cls: type[ExternalMfaSignupIdentity], framework: TrustFramework) -> dict[str, Any]:
+    common: dict[str, Any] = {"framework": framework, "given_name": "A", "surname": "B", "issuer": "i", "loa": "loa3"}
+    dob = datetime(1980, 1, 1, tzinfo=UTC)
+    extra: dict[type[ExternalMfaSignupIdentity], dict[str, Any]] = {
+        ExternalMfaSignupBankIDIdentity: {"nin": "198001011234", "transaction_id": "t"},
+        ExternalMfaSignupSwedenConnectIdentity: {"nin": "198001011234", "authn_context_class": "c"},
+        ExternalMfaSignupEIDASIdentity: {
+            "authn_context_class": "c",
+            "country_code": "DK",
+            "date_of_birth": dob,
+            "eidas_person_identifier": "e",
+            "prid": "p",
+            "prid_persistence": PridPersistence.A,
+            "transaction_id": "t",
+        },
+        ExternalMfaSignupFrejaEIDIdentity: {
+            "date_of_birth": dob,
+            "document_number": "1",
+            "document_type": "Passport",
+            "loa_level": FrejaLoaLevel.LOA3,
+            "registration_level": FrejaRegistrationLevel.PLUS,
+            "user_id": "u",
+            "nin": "198001011234",
+            "transaction_id": "t",
+        },
+        ExternalMfaSignupFrejaEIDForeignIdentity: {
+            "country_code": "DK",
+            "date_of_birth": dob,
+            "personal_identity_number": "p",
+            "document_number": "1",
+            "document_type": "Passport",
+            "issuing_country": "DK",
+            "loa_level": FrejaLoaLevel.LOA3,
+            "registration_level": FrejaRegistrationLevel.PLUS,
+            "user_id": "u",
+            "transaction_id": "t",
+        },
+    }
+    return {**common, **extra[cls]}
+
+
+def test_identity_framework_mapping_covers_all_subclasses() -> None:
+    def _all_subclasses(c: type[ExternalMfaSignupIdentity]) -> set[type[ExternalMfaSignupIdentity]]:
+        found: set[type[ExternalMfaSignupIdentity]] = set()
+        for sub in c.__subclasses__():
+            found.add(sub)
+            found |= _all_subclasses(sub)
+        return found
+
+    assert set(EXTERNAL_MFA_SIGNUP_IDENTITY_FRAMEWORK) == _all_subclasses(ExternalMfaSignupIdentity)
+
+
+@pytest.mark.parametrize("cls", list(EXTERNAL_MFA_SIGNUP_IDENTITY_FRAMEWORK))
+@pytest.mark.parametrize("framework", list(TrustFramework))
+def test_identity_class_framework_must_agree(cls: type[ExternalMfaSignupIdentity], framework: TrustFramework) -> None:
+    kwargs = _identity_kwargs(cls, framework)
+    if framework == EXTERNAL_MFA_SIGNUP_IDENTITY_FRAMEWORK[cls]:
+        assert cls(**kwargs).framework == framework
+    else:
+        with pytest.raises(ValidationError):
+            cls(**kwargs)
+
+
+@pytest.mark.parametrize("cls", list(EXTERNAL_MFA_SIGNUP_IDENTITY_FRAMEWORK))
+def test_rp_authn_request_identity_roundtrip_picks_right_class(cls: type[ExternalMfaSignupIdentity]) -> None:
+    ident = cls(**_identity_kwargs(cls, EXTERNAL_MFA_SIGNUP_IDENTITY_FRAMEWORK[cls]))
+    state = OIDCState("a-state")
+    req = RP_AuthnRequest(
+        authn_id=state,
+        frontend_action=FrontendAction.VERIFY_IDENTITY,
+        finish_url="some_url",
+        external_mfa_signup_identity=ident,
+    )
+
+    rebuilt = RP_AuthnRequest.model_validate(req.model_dump())
+
+    assert type(rebuilt.external_mfa_signup_identity) is cls
+    assert rebuilt.external_mfa_signup_identity == ident
+
+
+@pytest.mark.parametrize("cls", list(EXTERNAL_MFA_SIGNUP_IDENTITY_FRAMEWORK))
+def test_signup_external_mfa_roundtrip_picks_right_class(cls: type[ExternalMfaSignupIdentity]) -> None:
+    from eduid.webapp.common.session.namespaces import SignupExternalMfa
+
+    ident = cls(**_identity_kwargs(cls, EXTERNAL_MFA_SIGNUP_IDENTITY_FRAMEWORK[cls]))
+    data = {
+        "app_name": "oidceid",
+        "method": "m",
+        "authn_id": "a-state",
+        "loa": "loa3",
+        "authn_instant": datetime(2026, 4, 24, tzinfo=UTC),
+        "ident": ident.model_dump(),
+    }
+    ext = SignupExternalMfa.model_validate(data)
+
+    rebuilt = SignupExternalMfa.model_validate(ext.model_dump())
+
+    assert type(rebuilt.ident) is cls

@@ -1736,7 +1736,10 @@ class NINMethodTests(SamlEidTests):
     def test_unsupported_proofing_method(self) -> None:
         """Test that get_proofing_functions raises UnsupportedMethod for unknown session info (proofing.py:66)"""
         from eduid.common.models.saml_models import BaseSessionInfo
-        from eduid.webapp.samleid.proofing import UnsupportedMethod, get_proofing_functions
+        from eduid.webapp.common.proofing.swedenconnect.proofing import (
+            UnsupportedMethod,
+            get_swedenconnect_proofing_functions,
+        )
 
         # Create a BaseSessionInfo instance that doesn't match any known subclass
         session_info = BaseSessionInfo(
@@ -1745,7 +1748,7 @@ class NINMethodTests(SamlEidTests):
         )
 
         with pytest.raises(UnsupportedMethod):
-            get_proofing_functions(
+            get_swedenconnect_proofing_functions(
                 session_info=session_info,
                 app_name="testing",
                 config=self.app.conf,

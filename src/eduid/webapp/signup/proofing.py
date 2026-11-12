@@ -79,8 +79,14 @@ def identity_proofing_method_for_framework(framework: TrustFramework) -> Identit
             raise ValueError(f"Unsupported TrustFramework: {framework}")
 
 
-def identity_proofing_version_for_framework(framework: TrustFramework) -> str:
-    """Return the configured proofing version string for the given TrustFramework."""
+def identity_proofing_version_for_framework(framework: TrustFramework, app_name: str) -> str:
+    """Return the configured proofing version string for the given TrustFramework.
+
+    :param framework: The TrustFramework of the verified identity
+    :param app_name: Name of the app the identity was verified in (SignupExternalMfa.app_name)
+    """
+    if app_name == "oidceid":
+        return current_app.conf.oidceid_proofing_version
     match framework:
         case TrustFramework.SWECONN:
             return current_app.conf.freja_proofing_version
@@ -94,8 +100,10 @@ def identity_proofing_version_for_framework(framework: TrustFramework) -> str:
             raise ValueError(f"Unsupported TrustFramework: {framework}")
 
 
-def _credential_proofing_version_for_identity(identity: ExternalMfaSignupIdentity) -> str:
-    """Return the configured credential proofing version string for the given identity type."""
+def _credential_proofing_version_for_identity(identity: ExternalMfaSignupIdentity, app_name: str) -> str:
+    """Return the configured credential proofing version string for the given identity type and originating app."""
+    if app_name == "oidceid":
+        return current_app.conf.oidceid_proofing_version
     match identity:
         case ExternalMfaSignupSwedenConnectIdentity() | ExternalMfaSignupBankIDIdentity():
             return current_app.conf.security_key_proofing_version
@@ -148,7 +156,7 @@ def maybe_verify_webauthn_credential(
     credential.verified_by = current_app.conf.app_name
     credential.verified_ts = now
     credential.proofing_method = current_app.conf.security_key_proofing_method
-    credential.proofing_version = _credential_proofing_version_for_identity(external_mfa.ident)
+    credential.proofing_version = _credential_proofing_version_for_identity(external_mfa.ident, external_mfa.app_name)
     current_app.logger.info(f"Marked webauthn credential {webauthn.key} as verified via external MFA during signup")
 
 
@@ -157,7 +165,7 @@ def _write_credential_verification_proofing_log(
 ) -> bool:
     """Write a proofing log entry for a webauthn credential verified via external MFA during signup."""
     app_name = current_app.conf.app_name
-    version = _credential_proofing_version_for_identity(external_mfa.ident)
+    version = _credential_proofing_version_for_identity(external_mfa.ident, external_mfa.app_name)
 
     entry: (
         MFATokenProofing
@@ -254,7 +262,7 @@ def write_external_mfa_proofing_log(signup_user: SignupUser, external_mfa: Signu
 
     app_name = current_app.conf.app_name
     method = external_mfa.method
-    version = identity_proofing_version_for_framework(external_mfa.ident.framework)
+    version = identity_proofing_version_for_framework(external_mfa.ident.framework, external_mfa.app_name)
     entry: (
         BankIDProofing
         | SwedenConnectProofing
@@ -352,6 +360,8 @@ def lookup_external_mfa_authn(app_name: str, authn_id: str) -> SP_AuthnRequest |
             return session.bankid.sp.authns.get(AuthnRequestRef(authn_id))
         case "samleid":
             return session.samleid.sp.authns.get(AuthnRequestRef(authn_id))
+        case "oidceid":
+            return session.oidceid.rp.authns.get(OIDCState(authn_id))
         case _:
             return None
 

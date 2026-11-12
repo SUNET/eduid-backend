@@ -9,6 +9,7 @@ from saml2.typing import SAMLHttpArgs
 from eduid.userdb.credentials.external import TrustFramework
 from eduid.webapp.common.api.messages import TranslatableMsg
 from eduid.webapp.common.authn.cache import OutstandingQueriesCache
+from eduid.webapp.common.proofing.swedenconnect.flow import SwedenConnectMsgs
 from eduid.webapp.common.session import session
 from eduid.webapp.common.session.namespaces import AuthnRequestRef
 from eduid.webapp.samleid.app import current_samleid_app as current_app
@@ -56,6 +57,20 @@ class SamlEidMsg(TranslatableMsg):
     credential_verify_success = "samleid.credential_verify_success"
     # Credential verification not allowed (toggle for eidas credential verification)
     credential_verification_not_allowed = "samleid.credential_verification_not_allowed"
+
+
+SAMLEID_MSGS = SwedenConnectMsgs(
+    authn_context_mismatch=SamlEidMsg.authn_context_mismatch,
+    authn_instant_too_old=SamlEidMsg.authn_instant_too_old,
+    method_not_available=SamlEidMsg.method_not_available,
+    identity_verify_success=SamlEidMsg.identity_verify_success,
+    credential_not_found=SamlEidMsg.credential_not_found,
+    identity_not_matching=SamlEidMsg.identity_not_matching,
+    credential_verify_success=SamlEidMsg.credential_verify_success,
+    mfa_authn_success=SamlEidMsg.mfa_authn_success,
+    frontend_action_not_supported=SamlEidMsg.frontend_action_not_supported,
+    credential_verification_not_allowed=SamlEidMsg.credential_verification_not_allowed,
+)
 
 
 def create_authn_info(

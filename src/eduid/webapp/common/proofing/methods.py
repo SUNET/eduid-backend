@@ -9,11 +9,14 @@ from pydantic import ValidationError
 from eduid.common.config.base import FrontendAction, ProofingConfigMixin
 from eduid.common.misc.timeutil import utc_now
 from eduid.userdb.credentials.external import TrustFramework
-from eduid.webapp.bankid.saml_session_info import BankIDSessionInfo
 from eduid.webapp.common.api.messages import TranslatableMsg
 from eduid.webapp.common.authn.session_info import SessionInfo
 from eduid.webapp.common.proofing.messages import ProofingMsg
-from eduid.webapp.eidas.saml_session_info import ForeignEidSessionInfo, NinSessionInfo
+from eduid.webapp.common.proofing.swedenconnect.session_info import (
+    BankIDSessionInfo,
+    ForeignEidSessionInfo,
+    NinSessionInfo,
+)
 from eduid.webapp.freja_eid.helpers import FrejaEIDDocumentUserInfo
 from eduid.webapp.svipe_id.helpers import SvipeDocumentUserInfo
 

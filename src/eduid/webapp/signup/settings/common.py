@@ -45,6 +45,8 @@ class SignupConfig(
     email_verification_max_bad_attempts: int = 3
     email_verification_timeout: timedelta = Field(default=timedelta(minutes=10))
     email_proofing_version: str = Field(default="2013v1")
+    # proofing version stamped on identities and security keys verified through the oidceid app
+    oidceid_proofing_version: str = Field(default="2026v1")
     default_finish_url: str = "https://www.eduid.se/"
     eduid_site_url: str = "https://www.eduid.se"  # TODO: Backwards compatibility, remove when no longer used
     eduid_site_name: str = "eduID"
