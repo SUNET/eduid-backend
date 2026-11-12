@@ -110,8 +110,9 @@ def test_build_authn_params_prompt_and_authn_provider() -> None:
 
 
 def test_unsupported_method() -> None:
+    conf = _conf()
     with pytest.raises(ValueError, match="Unsupported"):
-        claims.build_authn_params(ProofingMethods.SVIPE_ID, ["loa3"], _conf(), False)
+        claims.build_authn_params(ProofingMethods.SVIPE_ID, ["loa3"], conf, False)
     with pytest.raises(ValueError, match="Unsupported"):
         claims.scopes_for_method(ProofingMethods.SVIPE_ID)
     with pytest.raises(ValueError, match="Unsupported"):

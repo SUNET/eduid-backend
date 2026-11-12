@@ -126,8 +126,9 @@ class TestGrindvaktOidcRpClient:
         assert parse_qs(urlparse(default.url).query)["scope"] == ["openid"]
 
     def test_per_request_scopes_must_include_openid(self) -> None:
+        client = self._client()
         with pytest.raises(OidcRpError):
-            self._client().mint_authn_request(REDIRECT_URI, scopes=["profile"])
+            client.mint_authn_request(REDIRECT_URI, scopes=["profile"])
         # invalid input needs no discovery
         assert self.http.requests == []
 
@@ -148,8 +149,9 @@ class TestGrindvaktOidcRpClient:
         assert len(client._scoped_rp_clients) == 2
 
     def test_scope_in_extra_params_rejected(self) -> None:
+        client = self._client()
         with pytest.raises(OidcRpError):
-            self._client().mint_authn_request(REDIRECT_URI, extra_params={"scope": "openid profile"})
+            client.mint_authn_request(REDIRECT_URI, extra_params={"scope": "openid profile"})
 
     def test_unregistered_redirect_uri_rejected_on_mint(self) -> None:
         client = self._client()

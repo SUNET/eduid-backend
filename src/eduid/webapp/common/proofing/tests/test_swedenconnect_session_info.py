@@ -37,13 +37,15 @@ def test_valid_assertions_parse() -> None:
 
 
 def test_nin_requires_date_of_birth() -> None:
+    ava = _without(_FREJA_AVA, "dateOfBirth")
     with pytest.raises(ValidationError):
-        NinSessionInfo(issuer=_ISSUER, authn_info=_AUTHN_INFO, ava=_without(_FREJA_AVA, "dateOfBirth"))
+        NinSessionInfo(issuer=_ISSUER, authn_info=_AUTHN_INFO, ava=ava)
 
 
 def test_bankid_requires_auth_context_params() -> None:
+    ava = _without(_BANKID_AVA, "authContextParams")
     with pytest.raises(ValidationError):
-        BankIDSessionInfo(issuer=_ISSUER, authn_info=_AUTHN_INFO, ava=_without(_BANKID_AVA, "authContextParams"))
+        BankIDSessionInfo(issuer=_ISSUER, authn_info=_AUTHN_INFO, ava=ava)
 
 
 def test_freja_assertion_is_not_bankid() -> None:

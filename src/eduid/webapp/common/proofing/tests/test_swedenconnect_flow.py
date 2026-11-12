@@ -88,8 +88,11 @@ def test_apply_action_result_failure_and_temp_problem(mocker: MockerFixture) -> 
 
 
 def test_apply_action_result_no_finish_url(mocker: MockerFixture) -> None:
+    result = ACSResult(success=True)
+    authn = mocker.MagicMock()
+    app = mocker.MagicMock()
     with pytest.raises(RuntimeError):
-        apply_action_result(ACSResult(success=True), mocker.MagicMock(), None, app=mocker.MagicMock())
+        apply_action_result(result, authn, None, app=app)
 
 
 class _FakeSession:
