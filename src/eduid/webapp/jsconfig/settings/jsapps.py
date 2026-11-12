@@ -39,6 +39,8 @@ class JsAppsConfig(PasswordConfigMixin):
     # login_request_other_url needs to be a full URL since the backend is on the idp, not on https://eduid.se
     login_request_other_url: HttpUrlStr | None = None
     login_service_url: HttpUrlStr
+    # if not set the frontend component will not show
+    oidceid_service_url: HttpUrlStr | None = None
     orcid_service_url: HttpUrlStr
     personal_data_service_url: HttpUrlStr
     reset_password_service_url: HttpUrlStr

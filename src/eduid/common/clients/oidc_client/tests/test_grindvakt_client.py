@@ -116,6 +116,41 @@ class TestGrindvaktOidcRpClient:
         assert query["claims"] == ['{"userinfo": {"id": null}}']
         assert query["scope"] == ["openid profile"]
 
+    def test_per_request_scopes_replace_configured_scopes(self) -> None:
+        client = self._client(scopes=["openid"])
+
+        data = client.mint_authn_request(REDIRECT_URI, scopes=["openid", "https://id.oidc.se/scope/naturalPersonInfo"])
+        default = client.mint_authn_request(REDIRECT_URI)
+
+        assert parse_qs(urlparse(data.url).query)["scope"] == ["openid https://id.oidc.se/scope/naturalPersonInfo"]
+        assert parse_qs(urlparse(default.url).query)["scope"] == ["openid"]
+
+    def test_per_request_scopes_must_include_openid(self) -> None:
+        with pytest.raises(OidcRpError):
+            self._client().mint_authn_request(REDIRECT_URI, scopes=["profile"])
+        # invalid input needs no discovery
+        assert self.http.requests == []
+
+    def test_fake_client_scopes_must_include_openid(self) -> None:
+        fake = FakeOidcRpClient()
+        with pytest.raises(OidcRpError):
+            fake.mint_authn_request(REDIRECT_URI, scopes=[])
+        with pytest.raises(OidcRpError):
+            fake.mint_authn_request(REDIRECT_URI, scopes=["profile"])
+        data = fake.mint_authn_request(REDIRECT_URI, scopes=["openid", "profile"])
+        assert parse_qs(urlparse(data.url).query)["scope"] == ["openid profile"]
+
+    def test_per_request_rp_client_is_reused_per_scope_set(self) -> None:
+        client = self._client()
+        client.mint_authn_request(REDIRECT_URI, scopes=["openid", "a"])
+        client.mint_authn_request(REDIRECT_URI, scopes=["openid", "a"])
+        client.mint_authn_request(REDIRECT_URI, scopes=["openid", "b"])
+        assert len(client._scoped_rp_clients) == 2
+
+    def test_scope_in_extra_params_rejected(self) -> None:
+        with pytest.raises(OidcRpError):
+            self._client().mint_authn_request(REDIRECT_URI, extra_params={"scope": "openid profile"})
+
     def test_unregistered_redirect_uri_rejected_on_mint(self) -> None:
         client = self._client()
 

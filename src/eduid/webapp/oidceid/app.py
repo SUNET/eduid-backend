@@ -1,8 +1,7 @@
 from collections.abc import Mapping
 from typing import Any, cast
 
-from flask import Flask, current_app
-from werkzeug.routing import BuildError
+from flask import current_app
 
 from eduid.common.clients.oidc_client import OidcRpClient, init_oidc_rp_client
 from eduid.common.config.parsers import load_config
@@ -18,7 +17,6 @@ from eduid.webapp.oidceid.settings.common import OidcEidConfig
 __author__ = "lundberg"
 
 CALLBACK_ENDPOINT = "oidceid.authn_callback"
-CALLBACK_PATH = "/authn-callback"
 
 
 class OidcEidApp(AuthnBaseApp[OidcEidConfig]):
@@ -36,26 +34,11 @@ class OidcEidApp(AuthnBaseApp[OidcEidConfig]):
         # One OIDC RP client per configured OpenID Provider, keyed by issuer. The clients need the registered
         # callback URL, so they are set up in init_oidceid_app once the views exist.
         self.oidc_clients: dict[str, OidcRpClient] = {}
+        # The redirect URI registered at the OPs, the same value for the clients, the start and the callback
+        self.redirect_uri: str = ""
 
 
 current_oidceid_app = cast(OidcEidApp, current_app)
-
-
-def _callback_url(app: Flask) -> str:
-    """
-    The absolute URL of the callback endpoint, registered at the OPs.
-
-    The callback view is added together with the rest of the views. As long as the endpoint is not registered
-    the URL is built from the same config values, so the app can still be created.
-    """
-    try:
-        return get_external_url(app, CALLBACK_ENDPOINT)
-    except BuildError:
-        app.logger.warning(f"Endpoint {CALLBACK_ENDPOINT} is not registered, building callback URL from config")
-        server_name = app.config.get("SERVER_NAME") or "localhost"
-        scheme = app.config.get("PREFERRED_URL_SCHEME") or "https"
-        root = (app.config.get("APPLICATION_ROOT") or "/").rstrip("/")
-        return f"{scheme}://{server_name}{root}{CALLBACK_PATH}"
 
 
 def init_oidceid_app(name: str = "oidceid", test_config: Mapping[str, Any] | None = None) -> OidcEidApp:
@@ -67,6 +50,9 @@ def init_oidceid_app(name: str = "oidceid", test_config: Mapping[str, Any] | Non
     """
     config = load_config(typ=OidcEidConfig, app_name=name, ns="webapp", test_config=test_config)
 
+    # Load acs actions on app init
+    from . import callback_actions  # noqa: F401
+
     app = OidcEidApp(config)
 
     app.logger.info(f"Init {app}...")
@@ -76,7 +62,8 @@ def init_oidceid_app(name: str = "oidceid", test_config: Mapping[str, Any] | Non
 
     app.register_blueprint(oidceid_views)
 
-    redirect_uris = [_callback_url(app)]
+    app.redirect_uri = get_external_url(app, CALLBACK_ENDPOINT)
+    redirect_uris = [app.redirect_uri]
     for provider in config.providers:
         app.oidc_clients[provider.issuer] = init_oidc_rp_client(
             app=app, name="oidceid", config=provider, redirect_uris=redirect_uris

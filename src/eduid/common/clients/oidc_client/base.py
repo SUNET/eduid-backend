@@ -271,8 +271,15 @@ class OidcRpClient(Protocol):
     (from AuthnRequestData) and hands them back to finish().
     """
 
-    def mint_authn_request(self, redirect_uri: str, extra_params: Mapping[str, str] | None = None) -> AuthnRequestData:
-        """Build an authorization request. extra_params may hold claims, acr_values, prompt etc."""
+    def mint_authn_request(
+        self, redirect_uri: str, extra_params: Mapping[str, str] | None = None, scopes: Sequence[str] | None = None
+    ) -> AuthnRequestData:
+        """
+        Build an authorization request. extra_params may hold claims, acr_values, prompt etc.
+
+        scopes replaces the configured scopes for this request only (it can not be passed in extra_params, the
+        scope parameter is owned by the client). It must contain "openid".
+        """
         ...
 
     def parse_callback(self, params: CallbackParams | Sequence[tuple[str, str]]) -> OidcCallback:
