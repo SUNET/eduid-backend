@@ -414,3 +414,43 @@ def test_legacy_u2f_with_a_useless_certificate_is_still_a_security_key(resolver:
     assert classification.authenticator_id is None
     assert classification.kind is KeyKind.SECURITY_KEY
     assert classification.name is None
+
+
+@pytest.mark.parametrize("attestation_format", [None, AttestationFormat.NONE, AttestationFormat.TPM])
+def test_windows_hello_follows_the_cutoff_whatever_the_stored_attestation_format(
+    resolver: AuthenticatorInfoResolver, attestation_format: AttestationFormat | None
+) -> None:
+    def credential(created_ts: datetime) -> Webauthn:
+        return webauthn(
+            aaguid=WINDOWS_HELLO,
+            attestation_format=attestation_format,
+            authenticator=AuthenticatorAttachment.PLATFORM,
+            created_ts=created_ts,
+        )
+
+    assert resolver.classify(credential(BEFORE)).kind is KeyKind.PASSKEY
+    assert resolver.classify(credential(BEFORE), resident_key_cutoff=CUTOFF).discoverable is Discoverable.NO
+    assert resolver.classify(credential(AFTER), resident_key_cutoff=CUTOFF).discoverable is Discoverable.LIKELY
+    assert resolver.classify(credential(AFTER)).discoverable is Discoverable.UNKNOWN
+
+
+def test_windows_hello_is_known_by_its_aaguid_even_when_mds_does_not_know_it() -> None:
+    resolver = AuthenticatorInfoResolver(FakeStore({}))
+    credential = webauthn(
+        aaguid=WINDOWS_HELLO,
+        attestation_format=AttestationFormat.NONE,
+        authenticator=AuthenticatorAttachment.PLATFORM,
+        created_ts=BEFORE,
+    )
+    classification = resolver.classify(credential, resident_key_cutoff=CUTOFF)
+    assert classification.kind is KeyKind.PASSKEY
+    assert classification.discoverable is Discoverable.NO
+
+
+def test_windows_hello_is_known_by_the_name_mds_gives_it() -> None:
+    other_windows_hello = UUID("11111111-2222-3333-4444-555555555555")
+    resolver = AuthenticatorInfoResolver(
+        FakeStore({other_windows_hello: internal("Windows Hello Future Authenticator")})
+    )
+    credential = webauthn(aaguid=other_windows_hello, created_ts=BEFORE)
+    assert resolver.classify(credential, resident_key_cutoff=CUTOFF).discoverable is Discoverable.NO

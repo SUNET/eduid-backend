@@ -9,7 +9,6 @@ the authenticator); texts for the user are the frontend's business.
 """
 
 import base64
-import binascii
 import logging
 import re
 from dataclasses import dataclass
@@ -30,6 +29,15 @@ __author__ = "ylle"
 logger = logging.getLogger(__name__)
 
 ZERO_AAGUID = UUID(int=0)
+# Windows Hello (hardware, software and VBS hardware). To our knowledge it creates a discoverable credential only
+# when asked to require one, so it is not assumed to be discoverable like other platform authenticators.
+WINDOWS_HELLO_AAGUIDS = frozenset(
+    {
+        UUID("08987058-cadc-4b81-b6e1-30de50dcbe96"),
+        UUID("6028b017-b1d4-4c02-b4b3-afcdafc96bb2"),
+        UUID("9ddd1817-af5a-4672-a2b9-3e3dd95000a9"),
+    }
+)
 # A certificate key identifier (SHA-1 of the public key) as published by MDS: 40 hex characters
 _KEY_IDENTIFIER = re.compile(r"[0-9a-f]{40}")
 
@@ -106,7 +114,7 @@ def aaguid_from_credential_data(credential_data: str | None) -> UUID | None:
         raw = base64.urlsafe_b64decode(credential_data.encode("ascii") + b"=" * (-len(credential_data) % 4))
         acd, _rest = AttestedCredentialData.unpack_from(raw)
         aaguid = UUID(bytes=bytes(acd.aaguid))
-    except (ValueError, binascii.Error, UnicodeEncodeError, IndexError):
+    except (ValueError, IndexError):  # includes binascii.Error and UnicodeEncodeError
         logger.debug("could not read an AAGUID from credential_data")
         return None
     return None if aaguid == ZERO_AAGUID else aaguid
@@ -127,7 +135,7 @@ def key_identifier_from_certificate(attest_cert: str | None) -> str | None:
         else:
             cert = x509.load_der_x509_certificate(base64.b64decode(text, validate=True))
         return x509.SubjectKeyIdentifier.from_public_key(cert.public_key()).digest.hex()
-    except (ValueError, binascii.Error, UnicodeEncodeError, TypeError):
+    except (ValueError, TypeError):  # includes binascii.Error and UnicodeEncodeError
         logger.debug("could not read a certificate key identifier from attest_cert")
         return None
 
@@ -191,7 +199,9 @@ class AuthenticatorInfoResolver:
         return AuthenticatorClassification(
             authenticator_id=authenticator_id,
             kind=kind,
-            discoverable=_discoverable(credential, kind, resident_key_cutoff),
+            discoverable=_discoverable(
+                credential, kind, _is_windows_hello(credential, authenticator_id, mds), resident_key_cutoff
+            ),
             name=mds.name if mds else None,
             icon=mds.icon if mds else None,
         )
@@ -220,18 +230,27 @@ def _kind(credential: Credential, mds: MdsInfo | None) -> KeyKind:
     return KeyKind.UNKNOWN
 
 
-def _discoverable(credential: Credential, kind: KeyKind, cutoff: datetime | None) -> Discoverable:
+def _is_windows_hello(credential: Credential, authenticator_id: UUID | str | None, mds: MdsInfo | None) -> bool:
+    """Windows Hello by what identifies it, not by the attestation format: old credentials have none stored, and
+    Windows Hello can also register with `none` attestation."""
+    if isinstance(credential, Webauthn) and credential.attestation_format is AttestationFormat.TPM:
+        return True
+    if authenticator_id in WINDOWS_HELLO_AAGUIDS:
+        return True
+    return bool(mds and mds.name and mds.name.startswith("Windows Hello"))
+
+
+def _discoverable(credential: Credential, kind: KeyKind, windows_hello: bool, cutoff: datetime | None) -> Discoverable:
     if isinstance(credential, U2F):
         return Discoverable.NO
     if not isinstance(credential, Webauthn):
         return Discoverable.UNKNOWN
     if credential.attestation_format is AttestationFormat.FIDO_U2F:
         return Discoverable.NO
-    # Platform and synced passkeys are discoverable. Windows Hello (TPM attestation) is not assumed to be:
-    # to our knowledge it creates a discoverable credential only when asked to require one.
-    if kind is KeyKind.PASSKEY and credential.attestation_format is not AttestationFormat.TPM:
+    # Platform and synced passkeys are discoverable. Windows Hello is not assumed to be (see WINDOWS_HELLO_AAGUIDS).
+    if kind is KeyKind.PASSKEY and not windows_hello:
         return Discoverable.YES
-    if kind is KeyKind.SECURITY_KEY or credential.attestation_format is AttestationFormat.TPM:
+    if kind is KeyKind.SECURITY_KEY or windows_hello:
         return _by_cutoff(credential.created_ts, cutoff)
     return Discoverable.UNKNOWN
 
