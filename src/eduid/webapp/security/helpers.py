@@ -102,6 +102,7 @@ class CredentialInfo:
     keyhandle: str | None = None  # the WebAuthn credential id (base64url)
     authenticator_id: str | None = None  # an AAGUID, or a certificate key identifier for old keys
     authenticator_name: str | None = None  # the name MDS publishes, when MDS knows the authenticator
+    attestation_format: str | None = None  # as registered (none, packed, apple, ...); None for U2F or not stored
     kind: str | None = None  # KeyKind: security_key, passkey or unknown
     discoverable: str | None = None  # Discoverable: yes, likely, no or unknown
 
@@ -146,6 +147,8 @@ def compile_credential_list(user: User) -> list[CredentialInfo]:
                 str(classification.authenticator_id) if classification.authenticator_id is not None else None
             )
             info.authenticator_name = classification.name
+            if isinstance(cred, Webauthn) and cred.attestation_format is not None:
+                info.attestation_format = cred.attestation_format.value
             info.kind = classification.kind.value
             info.discoverable = classification.discoverable.value
         credentials.append(info)

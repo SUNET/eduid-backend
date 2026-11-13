@@ -681,6 +681,7 @@ class SecurityTests(EduidAPITestCase[SecurityApp]):
                 {
                     "authenticator": None,
                     "authenticator_id": None,
+                    "attestation_format": None,
                     "authenticator_name": None,
                     "created_ts": "2013-09-02 10:23:25+00:00",
                     "credential_type": "security.password_credential_type",
@@ -697,6 +698,7 @@ class SecurityTests(EduidAPITestCase[SecurityApp]):
                 {
                     "authenticator": "cross-platform",
                     "authenticator_id": None,
+                    "attestation_format": None,
                     "authenticator_name": None,
                     "created_ts": "2025-11-25 13:59:59+00:00",
                     "credential_type": "security.webauthn_credential_type",
@@ -713,6 +715,7 @@ class SecurityTests(EduidAPITestCase[SecurityApp]):
                 {
                     "authenticator": "cross-platform",
                     "authenticator_id": None,
+                    "attestation_format": None,
                     "authenticator_name": None,
                     "created_ts": "2025-11-25 14:01:01+00:00",
                     "credential_type": "security.webauthn_credential_type",
@@ -760,6 +763,13 @@ class SecurityTests(EduidAPITestCase[SecurityApp]):
             attestation_format=AttestationFormat.NONE,
             authenticator=AuthenticatorAttachment.PLATFORM,
         )
+        self.add_security_key_to_user(
+            eppn=eppn,
+            keyhandle="apple_passkey",
+            authenticator_id="f24a8e70-d0d3-f82c-2937-32523cc4de5a",
+            attestation_format=AttestationFormat.APPLE,
+            authenticator=AuthenticatorAttachment.PLATFORM,
+        )
         with self.session_cookie(self.browser, eppn) as client:
             response = client.get("/credentials")
 
@@ -767,10 +777,14 @@ class SecurityTests(EduidAPITestCase[SecurityApp]):
         credentials = {c["keyhandle"]: c for c in response.json["payload"]["credentials"] if c["keyhandle"]}
         assert credentials["hardware_key"]["authenticator_id"] == str(security_key_id)
         assert credentials["hardware_key"]["authenticator_name"] == "Test security key"
+        assert credentials["hardware_key"]["attestation_format"] == "packed"
         assert credentials["hardware_key"]["kind"] == "security_key"
         assert credentials["hardware_key"]["discoverable"] == "unknown"  # no resident key cutoff configured
         assert credentials["platform_passkey"]["authenticator_id"] == "d548826e-79b4-db40-a3d8-11116f7e8349"
         assert credentials["platform_passkey"]["authenticator_name"] is None  # not in the metadata
+        assert credentials["platform_passkey"]["attestation_format"] == "none"
+        assert credentials["apple_passkey"]["attestation_format"] == "apple"
+        assert credentials["apple_passkey"]["kind"] == "passkey"
         assert credentials["platform_passkey"]["kind"] == "passkey"
         # a platform attachment is no evidence of a discoverable credential
         assert credentials["platform_passkey"]["discoverable"] == "unknown"

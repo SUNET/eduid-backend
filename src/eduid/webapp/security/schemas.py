@@ -21,6 +21,7 @@ class CredentialSchema(EduidSchema):
     keyhandle = fields.String(required=False, allow_none=True)
     authenticator_id = fields.String(required=False, allow_none=True)
     authenticator_name = fields.String(required=False, allow_none=True)
+    attestation_format = fields.String(required=False, allow_none=True)
     kind = fields.String(required=False, allow_none=True)
     discoverable = fields.String(required=False, allow_none=True)
 
