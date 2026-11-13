@@ -202,7 +202,7 @@ class AuthenticatorInfoResolver:
         """
         authenticator_id = authenticator_id_for(credential)
         mds = self.mds_info(authenticator_id)
-        kind = _kind(credential, mds, _is_windows_hello(credential, authenticator_id, mds))
+        kind = _kind(credential, mds, _is_windows_hello(authenticator_id, mds))
         return AuthenticatorClassification(
             authenticator_id=authenticator_id,
             kind=kind,
@@ -239,11 +239,10 @@ def _kind(credential: Credential, mds: MdsInfo | None, windows_hello: bool) -> K
     return KeyKind.UNKNOWN
 
 
-def _is_windows_hello(credential: Credential, authenticator_id: UUID | str | None, mds: MdsInfo | None) -> bool:
-    """Windows Hello by what identifies it, not by the attestation format: old credentials have none stored, and
-    Windows Hello can also register with `none` attestation."""
-    if isinstance(credential, Webauthn) and credential.attestation_format is AttestationFormat.TPM:
-        return True
+def _is_windows_hello(authenticator_id: UUID | str | None, mds: MdsInfo | None) -> bool:
+    """Windows Hello by what identifies it: its AAGUID, or the name MDS gives it. Not by the attestation format:
+    old credentials have none stored, Windows Hello can also register with `none` attestation, and TPM
+    attestation says only that a TPM is involved, not which authenticator it is."""
     if authenticator_id in WINDOWS_HELLO_AAGUIDS:
         return True
     return bool(mds and mds.name and mds.name.startswith("Windows Hello"))

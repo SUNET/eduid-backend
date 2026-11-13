@@ -494,3 +494,12 @@ def test_nothing_derived_from_stored_data_alone_is_a_definite_yes(resolver: Auth
         for aaguid in (YUBIKEY, WINDOWS_HELLO, ANDROID, PASSWORD_MANAGER, ZERO_AAGUID):
             credential = webauthn(aaguid=aaguid, authenticator=attachment, attestation_format=AttestationFormat.APPLE)
             assert resolver.classify(credential, resident_key_cutoff=CUTOFF).discoverable is not Discoverable.YES
+
+
+def test_an_unidentified_tpm_authenticator_is_not_assumed_to_be_windows_hello() -> None:
+    # TPM attestation says a TPM is involved, not which authenticator it is
+    resolver = AuthenticatorInfoResolver(FakeStore({}))
+    credential = webauthn(aaguid=UUID("11111111-2222-3333-4444-555555555555"), attestation_format=AttestationFormat.TPM)
+    classification = resolver.classify(credential, resident_key_cutoff=CUTOFF)
+    assert classification.kind is KeyKind.UNKNOWN
+    assert classification.discoverable is Discoverable.UNKNOWN
