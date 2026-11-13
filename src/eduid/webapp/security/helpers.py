@@ -18,6 +18,8 @@ from eduid.common.utils import generate_password
 from eduid.queue.client import enqueue_email
 from eduid.queue.db.message.payload import EduidTerminationEmail
 from eduid.userdb import NinIdentity
+from eduid.userdb.credentials import Webauthn
+from eduid.userdb.credentials.fido import U2F
 from eduid.userdb.identity import IdentityType
 from eduid.userdb.logs.element import NameUpdateProofing
 from eduid.userdb.security import SecurityUser
@@ -96,6 +98,12 @@ class CredentialInfo:
     authenticator: str | None = None
     mfa_approved: bool | None = None
     used_for_login: bool = False
+    # Security keys and passkeys only. See eduid.webapp.common.authn.authenticator_info.
+    keyhandle: str | None = None  # the WebAuthn credential id (base64url)
+    authenticator_id: str | None = None  # an AAGUID, or a certificate key identifier for old keys
+    authenticator_name: str | None = None  # the name MDS publishes, when MDS knows the authenticator
+    kind: str | None = None  # KeyKind: security_key, passkey or unknown
+    discoverable: str | None = None  # Discoverable: yes, likely, no or unknown
 
 
 def compile_credential_list(user: User) -> list[CredentialInfo]:
@@ -129,6 +137,17 @@ def compile_credential_list(user: User) -> list[CredentialInfo]:
             mfa_approved=_is_mfa_approved,
             used_for_login=_used_for_login,
         )
+        if isinstance(cred, Webauthn | U2F):
+            classification = current_app.authenticator_info.classify(
+                cred, resident_key_cutoff=current_app.conf.webauthn_resident_key_cutoff
+            )
+            info.keyhandle = cred.keyhandle
+            info.authenticator_id = (
+                str(classification.authenticator_id) if classification.authenticator_id is not None else None
+            )
+            info.authenticator_name = classification.name
+            info.kind = classification.kind.value
+            info.discoverable = classification.discoverable.value
         credentials.append(info)
     return credentials
 

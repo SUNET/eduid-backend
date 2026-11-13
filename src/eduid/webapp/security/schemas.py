@@ -16,6 +16,13 @@ class CredentialSchema(EduidSchema):
     description = fields.String(required=False)
     authenticator = fields.String(required=False)
     mfa_approved = fields.Boolean(required=False)
+    # Security keys and passkeys only (None for other credentials). Codes and identifiers, no display text,
+    # except the name MDS publishes for the authenticator.
+    keyhandle = fields.String(required=False, allow_none=True)
+    authenticator_id = fields.String(required=False, allow_none=True)
+    authenticator_name = fields.String(required=False, allow_none=True)
+    kind = fields.String(required=False, allow_none=True)
+    discoverable = fields.String(required=False, allow_none=True)
 
 
 class CredentialList(EduidSchema, CSRFResponseMixin):
