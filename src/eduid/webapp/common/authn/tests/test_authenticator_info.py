@@ -303,7 +303,7 @@ def test_a_naive_cutoff_is_read_as_utc(resolver: AuthenticatorInfoResolver) -> N
     )
 
 
-def test_windows_hello_is_a_passkey_but_not_assumed_discoverable(resolver: AuthenticatorInfoResolver) -> None:
+def test_windows_hello_is_a_passkey_that_is_not_known_to_be_discoverable(resolver: AuthenticatorInfoResolver) -> None:
     credential = webauthn(
         aaguid=WINDOWS_HELLO,
         attestation_format=AttestationFormat.TPM,
@@ -313,11 +313,13 @@ def test_windows_hello_is_a_passkey_but_not_assumed_discoverable(resolver: Authe
     classification = resolver.classify(credential, resident_key_cutoff=CUTOFF)
     assert classification.kind is KeyKind.PASSKEY
     assert classification.name == "Windows Hello Hardware Authenticator"
-    assert classification.discoverable is Discoverable.NO
+    assert classification.discoverable is Discoverable.UNKNOWN
     assert resolver.classify(credential).discoverable is Discoverable.UNKNOWN
 
 
-def test_an_android_authenticator_is_a_discoverable_passkey(resolver: AuthenticatorInfoResolver) -> None:
+def test_an_android_authenticator_is_a_passkey_that_is_not_known_to_be_discoverable(
+    resolver: AuthenticatorInfoResolver,
+) -> None:
     credential = webauthn(
         aaguid=ANDROID,
         attestation_format=AttestationFormat.ANDROID_SAFETYNET,
@@ -325,7 +327,7 @@ def test_an_android_authenticator_is_a_discoverable_passkey(resolver: Authentica
     )
     classification = resolver.classify(credential)
     assert classification.kind is KeyKind.PASSKEY
-    assert classification.discoverable is Discoverable.YES
+    assert classification.discoverable is Discoverable.UNKNOWN
 
 
 def test_mds_wins_over_the_stored_attachment(resolver: AuthenticatorInfoResolver) -> None:
@@ -346,7 +348,7 @@ def test_a_password_manager_passkey_is_a_passkey_through_the_stored_platform_att
     assert classification.authenticator_id == PASSWORD_MANAGER
     assert classification.name is None  # not in MDS: the frontend names it
     assert classification.kind is KeyKind.PASSKEY
-    assert classification.discoverable is Discoverable.YES
+    assert classification.discoverable is Discoverable.UNKNOWN
 
 
 def test_a_stored_cross_platform_attachment_says_nothing(resolver: AuthenticatorInfoResolver) -> None:
@@ -360,7 +362,7 @@ def test_apple_attestation_is_a_passkey(resolver: AuthenticatorInfoResolver) -> 
     credential = webauthn(aaguid=PASSWORD_MANAGER, attestation_format=AttestationFormat.APPLE)
     classification = resolver.classify(credential)
     assert classification.kind is KeyKind.PASSKEY
-    assert classification.discoverable is Discoverable.YES
+    assert classification.discoverable is Discoverable.UNKNOWN
 
 
 def test_a_zero_aaguid_is_not_evidence_of_a_security_key(resolver: AuthenticatorInfoResolver) -> None:
@@ -417,7 +419,7 @@ def test_legacy_u2f_with_a_useless_certificate_is_still_a_security_key(resolver:
 
 
 @pytest.mark.parametrize("attestation_format", [None, AttestationFormat.NONE, AttestationFormat.TPM])
-def test_windows_hello_follows_the_cutoff_whatever_the_stored_attestation_format(
+def test_windows_hello_is_a_passkey_whatever_the_stored_attestation_format(
     resolver: AuthenticatorInfoResolver, attestation_format: AttestationFormat | None
 ) -> None:
     def credential(created_ts: datetime) -> Webauthn:
@@ -429,28 +431,66 @@ def test_windows_hello_follows_the_cutoff_whatever_the_stored_attestation_format
         )
 
     assert resolver.classify(credential(BEFORE)).kind is KeyKind.PASSKEY
-    assert resolver.classify(credential(BEFORE), resident_key_cutoff=CUTOFF).discoverable is Discoverable.NO
+    assert resolver.classify(credential(BEFORE), resident_key_cutoff=CUTOFF).discoverable is Discoverable.UNKNOWN
     assert resolver.classify(credential(AFTER), resident_key_cutoff=CUTOFF).discoverable is Discoverable.LIKELY
     assert resolver.classify(credential(AFTER)).discoverable is Discoverable.UNKNOWN
 
 
-def test_windows_hello_is_known_by_its_aaguid_even_when_mds_does_not_know_it() -> None:
+@pytest.mark.parametrize("attachment", [AuthenticatorAttachment.PLATFORM, AuthenticatorAttachment.CROSS_PLATFORM])
+def test_windows_hello_is_a_passkey_when_mds_does_not_know_it_whatever_the_stored_attachment(
+    attachment: AuthenticatorAttachment,
+) -> None:
+    # `cross-platform` is also what a credential without a stored attachment gets when it is loaded
     resolver = AuthenticatorInfoResolver(FakeStore({}))
-    credential = webauthn(
-        aaguid=WINDOWS_HELLO,
-        attestation_format=AttestationFormat.NONE,
-        authenticator=AuthenticatorAttachment.PLATFORM,
-        created_ts=BEFORE,
-    )
+    credential = webauthn(aaguid=WINDOWS_HELLO, authenticator=attachment, created_ts=AFTER)
     classification = resolver.classify(credential, resident_key_cutoff=CUTOFF)
+    assert classification.name is None
     assert classification.kind is KeyKind.PASSKEY
-    assert classification.discoverable is Discoverable.NO
+    assert classification.discoverable is Discoverable.LIKELY
+
+
+def test_windows_hello_is_a_passkey_when_the_mds_lookup_fails() -> None:
+    class BrokenStore:
+        def get_entry(self, authenticator_id: UUID | str) -> object:
+            raise RuntimeError("boom")
+
+    resolver = AuthenticatorInfoResolver(BrokenStore())
+    classification = resolver.classify(webauthn(aaguid=WINDOWS_HELLO))
+    assert classification.kind is KeyKind.PASSKEY
 
 
 def test_windows_hello_is_known_by_the_name_mds_gives_it() -> None:
     other_windows_hello = UUID("11111111-2222-3333-4444-555555555555")
-    resolver = AuthenticatorInfoResolver(
-        FakeStore({other_windows_hello: internal("Windows Hello Future Authenticator")})
-    )
-    credential = webauthn(aaguid=other_windows_hello, created_ts=BEFORE)
-    assert resolver.classify(credential, resident_key_cutoff=CUTOFF).discoverable is Discoverable.NO
+    entry = {
+        "description": "Windows Hello Future Authenticator",
+        "icon": None,
+        "key_protection": ["hardware"],
+        "attachment_hint": [],
+    }
+    resolver = AuthenticatorInfoResolver(FakeStore({other_windows_hello: entry}))
+    classification = resolver.classify(webauthn(aaguid=other_windows_hello))
+    assert classification.kind is KeyKind.PASSKEY
+
+
+def test_a_platform_attachment_is_no_evidence_of_a_discoverable_credential(resolver: AuthenticatorInfoResolver) -> None:
+    def credential(created_ts: datetime) -> Webauthn:
+        return webauthn(
+            aaguid=PASSWORD_MANAGER,
+            attestation_format=AttestationFormat.NONE,
+            authenticator=AuthenticatorAttachment.PLATFORM,
+            created_ts=created_ts,
+        )
+
+    assert resolver.classify(credential(BEFORE)).kind is KeyKind.PASSKEY
+    # nothing known without a cutoff, and before it only that the registration did not ask for one
+    assert resolver.classify(credential(BEFORE)).discoverable is Discoverable.UNKNOWN
+    assert resolver.classify(credential(BEFORE), resident_key_cutoff=CUTOFF).discoverable is Discoverable.UNKNOWN
+    assert resolver.classify(credential(AFTER)).discoverable is Discoverable.UNKNOWN
+    assert resolver.classify(credential(AFTER), resident_key_cutoff=CUTOFF).discoverable is Discoverable.LIKELY
+
+
+def test_nothing_derived_from_stored_data_alone_is_a_definite_yes(resolver: AuthenticatorInfoResolver) -> None:
+    for attachment in AuthenticatorAttachment:
+        for aaguid in (YUBIKEY, WINDOWS_HELLO, ANDROID, PASSWORD_MANAGER, ZERO_AAGUID):
+            credential = webauthn(aaguid=aaguid, authenticator=attachment, attestation_format=AttestationFormat.APPLE)
+            assert resolver.classify(credential, resident_key_cutoff=CUTOFF).discoverable is not Discoverable.YES

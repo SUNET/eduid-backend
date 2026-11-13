@@ -29,8 +29,8 @@ __author__ = "ylle"
 logger = logging.getLogger(__name__)
 
 ZERO_AAGUID = UUID(int=0)
-# Windows Hello (hardware, software and VBS hardware). To our knowledge it creates a discoverable credential only
-# when asked to require one, so it is not assumed to be discoverable like other platform authenticators.
+# Windows Hello (hardware, software and VBS hardware): a platform authenticator that is recognised from its AAGUID
+# even when MDS does not answer and the credential has no stored platform attachment.
 WINDOWS_HELLO_AAGUIDS = frozenset(
     {
         UUID("08987058-cadc-4b81-b6e1-30de50dcbe96"),
@@ -49,7 +49,12 @@ class KeyKind(StrEnum):
 
 
 class Discoverable(StrEnum):
-    """Whether the credential is a discoverable one (usable without typing a username)."""
+    """Whether the credential is a discoverable one (usable without typing a username).
+
+    `yes` is for per-credential evidence only (the `credProps.rk` result at registration, or a usernameless
+    login); nothing that is derived from the stored data today gives it. A platform attachment says nothing: it
+    was `preferred` at best, and old Android, Windows Hello and Chrome credentials are not discoverable.
+    """
 
     YES = "yes"
     LIKELY = "likely"
@@ -190,24 +195,24 @@ class AuthenticatorInfoResolver:
     ) -> AuthenticatorClassification:
         """Classify a credential.
 
-        `resident_key_cutoff` is when the registration flow started asking for discoverable credentials; it is
-        only used to guess for hardware keys and Windows Hello, and without it those stay `unknown`.
+        `resident_key_cutoff` is when the registration flow started asking for discoverable credentials. It is
+        only used to guess: a security key registered before it is not discoverable and one registered after it
+        likely is; a passkey registered after it likely is, before it nothing is known. Without a cutoff those
+        stay `unknown`.
         """
         authenticator_id = authenticator_id_for(credential)
         mds = self.mds_info(authenticator_id)
-        kind = _kind(credential, mds)
+        kind = _kind(credential, mds, _is_windows_hello(credential, authenticator_id, mds))
         return AuthenticatorClassification(
             authenticator_id=authenticator_id,
             kind=kind,
-            discoverable=_discoverable(
-                credential, kind, _is_windows_hello(credential, authenticator_id, mds), resident_key_cutoff
-            ),
+            discoverable=_discoverable(credential, kind, resident_key_cutoff),
             name=mds.name if mds else None,
             icon=mds.icon if mds else None,
         )
 
 
-def _kind(credential: Credential, mds: MdsInfo | None) -> KeyKind:
+def _kind(credential: Credential, mds: MdsInfo | None, windows_hello: bool) -> KeyKind:
     if isinstance(credential, U2F):
         return KeyKind.SECURITY_KEY
     if not isinstance(credential, Webauthn):
@@ -222,6 +227,10 @@ def _kind(credential: Credential, mds: MdsInfo | None) -> KeyKind:
         if "internal" in mds.attachment_hint:
             return KeyKind.PASSKEY
     if credential.attestation_format is AttestationFormat.APPLE:
+        return KeyKind.PASSKEY
+    # Windows Hello is a platform authenticator, also when MDS misses or fails and the credential has no stored
+    # attachment (the load-time default is `cross-platform`)
+    if windows_hello:
         return KeyKind.PASSKEY
     # `platform` is only stored when the user chose "this device"; the load-time default is `cross-platform`,
     # so a stored `cross-platform` says nothing.
@@ -240,26 +249,30 @@ def _is_windows_hello(credential: Credential, authenticator_id: UUID | str | Non
     return bool(mds and mds.name and mds.name.startswith("Windows Hello"))
 
 
-def _discoverable(credential: Credential, kind: KeyKind, windows_hello: bool, cutoff: datetime | None) -> Discoverable:
+def _discoverable(credential: Credential, kind: KeyKind, cutoff: datetime | None) -> Discoverable:
     if isinstance(credential, U2F):
         return Discoverable.NO
     if not isinstance(credential, Webauthn):
         return Discoverable.UNKNOWN
     if credential.attestation_format is AttestationFormat.FIDO_U2F:
         return Discoverable.NO
-    # Platform and synced passkeys are discoverable. Windows Hello is not assumed to be (see WINDOWS_HELLO_AAGUIDS).
-    if kind is KeyKind.PASSKEY and not windows_hello:
-        return Discoverable.YES
-    if kind is KeyKind.SECURITY_KEY or windows_hello:
-        return _by_cutoff(credential.created_ts, cutoff)
+    registered_after_cutoff = _registered_after(credential.created_ts, cutoff)
+    if kind is KeyKind.SECURITY_KEY:
+        # a security key creates a discoverable credential only when asked to
+        if registered_after_cutoff is None:
+            return Discoverable.UNKNOWN
+        return Discoverable.LIKELY if registered_after_cutoff else Discoverable.NO
+    if kind is KeyKind.PASSKEY and registered_after_cutoff:
+        return Discoverable.LIKELY
     return Discoverable.UNKNOWN
 
 
-def _by_cutoff(created_ts: datetime, cutoff: datetime | None) -> Discoverable:
+def _registered_after(created_ts: datetime, cutoff: datetime | None) -> bool | None:
+    """Whether the credential was registered at or after the cutoff; None without a cutoff."""
     if cutoff is None:
-        return Discoverable.UNKNOWN
+        return None
     if created_ts.tzinfo is None:
         created_ts = created_ts.replace(tzinfo=UTC)
     if cutoff.tzinfo is None:
         cutoff = cutoff.replace(tzinfo=UTC)
-    return Discoverable.LIKELY if created_ts >= cutoff else Discoverable.NO
+    return created_ts >= cutoff
