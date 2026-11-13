@@ -2,9 +2,13 @@ import json
 from collections.abc import Mapping
 from datetime import UTC, datetime, timedelta
 from http import HTTPStatus
+from types import SimpleNamespace
 from typing import Any
+from uuid import UUID
 
 import pytest
+from fido2.webauthn import AuthenticatorAttachment
+from fido_mds.models.webauthn import AttestationFormat
 from pytest_mock import MockerFixture
 from werkzeug.test import TestResponse
 
@@ -17,10 +21,22 @@ from eduid.userdb.identity import IdentityType
 from eduid.userdb.security import SecurityUser
 from eduid.webapp.common.api.schemas.authn_status import AuthnActionStatus
 from eduid.webapp.common.api.testing import EduidAPITestCase
+from eduid.webapp.common.authn.authenticator_info import AuthenticatorInfoResolver
 from eduid.webapp.common.session.redis_session import SessionOutOfSync
 from eduid.webapp.common.session.testing import force_session_conflict_on_post
 from eduid.webapp.security.app import SecurityApp, security_init_app
 from eduid.webapp.security.helpers import SecurityMsg, update_user_official_name
+
+
+class _FakeMetadataStore:
+    """Answers FIDO metadata lookups for the ids it was given."""
+
+    def __init__(self, statements: dict[UUID | str, SimpleNamespace]) -> None:
+        self._statements = statements
+
+    def get_entry(self, authenticator_id: UUID | str) -> SimpleNamespace | None:
+        statement = self._statements.get(authenticator_id)
+        return SimpleNamespace(metadata_statement=statement) if statement is not None else None
 
 
 class SecurityTests(EduidAPITestCase[SecurityApp]):
@@ -664,10 +680,16 @@ class SecurityTests(EduidAPITestCase[SecurityApp]):
             "credentials": [
                 {
                     "authenticator": None,
+                    "authenticator_id": None,
+                    "attestation_format": None,
+                    "authenticator_name": None,
                     "created_ts": "2013-09-02 10:23:25+00:00",
                     "credential_type": "security.password_credential_type",
                     "description": None,
+                    "discoverable": None,
                     "key": "112345678901234567890123",
+                    "keyhandle": None,
+                    "kind": None,
                     "mfa_approved": None,
                     "success_ts": None,
                     "used_for_login": False,
@@ -675,10 +697,16 @@ class SecurityTests(EduidAPITestCase[SecurityApp]):
                 },
                 {
                     "authenticator": "cross-platform",
+                    "authenticator_id": None,
+                    "attestation_format": None,
+                    "authenticator_name": None,
                     "created_ts": "2025-11-25 13:59:59+00:00",
                     "credential_type": "security.webauthn_credential_type",
                     "description": "unit test webauthn token",
+                    "discoverable": "unknown",
                     "key": "sha256:e1b0b2bc302de9df5cbb170900824ee1322a53b88c3ff4c6cf7a3119a3571613",
+                    "keyhandle": "test_keyhandle_1",
+                    "kind": "unknown",
                     "mfa_approved": False,
                     "success_ts": None,
                     "used_for_login": False,
@@ -686,10 +714,16 @@ class SecurityTests(EduidAPITestCase[SecurityApp]):
                 },
                 {
                     "authenticator": "cross-platform",
+                    "authenticator_id": None,
+                    "attestation_format": None,
+                    "authenticator_name": None,
                     "created_ts": "2025-11-25 14:01:01+00:00",
                     "credential_type": "security.webauthn_credential_type",
                     "description": "unit test webauthn token",
+                    "discoverable": "unknown",
                     "key": "sha256:18d65d1095045f39c3764ee3093d0f6efba14b69c18a5d6304a3aada4478d670",
+                    "keyhandle": "test_keyhandle_2",
+                    "kind": "unknown",
                     "mfa_approved": True,
                     "success_ts": None,
                     "used_for_login": False,
@@ -698,6 +732,62 @@ class SecurityTests(EduidAPITestCase[SecurityApp]):
             ],
         }
         self._check_success_response(response, type_="GET_SECURITY_CREDENTIALS_SUCCESS", payload=expected_payload)
+
+    def test_get_credentials_identifies_the_authenticators(self) -> None:
+        security_key_id = UUID("2fc0579f-8113-47ea-b116-bb5a8db9202a")
+        # a stand-in for the FIDO metadata, so that the test does not depend on the bundled MDS data
+        self.app.authenticator_info = AuthenticatorInfoResolver(
+            _FakeMetadataStore(
+                {
+                    security_key_id: SimpleNamespace(
+                        description="Test security key",
+                        icon=None,
+                        key_protection=["hardware", "secure_element"],
+                        attachment_hint=["external", "wired"],
+                    )
+                }
+            )
+        )
+        eppn = self.test_user_data["eduPersonPrincipalName"]
+        # the id is stored as a string in part of the data
+        self.add_security_key_to_user(
+            eppn=eppn,
+            keyhandle="hardware_key",
+            authenticator_id=str(security_key_id),
+            attestation_format=AttestationFormat.PACKED,
+        )
+        self.add_security_key_to_user(
+            eppn=eppn,
+            keyhandle="platform_passkey",
+            authenticator_id="d548826e-79b4-db40-a3d8-11116f7e8349",
+            attestation_format=AttestationFormat.NONE,
+            authenticator=AuthenticatorAttachment.PLATFORM,
+        )
+        self.add_security_key_to_user(
+            eppn=eppn,
+            keyhandle="apple_passkey",
+            authenticator_id="f24a8e70-d0d3-f82c-2937-32523cc4de5a",
+            attestation_format=AttestationFormat.APPLE,
+            authenticator=AuthenticatorAttachment.PLATFORM,
+        )
+        with self.session_cookie(self.browser, eppn) as client:
+            response = client.get("/credentials")
+
+        assert response.json is not None
+        credentials = {c["keyhandle"]: c for c in response.json["payload"]["credentials"] if c["keyhandle"]}
+        assert credentials["hardware_key"]["authenticator_id"] == str(security_key_id)
+        assert credentials["hardware_key"]["authenticator_name"] == "Test security key"
+        assert credentials["hardware_key"]["attestation_format"] == "packed"
+        assert credentials["hardware_key"]["kind"] == "security_key"
+        assert credentials["hardware_key"]["discoverable"] == "unknown"  # no resident key cutoff configured
+        assert credentials["platform_passkey"]["authenticator_id"] == "d548826e-79b4-db40-a3d8-11116f7e8349"
+        assert credentials["platform_passkey"]["authenticator_name"] is None  # not in the metadata
+        assert credentials["platform_passkey"]["attestation_format"] == "none"
+        assert credentials["apple_passkey"]["attestation_format"] == "apple"
+        assert credentials["apple_passkey"]["kind"] == "passkey"
+        assert credentials["platform_passkey"]["kind"] == "passkey"
+        # a platform attachment is no evidence of a discoverable credential
+        assert credentials["platform_passkey"]["discoverable"] == "unknown"
 
     def test_authn_status_ok(self) -> None:
         frontend_action = FrontendAction.CHANGE_PW_AUTHN

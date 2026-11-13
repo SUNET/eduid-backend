@@ -10,8 +10,11 @@ from contextlib import contextmanager
 from copy import deepcopy
 from datetime import datetime, timedelta
 from typing import Any, ClassVar, Protocol, cast, runtime_checkable
+from uuid import UUID
 
 import pytest
+from fido2.webauthn import AuthenticatorAttachment
+from fido_mds.models.webauthn import AttestationFormat
 from flask.testing import FlaskClient
 from werkzeug.test import TestResponse
 
@@ -405,6 +408,9 @@ class EduidAPITestCase[T: EduIDBaseApp](CommonTestCase):
         token_type: str = "webauthn",
         created_ts: datetime | None = None,
         mfa_approved: bool = False,
+        authenticator_id: UUID | str | None = None,
+        attestation_format: AttestationFormat | None = None,
+        authenticator: AuthenticatorAttachment | None = None,
     ) -> U2F | Webauthn:
         if created_ts is None:
             created_ts = utc_now()
@@ -414,6 +420,12 @@ class EduidAPITestCase[T: EduIDBaseApp](CommonTestCase):
         if token_type == "webauthn":
             mfa_token = deepcopy(webauthn_credential)
             mfa_token.mfa_approved = mfa_approved
+            if authenticator_id is not None:
+                mfa_token.authenticator_id = authenticator_id
+            if attestation_format is not None:
+                mfa_token.attestation_format = attestation_format
+            if authenticator is not None:
+                mfa_token.authenticator = authenticator
         else:
             mfa_token = deepcopy(u2f_credential)
 

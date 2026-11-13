@@ -12,6 +12,7 @@ from eduid.userdb.authninfo import AuthnInfoDB
 from eduid.userdb.logs import ProofingLog
 from eduid.userdb.logs.db import FidoMetadataLog
 from eduid.userdb.security import SecurityUserDB
+from eduid.webapp.common.authn.authenticator_info import AuthenticatorInfoResolver
 from eduid.webapp.common.authn.middleware import AuthnBaseApp
 from eduid.webapp.security.settings.common import SecurityConfig
 
@@ -24,6 +25,7 @@ class SecurityApp(AuthnBaseApp[SecurityConfig]):
         self.msg_relay = MsgRelay(config)
 
         self.fido_mds = FidoMetadataStore()
+        self.authenticator_info = AuthenticatorInfoResolver(self.fido_mds)
 
         self.private_userdb = SecurityUserDB(config.mongo_uri, auto_expire=config.private_userdb_auto_expire)
         self.authninfo_db = AuthnInfoDB(config.mongo_uri)
