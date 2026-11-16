@@ -43,14 +43,17 @@ def test_proofing_apps_conform_to_protocol() -> None:
 
 # Known tech debt: these modules still import document user info models from other webapps.
 # Move the models to common and remove the entries; do not add new ones.
-_KNOWN_WEBAPP_IMPORTS = {"methods.py", "mfa_signup.py", "shared_actions.py"}
+_KNOWN_WEBAPP_IMPORTS = {"methods.py", "mfa_signup.py", "shared_actions.py"}  # relative to common/proofing
 
 
 def test_shared_proofing_code_imports_no_webapp_modules() -> None:
     """common/proofing must stay app-agnostic (see ProofingApp)."""
     proofing_dir = Path(__file__).parent.parent
     pattern = re.compile(r"^(?:from|import) eduid\.webapp\.(?!common\b)[a-z_]+", re.MULTILINE)
-    offenders = {p.name for p in proofing_dir.glob("*.py") if pattern.search(p.read_text())}
+    # recursive, so the swedenconnect package is covered, but production modules only (not tests)
+    modules = [p for p in proofing_dir.rglob("*.py") if "tests" not in p.relative_to(proofing_dir).parts]
+    assert modules, "no modules found, the scan would pass vacuously"
+    offenders = {str(p.relative_to(proofing_dir)) for p in modules if pattern.search(p.read_text())}
     assert offenders <= _KNOWN_WEBAPP_IMPORTS, (
         f"new webapp imports in common/proofing: {offenders - _KNOWN_WEBAPP_IMPORTS}"
     )
