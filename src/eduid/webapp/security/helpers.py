@@ -26,6 +26,7 @@ from eduid.userdb.security import SecurityUser
 from eduid.userdb.user import User
 from eduid.webapp.common.api.messages import TranslatableMsg
 from eduid.webapp.common.api.translation import get_user_locale
+from eduid.webapp.common.authn.webauthn import encode_user_handle
 from eduid.webapp.common.session import session
 from eduid.webapp.security.app import current_security_app as current_app
 
@@ -105,6 +106,19 @@ class CredentialInfo:
     attestation_format: str | None = None  # as registered (none, packed, apple, ...); None for U2F or not stored
     kind: str | None = None  # KeyKind: security_key, passkey or unknown
     discoverable: str | None = None  # Discoverable: yes, likely, no or unknown
+
+
+def compile_credentials_payload(user: User) -> dict[str, Any]:
+    """
+    The payload of the responses that return the user's credentials: the credentials, and what the frontend needs
+    to tell the browser which passkeys are still valid (the Signal API): the relying party id and the user handle,
+    the same as the ones used when registering a key.
+    """
+    return {
+        "credentials": compile_credential_list(user),
+        "rp_id": current_app.conf.fido2_rp_id,
+        "webauthn_user_handle": encode_user_handle(user.eppn),
+    }
 
 
 def compile_credential_list(user: User) -> list[CredentialInfo]:

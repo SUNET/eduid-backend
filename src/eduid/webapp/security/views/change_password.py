@@ -15,7 +15,7 @@ from eduid.webapp.common.session import session
 from eduid.webapp.security.app import current_security_app as current_app
 from eduid.webapp.security.helpers import (
     SecurityMsg,
-    compile_credential_list,
+    compile_credentials_payload,
     generate_suggested_password,
 )
 from eduid.webapp.security.schemas import (
@@ -123,6 +123,6 @@ def change_password_view(user: User, new_password: str, old_password: str | None
     authn.consumed = True
 
     return success_response(
-        payload={"credentials": compile_credential_list(security_user)},
+        payload=compile_credentials_payload(security_user),
         message=SecurityMsg.change_password_success,
     )
