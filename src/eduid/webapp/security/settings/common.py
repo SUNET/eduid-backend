@@ -1,4 +1,4 @@
-from datetime import timedelta
+from datetime import datetime, timedelta
 
 from pydantic import Field
 
@@ -40,6 +40,11 @@ class SecurityConfig(
     chpass_old_password_needed: bool = True
 
     # webauthn (security-specific settings; common ones inherited from WebauthnRegistrationConfigMixin)
+    # When this environment started asking for discoverable credentials (webauthn_resident_key_requirement).
+    # Only used to guess, for hardware keys and Windows Hello, whether a credential is discoverable: a key
+    # registered before this is reported as not discoverable, one registered after as likely discoverable.
+    # Unset means no guess (reported as unknown). Set it per environment to the date the change was deployed.
+    webauthn_resident_key_cutoff: datetime | None = None
     webauthn_recommended_user_verification_methods: list[str] = Field(
         default=[
             "faceprint_internal",
