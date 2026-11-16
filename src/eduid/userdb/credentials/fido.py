@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import datetime
 from hashlib import sha256
 from typing import Any
 from uuid import UUID
@@ -54,6 +55,13 @@ class Webauthn(FidoCredential):
     authenticator: AuthenticatorAttachment
     webauthn_proofing_version: str | None = None
     attestation_format: AttestationFormat | None = None
+    # Facts about the credential that are only known from a registration or a key check. All optional: absent means
+    # "not known", and nothing writes them yet, so that every app version can read them before the first write.
+    is_discoverable: bool | None = None  # credProps.rk at registration, or proven by a usernameless key check
+    backup_eligible: bool | None = None  # BE flag of the authenticator data (fixed for a credential)
+    backup_state: bool | None = None  # BS flag of the authenticator data (can change, refreshed by a key check)
+    key_checked_ts: datetime | None = None  # the last successful key check
+    transports: list[str] | None = None  # getTransports() of the registration response
 
     @property
     def key(self) -> ElementKey:
