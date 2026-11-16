@@ -1,7 +1,7 @@
 from typing import Any
 from uuid import uuid4
 
-from fido2.webauthn import AuthenticatorAttachment, PublicKeyCredentialUserEntity
+from fido2.webauthn import AuthenticatorAttachment
 from flask import Blueprint, abort, request
 
 from eduid.common.config.base import FrontendAction
@@ -20,6 +20,7 @@ from eduid.webapp.common.api.utils import make_short_code
 from eduid.webapp.common.authn.webauthn import (
     RegistrationError,
     get_webauthn_server,
+    make_user_entity,
     verify_webauthn_registration,
 )
 from eduid.webapp.common.session import session
@@ -318,10 +319,10 @@ def webauthn_register_begin(authenticator: str) -> FluxData:
 
     if not session.signup.name.given_name or not session.signup.name.surname:
         return error_response(message=SignupMsg.name_not_set)
-    user_entity = PublicKeyCredentialUserEntity(
-        id=bytes(eppn, "utf-8"),
-        name=f"{session.signup.name.given_name} {session.signup.name.surname}",
-        display_name=f"{session.signup.name.given_name} {session.signup.name.surname}",
+    user_entity = make_user_entity(
+        eppn=eppn,
+        given_name=session.signup.name.given_name,
+        surname=session.signup.name.surname,
     )
     registration_data, state = server.register_begin(
         user=user_entity,

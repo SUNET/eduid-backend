@@ -402,6 +402,24 @@ class SecurityWebauthnTests(EduidAPITestCase[SecurityApp]):
         response = self._begin_register_key()
         self._check_registration_begun(self._response_json_to_dict(response))
 
+    def test_begin_register_user_entity_is_the_eppn_and_the_name(self) -> None:
+        response = self._begin_register_key()
+        entity = self._response_json_to_dict(response)["payload"]["registration_data"]["publicKey"]["user"]
+        user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
+        assert entity["name"] == self.test_user_eppn
+        assert entity["displayName"] == f"{user.given_name} {user.surname}"
+        assert websafe_decode(entity["id"]) == self.test_user_eppn.encode("utf-8")
+
+    def test_begin_register_user_entity_uses_the_chosen_given_name(self) -> None:
+        user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
+        user.chosen_given_name = "Chosen"
+        self.app.central_userdb.save(user)
+
+        response = self._begin_register_key()
+        entity = self._response_json_to_dict(response)["payload"]["registration_data"]["publicKey"]["user"]
+        assert entity["name"] == self.test_user_eppn
+        assert entity["displayName"] == f"Chosen {user.surname}"
+
     def test_begin_register_first_key_with_legacy_token(self) -> None:
         response = self._begin_register_key(existing_legacy_token=True)
         self._check_registration_begun(self._response_json_to_dict(response))

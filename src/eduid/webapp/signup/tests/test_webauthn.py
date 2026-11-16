@@ -6,6 +6,7 @@ from typing import Any
 from uuid import UUID
 
 import pytest
+from fido2.utils import websafe_decode
 from fido2.webauthn import AuthenticatorAttachment, RegistrationResponse
 from fido_mds.models.webauthn import AttestationFormat
 from jwcrypto.jwk import JWK
@@ -221,6 +222,21 @@ class SignupWebauthnTests(EduidAPITestCase[SignupApp]):
         assert data["type"] == "POST_SIGNUP_WEBAUTHN_REGISTER_BEGIN_SUCCESS"
         assert "registration_data" in data["payload"]
         assert "csrf_token" in data["payload"]
+
+    def test_webauthn_register_begin_user_entity(self) -> None:
+        """The user entity is the eppn as `name` and the person's name as `displayName`, like in the security app."""
+        self._prepare_for_webauthn()
+        response = self._begin_register_webauthn()
+        data = response.json
+        assert data is not None
+        entity = data["payload"]["registration_data"]["publicKey"]["user"]
+        with self.session_cookie(self.browser, eppn=None) as client:
+            with client.session_transaction() as sess:
+                eppn = sess.signup.eppn
+        assert eppn
+        assert entity["name"] == eppn
+        assert entity["displayName"] == "Test Testdotter"
+        assert websafe_decode(entity["id"]) == eppn.encode("utf-8")
 
     def test_webauthn_register_begin_generates_eppn(self) -> None:
         """Verify that session.signup.eppn is set after begin."""

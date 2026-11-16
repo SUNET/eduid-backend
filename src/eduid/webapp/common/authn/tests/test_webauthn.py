@@ -17,6 +17,7 @@ from eduid.userdb.credentials import Webauthn
 from eduid.webapp.common.authn.webauthn import (
     RegistrationError,
     RegistrationResult,
+    make_user_entity,
     verify_webauthn_registration,
 )
 
@@ -196,3 +197,20 @@ class TestVerifyWebauthnRegistration:
 
         raw_id = websafe_decode(result.keyhandle)
         assert unpacked.credential_id == raw_id
+
+
+class TestMakeUserEntity:
+    def test_name_is_the_eppn_and_display_name_the_person(self) -> None:
+        entity = make_user_entity(eppn="abcd-efgh", given_name="Jane", surname="Doe")
+        assert entity.id == b"abcd-efgh"
+        assert entity.name == "abcd-efgh"
+        assert entity.display_name == "Jane Doe"
+
+    def test_chosen_given_name_replaces_the_given_name(self) -> None:
+        entity = make_user_entity(eppn="abcd-efgh", given_name="Jane Maria", surname="Doe", chosen_given_name="Maria")
+        assert entity.name == "abcd-efgh"
+        assert entity.display_name == "Maria Doe"
+
+    def test_empty_chosen_given_name_is_ignored(self) -> None:
+        entity = make_user_entity(eppn="abcd-efgh", given_name="Jane", surname="Doe", chosen_given_name="")
+        assert entity.display_name == "Jane Doe"

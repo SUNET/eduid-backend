@@ -1,6 +1,6 @@
 from typing import Any
 
-from fido2.webauthn import AuthenticatorAttachment, PublicKeyCredentialUserEntity
+from fido2.webauthn import AuthenticatorAttachment
 from flask import Blueprint
 
 from eduid.common.config.base import FrontendAction
@@ -20,6 +20,7 @@ from eduid.webapp.common.authn.webauthn import (
     RegistrationError,
     get_webauthn_server,
     make_credentials,
+    make_user_entity,
     save_webauthn_proofing_log,
     verify_webauthn_registration,
 )
@@ -74,8 +75,11 @@ def registration_begin(user: User, authenticator: str) -> FluxData:
     if user.given_name is None or user.surname is None:
         return error_response(message=SecurityMsg.no_pdata)
 
-    user_entity = PublicKeyCredentialUserEntity(
-        id=bytes(user.eppn, "utf-8"), name=f"{user.given_name} {user.surname}", display_name=user.friendly_identifier
+    user_entity = make_user_entity(
+        eppn=user.eppn,
+        given_name=user.given_name,
+        surname=user.surname,
+        chosen_given_name=user.chosen_given_name,
     )
     registration_data, state = server.register_begin(
         user=user_entity,
