@@ -465,9 +465,9 @@ fastapi==0.162.0 \
     --hash=sha256:3785963de305dd09912426cb81f2d230fce98ab3521cdfe97265c8d14983128c \
     --hash=sha256:6a22c1e2e6e32e0633ee7e170f00009a29b8228b16feb219ee42f32fd8d88a8f
     # via eduid-backend (../pyproject.toml)
-fido-mds==2026.9 \
-    --hash=sha256:6ff767cea25d3e5b506a5630a1be793d66a9e97e27dec1a36d1e2906e36e94ae \
-    --hash=sha256:947d98ed8987f13b56105ba80d0962ab01a53d2c86bf47fd289c48bb24ef36e2
+fido-mds==2026.11 \
+    --hash=sha256:56dde753b94703cda13714800a20edff326f4b8c0d9833272d0bc0fa734f3b5c \
+    --hash=sha256:bc56c0d0d0a0aff9019b9a0af84f8f25da75692ea9801a569e65eacd8f181ff6
     # via eduid-backend (../pyproject.toml)
 fido2==2.2.1 \
     --hash=sha256:85787428a94c3f8eaf72f0ff30afba983b559a1b1b795c93318c81b4ad4062c4 \
