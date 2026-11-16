@@ -17,6 +17,7 @@ from fido2.webauthn import (
     AuthenticatorAttachment,
     AuthenticatorData,
     PublicKeyCredentialRpEntity,
+    PublicKeyCredentialUserEntity,
     RegistrationResponse,
 )
 from fido_mds import Attestation, FidoMetadataStore
@@ -58,6 +59,26 @@ def get_webauthn_server(
 ) -> Fido2Server:
     rp = PublicKeyCredentialRpEntity(id=rp_id, name=rp_name)
     return Fido2Server(rp, attestation=attestation)
+
+
+def make_user_entity(
+    eppn: str, given_name: str, surname: str, chosen_given_name: str | None = None
+) -> PublicKeyCredentialUserEntity:
+    """
+    The user entity sent to the authenticator when registering a security key or passkey, the same in all apps.
+
+    - `id` is the eppn as bytes. It never changes, and the Signal API relies on that.
+    - `name` is the eppn, which eduID presents to the user as their username: the account identifier that
+      passkey managers show.
+    - `display_name` is the person's name: chosen given name + surname, else given name + surname.
+
+    Takes plain values and not a `User` since signup has no `User` yet; each caller handles missing names itself.
+    """
+    return PublicKeyCredentialUserEntity(
+        id=bytes(eppn, "utf-8"),
+        name=eppn,
+        display_name=f"{chosen_given_name or given_name} {surname}",
+    )
 
 
 def make_credentials(creds: Sequence[FidoCredential]) -> list[AttestedCredentialData]:

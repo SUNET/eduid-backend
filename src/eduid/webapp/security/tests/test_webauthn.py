@@ -402,6 +402,30 @@ class SecurityWebauthnTests(EduidAPITestCase[SecurityApp]):
         response = self._begin_register_key()
         self._check_registration_begun(self._response_json_to_dict(response))
 
+    def test_begin_register_user_entity_is_the_eppn_and_the_name(self) -> None:
+        response = self._begin_register_key()
+        entity = self._response_json_to_dict(response)["payload"]["registration_data"]["publicKey"]["user"]
+        user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
+        assert entity["name"] == self.test_user_eppn
+        assert entity["displayName"] == f"{user.given_name} {user.surname}"
+        # the label has always been the user's friendly identifier in this app, which the helper must keep matching
+        assert entity["displayName"] == user.friendly_identifier
+        assert websafe_decode(entity["id"]) == self.test_user_eppn.encode("utf-8")
+
+    def test_begin_register_user_entity_uses_the_chosen_given_name(self) -> None:
+        # a user with several given names, one of which is the chosen one
+        user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
+        user.given_name = "Anna Maria Sofia"
+        user.chosen_given_name = "Maria"
+        self.app.central_userdb.save(user)
+
+        response = self._begin_register_key()
+        entity = self._response_json_to_dict(response)["payload"]["registration_data"]["publicKey"]["user"]
+        assert entity["name"] == self.test_user_eppn
+        # the chosen given name, not all of the given names
+        assert entity["displayName"] == f"Maria {user.surname}"
+        assert entity["displayName"] == user.friendly_identifier
+
     def test_begin_register_first_key_with_legacy_token(self) -> None:
         response = self._begin_register_key(existing_legacy_token=True)
         self._check_registration_begun(self._response_json_to_dict(response))
