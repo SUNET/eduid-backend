@@ -22,7 +22,9 @@ from eduid.webapp.common.session.namespaces import (
     OIDCState,
     RP_AuthnRequest,
     RPAuthnData,
+    SecurityNS,
     SP_AuthnRequest,
+    WebauthnVerification,
 )
 from eduid.webapp.common.session.redis_session import GENERATION_KEY
 from eduid.webapp.common.session.tests.test_eduid_session import SessionTestApp, SessionTestConfig
@@ -386,3 +388,32 @@ def test_signup_external_mfa_eidas_roundtrip() -> None:
     sns = Signup(external_mfa=ext)
     rebuilt = Signup(**sns.model_dump())
     assert rebuilt.external_mfa == ext
+
+
+def test_security_namespace_has_no_key_check_by_default() -> None:
+    assert SecurityNS().webauthn_verification is None
+
+
+def test_webauthn_verification_round_trips() -> None:
+    verification = WebauthnVerification(
+        webauthn_state={"challenge": "abc", "user_verification": "preferred"},
+        mode="specific",
+        credential_key="sha256:abc",
+    )
+    sns = SecurityNS(webauthn_verification=verification)
+    rebuilt = SecurityNS.from_dict(sns.to_dict())
+    assert rebuilt.webauthn_verification == verification
+
+
+def test_security_namespace_ignores_keys_it_does_not_know() -> None:
+    # an older version reading a session written by a newer one must not fail on the new key
+    sns = SecurityNS.from_dict({"generated_password_hash": "hash", "a_key_from_a_newer_version": {"x": 1}})
+    assert sns.generated_password_hash == "hash"
+
+
+def test_an_unknown_mode_does_not_fail_to_parse() -> None:
+    verification = WebauthnVerification.from_dict(
+        {"webauthn_state": {"challenge": "abc"}, "mode": "a_mode_from_a_newer_version"}
+    )
+    assert verification.mode == "a_mode_from_a_newer_version"
+    assert verification.credential_key is None

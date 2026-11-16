@@ -136,12 +136,22 @@ class WebauthnRegistration(SessionNSBase):
     authenticator: AuthenticatorAttachment
 
 
+class WebauthnVerification(SessionNSBase):
+    # Data stored between the "begin" and "complete" of a key check (verifying that a registered key still works).
+    # Not a login: kept apart from MfaAction so that a check cannot clobber or complete a login.
+    # Written only once the key check exists; the shape is fixed here since older versions must be able to read it.
+    webauthn_state: WebauthnState
+    mode: str  # "specific" (one credential) or "discoverable" (usernameless); a str so a new value never fails to parse
+    credential_key: ElementKey | None = None  # the credential asked about, for mode "specific"
+
+
 class SecurityNS(SessionNSBase):
     # used for new change_password
     generated_password_hash: str | None = None
     # used for update user data from official source
     user_requested_update: datetime | None = None
     webauthn_registration: WebauthnRegistration | None = None
+    webauthn_verification: WebauthnVerification | None = None
 
 
 class Name(SessionNSBase):
