@@ -7,6 +7,7 @@ from typing import Any
 from uuid import UUID
 
 import pytest
+from fido2.utils import websafe_decode
 from fido2.webauthn import AuthenticatorAttachment
 from fido_mds.models.webauthn import AttestationFormat
 from pytest_mock import MockerFixture
@@ -732,6 +733,16 @@ class SecurityTests(EduidAPITestCase[SecurityApp]):
             ],
         }
         self._check_success_response(response, type_="GET_SECURITY_CREDENTIALS_SUCCESS", payload=expected_payload)
+
+    def test_get_credentials_returns_what_the_signal_api_needs(self) -> None:
+        response = self._get_credentials()
+        assert response.json is not None
+        payload = response.json["payload"]
+        eppn = self.test_user_data["eduPersonPrincipalName"]
+        assert payload["rp_id"] == self.app.conf.fido2_rp_id
+        # base64url of the eppn, without padding
+        assert websafe_decode(payload["webauthn_user_handle"]) == eppn.encode("utf-8")
+        assert "=" not in payload["webauthn_user_handle"]
 
     def test_get_credentials_identifies_the_authenticators(self) -> None:
         security_key_id = UUID("2fc0579f-8113-47ea-b116-bb5a8db9202a")

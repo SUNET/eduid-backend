@@ -5,7 +5,7 @@ from datetime import timedelta
 from typing import Any, cast
 
 import pytest
-from fido2.utils import websafe_decode
+from fido2.utils import websafe_decode, websafe_encode
 from fido2.webauthn import (
     AuthenticatorAttachment,
     RegistrationResponse,
@@ -213,6 +213,7 @@ class SecurityWebauthnTests(EduidAPITestCase[SecurityApp]):
         assert data["type"] == "POST_WEBAUTHN_WEBAUTHN_REGISTER_COMPLETE_SUCCESS"
         assert len(data["payload"]["credentials"]) > 0
         assert data["payload"]["message"] == "security.webauthn_register_success"
+        self._check_signal_data(data)
 
     def _check_removal(self, data: dict[str, Any], user_token: Webauthn) -> None:
         assert data["type"] == "POST_WEBAUTHN_WEBAUTHN_REMOVE_SUCCESS"
@@ -220,6 +221,12 @@ class SecurityWebauthnTests(EduidAPITestCase[SecurityApp]):
         for credential in data["payload"]["credentials"]:
             assert credential is not None
             assert credential["key"] != user_token.key
+        self._check_signal_data(data)
+
+    def _check_signal_data(self, data: dict[str, Any]) -> None:
+        # every response that returns the credentials also has what the Signal API needs
+        assert data["payload"]["rp_id"] == self.app.conf.fido2_rp_id
+        assert data["payload"]["webauthn_user_handle"] == websafe_encode(self.test_user_eppn.encode("utf-8"))
 
     # parameterized test methods
     def _begin_register_key(
@@ -411,6 +418,15 @@ class SecurityWebauthnTests(EduidAPITestCase[SecurityApp]):
         # the label has always been the user's friendly identifier in this app, which the helper must keep matching
         assert entity["displayName"] == user.friendly_identifier
         assert websafe_decode(entity["id"]) == self.test_user_eppn.encode("utf-8")
+
+    def test_the_user_handle_in_the_credentials_is_the_id_sent_when_registering(self) -> None:
+        # the Signal API reports a passkey as valid or not by this value, so it must match what registration used
+        response = self._begin_register_key()
+        entity = self._response_json_to_dict(response)["payload"]["registration_data"]["publicKey"]["user"]
+        with self.session_cookie(self.browser, self.test_user_eppn) as client:
+            credentials = client.get("/credentials")
+        assert credentials.json is not None
+        assert credentials.json["payload"]["webauthn_user_handle"] == entity["id"]
 
     def test_begin_register_user_entity_uses_the_chosen_given_name(self) -> None:
         # a user with several given names, one of which is the chosen one

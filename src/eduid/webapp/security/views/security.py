@@ -22,9 +22,8 @@ from eduid.webapp.common.authn.vccs import revoke_passwords
 from eduid.webapp.common.session import session
 from eduid.webapp.security.app import current_security_app as current_app
 from eduid.webapp.security.helpers import (
-    CredentialInfo,
     SecurityMsg,
-    compile_credential_list,
+    compile_credentials_payload,
     remove_identity_from_user,
     remove_nin_from_user,
     send_termination_mail,
@@ -54,9 +53,7 @@ def get_credentials(user: User) -> FluxData:
     """
     current_app.logger.debug(f"Trying to get the credentials for user {user}")
 
-    credentials: dict[str, list[CredentialInfo]] = {"credentials": compile_credential_list(user)}
-
-    return success_response(payload=credentials)
+    return success_response(payload=compile_credentials_payload(user))
 
 
 @security_views.route("/terminate-account", methods=["POST"])

@@ -29,7 +29,7 @@ from eduid.webapp.common.session.namespaces import WebauthnRegistration
 from eduid.webapp.security.app import current_security_app as current_app
 from eduid.webapp.security.helpers import (
     SecurityMsg,
-    compile_credential_list,
+    compile_credentials_payload,
     get_approved_security_keys,
 )
 from eduid.webapp.security.schemas import (
@@ -183,8 +183,7 @@ def registration_complete(
             current_app.stats.count(name="webauthn_not_mfa_approved")
 
     current_app.logger.info("User has completed registration of a webauthn token")
-    credentials = compile_credential_list(security_user)
-    return success_response(payload={"credentials": credentials}, message=SecurityMsg.webauthn_success)
+    return success_response(payload=compile_credentials_payload(security_user), message=SecurityMsg.webauthn_success)
 
 
 @webauthn_views.route("/remove", methods=["POST"])
@@ -216,8 +215,7 @@ def remove(user: User, credential_key: str) -> FluxData:
         current_app.logger.info(f"User {security_user} has tried to remove a missing security token: {credential_key}")
         return error_response(message=SecurityMsg.no_webauthn)
 
-    credentials = compile_credential_list(security_user)
-    return success_response(message=message, payload={"credentials": credentials})
+    return success_response(message=message, payload=compile_credentials_payload(security_user))
 
 
 @webauthn_views.route("/approved-security-keys", methods=["GET"])

@@ -17,6 +17,8 @@ from eduid.userdb.credentials import Webauthn
 from eduid.webapp.common.authn.webauthn import (
     RegistrationError,
     RegistrationResult,
+    encode_user_handle,
+    get_user_handle,
     make_user_entity,
     verify_webauthn_registration,
 )
@@ -214,3 +216,19 @@ class TestMakeUserEntity:
     def test_empty_chosen_given_name_is_ignored(self) -> None:
         entity = make_user_entity(eppn="abcd-efgh", given_name="Jane", surname="Doe", chosen_given_name="")
         assert entity.display_name == "Jane Doe"
+
+
+class TestUserHandle:
+    def test_the_user_handle_is_the_eppn_as_bytes(self) -> None:
+        assert get_user_handle("abcd-efgh") == b"abcd-efgh"
+
+    def test_the_encoded_handle_is_base64url_without_padding(self) -> None:
+        encoded = encode_user_handle("abcd-efgh")
+        assert "=" not in encoded
+        assert websafe_decode(encoded) == b"abcd-efgh"
+
+    def test_the_handle_is_the_id_of_the_user_entity(self) -> None:
+        # what registration sends and what the Signal API reports must be the same value
+        entity = make_user_entity(eppn="abcd-efgh", given_name="Jane", surname="Doe")
+        assert entity.id == get_user_handle("abcd-efgh")
+        assert websafe_encode(entity.id) == encode_user_handle("abcd-efgh")

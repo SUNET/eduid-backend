@@ -10,6 +10,7 @@ from typing import Any
 from uuid import UUID
 
 from fido2.server import Fido2Server
+from fido2.utils import websafe_encode
 from fido2.webauthn import (
     AttestationConveyancePreference,
     AttestationObject,
@@ -61,6 +62,16 @@ def get_webauthn_server(
     return Fido2Server(rp, attestation=attestation)
 
 
+def get_user_handle(eppn: str) -> bytes:
+    """The WebAuthn user handle (`user.id`) of a user: the eppn as bytes. It never changes."""
+    return bytes(eppn, "utf-8")
+
+
+def encode_user_handle(eppn: str) -> str:
+    """The user handle as the browser reports it (base64url without padding), for the Signal API."""
+    return websafe_encode(get_user_handle(eppn))
+
+
 def make_user_entity(
     eppn: str, given_name: str, surname: str, chosen_given_name: str | None = None
 ) -> PublicKeyCredentialUserEntity:
@@ -75,7 +86,7 @@ def make_user_entity(
     Takes plain values and not a `User` since signup has no `User` yet; each caller handles missing names itself.
     """
     return PublicKeyCredentialUserEntity(
-        id=bytes(eppn, "utf-8"),
+        id=get_user_handle(eppn),
         name=eppn,
         display_name=f"{chosen_given_name or given_name} {surname}",
     )

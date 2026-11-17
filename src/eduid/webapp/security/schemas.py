@@ -28,6 +28,9 @@ class CredentialSchema(EduidSchema):
 
 class CredentialList(EduidSchema, CSRFResponseMixin):
     credentials = fields.Nested(CredentialSchema, many=True)
+    # for the Signal API: the relying party id and the user handle (base64url) used when registering a key
+    rp_id = fields.String(required=False)
+    webauthn_user_handle = fields.String(required=False)
 
 
 class SecurityResponseSchema(FluxStandardAction):
