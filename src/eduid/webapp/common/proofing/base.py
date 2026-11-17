@@ -19,6 +19,7 @@ from eduid.userdb.logs.element import ProofingLogElement
 from eduid.userdb.proofing import ProofingUser
 from eduid.webapp.common.api.messages import CommonMsg, TranslatableMsg
 from eduid.webapp.common.api.utils import save_and_sync_user
+from eduid.webapp.common.proofing.app import current_proofing_app as current_app
 from eduid.webapp.common.proofing.methods import (
     ProofingMethod,
     ProofingMethodBankID,
@@ -26,7 +27,6 @@ from eduid.webapp.common.proofing.methods import (
     ProofingMethodSAML,
 )
 from eduid.webapp.common.session import session
-from eduid.webapp.eidas.app import current_eidas_app as current_app
 
 
 @dataclass
@@ -67,10 +67,10 @@ class MfaData:
 
 
 @dataclass()
-class ProofingFunctions[SessionInfoVar](ABC):
+class ProofingFunctions[SessionInfoVar, ConfigVar: ProofingConfigMixin = ProofingConfigMixin](ABC):
     session_info: SessionInfoVar
     app_name: str
-    config: ProofingConfigMixin
+    config: ConfigVar
     backdoor: bool
 
     def get_current_loa(self) -> GenericResult[str | None]:

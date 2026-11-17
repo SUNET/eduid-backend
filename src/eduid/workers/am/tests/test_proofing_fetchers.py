@@ -546,3 +546,33 @@ class AttributeFetcherLadokTests(ProofingTestCase):
         self.fetcher.private_db.save(proofing_user)
 
         assert self.fetcher.fetch_attrs(proofing_user.user_id) == {"$unset": {"ladok": None}}
+
+
+class AttributeFetcherOidcEidTests(ProofingTestCase):
+    fetcher_name = "eduid_oidceid"
+
+    def test_whitelists_are_pinned(self) -> None:
+        from eduid.workers.am.ams import eduid_oidceid
+
+        # same whitelists as eduid_samleid
+        assert set(eduid_oidceid.whitelist_set_attrs) == {
+            "passwords",
+            "nins",
+            "identities",
+            "givenName",
+            "chosen_given_name",
+            "surname",
+            "legal_name",
+        }
+        assert set(eduid_oidceid.whitelist_unset_attrs) == {"identities", "chosen_given_name", "nins", "displayName"}
+
+    def test_legacy_nins_is_unset_when_missing(self) -> None:
+        assert self.fetcher
+        assert self.fetcher.private_db
+
+        proofing_user = ProofingUser.from_dict(self.user_data)
+        self.fetcher.private_db.save(proofing_user)
+
+        fetched = self.fetcher.fetch_attrs(proofing_user.user_id)
+
+        assert "nins" in fetched["$unset"]

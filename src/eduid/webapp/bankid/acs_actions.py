@@ -2,7 +2,6 @@ from eduid.userdb import User
 from eduid.webapp.bankid.app import current_bankid_app as current_app
 from eduid.webapp.bankid.helpers import BankIDMsg
 from eduid.webapp.bankid.proofing import get_proofing_functions
-from eduid.webapp.bankid.saml_session_info import BankIDSessionInfo
 from eduid.webapp.common.api.decorators import require_user
 from eduid.webapp.common.authn.acs_enums import BankIDAcsAction
 from eduid.webapp.common.authn.acs_registry import ACSArgs, ACSResult, acs_action
@@ -13,6 +12,7 @@ from eduid.webapp.common.proofing.shared_actions import (
     run_verify_credential,
     run_verify_identity,
 )
+from eduid.webapp.common.proofing.swedenconnect.session_info import BankIDSessionInfo
 from eduid.webapp.common.session import session
 from eduid.webapp.common.session.namespaces import ExternalMfaSignupBankIDIdentity
 

@@ -11,6 +11,7 @@ from eduid.userdb.credentials.external import TrustFramework
 from eduid.webapp.common.api.messages import TranslatableMsg
 from eduid.webapp.common.authn.cache import OutstandingQueriesCache
 from eduid.webapp.common.authn.session_info import SessionInfo
+from eduid.webapp.common.proofing.swedenconnect.flow import remap_staging_nin
 from eduid.webapp.common.session import session
 from eduid.webapp.common.session.namespaces import AuthnRequestRef
 from eduid.webapp.eidas.app import current_eidas_app as current_app
@@ -98,18 +99,16 @@ def create_authn_info(
 
 def attribute_remap(session_info: SessionInfo) -> SessionInfo:
     """
-    Remap from known test attributes to users correct attributes.
+    Remap from known test attributes to users correct attributes. No-op outside staging and dev.
 
     :param session_info: the SAML session info
     :return: SAML session info with new nin mapped
     """
-    personal_identity_number = session_info.get("ava", {}).get("personalIdentityNumber")
-    if personal_identity_number:
-        asserted_test_nin = personal_identity_number[0]
-        user_nin = current_app.conf.nin_attribute_map.get(asserted_test_nin, None)
-        if user_nin:
-            session_info["ava"]["personalIdentityNumber"] = [user_nin]
-    return session_info
+    return remap_staging_nin(
+        session_info,
+        environment=current_app.conf.environment,
+        nin_attribute_map=current_app.conf.nin_attribute_map,
+    )
 
 
 @dataclass()

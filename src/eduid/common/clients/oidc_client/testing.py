@@ -49,7 +49,9 @@ class FakeOidcRpClient:
     finish_calls: list[dict[str, Any]] = field(default_factory=list)
     end_session_calls: list[str] = field(default_factory=list)
 
-    def mint_authn_request(self, redirect_uri: str, extra_params: Mapping[str, str] | None = None) -> AuthnRequestData:
+    def mint_authn_request(
+        self, redirect_uri: str, extra_params: Mapping[str, str] | None = None, scopes: Sequence[str] | None = None
+    ) -> AuthnRequestData:
         if self.raise_on_mint is not None:
             raise self.raise_on_mint
         params = {
@@ -58,6 +60,10 @@ class FakeOidcRpClient:
             "state": self.state,
             "nonce": self.nonce,
         }
+        if scopes is not None:
+            if "openid" not in scopes:
+                raise OidcRpError("authorization request failed: scopes must include openid")
+            params["scope"] = " ".join(scopes)
         if extra_params:
             params.update(extra_params)
         return AuthnRequestData(

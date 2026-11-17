@@ -2,10 +2,11 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Mapping, Sequence
+from pathlib import Path
 from typing import TYPE_CHECKING, Any, NamedTuple, cast
 
 from flask import Flask
-from pygrindvakt import BadRequestError, GrindvaktError, rp
+from pygrindvakt import BadRequestError, ConfigError, GrindvaktError, keys, rp
 from pygrindvakt import http as gv_http
 
 from eduid.common.clients.oidc_client.base import (
@@ -29,6 +30,8 @@ logger = logging.getLogger(__name__)
 # Anything raised by pygrindvakt (GrindvaktError and subclasses) or ValueError (raised for invalid
 # arguments, e.g. a malformed redirect_uri) is turned into an OidcRpError so that webapps only
 # have to handle a single error type from this module.
+# A PEM private key is a few KiB, anything bigger is not a key file
+_MAX_KEY_FILE_SIZE = 64 * 1024
 _CAUGHT_EXCEPTIONS = (GrindvaktError, ValueError)
 
 
@@ -113,14 +116,32 @@ class GrindvaktOidcRpClient:
             raise ValueError("at least one redirect_uri must be registered")
         self._config = config
         self._issuer = config.issuer
-        # The redirect URIs are registered on the client, a per-request redirect_uri must match one of them exactly
-        self._rp = rp.RpClient(
-            config.client_id,
-            redirect_uris[0],
-            redirect_uris=list(redirect_uris),
-            scope=" ".join(config.scopes),
-            client_secret=config.client_secret,
+        # Loaded here so that a bad key is a config error at app start, not at the first request
+        self._signing_key = self._load_pem_key(
+            config.client_signing_key_path,
+            config.client_signing_alg,
+            config.client_signing_key_kid,
+            "client_signing_key",
         )
+        # Request objects are visible in the authorization URL: a separate key if configured, else the client key
+        self._request_object_key = (
+            self._load_pem_key(
+                config.client_request_object_key_path,
+                config.client_request_object_signing_alg,
+                config.client_request_object_key_kid,
+                "client_request_object_key",
+            )
+            or self._signing_key
+        )
+        # The redirect URIs are registered on the client, a per-request redirect_uri must match one of them exactly
+        self._redirect_uris = list(redirect_uris)
+        self._scoped_rp_clients: dict[tuple[str, ...], rp.RpClient] = {}
+        try:
+            self._rp = self._build_rp_client(config.scopes)
+        except _CAUGHT_EXCEPTIONS as err:
+            # pygrindvakt config errors name parameters, never values, so the message is safe to include
+            detail = f": {err}" if isinstance(err, ConfigError) else ""
+            raise ValueError(f"invalid OIDC client configuration: {type(err).__name__}{detail}") from None
         self._http = http if http is not None else gv_http.ReqwestClient()
         # discovery has its own, tighter, timeouts than token/userinfo requests
         discovery_http = discovery_http if discovery_http is not None else self._http
@@ -139,6 +160,44 @@ class GrindvaktOidcRpClient:
         # The key cache last handed out. DiscoveryCache keeps one JwksCache object while the jwks_uri and issuer are
         # unchanged, so it is reused to avoid a second wait on an in-flight refresh (see _get_provider).
         self._jwks: rp.JwksCache | None = None
+
+    def _build_rp_client(self, scopes: Sequence[str]) -> rp.RpClient:
+        config = self._config
+        return rp.RpClient(
+            config.client_id,
+            self._redirect_uris[0],
+            redirect_uris=self._redirect_uris,
+            scope=" ".join(scopes),
+            client_secret=config.client_secret,
+            auth_method=config.token_endpoint_auth_method,
+            signing_key=self._signing_key if config.token_endpoint_auth_method == "private_key_jwt" else None,
+        )
+
+    @staticmethod
+    def _load_pem_key(path: Path | str | None, alg: str | None, kid: str | None, name: str) -> keys.SigningKey | None:
+        """Load a PEM signing key, if configured. Error text never includes key material."""
+        if not path:
+            return None
+        key_path = Path(path)
+        try:
+            # is_file() is False for directories, FIFOs and devices, so reading cannot block on them
+            if not key_path.is_file():
+                raise ValueError(f"{name}_path {str(key_path)!r} is not a regular file")
+            if key_path.stat().st_size > _MAX_KEY_FILE_SIZE:
+                raise ValueError(f"{name}_path {str(key_path)!r} is larger than {_MAX_KEY_FILE_SIZE} bytes")
+            data = key_path.read_bytes()
+        except OSError as err:
+            raise ValueError(f"cannot read {name}_path {str(key_path)!r}: {type(err).__name__}") from None
+        try:
+            key = keys.signing_key_from_pem(data, alg, kid)
+            thumbprint = keys.jwk_thumbprint(key.public_jwk())
+        except _CAUGHT_EXCEPTIONS as err:
+            raise ValueError(f"invalid {name} in {str(key_path)!r}: {type(err).__name__}") from None
+        # public information only
+        logger.info(
+            f"Loaded {name} {str(key_path.resolve())!r}: kid={key.kid}, alg={key.alg}, jwk thumbprint={thumbprint}"
+        )
+        return key
 
     def _get_provider(self) -> _Provider:
         # Discovery is done lazily so that an unreachable provider does not prevent app start. The document is
@@ -214,7 +273,26 @@ class GrindvaktOidcRpClient:
         # No _get_provider(): this needs no discovery, so a bad callback never triggers provider requests
         return parse_authorization_callback(params, issuer=self._issuer, require_iss=self._config.require_iss)
 
-    def mint_authn_request(self, redirect_uri: str, extra_params: Mapping[str, str] | None = None) -> AuthnRequestData:
+    def mint_authn_request(
+        self, redirect_uri: str, extra_params: Mapping[str, str] | None = None, scopes: Sequence[str] | None = None
+    ) -> AuthnRequestData:
+        rp_client = self._rp
+        if scopes is not None:
+            # checked before any provider request: invalid input needs no network
+            if "openid" not in scopes:
+                raise OidcRpError("authorization request failed: scopes must include openid")
+            # the scope parameter is owned by the pygrindvakt client (extra may not carry it), so a client with
+            # the per-request scopes is used. It does not depend on the provider metadata, so it is safe to keep
+            # one per scope set across discovery refreshes.
+            key = tuple(scopes)
+            scoped = self._scoped_rp_clients.get(key)
+            if scoped is None:
+                try:
+                    scoped = self._build_rp_client(scopes)
+                except _CAUGHT_EXCEPTIONS as err:
+                    raise _wrap("authorization request", err) from None
+                self._scoped_rp_clients[key] = scoped
+            rp_client = scoped
         provider = self._get_provider()
         extra = dict(extra_params or {})
         if self._config.acr_values and "acr_values" not in extra:
@@ -225,10 +303,11 @@ class GrindvaktOidcRpClient:
         try:
             url, state, nonce, verifier = rp.begin(
                 provider.info,
-                self._rp,
+                rp_client,
                 extra=extra,
                 redirect_uri=redirect_uri,
                 pkce=self._config.code_challenge_method == "S256",
+                request_object_key=self._request_object_key if self._config.use_request_object else None,
             )
         except _CAUGHT_EXCEPTIONS as err:
             raise _wrap("authorization request", err) from None

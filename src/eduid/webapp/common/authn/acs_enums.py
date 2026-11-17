@@ -33,3 +33,11 @@ class SamlEidAcsAction(StrEnum):
     verify_credential = "verify-credential-action"
     mfa_authenticate = "mfa-authenticate-action"
     mfa_register = "mfa-register-action"
+
+
+@unique
+class OidcEidAcsAction(StrEnum):
+    verify_identity = "verify-identity-action"
+    verify_credential = "verify-credential-action"
+    mfa_authenticate = "mfa-authenticate-action"
+    mfa_register = "mfa-register-action"

@@ -1,20 +1,17 @@
-from copy import deepcopy
 from dataclasses import dataclass
 
-from flask import Blueprint, make_response, redirect, request
+from flask import Blueprint, make_response, request
 from saml2.typing import SAMLHttpArgs
 from werkzeug.wrappers import Response as WerkzeugResponse
 
-from eduid.common.config.base import EduidEnvironment, FrontendAction
+from eduid.common.config.base import FrontendAction
 from eduid.userdb import User
-from eduid.userdb.credentials import FidoCredential
 from eduid.userdb.element import ElementKey
 from eduid.webapp.common.api.decorators import MarshalWith, UnmarshalWith, require_user
 from eduid.webapp.common.api.errors import EduidErrorsContext, goto_errors_response
 from eduid.webapp.common.api.helpers import check_magic_cookie
 from eduid.webapp.common.api.messages import (
     AuthnStatusMsg,
-    CommonMsg,
     FluxData,
     TranslatableMsg,
     error_response,
@@ -25,14 +22,22 @@ from eduid.webapp.common.api.schemas.csrf import EmptyResponse
 from eduid.webapp.common.authn.acs_enums import SamlEidAcsAction
 from eduid.webapp.common.authn.acs_registry import ACSArgs, get_action
 from eduid.webapp.common.authn.eduid_saml2 import process_assertion
-from eduid.webapp.common.authn.session_info import SessionInfo
-from eduid.webapp.common.authn.utils import check_reauthn, get_location
+from eduid.webapp.common.authn.utils import get_location
 from eduid.webapp.common.proofing.methods import ProofingMethodSAML, get_proofing_method
 from eduid.webapp.common.proofing.saml_helpers import create_metadata
+from eduid.webapp.common.proofing.swedenconnect.flow import (
+    VERIFY_CREDENTIAL_ACTION,
+    apply_action_result,
+    build_status_payload,
+    check_verify_credential_request,
+    remap_staging_nin,
+    reset_mfa_action_for_login,
+    select_magic_cookie_idp,
+)
 from eduid.webapp.common.session import session
 from eduid.webapp.common.session.namespaces import AuthnRequestRef, SP_AuthnRequest
 from eduid.webapp.samleid.app import current_samleid_app as current_app
-from eduid.webapp.samleid.helpers import SamlEidMsg, create_authn_info
+from eduid.webapp.samleid.helpers import SAMLEID_MSGS, SamlEidMsg, create_authn_info
 from eduid.webapp.samleid.schemas import (
     SamlEidCommonRequestSchema,
     SamlEidCommonResponseSchema,
@@ -61,15 +66,7 @@ def get_status(authn_id: AuthnRequestRef) -> FluxData:
     if not authn:
         return error_response(message=AuthnStatusMsg.not_found)
 
-    payload = {
-        "authn_id": authn_id,
-        "frontend_action": authn.frontend_action.value,
-        "frontend_state": authn.frontend_state,
-        "method": authn.method,
-        "error": bool(authn.error),
-    }
-    if authn.status is not None:
-        payload["status"] = authn.status
+    payload = build_status_payload(authn_id, authn)
 
     return success_response(payload=payload)
 
@@ -83,26 +80,18 @@ def verify_credential(
 ) -> FluxData:
     current_app.logger.debug(f"verify-credential called with credential_id: {credential_id}")
 
-    # Check if eidas credential verification is allowed
-    if method == "eidas" and current_app.conf.allow_eidas_credential_verification is False:
-        current_app.logger.error("Credential verification is not allowed for eidas")
-        return error_response(message=SamlEidMsg.credential_verification_not_allowed)
+    if error := check_verify_credential_request(
+        user,
+        method,
+        credential_id,
+        frontend_action,
+        SAMLEID_MSGS,
+        allow_eidas_credential_verification=current_app.conf.allow_eidas_credential_verification,
+        app=current_app,
+    ):
+        return error
 
-    _frontend_action = FrontendAction.VERIFY_CREDENTIAL
-
-    if frontend_action != _frontend_action.value:
-        current_app.logger.error(f"Invalid frontend_action: {frontend_action}")
-        return error_response(message=SamlEidMsg.frontend_action_not_supported)
-
-    # verify that the user has the credential and that it was used for login recently
-    credential = user.credentials.find(credential_id)
-    if credential is None or isinstance(credential, FidoCredential) is False:
-        current_app.logger.error(f"Can't find credential with id: {credential_id}")
-        return error_response(message=SamlEidMsg.credential_not_found)
-
-    _need_reauthn = check_reauthn(frontend_action=_frontend_action, user=user, credential_requested=credential)
-    if _need_reauthn:
-        return _need_reauthn
+    _frontend_action = VERIFY_CREDENTIAL_ACTION
 
     result = _authn(
         SamlEidAcsAction.verify_credential,
@@ -210,15 +199,16 @@ def _authn(
     idp = proofing_method.idp
     if check_magic_cookie(current_app.conf):
         # set a test IdP with minimal interaction for the integration tests
-        if proofing_method.method == "freja" and current_app.conf.magic_cookie_idp:
-            idp = current_app.conf.magic_cookie_idp
-        elif proofing_method.method == "bankid" and current_app.conf.magic_cookie_bankid_idp:
-            idp = current_app.conf.magic_cookie_bankid_idp
-        elif proofing_method.method == "eidas" and current_app.conf.magic_cookie_foreign_id_idp:
-            idp = current_app.conf.magic_cookie_foreign_id_idp
-        else:
+        magic_idp = select_magic_cookie_idp(
+            proofing_method.method,
+            freja_idp=current_app.conf.magic_cookie_idp,
+            bankid_idp=current_app.conf.magic_cookie_bankid_idp,
+            eidas_idp=current_app.conf.magic_cookie_foreign_id_idp,
+        )
+        if not magic_idp:
             current_app.logger.error(f"Magic cookie is not supported for method {method}")
             return AuthnResult(error=SamlEidMsg.method_not_available)
+        idp = magic_idp
         current_app.logger.debug(f"Changed requested IdP due to magic cookie: {idp}")
 
     authn_req = SP_AuthnRequest(
@@ -247,17 +237,7 @@ def _authn(
         #   current login ref. We should make something similar for reset password.
         # 3. Remove session.mfa_action
         #
-        # Make sure only expected keys are used for external mfa, clear the rest
-        saved_mfa_action = deepcopy(session.mfa_action)
-        del session.mfa_action
-        session.mfa_action.login_ref = saved_mfa_action.login_ref
-        session.mfa_action.eppn = saved_mfa_action.eppn
-
-        # Ideally, we should be able to support multiple ongoing external MFA requests at the same time,
-        # but for now at least remember the SAML request id and the login_ref (when the frontend has been
-        # updated to supply it to /mfa-authenticate) so that the IdP can verify the login_ref matches
-        # when processing a successful response in session.mfa_action.
-        session.mfa_action.authn_req_ref = authn_req.authn_id
+        reset_mfa_action_for_login(authn_req.authn_id)
 
     session.samleid.sp.authns[authn_req.authn_id] = authn_req
     current_app.logger.debug(
@@ -271,22 +251,6 @@ def _authn(
 
     current_app.stats.count(f"{proofing_method.method.value}_authn_request")
     return AuthnResult(authn_req=authn_info, authn_id=authn_req.authn_id, url=url)
-
-
-def _attribute_remap(session_info: SessionInfo) -> SessionInfo:
-    """
-    Remap NIN attributes in staging environment for testing purposes.
-
-    :param session_info: SAML session info containing user attributes
-    :returns: Modified session info with remapped NIN if applicable
-    """
-    personal_identity_number = session_info.get("ava", {}).get("personalIdentityNumber")
-    if personal_identity_number:
-        asserted_test_nin = personal_identity_number[0]
-        user_nin = current_app.conf.nin_attribute_map.get(asserted_test_nin, None)
-        if user_nin:
-            session_info["ava"]["personalIdentityNumber"] = [user_nin]
-    return session_info
 
 
 @samleid_views.route("/saml2-acs", methods=["POST"])
@@ -337,8 +301,11 @@ def assertion_consumer_service() -> WerkzeugResponse:
     current_app.stats.count(f"{proofing_method.method.value}_authn_response")
 
     # Remap NIN in staging environment
-    if current_app.conf.environment in [EduidEnvironment.staging, EduidEnvironment.dev]:
-        assertion.session_info = _attribute_remap(assertion.session_info)
+    assertion.session_info = remap_staging_nin(
+        assertion.session_info,
+        environment=current_app.conf.environment,
+        nin_attribute_map=current_app.conf.nin_attribute_map,
+    )
 
     action = get_action(default_action=None, authndata=assertion.authn_data)
     backdoor = check_magic_cookie(config=current_app.conf)
@@ -354,25 +321,7 @@ def assertion_consumer_service() -> WerkzeugResponse:
     formatted_finish_url = proofing_method.formatted_finish_url(
         app_name=current_app.conf.app_name, authn_id=assertion.authn_req_ref
     )
-    if formatted_finish_url is None:
-        raise RuntimeError("formatted_finish_url is None — finish_url config likely empty")
-
-    if not result.success:
-        current_app.logger.info(f"SAML ACS action failed: {result.message}")
-        # update session so this error can be retrieved from the /status endpoint
-        _msg = result.message or CommonMsg.temp_problem
-        args.authn_req.status = _msg.value
-        args.authn_req.error = True
-        args.authn_req.consumed = True
-        return redirect(formatted_finish_url)
-
-    current_app.logger.debug(f"SAML ACS action successful (frontend_action {args.authn_req.frontend_action})")
-    if result.message:
-        args.authn_req.status = result.message.value
-    args.authn_req.error = False
-    if args.authn_req.frontend_action != FrontendAction.SIGNUP_EXTERNAL_MFA:
-        args.authn_req.consumed = True
-    return redirect(formatted_finish_url)
+    return apply_action_result(result, args.authn_req, formatted_finish_url, app=current_app)
 
 
 @samleid_views.route("/saml2-metadata", methods=["GET"])
