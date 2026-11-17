@@ -120,9 +120,9 @@ class response(ResponseMicroService):  # type: ignore[misc]
 
     def process(self, context: Context, data: InternalData) -> ProcessReturnType:
         received_accr = data.auth_info.auth_class_ref
-        requested_accr = context.state.get("requested_accr")
-        internal_accr_rewrite_map = context.state.get("internal_accr_rewrite_map")
-        supported_accr_sorted_by_prio = context.state.get("supported_accr_sorted_by_prio")
+        requested_accr = context.state.get("requested_accr")  # ty: ignore[missing-union-attribute]
+        internal_accr_rewrite_map = context.state.get("internal_accr_rewrite_map")  # ty: ignore[missing-union-attribute]
+        supported_accr_sorted_by_prio = context.state.get("supported_accr_sorted_by_prio")  # ty: ignore[missing-union-attribute]
         logger.info(f"Received ACCR from IdP: {received_accr}")
         logger.info(f"Requested (by SP) ACCR from state: {requested_accr}")
 

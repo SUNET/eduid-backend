@@ -29,7 +29,7 @@ class Credential(VerifiedElement):
     so we are making them hashable.
     """
 
-    proofing_method: CredentialProofingMethod | None = None  # ty: ignore[invalid-mutable-override]
+    proofing_method: CredentialProofingMethod | None = None  # ty: ignore[incompatible-mutable-override]
 
     def __str__(self) -> str:
         if len(self.key) == OBJECT_ID_STRING_LENGTH:

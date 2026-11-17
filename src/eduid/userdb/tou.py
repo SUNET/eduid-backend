@@ -16,7 +16,7 @@ class ToUEvent(Event):
     A record of a user's acceptance of a particular version of the Terms of Use.
     """
 
-    created_by: str  # ty: ignore[invalid-mutable-override]
+    created_by: str  # ty: ignore[incompatible-mutable-override]
     version: str
 
     @field_validator("version")

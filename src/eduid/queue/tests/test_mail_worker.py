@@ -165,7 +165,7 @@ class TestMailWorker(QueueAsyncioTest):
                     data=payload,
                 )
             msg_string = str(msg)
-            body = msg.get_body(preferencelist=("plain",)).get_content()  # type: ignore[union-attr]
+            body = msg.get_body(preferencelist=("plain",)).get_content()  # type: ignore[union-attr]  # ty: ignore[missing-union-attribute]
             assert "2030-01-31" in msg_string
             assert "http" not in msg_string
             assert "identity_type" not in msg_string
@@ -198,7 +198,7 @@ class TestMailWorker(QueueAsyncioTest):
             msg_string = str(msg)
             assert "http" not in msg_string
             assert "identity_type" not in msg_string
-            body = msg.get_body(preferencelist=("plain",)).get_content()  # type: ignore[union-attr]
+            body = msg.get_body(preferencelist=("plain",)).get_content()  # type: ignore[union-attr]  # ty: ignore[missing-union-attribute]
             if lang == "en":
                 assert "Subject: Test App identity verification has expired" in msg_string
                 assert "Your identity verification at Test App has expired" in body

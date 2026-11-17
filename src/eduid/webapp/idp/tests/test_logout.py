@@ -53,7 +53,7 @@ class TestIdPLogoutAPI(IdPAPITests):
             assert reached_state == LogoutState.S1_LOGGED_OUT
 
             logout_response = self.parse_saml_logout_response(response, BINDING_SOAP)
-            assert logout_response.response.status.status_code.value == "urn:oasis:names:tc:SAML:2.0:status:Success"
+            assert logout_response.response.status.status_code.value == "urn:oasis:names:tc:SAML:2.0:status:Success"  # ty: ignore[missing-union-attribute]
 
     def test_logout_completing_before_next_commits_fails_the_request(self, mocker: MockerFixture) -> None:
         """A /next in flight must not send a SAML response if the session was cleared by a logout meanwhile"""
@@ -317,7 +317,7 @@ class TestIdPLogoutAPI(IdPAPITests):
         assert reached_state == LogoutState.S1_LOGGED_OUT
 
         logout_response = self.parse_saml_logout_response(response, BINDING_SOAP)
-        assert logout_response.response.status.status_code.value == "urn:oasis:names:tc:SAML:2.0:status:Success"
+        assert logout_response.response.status.status_code.value == "urn:oasis:names:tc:SAML:2.0:status:Success"  # ty: ignore[missing-union-attribute]
 
         # Make sure the logout removed the SSO session from the database
         sso_session2 = self.app.sso_sessions.get_session(login_result.sso_cookie_val)
@@ -340,7 +340,7 @@ class TestIdPLogoutAPI(IdPAPITests):
             assert reached_state == LogoutState.S1_LOGGED_OUT
 
             logout_response = self.parse_saml_logout_response(response, BINDING_HTTP_REDIRECT)
-            assert logout_response.response.status.status_code.value == "urn:oasis:names:tc:SAML:2.0:status:Success"
+            assert logout_response.response.status.status_code.value == "urn:oasis:names:tc:SAML:2.0:status:Success"  # ty: ignore[missing-union-attribute]
 
     def parse_saml_logout_response(self, response: TestResponse, binding: SAMLBinding) -> LogoutResponse:
         if binding == BINDING_SOAP:

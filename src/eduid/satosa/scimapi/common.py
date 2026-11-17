@@ -1,6 +1,5 @@
 import logging
 from collections.abc import Generator
-from typing import cast
 
 import satosa.context
 import satosa.internal
@@ -41,4 +40,5 @@ def get_metadata(context: satosa.context.Context) -> Generator[MetaData]:
 
 def get_internal_attribute_name(converter: AttributeMapper, attr_name: str) -> str:
     _int = converter.to_internal("saml", {attr_name: ["something"]})
-    return cast(str, next(iter(_int.keys())))
+    name: str = next(iter(_int.keys()))
+    return name

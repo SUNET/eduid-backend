@@ -132,7 +132,7 @@ class ScimAttributes(ResponseMicroService):  # type: ignore[misc]
             logger.exception(f"Failed retrieving scopes for entityId {data.auth_info.issuer}")
         logger.debug(f"Scopes in metadata for IdP {data.auth_info.issuer}: {scopes}")
 
-        frontend_name = context.state.get(ROUTER_STATE_KEY)
+        frontend_name = context.state.get(ROUTER_STATE_KEY)  # ty: ignore[missing-union-attribute]
         data_owner = self._get_data_owner(data, scopes, frontend_name)
 
         # Configure dataowner to "no-scim" for Virtual IdPs that provide their own data/attributes. E.g Microsoft Entra.

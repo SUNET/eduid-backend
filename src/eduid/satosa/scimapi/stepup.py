@@ -340,7 +340,7 @@ class StepUp(ResponseMicroService):  # type: ignore[misc]
             self.outstanding_queries[req_id] = ht_args
 
         context.state[self.name] = {
-            **context.state.get(self.name, {}),
+            **context.state.get(self.name, {}),  # ty: ignore[missing-union-attribute]
             "relay_state": relay_state,
             "internal_data": data.to_dict(),
         }
@@ -357,7 +357,7 @@ class StepUp(ResponseMicroService):  # type: ignore[misc]
         logger.info("Returning from StepUp Authentication")
 
         logger.debug(f"CONTEXT STATE {context.state}")
-        _my_state: dict[str, Any] = context.state.get(self.name, {})
+        _my_state: dict[str, Any] = context.state.get(self.name, {})  # ty: ignore[missing-union-attribute]
         logger.debug(f"My state: {_my_state}")
         data = InternalData.from_dict(_my_state.get("internal_data", {}))
         logger.debug(f"Data: {data}")
@@ -557,13 +557,13 @@ class AuthnContext(RequestMicroService):  # type: ignore[misc]
     def save_to_state(context: Context, state_key: str, data: list[str]) -> None:
         logger.debug(f"Saving to state to context {CONTEXT_NAME}, {data} (state_key: {state_key})")
         context.state[CONTEXT_NAME] = {
-            **context.state.get(CONTEXT_NAME, {}),
+            **context.state.get(CONTEXT_NAME, {}),  # ty: ignore[missing-union-attribute]
             state_key: data,
         }
 
     @staticmethod
     def get_from_state(context: Context, state_key: str) -> list[str]:
-        _res = context.state.get(CONTEXT_NAME, {}).get(state_key, [])
+        _res = context.state.get(CONTEXT_NAME, {}).get(state_key, [])  # ty: ignore[missing-union-attribute]
         logger.debug(f"Retrieved state from context {CONTEXT_NAME}: {_res} (state_key: {state_key})")
         return cast(list[str], _res)
 
@@ -660,7 +660,7 @@ class StepupSAMLBackend(SAMLBackend):  # type: ignore[misc]
                 logger.debug(f"Requesting authnContextClassRef {loa_settings.requested} from {entity_id}")
                 context.state[Context.KEY_TARGET_AUTHN_CONTEXT_CLASS_REF] = loa_settings.requested
 
-        target_accr = context.state.get(Context.KEY_TARGET_AUTHN_CONTEXT_CLASS_REF)
+        target_accr = context.state.get(Context.KEY_TARGET_AUTHN_CONTEXT_CLASS_REF)  # ty: ignore[missing-union-attribute]
         logger.debug(f"Proceeding with ACCR {target_accr}")
 
         return super().authn_request(context, entity_id)

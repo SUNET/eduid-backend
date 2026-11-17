@@ -120,9 +120,9 @@ class GrantResponse(GnapBaseModel):
 
 
 class GNAPJOSEHeader(JOSEHeader):
-    kid: str  # ty: ignore[invalid-mutable-override]
+    kid: str  # ty: ignore[incompatible-mutable-override]
     alg: SupportedAlgorithms
-    typ: SupportedJWSType  # ty: ignore[invalid-mutable-override]
+    typ: SupportedJWSType  # ty: ignore[incompatible-mutable-override]
     htm: SupportedHTTPMethods
     # The HTTP URI used for this request, including all path and query components.
     uri: str

@@ -67,7 +67,7 @@ class response(ResponseMicroService):  # type: ignore[misc]
         super().__init__(*args, **kwargs)
 
     def process(self, context: Context, data: InternalData) -> ProcessReturnType:
-        subject_type = context.state.get("subject_type")
+        subject_type = context.state.get("subject_type")  # ty: ignore[missing-union-attribute]
         if not subject_type:
             raise SATOSAAuthenticationError(context.state, "No NameID from saved state")
 

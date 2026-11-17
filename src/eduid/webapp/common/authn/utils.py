@@ -39,7 +39,7 @@ def get_saml2_config(module_path: str, name: str = "SAML_CONFIG") -> SPConfig:
     if spec is None:
         raise RuntimeError(f"Failed loading saml2_settings module: {module_path}")
     module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)  # type: ignore[union-attr]
+    spec.loader.exec_module(module)  # type: ignore[union-attr]  # ty: ignore[missing-union-attribute]
 
     conf = SPConfig()
     conf.load(module.__getattribute__(name))

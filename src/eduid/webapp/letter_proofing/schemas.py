@@ -17,7 +17,7 @@ class VerifyCodeRequestSchema(EduidSchema, CSRFRequestMixin):
 
 
 class LetterProofingResponseSchema(FluxStandardAction):
-    class Meta:  # ty: ignore[invalid-attribute-override]
+    class Meta:  # ty: ignore[incompatible-attribute-override]
         strict = True
 
     class LetterProofingPayload(EduidSchema, CSRFResponseMixin):
