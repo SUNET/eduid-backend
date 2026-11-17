@@ -2,7 +2,7 @@ import logging
 import time
 from collections.abc import Callable, Mapping
 from datetime import timedelta
-from typing import Any
+from typing import Any, cast
 
 import pytest
 from flask import Response, request
@@ -736,7 +736,7 @@ class EduidSessionTests(EduidAPITestCase[SessionTestApp]):
             raw_before = conn.get(key)
             time.sleep(0.01)
             factory.save_session(self.app, sess, Response())
-            ttl = conn.ttl(key)
+            ttl = cast(int, conn.ttl(key))
             assert ttl > 5
             assert conn.get(key) == raw_before
 
@@ -806,7 +806,7 @@ class EduidSessionTests(EduidAPITestCase[SessionTestApp]):
             conn = sess._session.conn
             conn.expire(sess._session.db_key, 5)
             factory.save_session(self.app, sess, Response())
-            assert conn.ttl(sess._session.db_key) > 5
+            assert cast(int, conn.ttl(sess._session.db_key)) > 5
             assert sess._commit_failed is False
 
 
