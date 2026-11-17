@@ -38,7 +38,7 @@ dependencies = [
   "pysaml2==7.5.2+sunet4",
   "python-dateutil",
   "qrcode",
-  "redis",
+  "redis==6.4.0",
   "statsd",
   "xhtml2pdf",
   "zxcvbn",
