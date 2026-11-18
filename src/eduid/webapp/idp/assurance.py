@@ -4,6 +4,7 @@ from eduid.common.misc.timeutil import utc_now
 from eduid.common.models.saml2 import EduidAuthnContextClass
 from eduid.userdb.credentials import Credential, CredentialProofingMethod, FidoCredential, Password
 from eduid.userdb.credentials.external import (
+    SWEDEN_CONNECT_AL3_LOAS,
     BankIDCredential,
     EidasCredential,
     FrejaCredential,
@@ -107,7 +108,7 @@ class AuthnState:
             case SwedenConnectCredential():
                 logger.debug(f"SwedenConnect MFA used for this request: {cred}")
                 self.external_mfa_used = True
-                if cred.level == "loa3":
+                if cred.level in SWEDEN_CONNECT_AL3_LOAS:
                     self.swamid_al3_used = True
             case BankIDCredential():
                 logger.debug(f"BankID MFA used for this request: {cred}")

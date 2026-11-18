@@ -89,6 +89,17 @@ class TestNeedSecurityKey(IdPAPITests):
 
         assert need_security_key(user, ticket) is False
 
+    def test_user_used_sweden_connect_loa4(self) -> None:
+        """User who used SwedenConnect (SverigeID) at loa4 doesn't need security key"""
+        self.add_test_user_security_key(always_use_security_key=True)
+        cred = self.add_test_user_external_mfa_cred(trust_framework=TrustFramework.SWECONN, trust_level="loa4")
+        user = self._get_idp_user()
+
+        credentials_used = {cred.key: self._make_authn_data(cred.key)}
+        ticket = self._make_ticket(credentials_used=credentials_used)
+
+        assert need_security_key(user, ticket) is False
+
     def test_user_used_sweden_connect_lower_level(self) -> None:
         """User who used SwedenConnect at lower level still needs security key"""
         self.add_test_user_security_key(always_use_security_key=True)
