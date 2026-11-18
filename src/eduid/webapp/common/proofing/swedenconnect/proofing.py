@@ -1,6 +1,7 @@
+from abc import abstractmethod
 from dataclasses import dataclass
 from datetime import UTC, datetime
-from typing import Any
+from typing import Any, ClassVar
 
 from eduid.common.config.base import SwedenConnectProofingConfigMixin
 from eduid.common.misc.timeutil import utc_now
@@ -80,7 +81,38 @@ class SwedenConnectProofingFunctions[BaseSessionInfoVar: BaseSessionInfo](
 
 
 @dataclass
-class FrejaProofingFunctions(SwedenConnectProofingFunctions[NinSessionInfo]):
+class NinSwedenConnectProofingFunctions(SwedenConnectProofingFunctions[NinSessionInfo]):
+    """
+    Proofing of a NIN asserted by a Sweden Connect eID (NinSessionInfo).
+
+    The eIDs that assert the same attributes share the logic, a subclass only says which proofing log elements and
+    proofing versions to use, and which LoA values it accepts for a credential verification.
+    """
+
+    # The proofing log element classes also decide the proofing method recorded on the verified identity
+    identity_log_class: ClassVar[type[SwedenConnectProofing]]
+    credential_log_class: ClassVar[type[MFATokenProofing]]
+
+    def __post_init__(self) -> None:
+        # ClassVars can not be abstract, so fail with a clear message when a subclass does not define them
+        for name in ("identity_log_class", "credential_log_class"):
+            if not hasattr(type(self), name):
+                raise TypeError(f"{type(self).__name__} must define the class variable {name}")
+
+    @property
+    @abstractmethod
+    def identity_proofing_version(self) -> str:
+        """The proofing version recorded on an identity verified with this method."""
+
+    @property
+    @abstractmethod
+    def credential_proofing_version(self) -> str:
+        """The proofing version recorded on a credential verified with this method."""
+
+    @abstractmethod
+    def is_accepted_credential_loa(self, loa: str | None) -> bool:
+        """Whether the asserted LoA is accepted for verifying a credential."""
+
     def get_identity(self, user: User) -> IdentityElement | None:
         return user.identities.nin
 
@@ -130,13 +162,13 @@ class FrejaProofingFunctions(SwedenConnectProofingFunctions[NinSessionInfo]):
             issuer = "MAGIC COOKIE"
             authn_context = "MAGIC COOKIE"
         else:
-            proofing_version = self.config.freja_proofing_version
+            proofing_version = self.identity_proofing_version
             issuer = self.session_info.issuer
             authn_context = self.session_info.authn_context
 
         _nin = self.session_info.attributes.nin
 
-        data = SwedenConnectProofing(
+        data = self.identity_log_class(
             authn_context_class=authn_context,
             created_by=current_proofing_app.conf.app_name,
             eppn=user.eppn,
@@ -157,14 +189,14 @@ class FrejaProofingFunctions(SwedenConnectProofingFunctions[NinSessionInfo]):
             issuer = "MAGIC COOKIE"
             authn_context = "MAGIC COOKIE"
         else:
-            proofing_version = self.config.security_key_proofing_version
+            proofing_version = self.credential_proofing_version
             issuer = self.session_info.issuer
             authn_context = self.session_info.authn_context
 
         if user.identities.nin is None:
             raise RuntimeError("user.identities.nin not set when expected")
 
-        data = MFATokenProofing(
+        data = self.credential_log_class(
             authn_context_class=authn_context,
             created_by=self.app_name,
             eppn=user.eppn,
@@ -188,14 +220,31 @@ class FrejaProofingFunctions(SwedenConnectProofingFunctions[NinSessionInfo]):
         )
 
     def mark_credential_as_verified(self, credential: Credential, loa: str | None) -> VerifyCredentialResult:
-        if loa != "loa3":
+        if not self.is_accepted_credential_loa(loa):
             return VerifyCredentialResult(error=SwedenConnectProofingMsg.authn_context_mismatch_eidas)
 
         credential.is_verified = True
         credential.proofing_method = self.config.security_key_proofing_method
-        credential.proofing_version = self.config.security_key_proofing_version
+        credential.proofing_version = self.credential_proofing_version
 
         return VerifyCredentialResult(credential=credential)
+
+
+@dataclass
+class FrejaProofingFunctions(NinSwedenConnectProofingFunctions):
+    identity_log_class: ClassVar[type[SwedenConnectProofing]] = SwedenConnectProofing
+    credential_log_class: ClassVar[type[MFATokenProofing]] = MFATokenProofing
+
+    @property
+    def identity_proofing_version(self) -> str:
+        return self.config.freja_proofing_version
+
+    @property
+    def credential_proofing_version(self) -> str:
+        return self.config.security_key_proofing_version
+
+    def is_accepted_credential_loa(self, loa: str | None) -> bool:
+        return loa == "loa3"
 
 
 @dataclass()

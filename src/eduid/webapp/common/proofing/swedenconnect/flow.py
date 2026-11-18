@@ -31,6 +31,7 @@ from eduid.webapp.common.authn.acs_registry import ACSArgs, ACSResult
 from eduid.webapp.common.authn.session_info import SessionInfo
 from eduid.webapp.common.authn.utils import check_reauthn
 from eduid.webapp.common.proofing.app import ProofingApp
+from eduid.webapp.common.proofing.methods import ProofingMethods
 from eduid.webapp.common.proofing.mfa_signup import parse_mfa_register_args
 from eduid.webapp.common.proofing.shared_actions import (
     run_mfa_authenticate,
@@ -230,18 +231,22 @@ def remap_staging_nin(
 
 
 def select_magic_cookie_idp(
-    method: str, *, freja_idp: str | None, bankid_idp: str | None, eidas_idp: str | None
+    method: ProofingMethods,
+    *,
+    swedish_eid_idp: str | None,
+    bankid_idp: str | None,
+    eidas_idp: str | None,
 ) -> str | None:
     """
     Pick the test IdP to use when the magic cookie is present.
 
     :returns: the IdP for the method, or None if magic cookie is not supported for the method
     """
-    if method == "freja" and freja_idp:
-        return freja_idp
-    if method == "bankid" and bankid_idp:
+    if method == ProofingMethods.FREJA and swedish_eid_idp:
+        return swedish_eid_idp
+    if method == ProofingMethods.BANKID and bankid_idp:
         return bankid_idp
-    if method == "eidas" and eidas_idp:
+    if method == ProofingMethods.EIDAS and eidas_idp:
         return eidas_idp
     return None
 

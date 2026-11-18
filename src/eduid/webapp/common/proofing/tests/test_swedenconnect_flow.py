@@ -8,7 +8,7 @@ from eduid.userdb.element import ElementKey
 from eduid.webapp.common.api.messages import CommonMsg
 from eduid.webapp.common.authn.acs_registry import ACSResult
 from eduid.webapp.common.authn.session_info import SessionInfo
-from eduid.webapp.common.proofing.methods import ProofingMethod
+from eduid.webapp.common.proofing.methods import ProofingMethod, ProofingMethods
 from eduid.webapp.common.proofing.swedenconnect.flow import (
     SwedenConnectMsgs,
     apply_action_result,
@@ -51,12 +51,12 @@ def test_remap_staging_nin_noop_in_production() -> None:
 
 
 def test_select_magic_cookie_idp() -> None:
-    kw = {"freja_idp": "f", "bankid_idp": "b", "eidas_idp": "e"}
-    assert select_magic_cookie_idp("freja", **kw) == "f"
-    assert select_magic_cookie_idp("bankid", **kw) == "b"
-    assert select_magic_cookie_idp("eidas", **kw) == "e"
-    assert select_magic_cookie_idp("other", **kw) is None
-    assert select_magic_cookie_idp("freja", freja_idp=None, bankid_idp="b", eidas_idp="e") is None
+    kw = {"swedish_eid_idp": "f", "bankid_idp": "b", "eidas_idp": "e"}
+    assert select_magic_cookie_idp(ProofingMethods.FREJA, **kw) == "f"
+    assert select_magic_cookie_idp(ProofingMethods.BANKID, **kw) == "b"
+    assert select_magic_cookie_idp(ProofingMethods.EIDAS, **kw) == "e"
+    assert select_magic_cookie_idp(ProofingMethods.FREJA_EID, **kw) is None
+    assert select_magic_cookie_idp(ProofingMethods.FREJA, swedish_eid_idp=None, bankid_idp="b", eidas_idp="e") is None
 
 
 def test_build_status_payload(mocker: MockerFixture) -> None:
