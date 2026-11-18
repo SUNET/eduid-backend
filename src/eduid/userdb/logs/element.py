@@ -304,6 +304,34 @@ class SwedenConnectProofing(NinEIDProofingLogElement):
     proofing_method: str = IdentityProofingMethod.SWEDEN_CONNECT.value
 
 
+class SverigeIDProofing(SwedenConnectProofing):
+    """
+    A NIN verified with SverigeID (Swedish state e-legitimation) through an OpenID Provider.
+
+    Same data as SwedenConnectProofing, but proofing_method 'sverigeid' tells it apart from the other
+    Sweden Connect eIDs.
+
+    {
+        'eduPersonPrincipalName': eppn,
+        'created_ts': utc_now(),
+        'created_by': 'application',
+        'proofing_method': 'sverigeid',
+        'proofing_version': '2026v1',
+        'issuer': 'provider who performed the vetting',
+        'authn_context_class': 'the asserted authn context class',
+        'nin': 'national_identity_number',
+        'given_name': 'name',
+        'surname': 'name',
+    }
+
+    Proofing version history:
+    2026v1 - inital deployment
+    """
+
+    # Proofing method name
+    proofing_method: str = IdentityProofingMethod.SVERIGEID.value
+
+
 class SwedenConnectEIDASProofing(ForeignIdProofingLogElement):
     """
     {
@@ -514,6 +542,27 @@ class MFATokenProofing(SwedenConnectProofing):
     key_id: str
     # Proofing method name
     proofing_method: str = "swedenconnect"
+
+
+class MFATokenSverigeIDProofing(MFATokenProofing):
+    """
+    {
+        'eduPersonPrincipalName': eppn,
+        'created_ts': utc_now(),
+        'created_by': 'application',
+        'proofing_method': 'sverigeid',
+        'proofing_version': '2026v1',
+        'issuer': 'provider who performed the vetting',
+        'authn_context_class': 'the asserted authn context class',
+        'key_id: 'Key id of token vetted',
+        'nin': 'national_identity_number',
+        'given_name': 'name',
+        'surname': 'name',
+    }
+    """
+
+    # Proofing method name
+    proofing_method: str = IdentityProofingMethod.SVERIGEID.value
 
 
 class MFATokenEIDASProofing(SwedenConnectEIDASProofing):

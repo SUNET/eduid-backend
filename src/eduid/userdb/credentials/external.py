@@ -46,6 +46,10 @@ class ExternalCredential(Credential):
 # and mapping a level to an authnContextClassRef really ought to be dependent on configuration matching
 # the IdP:s expected values at a certain time. Such configuration is better to have in the SP than in
 # the database layer.
+# loa4 is a higher assurance level than loa3, so both satisfy SWAMID AL3.
+SWEDEN_CONNECT_AL3_LOAS: frozenset[str] = frozenset({"loa3", "loa4"})
+
+
 class SwedenConnectCredential(ExternalCredential):
     framework: Literal[TrustFramework.SWECONN] = TrustFramework.SWECONN  # ty: ignore[incompatible-mutable-override]
     level: str  # a value like "loa3", "eidas_sub", ...

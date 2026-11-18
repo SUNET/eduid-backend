@@ -248,6 +248,17 @@ class TestIdentity:
         this_dict["modified_ts"] = True
         assert NinIdentity.from_dict(this_dict) is not None
 
+    def test_sverigeid_proofing_method_roundtrip(self) -> None:
+        nin = NinIdentity(
+            number="197801012369",
+            created_by="test",
+            is_verified=True,
+            proofing_method=IdentityProofingMethod.SVERIGEID,
+            proofing_version="2026v1",
+        )
+        assert nin.to_dict()["proofing_method"] == "sverigeid"
+        assert NinIdentity.from_dict(nin.to_dict()).proofing_method is IdentityProofingMethod.SVERIGEID
+
     def test_get_missing_proofing_method(self) -> None:
         this = self.three.find("nin")
         assert this
