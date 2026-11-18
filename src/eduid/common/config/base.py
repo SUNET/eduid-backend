@@ -485,6 +485,10 @@ class ProofingConfigMixin(FrontendActionMixin):
     required_loa: list[str] = Field(default=["loa3"])
     freja_idp: str | None = None
 
+    # sverigeid (Swedish state e-legitimation), a Sweden Connect eID of its own OpenID Provider
+    sverigeid_idp: str | None = None
+    sverigeid_required_loa: list[str] = Field(default=["loa3", "loa4"])
+
     # eidas
     foreign_required_loa: list[str] = Field(default=["eidas-nf-sub", "eidas-nf-high"])
     foreign_identity_idp: str | None = None
@@ -499,6 +503,7 @@ class ProofingConfigMixin(FrontendActionMixin):
 
     # identity proofing
     freja_proofing_version: str = Field(default="2023v1")
+    sverigeid_proofing_version: str = Field(default="2026v1")
     foreign_eid_proofing_version: str = Field(default="2022v1")
     svipe_id_proofing_version: str = Field(default="2023v2")
     bankid_proofing_version: str = Field(default="2023v1")
@@ -507,6 +512,7 @@ class ProofingConfigMixin(FrontendActionMixin):
     # security key proofing
     security_key_proofing_method: CredentialProofingMethod = Field(default=CredentialProofingMethod.SWAMID_AL3_MFA)
     security_key_proofing_version: str = Field(default="2023v2")
+    security_key_sverigeid_proofing_version: str = Field(default="2026v1")
     security_key_foreign_eid_proofing_version: str = Field(default="2022v1")
     security_key_freja_eid_proofing_version: str = Field(default="2024v1")
     security_key_foreign_freja_eid_proofing_version: str = Field(default="2025v1")

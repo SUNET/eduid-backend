@@ -34,7 +34,7 @@ def common_checks(args: ACSArgs) -> ACSResult | None:
 @acs_action(OidcEidAcsAction.verify_identity)
 @require_user
 def oidceid_verify_identity_action(user: User, args: ACSArgs) -> ACSResult:
-    """Use the claims from an OpenID Provider to verify a user's identity (Freja eID or eIDAS)."""
+    """Use the claims from an OpenID Provider to verify a user's identity (Freja eID, SverigeID or eIDAS)."""
     return sc_verify_identity(user, args, OIDCEID_MSGS, common_checks=common_checks, app=current_app)
 
 

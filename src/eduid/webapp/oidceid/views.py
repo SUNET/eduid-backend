@@ -55,7 +55,7 @@ __author__ = "lundberg"
 oidceid_views = Blueprint("oidceid", __name__, url_prefix="")
 
 # The proofing methods this app can request from an OpenID Provider. BankID is added when the OPs support it.
-SUPPORTED_METHODS = (ProofingMethods.FREJA, ProofingMethods.EIDAS)
+SUPPORTED_METHODS = (ProofingMethods.FREJA, ProofingMethods.SVERIGEID, ProofingMethods.EIDAS)
 
 
 @oidceid_views.route("/", methods=["GET"])

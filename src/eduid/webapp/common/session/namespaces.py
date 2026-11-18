@@ -203,7 +203,7 @@ class Credentials(SessionNSBase):
 class SignupExternalMfa(BaseModel):
     completed: bool = False
     app_name: str  # "eidas" | "bankid" | "freja_eid" | "samleid" | "oidceid"
-    method: str  # "eidas" | "freja" | "bankid" | "freja_eid"
+    method: str  # "eidas" | "freja" | "sverigeid" | "bankid" | "freja_eid"
     authn_id: AuthnRequestRef | OIDCState
     loa: str
     # authn_instant of the underlying external authn — used to re-check freshness

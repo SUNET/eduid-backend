@@ -13,18 +13,27 @@ from pydantic import ValidationError
 from pytest_mock import MockerFixture, MockType
 
 from eduid.common.config.base import ProofingConfigMixin, SwedenConnectProofingConfigMixin
+from eduid.userdb import NinIdentity
 from eduid.userdb.credentials import Credential
 from eduid.userdb.credentials.base import CredentialProofingMethod
 from eduid.userdb.credentials.fido import Webauthn
-from eduid.userdb.identity import EIDASIdentity, EIDASLoa, PridPersistence
+from eduid.userdb.identity import EIDASIdentity, EIDASLoa, IdentityProofingMethod, PridPersistence
+from eduid.userdb.logs.element import (
+    MFATokenProofing,
+    MFATokenSverigeIDProofing,
+    SverigeIDProofing,
+    SwedenConnectProofing,
+)
 from eduid.userdb.proofing import ProofingUser
 from eduid.webapp.common.api.messages import CommonMsg
 from eduid.webapp.common.proofing.messages import SwedenConnectProofingMsg
+from eduid.webapp.common.proofing.methods import ProofingMethods
 from eduid.webapp.common.proofing.swedenconnect.proofing import (
     BankIDProofingFunctions,
     EidasProofingFunctions,
     FrejaProofingFunctions,
     NinSwedenConnectProofingFunctions,
+    SverigeIDProofingFunctions,
     UnsupportedMethod,
     get_swedenconnect_proofing_functions,
 )
@@ -89,6 +98,25 @@ def _freja() -> FrejaProofingFunctions:
     return FrejaProofingFunctions(session_info=session_info, app_name="testing", config=_Config(), backdoor=False)
 
 
+def _nin_session_info(loa: str = "loa3") -> NinSessionInfo:
+    return NinSessionInfo(
+        issuer=_ISSUER,
+        authn_info=_authn_info(loa),
+        ava={
+            "personalIdentityNumber": ["197801012369"],
+            "givenName": ["Ulla"],
+            "sn": ["Alm"],
+            "dateOfBirth": ["1978-01-01"],
+        },
+    )
+
+
+def _sverigeid(loa: str = "loa3", backdoor: bool = False) -> SverigeIDProofingFunctions:
+    return SverigeIDProofingFunctions(
+        session_info=_nin_session_info(loa), app_name="testing", config=_Config(), backdoor=backdoor
+    )
+
+
 def _bankid() -> BankIDProofingFunctions:
     session_info = BankIDSessionInfo(
         issuer=_ISSUER,
@@ -150,6 +178,91 @@ def test_freja_mark_credential_accepts_loa3() -> None:
     assert result.credential is cred
     assert cred.is_verified is True
     assert cred.proofing_method == CredentialProofingMethod.SWAMID_AL3_MFA
+
+
+# --- SverigeID ---
+
+
+@pytest.mark.parametrize("loa", [None, "loa2", "uncertified-loa3", "eidas-nf-high"])
+def test_sverigeid_mark_credential_rejects_other_loa(loa: str | None) -> None:
+    cred = _credential()
+    result = _sverigeid().mark_credential_as_verified(cred, loa)
+    assert result.error == SwedenConnectProofingMsg.authn_context_mismatch_eidas
+    assert result.credential is None
+    assert cred.is_verified is False
+
+
+@pytest.mark.parametrize("loa", ["loa3", "loa4"])
+def test_sverigeid_mark_credential_accepts_loa3_and_loa4(loa: str) -> None:
+    cred = _credential()
+    result = _sverigeid().mark_credential_as_verified(cred, loa)
+    assert result.error is None
+    assert cred.is_verified is True
+    assert cred.proofing_method == CredentialProofingMethod.SWAMID_AL3_MFA
+    assert cred.proofing_version == _Config().security_key_sverigeid_proofing_version
+
+
+def test_sverigeid_loa_follows_config() -> None:
+    config = _Config(sverigeid_required_loa=["loa4"])
+    fn = SverigeIDProofingFunctions(
+        session_info=_nin_session_info("loa4"), app_name="testing", config=config, backdoor=False
+    )
+    assert fn.is_accepted_credential_loa("loa4") is True
+    assert fn.is_accepted_credential_loa("loa3") is False
+
+
+def test_sverigeid_loa_config_cannot_lower_floor() -> None:
+    config = _Config(sverigeid_required_loa=["loa2", "loa3"])
+    fn = SverigeIDProofingFunctions(
+        session_info=_nin_session_info("loa2"), app_name="testing", config=config, backdoor=False
+    )
+    assert fn.is_accepted_credential_loa("loa2") is False
+    assert fn.is_accepted_credential_loa("loa3") is True
+    assert fn.is_accepted_credential_loa(None) is False
+
+
+def test_sverigeid_identity_proofing_element() -> None:
+    result = _sverigeid().identity_proofing_element(user=_user())
+    assert type(result.data) is SverigeIDProofing
+    assert result.data.proofing_method == IdentityProofingMethod.SVERIGEID.value
+    assert result.data.proofing_version == "2026v1"
+    assert result.data.issuer == _ISSUER
+
+
+def test_freja_identity_proofing_element_is_unchanged() -> None:
+    result = _freja().identity_proofing_element(user=_user())
+    assert type(result.data) is SwedenConnectProofing
+    assert result.data.proofing_method == IdentityProofingMethod.SWEDEN_CONNECT.value
+    assert result.data.proofing_version == _Config().freja_proofing_version
+
+
+def test_sverigeid_backdoor_proofing_element() -> None:
+    result = _sverigeid(backdoor=True).identity_proofing_element(user=_user())
+    assert type(result.data) is SverigeIDProofing
+    assert result.data.issuer == "MAGIC COOKIE"
+    assert result.data.proofing_version == "1999v1"
+
+
+def test_sverigeid_credential_proofing_element() -> None:
+    user = _user()
+    user.identities.add(NinIdentity(number="197801012369", created_by="test", is_verified=True))
+    result = _sverigeid().credential_proofing_element(user=user, credential=_credential())
+    assert type(result.data) is MFATokenSverigeIDProofing
+    assert result.data.proofing_method == IdentityProofingMethod.SVERIGEID.value
+    assert result.data.proofing_version == "2026v1"
+
+
+def test_freja_credential_proofing_element_is_unchanged() -> None:
+    user = _user()
+    user.identities.add(NinIdentity(number="197801012369", created_by="test", is_verified=True))
+    result = _freja().credential_proofing_element(user=user, credential=_credential())
+    assert type(result.data) is MFATokenProofing
+    assert result.data.proofing_method == "swedenconnect"
+
+
+def test_sverigeid_credential_proofing_version() -> None:
+    assert _sverigeid().credential_proofing_version == "2026v1"
+    assert _freja().credential_proofing_version == _Config().security_key_proofing_version
 
 
 # --- eIDAS verify_identity ---
@@ -272,6 +385,24 @@ def test_dispatcher_selects_functions_by_session_info_class() -> None:
             session_info=fn.session_info, app_name="testing", config=_Config(), backdoor=False
         )
         assert type(result) is type(fn)
+
+
+def test_dispatcher_routes_nin_session_info_by_proofing_method() -> None:
+    session_info = _nin_session_info()
+    config = _Config()
+    freja = get_swedenconnect_proofing_functions(
+        session_info=session_info, app_name="testing", config=config, backdoor=False, method=ProofingMethods.FREJA
+    )
+    assert type(freja) is FrejaProofingFunctions
+    sverigeid = get_swedenconnect_proofing_functions(
+        session_info=session_info, app_name="testing", config=config, backdoor=False, method=ProofingMethods.SVERIGEID
+    )
+    assert type(sverigeid) is SverigeIDProofingFunctions
+    # no method keeps the old behaviour
+    default = get_swedenconnect_proofing_functions(
+        session_info=session_info, app_name="testing", config=config, backdoor=False
+    )
+    assert type(default) is FrejaProofingFunctions
 
 
 def test_dispatcher_rejects_session_info_subclass() -> None:

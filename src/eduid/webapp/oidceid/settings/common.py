@@ -2,7 +2,7 @@
 Configuration (file) handling for the eduID oidceid app.
 
 This app is the OpenID Connect counterpart of samleid: it authenticates against Sweden Connect OpenID Providers
-to verify identities with Freja eID, eIDAS (and later BankID).
+to verify identities with Freja eID, SverigeID, eIDAS (and later BankID).
 """
 
 from typing import Literal, Self
@@ -13,6 +13,7 @@ from eduid.common.clients.oidc_client.base import OidcRpClientConfig
 from eduid.common.config.base import (
     AmConfigMixin,
     EduIDBaseAppConfig,
+    EduidEnvironment,
     ErrorsConfigMixin,
     FrontendActionMixin,
     MagicCookieMixin,
@@ -64,9 +65,10 @@ class OidcEidConfig(
 
     Supports the proofing methods:
     - freja: Swedish NIN via Freja eID (Sweden Connect)
+    - sverigeid: Swedish NIN via SverigeID (Sweden Connect), an OpenID Provider of its own
     - eidas: Foreign identity via eIDAS
 
-    The *_idp fields (freja_idp, foreign_identity_idp, bankid_idp, magic_cookie_*_idp) hold the issuer URL
+    The *_idp fields (freja_idp, sverigeid_idp, foreign_identity_idp, bankid_idp, magic_cookie_*_idp) hold the issuer URL
     of one of the configured providers.
     """
 
@@ -77,15 +79,22 @@ class OidcEidConfig(
     fetch_userinfo: bool = False
     # Value of the https://id.oidc.se/param/authnProvider request parameter per ProofingMethods value (proxy OPs)
     method_authn_provider: dict[str, str] = Field(default_factory=dict)
+    # Sandbox (dev/staging) only, refused in production. With one OP serving several eID methods nothing binds the
+    # method the user chose to the eID that actually authenticated, so the recorded proofing method can be wrong.
+    # Production uses one OP per method.
+    allow_shared_idp: bool = False
 
     @model_validator(mode="after")
     def _check_idps_match_providers(self) -> Self:
+        if self.allow_shared_idp and self.environment == EduidEnvironment.production:
+            raise ValueError("allow_shared_idp is not permitted in production")
         issuers = [provider.issuer for provider in self.providers]
         duplicates = sorted({issuer for issuer in issuers if issuers.count(issuer) > 1})
         if duplicates:
             raise ValueError(f"provider issuers must be unique, duplicates: {duplicates}")
         idp_fields = (
             "freja_idp",
+            "sverigeid_idp",
             "foreign_identity_idp",
             "bankid_idp",
             "magic_cookie_idp",
@@ -96,6 +105,18 @@ class OidcEidConfig(
             value = getattr(self, field_name)
             if value and value not in issuers:
                 raise ValueError(f"{field_name} {value!r} does not match the issuer of any configured provider")
+        if not self.allow_shared_idp:
+            methods_by_issuer: dict[str, list[str]] = {}
+            for field_name in ("freja_idp", "sverigeid_idp", "bankid_idp", "foreign_identity_idp"):
+                issuer = getattr(self, field_name)
+                if issuer:
+                    methods_by_issuer.setdefault(issuer, []).append(field_name)
+            for issuer, methods in methods_by_issuer.items():
+                if len(methods) > 1:
+                    raise ValueError(
+                        f"{issuer} is used for methods {methods}; "
+                        "each method needs its own OP (set allow_shared_idp for sandbox)"
+                    )
         return self
 
     @model_validator(mode="after")

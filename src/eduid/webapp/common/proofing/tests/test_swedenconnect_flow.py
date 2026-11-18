@@ -57,6 +57,11 @@ def test_select_magic_cookie_idp() -> None:
     assert select_magic_cookie_idp(ProofingMethods.EIDAS, **kw) == "e"
     assert select_magic_cookie_idp(ProofingMethods.FREJA_EID, **kw) is None
     assert select_magic_cookie_idp(ProofingMethods.FREJA, swedish_eid_idp=None, bankid_idp="b", eidas_idp="e") is None
+    # sverigeid uses the same magic cookie idp as freja
+    assert select_magic_cookie_idp(ProofingMethods.SVERIGEID, **kw) == "f"
+    assert (
+        select_magic_cookie_idp(ProofingMethods.SVERIGEID, swedish_eid_idp=None, bankid_idp="b", eidas_idp="e") is None
+    )
 
 
 def test_build_status_payload(mocker: MockerFixture) -> None:
@@ -151,6 +156,7 @@ def test_sc_actions_run_common_checks(mocker: MockerFixture) -> None:
     check = mocker.MagicMock(return_value=blocked)
     args = mocker.MagicMock()
     args.proofing_method = mocker.MagicMock(spec=ProofingMethod)
+    args.proofing_method.method = ProofingMethods.FREJA
     app = mocker.MagicMock()
     user = mocker.MagicMock()
 

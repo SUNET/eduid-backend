@@ -51,7 +51,7 @@ _ESSENTIAL: dict[str, bool] = {"essential": True}
 def _id_token_claims(method: ProofingMethods) -> dict[str, dict[str, bool] | None]:
     """The identity claims to request in the ID token, None means requested but not essential."""
     match method:
-        case ProofingMethods.FREJA:
+        case ProofingMethods.FREJA | ProofingMethods.SVERIGEID:
             return {
                 CLAIM_PERSONAL_IDENTITY_NUMBER: None,
                 CLAIM_COORDINATION_NUMBER: None,
@@ -79,7 +79,7 @@ def _id_token_claims(method: ProofingMethods) -> dict[str, dict[str, bool] | Non
 def scopes_for_method(method: ProofingMethods) -> list[str]:
     """The scopes to request for a proofing method."""
     match method:
-        case ProofingMethods.FREJA:
+        case ProofingMethods.FREJA | ProofingMethods.SVERIGEID:
             return ["openid", SCOPE_NATURAL_PERSON_NUMBER, SCOPE_NATURAL_PERSON_INFO]
         case ProofingMethods.EIDAS:
             return ["openid", SCOPE_EIDAS_NATURAL_PERSON_IDENTITY, SCOPE_NATURAL_PERSON_INFO]
@@ -186,7 +186,7 @@ def claims_to_session_info(claims: Mapping[str, Any], *, method: ProofingMethods
     _put(ava, "sn", claims, CLAIM_FAMILY_NAME)
     _put(ava, "dateOfBirth", claims, CLAIM_BIRTHDATE)
     match method:
-        case ProofingMethods.FREJA:
+        case ProofingMethods.FREJA | ProofingMethods.SVERIGEID:
             # Coordination numbers map to the NIN, like in samleid
             _put(ava, "personalIdentityNumber", claims, CLAIM_PERSONAL_IDENTITY_NUMBER, CLAIM_COORDINATION_NUMBER)
             _put(ava, "displayName", claims, CLAIM_NAME)

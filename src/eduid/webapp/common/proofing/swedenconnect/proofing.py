@@ -9,6 +9,7 @@ from eduid.common.models.saml_models import BaseSessionInfo
 from eduid.common.rpc.exceptions import AmTaskFailed
 from eduid.userdb import EIDASIdentity, User
 from eduid.userdb.credentials import Credential
+from eduid.userdb.credentials.external import SWEDEN_CONNECT_AL3_LOAS
 from eduid.userdb.element import ElementKey
 from eduid.userdb.exceptions import LockedIdentityViolation
 from eduid.userdb.identity import EIDASLoa, IdentityElement, IdentityProofingMethod, IdentityType, PridPersistence
@@ -18,7 +19,9 @@ from eduid.userdb.logs.element import (
     MFATokenBankIDProofing,
     MFATokenEIDASProofing,
     MFATokenProofing,
+    MFATokenSverigeIDProofing,
     NinProofingLogElement,
+    SverigeIDProofing,
     SwedenConnectEIDASProofing,
     SwedenConnectProofing,
 )
@@ -37,7 +40,7 @@ from eduid.webapp.common.proofing.base import (
     VerifyUserResult,
 )
 from eduid.webapp.common.proofing.messages import SwedenConnectProofingMsg
-from eduid.webapp.common.proofing.methods import ProofingMethod
+from eduid.webapp.common.proofing.methods import ProofingMethod, ProofingMethods
 from eduid.webapp.common.proofing.swedenconnect.session_info import (
     BankIDSessionInfo,
     ForeignEidSessionInfo,
@@ -245,6 +248,24 @@ class FrejaProofingFunctions(NinSwedenConnectProofingFunctions):
 
     def is_accepted_credential_loa(self, loa: str | None) -> bool:
         return loa == "loa3"
+
+
+@dataclass
+class SverigeIDProofingFunctions(NinSwedenConnectProofingFunctions):
+    identity_log_class: ClassVar[type[SwedenConnectProofing]] = SverigeIDProofing
+    credential_log_class: ClassVar[type[MFATokenProofing]] = MFATokenSverigeIDProofing
+
+    @property
+    def identity_proofing_version(self) -> str:
+        return self.config.sverigeid_proofing_version
+
+    @property
+    def credential_proofing_version(self) -> str:
+        return self.config.security_key_sverigeid_proofing_version
+
+    def is_accepted_credential_loa(self, loa: str | None) -> bool:
+        # Hard floor: a verified credential asserts SWAMID AL3, so config can narrow but never lower the bar
+        return loa in SWEDEN_CONNECT_AL3_LOAS and loa in self.config.sverigeid_required_loa
 
 
 @dataclass()
@@ -506,11 +527,14 @@ def get_swedenconnect_proofing_functions(
     app_name: str,
     config: SwedenConnectProofingConfigMixin,
     backdoor: bool,
+    method: ProofingMethods | None = None,
 ) -> ProofingFunctions[Any, SwedenConnectProofingConfigMixin]:
     """
     Get the appropriate proofing functions based on session info type.
 
-    - NinSessionInfo -> FrejaProofingFunctions (Swedish NIN via Freja)
+    - NinSessionInfo -> FrejaProofingFunctions (Swedish NIN via Freja), or SverigeIDProofingFunctions if the
+      chosen proofing method is SverigeID. Both eIDs assert the same attributes, so the session info can't
+      tell them apart.
     - BankIDSessionInfo -> BankIDProofingFunctions (Swedish NIN via BankID)
     - ForeignEidSessionInfo -> EidasProofingFunctions (Foreign identity via eIDAS)
 
@@ -518,6 +542,7 @@ def get_swedenconnect_proofing_functions(
     :param app_name: Name of the application for proofing logs
     :param config: Configuration with proofing settings
     :param backdoor: Whether backdoor/test mode is enabled
+    :param method: The proofing method the user chose, needed to tell eIDs with the same session info apart
     :returns: The appropriate proofing functions instance
     :raises UnsupportedMethod: If the session info type is not supported
     """
@@ -528,6 +553,10 @@ def get_swedenconnect_proofing_functions(
     # Exact class match: the session info classes must stay siblings, a subclass must never be routed to another
     # eID's proofing functions.
     if type(session_info) is NinSessionInfo:
+        if method == ProofingMethods.SVERIGEID:
+            return SverigeIDProofingFunctions(
+                session_info=session_info, app_name=app_name, config=config, backdoor=backdoor
+            )
         return FrejaProofingFunctions(session_info=session_info, app_name=app_name, config=config, backdoor=backdoor)
     elif type(session_info) is BankIDSessionInfo:
         return BankIDProofingFunctions(session_info=session_info, app_name=app_name, config=config, backdoor=backdoor)
