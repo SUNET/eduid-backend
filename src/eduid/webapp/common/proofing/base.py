@@ -85,6 +85,11 @@ class ProofingFunctions[SessionInfoVar, ConfigVar: ProofingConfigMixin = Proofin
     def verify_identity(self, user: User) -> VerifyUserResult:
         raise NotImplementedError("Subclass must implement verify_identity")
 
+    @property
+    def credential_proofing_version(self) -> str:
+        """The proofing version recorded on a credential verified with this method."""
+        return self.config.security_key_proofing_version
+
     def verify_credential(self, user: User, credential: Credential, loa: str | None) -> VerifyCredentialResult:
         proofing_user = ProofingUser.from_user(user, current_app.private_userdb)
 
@@ -109,7 +114,7 @@ class ProofingFunctions[SessionInfoVar, ConfigVar: ProofingConfigMixin = Proofin
         # Set token as verified
         credential.is_verified = True
         credential.proofing_method = self.config.security_key_proofing_method
-        credential.proofing_version = self.config.security_key_proofing_version
+        credential.proofing_version = self.credential_proofing_version
 
         # Save proofing log entry and save user
         if proofing_log_entry.data is None:

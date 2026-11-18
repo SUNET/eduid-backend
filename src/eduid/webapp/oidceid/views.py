@@ -210,7 +210,7 @@ def _authn(
         # set a test OP with minimal interaction for the integration tests
         magic_idp = select_magic_cookie_idp(
             proofing_method.method,
-            freja_idp=current_app.conf.magic_cookie_idp,
+            swedish_eid_idp=current_app.conf.magic_cookie_idp,
             bankid_idp=current_app.conf.magic_cookie_bankid_idp,
             eidas_idp=current_app.conf.magic_cookie_foreign_id_idp,
         )

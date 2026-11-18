@@ -6,6 +6,7 @@ user objects. Only the ambient ``current_proofing_app`` is replaced.
 """
 
 from datetime import UTC, datetime
+from typing import Any
 
 import pytest
 from pydantic import ValidationError
@@ -23,6 +24,7 @@ from eduid.webapp.common.proofing.swedenconnect.proofing import (
     BankIDProofingFunctions,
     EidasProofingFunctions,
     FrejaProofingFunctions,
+    NinSwedenConnectProofingFunctions,
     UnsupportedMethod,
     get_swedenconnect_proofing_functions,
 )
@@ -334,3 +336,40 @@ def test_authn_context_loa_map_follows_config_assignment() -> None:
     config = _Config()
     config.loa_authn_context_map = {"custom": "http://example.com/custom"}
     assert config.authn_context_loa_map == {"http://example.com/custom": "custom"}
+
+
+def test_nin_proofing_functions_requires_abstract_members() -> None:
+    class _Incomplete(NinSwedenConnectProofingFunctions):
+        pass
+
+    kwargs: dict[str, Any] = {
+        "session_info": object(),
+        "app_name": "testing",
+        "config": _Config.model_construct(),
+        "backdoor": False,
+    }
+    with pytest.raises(TypeError, match="abstract"):
+        _Incomplete(**kwargs)  # type: ignore[abstract]  # ty: ignore[abstract-class-instantiation]
+
+
+def test_nin_proofing_functions_requires_log_classes() -> None:
+    class _NoLogClasses(NinSwedenConnectProofingFunctions):
+        @property
+        def identity_proofing_version(self) -> str:
+            return "v1"
+
+        @property
+        def credential_proofing_version(self) -> str:
+            return "v1"
+
+        def is_accepted_credential_loa(self, loa: str | None) -> bool:
+            return True
+
+    kwargs: dict[str, Any] = {
+        "session_info": object(),
+        "app_name": "testing",
+        "config": _Config.model_construct(),
+        "backdoor": False,
+    }
+    with pytest.raises(TypeError, match="identity_log_class"):
+        _NoLogClasses(**kwargs)
