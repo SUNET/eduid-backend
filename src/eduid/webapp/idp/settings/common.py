@@ -149,6 +149,7 @@ class IdPConfig(EduIDBaseAppConfig, TouConfigMixin, Fido2RpConfigMixin, AmConfig
         default=[
             IdentityProofingMethod.SWEDEN_CONNECT,
             IdentityProofingMethod.BANKID,
+            IdentityProofingMethod.SVERIGEID,
             IdentityProofingMethod.LETTER,
         ]
     )
