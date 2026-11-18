@@ -6,16 +6,21 @@ from pydantic import ValidationError
 from eduid.common.rpc.msg_relay import DeregisteredCauseCode, DeregistrationInformation, FullPostalAddress, Name
 from eduid.common.testing_base import normalised_data
 from eduid.userdb.fixtures.users import UserFixtures
+from eduid.userdb.identity import IdentityProofingMethod
 from eduid.userdb.logs.db import ProofingLog
 from eduid.userdb.logs.element import (
     LadokProofing,
     LetterProofing,
     MailAddressProofing,
+    MFATokenProofing,
+    MFATokenSverigeIDProofing,
     NinNavetProofingLogElement,
     PhoneNumberProofing,
     ProofingLogElement,
     SeLegProofing,
     SeLegProofingFrejaEid,
+    SverigeIDProofing,
+    SwedenConnectProofing,
     TeleAdressProofing,
     TeleAdressProofingRelation,
 )
@@ -49,6 +54,58 @@ class TestProofingLog:
         assert hit["created_by"] == "test"
         assert hit["created_ts"] is not None
         assert hit["proofing_method"] == "test"
+
+    def test_sverigeid_proofing(self) -> None:
+        proofing_element = SverigeIDProofing(
+            eppn=self.user.eppn,
+            created_by="test",
+            proofing_version="2026v1",
+            issuer="https://op.example.com",
+            authn_context_class="http://id.elegnamnden.se/loa/1.0/loa4",
+            nin="197801012369",
+            given_name="Ulla",
+            surname="Alm",
+        )
+        assert self.proofing_log_db.save(proofing_element)
+
+        hit = next(iter(self.proofing_log_db._coll.find({})))
+        assert hit["proofing_method"] == "sverigeid"
+        assert hit["proofing_method"] == IdentityProofingMethod.SVERIGEID.value
+        assert hit["proofing_version"] == "2026v1"
+        assert hit["nin"] == "197801012369"
+
+    def test_mfa_token_sverigeid_proofing(self) -> None:
+        proofing_element = MFATokenSverigeIDProofing(
+            eppn=self.user.eppn,
+            created_by="test",
+            proofing_version="2026v1",
+            issuer="https://op.example.com",
+            authn_context_class="http://id.elegnamnden.se/loa/1.0/loa3",
+            key_id="key-1",
+            nin="197801012369",
+            given_name="Ulla",
+            surname="Alm",
+        )
+        assert isinstance(proofing_element, MFATokenProofing)
+        assert self.proofing_log_db.save(proofing_element)
+
+        hit = next(iter(self.proofing_log_db._coll.find({})))
+        assert hit["proofing_method"] == "sverigeid"
+        assert hit["key_id"] == "key-1"
+
+    def test_sweden_connect_proofing_method_is_unchanged(self) -> None:
+        kwargs = {
+            "eppn": self.user.eppn,
+            "created_by": "test",
+            "proofing_version": "2023v1",
+            "issuer": "https://op.example.com",
+            "authn_context_class": "http://id.elegnamnden.se/loa/1.0/loa3",
+            "nin": "197801012369",
+            "given_name": "Ulla",
+            "surname": "Alm",
+        }
+        assert SwedenConnectProofing(**kwargs).proofing_method == "swedenconnect"
+        assert MFATokenProofing(key_id="key-1", **kwargs).proofing_method == "swedenconnect"
 
     def test_teleadress_proofing(self) -> None:
         data = {

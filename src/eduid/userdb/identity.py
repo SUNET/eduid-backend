@@ -50,6 +50,7 @@ class IdentityProofingMethod(StrEnum):
     TELEADRESS = "TeleAdress"
     BANKID = "bankid"
     FREJA_EID = "freja_eid"
+    SVERIGEID = "sverigeid"
 
 
 class IdentityElement(VerifiedElement, ABC):
