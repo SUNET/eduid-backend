@@ -35,6 +35,8 @@ def test_defaults() -> None:
 def test_idps_match_providers() -> None:
     conf = _conf(
         providers=[_provider(OP1), _provider(OP2)],
+        environment="dev",
+        allow_shared_idp=True,
         freja_idp=OP1,
         foreign_identity_idp=OP2,
         bankid_idp=OP1,
@@ -65,6 +67,46 @@ def test_idp_not_matching_provider_rejected(field: str) -> None:
 def test_idp_without_providers_rejected() -> None:
     with pytest.raises(ValidationError):
         _conf(freja_idp=OP1)
+
+
+def test_shared_issuer_rejected_by_default() -> None:
+    providers = [_provider(OP1), _provider(OP2)]
+    with pytest.raises(ValidationError, match=r"op1\.example\.com is used for methods .*freja_idp.*bankid_idp"):
+        _conf(providers=providers, freja_idp=OP1, bankid_idp=OP1, foreign_identity_idp=OP2)
+
+
+@pytest.mark.parametrize("environment", ["dev", "staging"])
+def test_shared_issuer_accepted_with_allow_shared_idp(environment: str) -> None:
+    conf = _conf(
+        providers=[_provider(OP1)],
+        environment=environment,
+        allow_shared_idp=True,
+        freja_idp=OP1,
+        sverigeid_idp=OP1,
+    )
+    assert conf.freja_idp == conf.sverigeid_idp == OP1
+
+
+def test_allow_shared_idp_rejected_in_production() -> None:
+    providers = [_provider(OP1)]
+    with pytest.raises(ValidationError, match="allow_shared_idp is not permitted in production"):
+        _conf(providers=providers, environment="production", allow_shared_idp=True, freja_idp=OP1)
+
+
+def test_allow_shared_idp_rejected_in_default_environment() -> None:
+    providers = [_provider(OP1)]
+    with pytest.raises(ValidationError, match="allow_shared_idp is not permitted in production"):
+        _conf(providers=providers, allow_shared_idp=True, freja_idp=OP1)
+
+
+def test_distinct_issuers_accepted() -> None:
+    conf = _conf(providers=[_provider(OP1), _provider(OP2)], freja_idp=OP1, sverigeid_idp=OP2)
+    assert conf.allow_shared_idp is False
+
+
+def test_magic_cookie_idp_may_share_issuer() -> None:
+    conf = _conf(providers=[_provider(OP1)], freja_idp=OP1, magic_cookie_idp=OP1)
+    assert conf.magic_cookie_idp == OP1
 
 
 def test_duplicate_issuers_rejected() -> None:

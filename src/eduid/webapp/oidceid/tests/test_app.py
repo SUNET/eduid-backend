@@ -22,6 +22,8 @@ from eduid.common.clients.oidc_client.grindvakt_client import GrindvaktOidcRpCli
 from eduid.common.clients.oidc_client.testing import FakeOidcRpClient, StaticHttpClient
 from eduid.common.config.base import EduidEnvironment, FrontendAction
 from eduid.userdb import NinIdentity
+from eduid.userdb.credentials import FidoCredential
+from eduid.userdb.credentials.base import CredentialProofingMethod
 from eduid.userdb.credentials.external import (
     EidasCredential,
     ExternalCredential,
@@ -30,6 +32,12 @@ from eduid.userdb.credentials.external import (
 )
 from eduid.userdb.element import ElementKey
 from eduid.userdb.identity import EIDASIdentity, EIDASLoa, IdentityProofingMethod, PridPersistence
+from eduid.userdb.logs.element import (
+    MFATokenProofing,
+    MFATokenSverigeIDProofing,
+    SverigeIDProofing,
+    SwedenConnectProofing,
+)
 from eduid.webapp.common.api.messages import AuthnStatusMsg, CommonMsg, TranslatableMsg
 from eduid.webapp.common.api.testing import CSRFTestClient
 from eduid.webapp.common.api.utils import get_external_url
@@ -53,15 +61,18 @@ logger = logging.getLogger(__name__)
 # Two OpenID Providers: freja goes to A, eIDAS goes to B, the magic cookie swaps them
 OP_A = "https://op-a.example.com/oidc"
 OP_B = "https://op-b.example.com/oidc"
+OP_SVERIGEID = "https://op-sverigeid.example.com/oidc"
 CLIENT_ID = "test_client_id"
 EPOCH = datetime.datetime(1970, 1, 1, tzinfo=datetime.UTC)
 
 LOA3 = "http://id.elegnamnden.se/loa/1.0/loa3"
 LOA2 = "http://id.elegnamnden.se/loa/1.0/loa2"
+LOA4 = "http://id.elegnamnden.se/loa/1.0/loa4"
 EIDAS_NF_SUB = "http://id.elegnamnden.se/loa/1.0/eidas-nf-sub"
 EIDAS_NF_LOW = "http://id.elegnamnden.se/loa/1.0/eidas-nf-low"
 
 FREJA = "freja"
+SVERIGEID = "sverigeid"
 EIDAS = "eidas"
 
 
@@ -102,7 +113,7 @@ class OidcEidTests(ProofingTests[OidcEidApp]):
         )
         # The apps clients are restored after each test by setup_api
         self.fakes: dict[str, FakeOidcRpClient] = {}
-        for issuer in (OP_A, OP_B):
+        for issuer in (OP_A, OP_B, OP_SVERIGEID):
             self.fakes[issuer] = FakeOidcRpClient(authorization_endpoint=f"{issuer}/authorize", issuer=issuer)
             self.app.oidc_clients[issuer] = self.fakes[issuer]
 
@@ -128,7 +139,7 @@ class OidcEidTests(ProofingTests[OidcEidApp]):
                         "userinfo_typ": "userinfo+jwt",
                         "issuer": issuer,
                     }
-                    for issuer in (OP_A, OP_B)
+                    for issuer in (OP_A, OP_B, OP_SVERIGEID)
                 ],
                 "safe_relay_domain": "localhost",
                 "magic_cookie": "",
@@ -139,6 +150,7 @@ class OidcEidTests(ProofingTests[OidcEidApp]):
                 "magic_cookie_foreign_id_idp": OP_A,
                 "environment": "dev",
                 "freja_idp": OP_A,
+                "sverigeid_idp": OP_SVERIGEID,
                 "foreign_identity_idp": OP_B,
                 "errors_url_template": "http://localhost/errors?code={ERRORURL_CODE}&ts={ERRORURL_TS}&rp={ERRORURL_RP}"
                 "&tid={ERRORURL_TID}&ctx={ERRORURL_CTX}",
@@ -210,7 +222,7 @@ class OidcEidTests(ProofingTests[OidcEidApp]):
             "auth_time": now - age,
             oidc_claims.CLAIM_BIRTHDATE: (identity.date_of_birth or EPOCH).strftime("%Y-%m-%d"),
         }
-        if method == FREJA:
+        if method in (FREJA, SVERIGEID):
             claims.update(
                 {
                     "acr": acr or LOA3,
@@ -334,7 +346,7 @@ class OidcEidTests(ProofingTests[OidcEidApp]):
         if eppn is None:
             eppn = self.test_user_eppn
         if identity is None:
-            identity = self.test_user_nin if method == FREJA else self.test_user_eidas
+            identity = self.test_user_nin if method in (FREJA, SVERIGEID) else self.test_user_eidas
         if browser is None:
             browser = self.browser
         assert isinstance(browser, CSRFTestClient)
@@ -941,6 +953,7 @@ class NINMethodTests(OidcEidTests):
 
     def test_authn_unsupported_method(self) -> None:
         """bankid is not yet supported by the OPs"""
+        self.app.conf.allow_shared_idp = True
         self.app.conf.bankid_idp = OP_A
         response = self._post_anon(
             "/verify-identity",
@@ -1091,6 +1104,301 @@ class NINMethodTests(OidcEidTests):
                 assert ident.date_of_birth == datetime.datetime(1964, 12, 31, tzinfo=datetime.UTC)
                 assert ident.framework == TrustFramework.EIDAS
                 assert ident.loa == "eidas-nf-sub"
+
+
+NIN_METHODS = [
+    pytest.param(FREJA, IdentityProofingMethod.SWEDEN_CONNECT, SwedenConnectProofing, MFATokenProofing, id="freja"),
+    pytest.param(
+        SVERIGEID, IdentityProofingMethod.SVERIGEID, SverigeIDProofing, MFATokenSverigeIDProofing, id="sverigeid"
+    ),
+]
+
+
+class NinMethodParametrizedTests(OidcEidTests):
+    """The NIN methods (freja, sverigeid) assert the same attributes, but are recorded differently"""
+
+    def _proofing_version(self, method: str) -> str:
+        return self.app.conf.freja_proofing_version if method == FREJA else self.app.conf.sverigeid_proofing_version
+
+    def _security_key_proofing_version(self, method: str) -> str:
+        if method == FREJA:
+            return self.app.conf.security_key_proofing_version
+        return self.app.conf.security_key_sverigeid_proofing_version
+
+    @pytest.mark.parametrize(("method", "proofing_method", "log_class", "token_log_class"), NIN_METHODS)
+    def test_nin_verify(
+        self,
+        method: str,
+        proofing_method: IdentityProofingMethod,
+        log_class: type[SwedenConnectProofing],
+        token_log_class: type[MFATokenProofing],
+        mocker: MockerFixture,
+    ) -> None:
+        mocker.patch("eduid.webapp.common.api.helpers.get_reference_nin_from_navet_data", return_value=None)
+        mocker.patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync").side_effect = self.request_user_sync
+        eppn = self.test_unverified_user_eppn
+
+        self.reauthn(
+            "/verify-identity",
+            frontend_action=FrontendAction.VERIFY_IDENTITY,
+            method=method,
+            expect_msg=OidcEidMsg.identity_verify_success,
+            eppn=eppn,
+        )
+        user = self.app.central_userdb.get_user_by_eppn(eppn)
+        self._verify_user_parameters(
+            eppn,
+            num_mfa_tokens=0,
+            identity_verified=True,
+            num_proofings=1,
+            locked_identity=user.identities.nin,
+            proofing_method=proofing_method,
+            proofing_version=self._proofing_version(method),
+        )
+        assert user.identities.nin is not None
+        assert user.identities.nin.proofing_method == proofing_method
+        doc = self.app.proofing_log._get_documents_by_attr(attr="eduPersonPrincipalName", value=eppn)[0]
+        assert doc["proofing_method"] == proofing_method.value
+        assert doc["proofing_version"] == self._proofing_version(method)
+        assert doc["issuer"] == (OP_A if method == FREJA else OP_SVERIGEID)
+
+    @pytest.mark.parametrize(("method", "proofing_method", "log_class", "token_log_class"), NIN_METHODS)
+    def test_nin_verify_log_element_class(
+        self,
+        method: str,
+        proofing_method: IdentityProofingMethod,
+        log_class: type[SwedenConnectProofing],
+        token_log_class: type[MFATokenProofing],
+        mocker: MockerFixture,
+    ) -> None:
+        mocker.patch("eduid.webapp.common.api.helpers.get_reference_nin_from_navet_data", return_value=None)
+        mocker.patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync").side_effect = self.request_user_sync
+        save = mocker.spy(self.app.proofing_log, "save")
+
+        self.reauthn(
+            "/verify-identity",
+            frontend_action=FrontendAction.VERIFY_IDENTITY,
+            method=method,
+            expect_msg=OidcEidMsg.identity_verify_success,
+            eppn=self.test_unverified_user_eppn,
+        )
+        save.assert_called_once()
+        assert type(save.call_args.args[0]) is log_class
+
+    @pytest.mark.parametrize(("method", "proofing_method", "log_class", "token_log_class"), NIN_METHODS)
+    def test_webauthn_token_verify(
+        self,
+        method: str,
+        proofing_method: IdentityProofingMethod,
+        log_class: type[SwedenConnectProofing],
+        token_log_class: type[MFATokenProofing],
+        mocker: MockerFixture,
+    ) -> None:
+        mocker.patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync").side_effect = self.request_user_sync
+        eppn = self.test_user.eppn
+        credential = self.add_security_key_to_user(eppn, "test", "webauthn")
+        save = mocker.spy(self.app.proofing_log, "save")
+
+        self.verify_token(
+            endpoint="/verify-credential",
+            frontend_action=FrontendAction.VERIFY_CREDENTIAL,
+            eppn=eppn,
+            expect_msg=OidcEidMsg.credential_verify_success,
+            credentials_used=[credential.key, ElementKey("other_id")],
+            verify_credential=credential.key,
+            method=method,
+        )
+
+        self._verify_user_parameters(eppn, token_verified=True, num_proofings=1)
+        save.assert_called_once()
+        assert type(save.call_args.args[0]) is token_log_class
+        user = self.app.central_userdb.get_user_by_eppn(eppn)
+        token = user.credentials.filter(FidoCredential)[0]
+        assert token.proofing_method == CredentialProofingMethod.SWAMID_AL3_MFA
+        assert token.proofing_version == self._security_key_proofing_version(method)
+
+    @pytest.mark.parametrize(("method", "proofing_method", "log_class", "token_log_class"), NIN_METHODS)
+    def test_mfa_login(
+        self,
+        method: str,
+        proofing_method: IdentityProofingMethod,
+        log_class: type[SwedenConnectProofing],
+        token_log_class: type[MFATokenProofing],
+        mocker: MockerFixture,
+    ) -> None:
+        mocker.patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync").side_effect = self.request_user_sync
+        eppn = self.test_user.eppn
+
+        self.reauthn(
+            "/mfa-authenticate",
+            frontend_action=FrontendAction.LOGIN_MFA_AUTHN,
+            method=method,
+            expect_msg=OidcEidMsg.mfa_authn_success,
+            eppn=eppn,
+            logged_in=False,
+        )
+
+        user = self.app.central_userdb.get_user_by_eppn(eppn)
+        creds = user.credentials.filter(SwedenConnectCredential)
+        assert len(creds) == 1
+        assert creds[0].framework == TrustFramework.SWECONN
+        assert creds[0].level == "loa3"
+
+    @pytest.mark.parametrize(("method", "proofing_method", "log_class", "token_log_class"), NIN_METHODS)
+    def test_magic_cookie_swaps_op(
+        self,
+        method: str,
+        proofing_method: IdentityProofingMethod,
+        log_class: type[SwedenConnectProofing],
+        token_log_class: type[MFATokenProofing],
+    ) -> None:
+        self.app.conf.magic_cookie = "magic-cookie"
+        with self.session_cookie_and_magic_cookie(self.browser, eppn=self.test_user.eppn) as browser:
+            url = self._start(browser, "/verify-identity", method, FrontendAction.VERIFY_IDENTITY)
+            assert url is not None
+            _state, issuer = self._pending_authn(browser)
+        # sverigeid uses the same magic cookie OP as freja
+        assert issuer == OP_B
+
+    @pytest.mark.parametrize("method", [FREJA, SVERIGEID])
+    def test_mfa_register_callback_populates_identity(self, method: str) -> None:
+        with self.session_cookie_anon(self.browser) as browser:
+            self._start(browser, "/mfa-register", method, FrontendAction.SIGNUP_EXTERNAL_MFA)
+            state, issuer = self._pending_authn(browser)
+            response = self._callback(browser, state, self.build_claims(method, self.test_user_nin, issuer))
+            assert response.status_code == HTTPStatus.FOUND
+            with browser.session_transaction() as sess:
+                authn = sess.oidceid.rp.authns[OIDCState(state)]
+                assert authn.method == method
+                ident = authn.external_mfa_signup_identity
+                assert isinstance(ident, ExternalMfaSignupSwedenConnectIdentity)
+                assert ident.nin == self.test_user_nin.number
+                assert ident.framework == TrustFramework.SWECONN
+                assert ident.issuer == (OP_A if method == FREJA else OP_SVERIGEID)
+
+
+class SverigeIDMethodTests(OidcEidTests):
+    """Tests specific to the sverigeid method"""
+
+    def test_nin_verify_loa4(self, mocker: MockerFixture) -> None:
+        """SverigeID accepts loa4, Freja does not"""
+        mocker.patch("eduid.webapp.common.api.helpers.get_reference_nin_from_navet_data", return_value=None)
+        mocker.patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync").side_effect = self.request_user_sync
+        eppn = self.test_unverified_user_eppn
+
+        self.reauthn(
+            "/verify-identity",
+            frontend_action=FrontendAction.VERIFY_IDENTITY,
+            method=SVERIGEID,
+            expect_msg=OidcEidMsg.identity_verify_success,
+            eppn=eppn,
+            acr=LOA4,
+        )
+        self._verify_user_parameters(
+            eppn,
+            num_mfa_tokens=0,
+            identity=self.test_user_nin,
+            identity_verified=True,
+            num_proofings=1,
+            proofing_method=IdentityProofingMethod.SVERIGEID,
+        )
+
+    def test_nin_verify_loa4_not_accepted_for_freja(self) -> None:
+        eppn = self.test_unverified_user_eppn
+        self.reauthn(
+            "/verify-identity",
+            frontend_action=FrontendAction.VERIFY_IDENTITY,
+            method=FREJA,
+            expect_msg=OidcEidMsg.authn_context_mismatch,
+            expect_error=True,
+            eppn=eppn,
+            acr=LOA4,
+        )
+        self._verify_user_parameters(eppn, num_mfa_tokens=0, identity_verified=False, num_proofings=0)
+
+    def test_nin_verify_loa2_not_accepted(self) -> None:
+        eppn = self.test_unverified_user_eppn
+        self.reauthn(
+            "/verify-identity",
+            frontend_action=FrontendAction.VERIFY_IDENTITY,
+            method=SVERIGEID,
+            expect_msg=OidcEidMsg.authn_context_mismatch,
+            expect_error=True,
+            eppn=eppn,
+            acr=LOA2,
+        )
+        self._verify_user_parameters(eppn, num_mfa_tokens=0, identity_verified=False, num_proofings=0)
+
+    def test_webauthn_token_verify_loa4(self, mocker: MockerFixture) -> None:
+        mocker.patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync").side_effect = self.request_user_sync
+        eppn = self.test_user.eppn
+        credential = self.add_security_key_to_user(eppn, "test", "webauthn")
+
+        self.verify_token(
+            endpoint="/verify-credential",
+            frontend_action=FrontendAction.VERIFY_CREDENTIAL,
+            eppn=eppn,
+            expect_msg=OidcEidMsg.credential_verify_success,
+            credentials_used=[credential.key, ElementKey("other_id")],
+            verify_credential=credential.key,
+            method=SVERIGEID,
+            acr=LOA4,
+        )
+        self._verify_user_parameters(eppn, token_verified=True, num_proofings=1)
+
+    def test_mfa_login_loa4(self, mocker: MockerFixture) -> None:
+        mocker.patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync").side_effect = self.request_user_sync
+        eppn = self.test_user.eppn
+        self.reauthn(
+            "/mfa-authenticate",
+            frontend_action=FrontendAction.LOGIN_MFA_AUTHN,
+            method=SVERIGEID,
+            expect_msg=OidcEidMsg.mfa_authn_success,
+            eppn=eppn,
+            logged_in=False,
+            acr=LOA4,
+        )
+        user = self.app.central_userdb.get_user_by_eppn(eppn)
+        creds = user.credentials.filter(SwedenConnectCredential)
+        assert [cred.level for cred in creds] == ["loa4"]
+
+    def test_authn_method_not_available(self) -> None:
+        self.app.conf.sverigeid_idp = None
+        response = self._post_anon(
+            "/verify-identity",
+            {"method": SVERIGEID, "frontend_action": FrontendAction.VERIFY_IDENTITY.value},
+            eppn=self.test_user.eppn,
+        )
+        self._check_error_response(
+            response=response, type_="POST_OIDCEID_VERIFY_IDENTITY_FAIL", msg=OidcEidMsg.method_not_available
+        )
+
+    def test_magic_cookie_missing_config(self) -> None:
+        self.app.conf.magic_cookie = "magic-cookie"
+        self.app.conf.magic_cookie_idp = None
+        with self.session_cookie_and_magic_cookie(self.browser, eppn=self.test_user.eppn) as browser:
+            with browser.session_transaction() as sess:
+                csrf_token = sess.get_csrf_token()
+            response = browser.post(
+                "/verify-identity",
+                json={
+                    "csrf_token": csrf_token,
+                    "method": SVERIGEID,
+                    "frontend_action": FrontendAction.VERIFY_IDENTITY.value,
+                },
+            )
+        self._check_error_response(response=response, type_=None, msg=OidcEidMsg.method_not_available)
+
+    def test_authorization_request_scopes_and_claims(self) -> None:
+        assert oidc_claims.scopes_for_method(ProofingMethods.SVERIGEID) == oidc_claims.scopes_for_method(
+            ProofingMethods.FREJA
+        )
+        params = oidc_claims.build_authn_params(
+            ProofingMethods.SVERIGEID, ["loa3", "loa4"], self.app.conf, force_authn=False
+        )
+        id_token = json.loads(params["claims"])["id_token"]
+        assert id_token["acr"]["values"] == [LOA3, LOA4]
+        assert oidc_claims.CLAIM_PERSONAL_IDENTITY_NUMBER in id_token
 
 
 class EidasMethodTests(OidcEidTests):

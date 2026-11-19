@@ -41,6 +41,7 @@ class ProofingMethods(StrEnum):
     EIDAS = "eidas"
     FREJA = "freja"
     FREJA_EID = "freja_eid"
+    SVERIGEID = "sverigeid"
     SVIPE_ID = "svipe_id"
 
 
@@ -91,6 +92,14 @@ class ProofingMethodFreja(ProofingMethodSAML):
             parsed_session_info.attributes.nin = magic_cookie_nin
 
         return SessionInfoParseResult(info=parsed_session_info)
+
+
+@dataclass(frozen=True)
+class ProofingMethodSverigeID(ProofingMethodFreja):
+    """
+    SverigeID asserts the same attributes as Freja eID in Sweden Connect, so the session info is parsed in the
+    same way (NinSessionInfo). The proofing method is what tells them apart.
+    """
 
 
 @dataclass(frozen=True)
@@ -176,6 +185,7 @@ def get_proofing_method(
     config: ProofingConfigMixin,
 ) -> (
     ProofingMethodFreja
+    | ProofingMethodSverigeID
     | ProofingMethodEidas
     | ProofingMethodSvipe
     | ProofingMethodBankID
@@ -207,6 +217,17 @@ def get_proofing_method(
                 idp=config.freja_idp,
                 method=_method,
                 required_loa=config.required_loa,
+            )
+        case ProofingMethods.SVERIGEID:
+            if not config.sverigeid_idp:
+                logger.warning(f"Missing configuration sverigeid_idp required for proofing method {method}")
+                return None
+            return ProofingMethodSverigeID(
+                finish_url=authn_params.finish_url,
+                framework=TrustFramework.SWECONN,
+                idp=config.sverigeid_idp,
+                method=_method,
+                required_loa=config.sverigeid_required_loa,
             )
         case ProofingMethods.EIDAS:
             if not config.foreign_identity_idp:

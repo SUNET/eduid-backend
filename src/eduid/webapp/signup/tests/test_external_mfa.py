@@ -90,10 +90,12 @@ class ExternalMfaSignupTestsBase(BaseSignupTests):
         authn_id: str = "authn-oidceid-1",
         nin: str = "198001011234",
         framework: TrustFramework = TrustFramework.BANKID,
+        method: ProofingMethods | None = None,
     ) -> None:
         ident: ExternalMfaSignupBankIDIdentity | ExternalMfaSignupSwedenConnectIdentity
         # mirror production, where the framework is derived from the proofing method (get_proofing_method)
-        method = ProofingMethods.BANKID if framework == TrustFramework.BANKID else ProofingMethods.FREJA
+        if method is None:
+            method = ProofingMethods.BANKID if framework == TrustFramework.BANKID else ProofingMethods.FREJA
         match framework:
             case TrustFramework.BANKID:
                 ident = ExternalMfaSignupBankIDIdentity(
@@ -1050,7 +1052,7 @@ class ExternalMfaSignupTests(ExternalMfaSignupTestsBase):
                 "oidceid",
                 TrustFramework.BANKID,
                 BankIDCredential,
-                "oidceid_proofing_version",
+                "bankid_proofing_version",
                 IdentityProofingMethod.BANKID,
             ),
             # oidceid RP with Swedish Freja (SwedenConnect) NIN
@@ -1058,7 +1060,7 @@ class ExternalMfaSignupTests(ExternalMfaSignupTestsBase):
                 "oidceid",
                 TrustFramework.SWECONN,
                 SwedenConnectCredential,
-                "oidceid_proofing_version",
+                "freja_proofing_version",
                 IdentityProofingMethod.SWEDEN_CONNECT,
             ),
             # freja_eid RP — TrustFramework.FREJA → FrejaCredential
@@ -1159,9 +1161,7 @@ class ExternalMfaSignupTests(ExternalMfaSignupTestsBase):
             TrustFramework.FREJA: conf.freja_eid_proofing_version,
         }
         with self.app.app_context():
-            assert identity_proofing_version_for_framework(framework, "oidceid") == conf.oidceid_proofing_version
-            for app_name in ("samleid", "eidas", "bankid", "freja_eid"):
-                assert identity_proofing_version_for_framework(framework, app_name) == framework_versions[framework]
+            assert identity_proofing_version_for_framework(framework) == framework_versions[framework]
 
     def test_create_user_rejects_stale_external_mfa(self) -> None:
         """External MFA stored long before /create-user is rejected as too old."""
@@ -1271,6 +1271,10 @@ class ExternalMfaWebauthnVerificationTests(ExternalMfaSignupTestsBase):
                 },
                 # Use a shorter credential verify max age so we can test staleness
                 # without hitting the external MFA max_age check (default 5 min)
+                "freja_proofing_version": "freja-test-v9",
+                "security_key_proofing_version": "sk-freja-test-v9",
+                "sverigeid_proofing_version": "sverigeid-test-v9",
+                "security_key_sverigeid_proofing_version": "sk-sverigeid-test-v9",
                 "credential_verify_max_age": timedelta(minutes=2),
             }
         )
@@ -1327,8 +1331,8 @@ class ExternalMfaWebauthnVerificationTests(ExternalMfaSignupTestsBase):
         # There should be entries for: email, identity proofing, and credential verification
         assert len(log_entries) >= 3
 
-    def test_webauthn_verified_with_oidceid_uses_oidceid_proofing_version(self) -> None:
-        """Credential and identity proofing versions for oidceid come from oidceid_proofing_version."""
+    def test_webauthn_verified_with_oidceid_freja_uses_per_method_proofing_versions(self) -> None:
+        """Oidceid Freja signup uses freja_proofing_version (identity) and security_key_proofing_version (credential)."""
         self._seed_oidceid_authn(nin="198001011234", authn_id="authn-1", framework=TrustFramework.SWECONN)
         self._call_external_mfa_register("oidceid", "authn-1")
         self._set_webauthn_in_session(registered_at=utc_now())
@@ -1341,18 +1345,80 @@ class ExternalMfaWebauthnVerificationTests(ExternalMfaSignupTestsBase):
                 eppn = sess.common.eppn
         assert eppn is not None
 
-        expected = self.app.conf.oidceid_proofing_version
-        assert expected != self.app.conf.security_key_proofing_version
+        identity_version = "freja-test-v9"
+        credential_version = "sk-freja-test-v9"
+        assert self.app.conf.freja_proofing_version == identity_version
+        assert self.app.conf.security_key_proofing_version == credential_version
         webauthn_creds = self._get_user_webauthn_credentials(eppn)
         assert len(webauthn_creds) == 1
         assert webauthn_creds[0].is_verified is True
-        assert webauthn_creds[0].proofing_version == expected
+        assert webauthn_creds[0].proofing_version == credential_version
+        user = self.app.central_userdb.get_user_by_eppn(eppn)
+        assert user.identities.nin is not None
+        assert user.identities.nin.proofing_version == identity_version
 
         log_entries = list(self.app.proofing_log._coll.find({"eduPersonPrincipalName": eppn}))
-        # email entry keeps its own version; every other (identity and credential) entry carries the oidceid version
         external = [e for e in log_entries if e.get("proofing_method") != "e-mail"]
-        assert len(external) >= 1, log_entries
-        assert all(e["proofing_version"] == expected for e in external), log_entries
+        identity_entries = [e for e in external if "key_id" not in e]
+        credential_entries = [e for e in external if "key_id" in e]
+        assert len(identity_entries) >= 1, log_entries
+        assert len(credential_entries) == 1, log_entries
+        assert all(e["proofing_version"] == identity_version for e in identity_entries), log_entries
+        assert credential_entries[0]["proofing_version"] == credential_version
+
+    def test_oidceid_sverigeid_identity_and_credential_proofing(self) -> None:
+        """SverigeID shares the SWECONN framework with Freja, the proofing method tells them apart."""
+        nin = "198001011234"
+        self._seed_oidceid_authn(
+            nin=nin, authn_id="authn-1", framework=TrustFramework.SWECONN, method=ProofingMethods.SVERIGEID
+        )
+        self._call_external_mfa_register("oidceid", "authn-1")
+        self._set_webauthn_in_session(registered_at=utc_now())
+        self._prepare_for_create_user(given_name="Anna", surname="Andersson", email="anna.sverigeid@example.com")
+
+        self._create_user(data={"use_webauthn": True})
+
+        with self.session_cookie_anon(self.browser) as client:
+            with client.session_transaction() as sess:
+                eppn = sess.common.eppn
+        assert eppn is not None
+        user = self.app.central_userdb.get_user_by_eppn(eppn)
+        assert user.identities.nin is not None
+        assert user.identities.nin.proofing_method == IdentityProofingMethod.SVERIGEID
+        # still a Sweden Connect credential
+        assert len(user.credentials.filter(SwedenConnectCredential)) == 1
+
+        log_entries = list(self.app.proofing_log._coll.find({"eduPersonPrincipalName": eppn}))
+        sverigeid_entries = [e for e in log_entries if e.get("proofing_method") == IdentityProofingMethod.SVERIGEID]
+        # one for the identity and one for the webauthn credential
+        assert len(sverigeid_entries) == 2
+        assert sorted("key_id" in e for e in sverigeid_entries) == [False, True]
+        assert not [e for e in log_entries if e.get("proofing_method") == IdentityProofingMethod.SWEDEN_CONNECT]
+
+        # identity and credential entries carry the SverigeID specific versions, not the generic Freja versions
+        identity_entry = next(e for e in sverigeid_entries if "key_id" not in e)
+        credential_entry = next(e for e in sverigeid_entries if "key_id" in e)
+        assert identity_entry["proofing_version"] == "sverigeid-test-v9"
+        assert credential_entry["proofing_version"] == "sk-sverigeid-test-v9"
+        assert user.identities.nin.proofing_version == "sverigeid-test-v9"
+        webauthn_creds = self._get_user_webauthn_credentials(eppn)
+        assert len(webauthn_creds) == 1
+        assert webauthn_creds[0].proofing_version == "sk-sverigeid-test-v9"
+
+    def test_oidceid_freja_identity_proofing_method_unchanged(self) -> None:
+        self._seed_oidceid_authn(nin="198001011234", authn_id="authn-1", framework=TrustFramework.SWECONN)
+        self._call_external_mfa_register("oidceid", "authn-1")
+        self._prepare_for_create_user(given_name="Anna", surname="Andersson", email="anna.freja@example.com")
+
+        self._create_user()
+
+        with self.session_cookie_anon(self.browser) as client:
+            with client.session_transaction() as sess:
+                eppn = sess.common.eppn
+        assert eppn is not None
+        user = self.app.central_userdb.get_user_by_eppn(eppn)
+        assert user.identities.nin is not None
+        assert user.identities.nin.proofing_method == IdentityProofingMethod.SWEDEN_CONNECT
 
     def test_webauthn_not_verified_stale_external_mfa(self) -> None:
         """Webauthn credential stays unverified when external MFA authn_instant is too old."""
