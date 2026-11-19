@@ -211,8 +211,16 @@ def test_sverigeid_loa_follows_config() -> None:
     assert fn.is_accepted_credential_loa("loa3") is False
 
 
-def test_sverigeid_loa_config_cannot_lower_floor() -> None:
-    config = _Config(sverigeid_required_loa=["loa2", "loa3"])
+@pytest.mark.parametrize("required_loa", [[], ["loa2"], ["loa2", "loa3"], ["loa3", "unknown"]])
+def test_sverigeid_required_loa_config_rejects_below_floor(required_loa: list[str]) -> None:
+    kwargs = {"sverigeid_required_loa": required_loa}
+    with pytest.raises(ValidationError, match="sverigeid_required_loa"):
+        _Config(**kwargs)
+
+
+def test_sverigeid_credential_guard_keeps_floor() -> None:
+    # Defence in depth: even if config validation were bypassed, loa2 is never accepted for a credential
+    config = _Config.model_construct(sverigeid_required_loa=["loa2", "loa3"])
     fn = SverigeIDProofingFunctions(
         session_info=_nin_session_info("loa2"), app_name="testing", config=config, backdoor=False
     )

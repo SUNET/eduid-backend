@@ -21,7 +21,7 @@ from fido_mds.models.fido_mds import AuthenticatorStatus
 from pydantic import AfterValidator, BaseModel, ConfigDict, Field, ValidationInfo, field_validator, model_validator
 
 from eduid.userdb.credentials import CredentialProofingMethod
-from eduid.userdb.credentials.external import TrustFramework
+from eduid.userdb.credentials.external import SWEDEN_CONNECT_AL3_LOAS, TrustFramework
 
 
 class CeleryConfig(BaseModel):
@@ -516,6 +516,19 @@ class ProofingConfigMixin(FrontendActionMixin):
     security_key_foreign_eid_proofing_version: str = Field(default="2022v1")
     security_key_freja_eid_proofing_version: str = Field(default="2024v1")
     security_key_foreign_freja_eid_proofing_version: str = Field(default="2025v1")
+
+    @field_validator("sverigeid_required_loa")
+    @classmethod
+    def _check_sverigeid_required_loa(cls, value: list[str]) -> list[str]:
+        # A verified SverigeID credential asserts SWAMID AL3, so every flow must enforce the AL3 floor
+        if not value:
+            raise ValueError("sverigeid_required_loa must not be empty")
+        below_floor = sorted(set(value) - SWEDEN_CONNECT_AL3_LOAS)
+        if below_floor:
+            raise ValueError(
+                f"sverigeid_required_loa may only contain {sorted(SWEDEN_CONNECT_AL3_LOAS)}: {below_floor}"
+            )
+        return value
 
 
 class SwedenConnectProofingConfigMixin(ProofingConfigMixin):
