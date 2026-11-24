@@ -9,8 +9,9 @@ from flask import current_app as flask_current_app
 from pygamlastan.compat.saml2.config import SPConfig
 from pygamlastan.compat.saml2.typing import SAMLHttpArgs
 
-# init_pysaml2 is IdP-only: it must stay on real pysaml2, since pygamlastan's IdP
-# surface (compat.saml2.server) isn't implemented yet (Phase 2).
+# init_pysaml2 is IdP-only, so it stays on real pysaml2 here. pygamlastan will not get a
+# pysaml2-compatible IdP layer (compat.saml2.server is a placeholder by design); the IdP
+# moves to the native pygamlastan.idp.ResponseEngine as a separate port.
 from saml2 import server
 
 from eduid.common.config.base import AuthnParameters, EduIDBaseAppConfig, FrontendAction, FrontendActionMixin
