@@ -1165,9 +1165,9 @@ pydantic-core==2.50.4 \
     --hash=sha256:fc04affef30be98c1f36f0c422a4061ef618fdc1dde79f5ad5458dd496fecffa \
     --hash=sha256:ffb616d8d55965839670301dc3bae3abacff560a7e137a89056058a8a9da4d96
     # via pydantic
-pygamlastan==0.6.0 \
-    --hash=sha256:3a32fd0522f91bda3a6036c9e58814731abc514afaa97dfc8dcf9df349841c2a \
-    --hash=sha256:e3d9a3c89cbeef97c34fb299ea3fdace591c583ab5f2ea9562da89e2b1d2a367
+pygamlastan==0.7.0 \
+    --hash=sha256:0599c36865c981599195e626c992a6c8b1d8827ca10e505f72f2204ef44c8466 \
+    --hash=sha256:a4fbaeec65cb556a4b797e90b1a131d155dff6ded92084373c5f48474f31dfbd
     # via eduid-backend (../pyproject.toml)
 pygrindvakt==0.4.1 \
     --hash=sha256:4382c2e8ece7b77e9ef3a15128c860b5bd1d8bee69eb96110cccda93fa58baf6 \
