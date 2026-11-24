@@ -21,7 +21,7 @@ from fido_mds.models.fido_mds import AuthenticatorStatus
 from pydantic import AfterValidator, BaseModel, ConfigDict, Field, ValidationInfo, field_validator, model_validator
 
 from eduid.userdb.credentials import CredentialProofingMethod
-from eduid.userdb.credentials.external import TrustFramework
+from eduid.userdb.credentials.external import SWEDEN_CONNECT_AL3_LOAS, TrustFramework
 
 
 class CeleryConfig(BaseModel):
@@ -485,6 +485,10 @@ class ProofingConfigMixin(FrontendActionMixin):
     required_loa: list[str] = Field(default=["loa3"])
     freja_idp: str | None = None
 
+    # sverigeid (Swedish state e-legitimation), a Sweden Connect eID of its own OpenID Provider
+    sverigeid_idp: str | None = None
+    sverigeid_required_loa: list[str] = Field(default=["loa3", "loa4"])
+
     # eidas
     foreign_required_loa: list[str] = Field(default=["eidas-nf-sub", "eidas-nf-high"])
     foreign_identity_idp: str | None = None
@@ -499,6 +503,7 @@ class ProofingConfigMixin(FrontendActionMixin):
 
     # identity proofing
     freja_proofing_version: str = Field(default="2023v1")
+    sverigeid_proofing_version: str = Field(default="2026v1")
     foreign_eid_proofing_version: str = Field(default="2022v1")
     svipe_id_proofing_version: str = Field(default="2023v2")
     bankid_proofing_version: str = Field(default="2023v1")
@@ -507,9 +512,23 @@ class ProofingConfigMixin(FrontendActionMixin):
     # security key proofing
     security_key_proofing_method: CredentialProofingMethod = Field(default=CredentialProofingMethod.SWAMID_AL3_MFA)
     security_key_proofing_version: str = Field(default="2023v2")
+    security_key_sverigeid_proofing_version: str = Field(default="2026v1")
     security_key_foreign_eid_proofing_version: str = Field(default="2022v1")
     security_key_freja_eid_proofing_version: str = Field(default="2024v1")
     security_key_foreign_freja_eid_proofing_version: str = Field(default="2025v1")
+
+    @field_validator("sverigeid_required_loa")
+    @classmethod
+    def _check_sverigeid_required_loa(cls, value: list[str]) -> list[str]:
+        # A verified SverigeID credential asserts SWAMID AL3, so every flow must enforce the AL3 floor
+        if not value:
+            raise ValueError("sverigeid_required_loa must not be empty")
+        below_floor = sorted(set(value) - SWEDEN_CONNECT_AL3_LOAS)
+        if below_floor:
+            raise ValueError(
+                f"sverigeid_required_loa may only contain {sorted(SWEDEN_CONNECT_AL3_LOAS)}: {below_floor}"
+            )
+        return value
 
 
 class SwedenConnectProofingConfigMixin(ProofingConfigMixin):

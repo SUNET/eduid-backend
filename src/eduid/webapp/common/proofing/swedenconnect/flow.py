@@ -16,6 +16,7 @@ from collections.abc import Callable, Mapping
 from copy import deepcopy
 from dataclasses import dataclass
 from datetime import UTC, datetime
+from functools import partial
 from typing import Any
 
 from flask import redirect
@@ -31,6 +32,7 @@ from eduid.webapp.common.authn.acs_registry import ACSArgs, ACSResult
 from eduid.webapp.common.authn.session_info import SessionInfo
 from eduid.webapp.common.authn.utils import check_reauthn
 from eduid.webapp.common.proofing.app import ProofingApp
+from eduid.webapp.common.proofing.base import ProofingFunctions
 from eduid.webapp.common.proofing.methods import ProofingMethods
 from eduid.webapp.common.proofing.mfa_signup import parse_mfa_register_args
 from eduid.webapp.common.proofing.shared_actions import (
@@ -80,6 +82,17 @@ class SwedenConnectMsgs:
     credential_verification_not_allowed: TranslatableMsg
 
 
+def _proofing_functions_for(args: ACSArgs) -> Callable[..., ProofingFunctions[Any, Any]]:
+    """
+    The proofing functions factory bound to the chosen proofing method.
+
+    The session info types can't always tell the eIDs apart (Freja eID and SverigeID assert the same attributes),
+    so the proofing method the user chose has to be part of the dispatch.
+    """
+    method = args.proofing_method.method if args.proofing_method else None
+    return partial(get_swedenconnect_proofing_functions, method=method)
+
+
 # ---------------------------------------------------------------------------
 # ACS/callback action bodies
 # ---------------------------------------------------------------------------
@@ -93,7 +106,7 @@ def sc_verify_identity(
         user,
         args,
         common_saml_checks=common_checks,
-        get_proofing_functions=get_swedenconnect_proofing_functions,
+        get_proofing_functions=_proofing_functions_for(args),
         method_not_available_msg=msgs.method_not_available,
         identity_verify_success_msg=msgs.identity_verify_success,
         app=app,
@@ -108,7 +121,7 @@ def sc_verify_credential(
         user,
         args,
         common_saml_checks=common_checks,
-        get_proofing_functions=get_swedenconnect_proofing_functions,
+        get_proofing_functions=_proofing_functions_for(args),
         method_not_available_msg=msgs.method_not_available,
         credential_not_found_msg=msgs.credential_not_found,
         identity_not_matching_msg=msgs.identity_not_matching,
@@ -129,7 +142,7 @@ def sc_mfa_authenticate(
     return run_mfa_authenticate(
         args,
         common_saml_checks=common_checks,
-        get_proofing_functions=get_swedenconnect_proofing_functions,
+        get_proofing_functions=_proofing_functions_for(args),
         get_user=get_user,
         method_not_available_msg=msgs.method_not_available,
         identity_not_matching_msg=msgs.identity_not_matching,
@@ -145,7 +158,7 @@ def sc_mfa_register(
     parsed = parse_mfa_register_args(
         args,
         common_saml_checks=common_checks,
-        get_proofing_functions=get_swedenconnect_proofing_functions,
+        get_proofing_functions=_proofing_functions_for(args),
         method_not_available_msg=msgs.method_not_available,
         app=app,
     )
@@ -240,9 +253,11 @@ def select_magic_cookie_idp(
     """
     Pick the test IdP to use when the magic cookie is present.
 
+    SverigeID uses the same magic cookie OP as Freja.
+
     :returns: the IdP for the method, or None if magic cookie is not supported for the method
     """
-    if method == ProofingMethods.FREJA and swedish_eid_idp:
+    if method in (ProofingMethods.FREJA, ProofingMethods.SVERIGEID) and swedish_eid_idp:
         return swedish_eid_idp
     if method == ProofingMethods.BANKID and bankid_idp:
         return bankid_idp

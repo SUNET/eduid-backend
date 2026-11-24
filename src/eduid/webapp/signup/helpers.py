@@ -390,9 +390,9 @@ def record_user_identity(signup_user: SignupUser, external_mfa: SignupExternalMf
             created_by=current_app.conf.app_name,
         )
     )
-    identity_proofing_method = identity_proofing_method_for_framework(external_mfa.ident.framework)
+    identity_proofing_method = identity_proofing_method_for_framework(external_mfa.ident.framework, external_mfa.method)
     identity_proofing_version = identity_proofing_version_for_framework(
-        external_mfa.ident.framework, external_mfa.app_name
+        external_mfa.ident.framework, external_mfa.method
     )
     match external_mfa.ident:
         case (

@@ -25,11 +25,14 @@ from eduid.userdb.logs.element import (
     MFATokenFrejaEIDForeignProofing,
     MFATokenFrejaEIDProofing,
     MFATokenProofing,
+    MFATokenSverigeIDProofing,
+    SverigeIDProofing,
     SwedenConnectEIDASProofing,
     SwedenConnectProofing,
 )
 from eduid.userdb.signup import SignupUser
 from eduid.webapp.common.api.exceptions import ProofingLogFailure
+from eduid.webapp.common.proofing.methods import ProofingMethods
 from eduid.webapp.common.session import session
 from eduid.webapp.common.session.namespaces import (
     AuthnRequestRef,
@@ -64,13 +67,22 @@ def build_external_credential(framework: TrustFramework, loa: str, created_by: s
             raise ValueError(f"Unsupported TrustFramework: {framework}")
 
 
-def identity_proofing_method_for_framework(framework: TrustFramework) -> IdentityProofingMethod:
+def identity_proofing_method_for_framework(
+    framework: TrustFramework, method: str | None = None
+) -> IdentityProofingMethod:
     """Map the external MFA TrustFramework to the IdentityProofingMethod to record
     on the verified NinIdentity/EIDASIdentity. Required so that the IdP DIGG LoA 2
-    assurance check recognizes the proofing method."""
+    assurance check recognizes the proofing method.
+
+    :param framework: The TrustFramework of the verified identity
+    :param method: The proofing method chosen (SignupExternalMfa.method). SverigeID shares the SWECONN framework
+                   (and the identity and credential classes) with Freja, so the method is what tells them apart.
+    """
     match framework:
         case TrustFramework.BANKID:
             return IdentityProofingMethod.BANKID
+        case TrustFramework.SWECONN if method == ProofingMethods.SVERIGEID:
+            return IdentityProofingMethod.SVERIGEID
         case TrustFramework.SWECONN | TrustFramework.EIDAS:
             return IdentityProofingMethod.SWEDEN_CONNECT
         case TrustFramework.FREJA:
@@ -79,14 +91,14 @@ def identity_proofing_method_for_framework(framework: TrustFramework) -> Identit
             raise ValueError(f"Unsupported TrustFramework: {framework}")
 
 
-def identity_proofing_version_for_framework(framework: TrustFramework, app_name: str) -> str:
+def identity_proofing_version_for_framework(framework: TrustFramework, method: str | None = None) -> str:
     """Return the configured proofing version string for the given TrustFramework.
 
     :param framework: The TrustFramework of the verified identity
-    :param app_name: Name of the app the identity was verified in (SignupExternalMfa.app_name)
+    :param method: The proofing method chosen (SignupExternalMfa.method), tells SverigeID apart from Freja
     """
-    if app_name == "oidceid":
-        return current_app.conf.oidceid_proofing_version
+    if framework == TrustFramework.SWECONN and method == ProofingMethods.SVERIGEID:
+        return current_app.conf.sverigeid_proofing_version
     match framework:
         case TrustFramework.SWECONN:
             return current_app.conf.freja_proofing_version
@@ -100,10 +112,10 @@ def identity_proofing_version_for_framework(framework: TrustFramework, app_name:
             raise ValueError(f"Unsupported TrustFramework: {framework}")
 
 
-def _credential_proofing_version_for_identity(identity: ExternalMfaSignupIdentity, app_name: str) -> str:
-    """Return the configured credential proofing version string for the given identity type and originating app."""
-    if app_name == "oidceid":
-        return current_app.conf.oidceid_proofing_version
+def _credential_proofing_version_for_identity(identity: ExternalMfaSignupIdentity, method: str | None = None) -> str:
+    """Return the configured credential proofing version string for the given identity type."""
+    if isinstance(identity, ExternalMfaSignupSwedenConnectIdentity) and method == ProofingMethods.SVERIGEID:
+        return current_app.conf.security_key_sverigeid_proofing_version
     match identity:
         case ExternalMfaSignupSwedenConnectIdentity() | ExternalMfaSignupBankIDIdentity():
             return current_app.conf.security_key_proofing_version
@@ -156,7 +168,7 @@ def maybe_verify_webauthn_credential(
     credential.verified_by = current_app.conf.app_name
     credential.verified_ts = now
     credential.proofing_method = current_app.conf.security_key_proofing_method
-    credential.proofing_version = _credential_proofing_version_for_identity(external_mfa.ident, external_mfa.app_name)
+    credential.proofing_version = _credential_proofing_version_for_identity(external_mfa.ident, external_mfa.method)
     current_app.logger.info(f"Marked webauthn credential {webauthn.key} as verified via external MFA during signup")
 
 
@@ -165,7 +177,7 @@ def _write_credential_verification_proofing_log(
 ) -> bool:
     """Write a proofing log entry for a webauthn credential verified via external MFA during signup."""
     app_name = current_app.conf.app_name
-    version = _credential_proofing_version_for_identity(external_mfa.ident, external_mfa.app_name)
+    version = _credential_proofing_version_for_identity(external_mfa.ident, external_mfa.method)
 
     entry: (
         MFATokenProofing
@@ -188,7 +200,10 @@ def _write_credential_verification_proofing_log(
                 transaction_id=external_mfa.ident.transaction_id,
             )
         case ExternalMfaSignupSwedenConnectIdentity():
-            entry = MFATokenProofing(
+            sc_token_class = (
+                MFATokenSverigeIDProofing if external_mfa.method == ProofingMethods.SVERIGEID else MFATokenProofing
+            )
+            entry = sc_token_class(
                 authn_context_class=external_mfa.ident.authn_context_class,
                 created_by=app_name,
                 eppn=signup_user.eppn,
@@ -262,7 +277,7 @@ def write_external_mfa_proofing_log(signup_user: SignupUser, external_mfa: Signu
 
     app_name = current_app.conf.app_name
     method = external_mfa.method
-    version = identity_proofing_version_for_framework(external_mfa.ident.framework, external_mfa.app_name)
+    version = identity_proofing_version_for_framework(external_mfa.ident.framework, method)
     entry: (
         BankIDProofing
         | SwedenConnectProofing
@@ -283,7 +298,8 @@ def write_external_mfa_proofing_log(signup_user: SignupUser, external_mfa: Signu
                 transaction_id=external_mfa.ident.transaction_id,
             )
         case ExternalMfaSignupSwedenConnectIdentity():
-            entry = SwedenConnectProofing(
+            sc_class = SverigeIDProofing if external_mfa.method == ProofingMethods.SVERIGEID else SwedenConnectProofing
+            entry = sc_class(
                 eppn=signup_user.eppn,
                 created_by=app_name,
                 proofing_version=version,
